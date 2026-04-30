@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+@theme {
+  --color-navy: #0D1B2A;
+  --color-coral: #D85A30;
+  --color-teal: #1D9E75;
+  --color-body-text: #3D3D3A;
+  --color-muted-text: #5F5E5A;
+  --color-rule: #B4B2A9;
+  --color-paper: #F5F5F4;
+
+  --font-heading: Georgia, "Times New Roman", Times, serif;
+  --font-sans: var(--font-inter), Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  background: #ffffff;
+  color: #3D3D3A;
+  font-family: var(--font-inter), Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: Georgia, "Times New Roman", Times, serif;
+  line-height: 1.2;
+  color: #0D1B2A;
+}
+
+/* On dark backgrounds, headings should be white */
+.bg-navy h1,
+.bg-navy h2,
+.bg-navy h3 {
+  color: #ffffff;
+}
+
+a {
+  color: #D85A30;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Focus states for accessibility */
+:focus-visible {
+  outline: 2px solid #D85A30;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Details/Summary accordion */
+details summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+details summary::-webkit-details-marker {
+  display: none;
+}
+
+details summary::after {
+  content: "+";
+  font-size: 1.25rem;
+  line-height: 1;
+  flex-shrink: 0;
+  color: #D85A30;
+  transition: transform 0.15s ease;
+}
+
+details[open] summary::after {
+  content: "−";
+}
