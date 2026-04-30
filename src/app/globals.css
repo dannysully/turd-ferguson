@@ -1,16 +1,16 @@
 @import "tailwindcss";
 
 @theme {
-  --color-navy: #0D1B2A;
-  --color-coral: #D85A30;
-  --color-teal: #1D9E75;
-  --color-body-text: #3D3D3A;
-  --color-muted-text: #5F5E5A;
-  --color-rule: #B4B2A9;
-  --color-paper: #F5F5F4;
+  /* getcited colour palette */
+  --color-purple-start: #7C3AED;
+  --color-purple-end: #A855F7;
+  --color-text-primary: #0B1220;
+  --color-text-secondary: #4B5563;
+  --color-bg-soft: #F8F7FF;
+  --color-border: #E5E7EB;
 
-  --font-heading: Georgia, "Times New Roman", Times, serif;
-  --font-sans: var(--font-inter), Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  /* Font */
+  --font-sans: var(--font-manrope), "Manrope", Inter, system-ui, -apple-system, sans-serif;
 }
 
 *, *::before, *::after {
@@ -19,61 +19,110 @@
 
 body {
   background: #ffffff;
-  color: #3D3D3A;
-  font-family: var(--font-inter), Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #0B1220;
+  font-family: var(--font-manrope), "Manrope", Inter, system-ui, sans-serif;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-h1, h2, h3, h4, h5, h6 {
-  font-family: Georgia, "Times New Roman", Times, serif;
-  line-height: 1.2;
-  color: #0D1B2A;
+/* Gradient text — signature style */
+.text-gradient {
+  background: linear-gradient(135deg, #7C3AED 0%, #A855F7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
-/* On dark backgrounds, headings should be white */
-.bg-navy h1,
-.bg-navy h2,
-.bg-navy h3 {
-  color: #ffffff;
+/* Gradient background */
+.bg-gradient-purple {
+  background: linear-gradient(135deg, #7C3AED 0%, #A855F7 100%);
 }
 
-a {
-  color: #D85A30;
-  text-decoration: none;
-}
-
-a:hover {
-  text-decoration: underline;
-}
-
-/* Focus states for accessibility */
+/* Focus states */
 :focus-visible {
-  outline: 2px solid #D85A30;
+  outline: 2px solid #7C3AED;
   outline-offset: 2px;
-  border-radius: 2px;
+  border-radius: 4px;
 }
 
-/* Details/Summary accordion */
+/* FAQ accordion */
 details summary {
   cursor: pointer;
   list-style: none;
 }
-
 details summary::-webkit-details-marker {
   display: none;
 }
 
-details summary::after {
-  content: "+";
-  font-size: 1.25rem;
-  line-height: 1;
-  flex-shrink: 0;
-  color: #D85A30;
-  transition: transform 0.15s ease;
+/* Scroll fade-in animation */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-details[open] summary::after {
-  content: "−";
+.fade-up {
+  animation: fadeUp 0.3s ease forwards;
+}
+
+/* Hero responsive grid */
+.hero-grid {
+  grid-template-columns: 1fr 1fr;
+}
+
+@media (max-width: 768px) {
+  .hero-grid {
+    grid-template-columns: 1fr;
+  }
+  .hero-visual {
+    justify-content: center !important;
+  }
+}
+
+/* Hide desktop nav on mobile */
+@media (max-width: 767px) {
+  .nav-links {
+    display: none !important;
+  }
+}
+@media (min-width: 768px) {
+  .md\:hidden {
+    display: none !important;
+  }
+}
+
+/* Footer link hover */
+.footer-link {
+  color: #9CA3AF;
+  font-size: 0.875rem;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+.footer-link:hover {
+  color: #ffffff;
+}
+
+/* Purple CTA button */
+.btn-primary {
+  display: inline-block;
+  background: linear-gradient(135deg, #7C3AED 0%, #A855F7 100%);
+  color: #ffffff;
+  padding: 0.875rem 2.5rem;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 1rem;
+  text-decoration: none;
+  box-shadow: 0 4px 20px rgba(124,58,237,0.28);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.btn-primary:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  text-decoration: none;
 }

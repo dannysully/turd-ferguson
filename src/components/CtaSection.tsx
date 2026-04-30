@@ -1,24 +1,35 @@
-import Link from "next/link";
-
 export default function CtaSection() {
   return (
-    <section className="bg-navy">
-      <div className="mx-auto max-w-[1100px] px-6 py-24 text-center">
+    <section id="cta" style={{ background: "#F8F7FF", padding: "6rem 1.5rem" }}>
+      <div style={{ maxWidth: "600px", margin: "0 auto", textAlign: "center" }}>
         <h2
-          className="text-white font-heading text-3xl md:text-4xl mb-6 max-w-2xl mx-auto"
-          style={{ fontFamily: "Georgia, 'Times New Roman', Times, serif" }}
+          style={{
+            fontWeight: 700,
+            fontSize: "clamp(2rem, 4vw, 2.75rem)",
+            color: "#0B1220",
+            lineHeight: 1.2,
+            marginBottom: "1.25rem",
+            letterSpacing: "-0.02em",
+          }}
         >
-          If your competitors are cited by ChatGPT and you&apos;re not, that gap is widening every week.
+          Ready to be the brand{" "}
+          <span
+            style={{
+              background: "linear-gradient(135deg, #7C3AED 0%, #A855F7 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+            }}
+          >
+            AI recommends?
+          </span>
         </h2>
-        <p className="text-[#b4c5d6] text-lg mb-10 max-w-xl mx-auto leading-relaxed">
-          Book a 30-minute call and we&apos;ll show you exactly which AI surfaces your brand is missing from, and what it would take to fix that.
+        <p style={{ color: "#4B5563", fontSize: "1.125rem", lineHeight: 1.6, marginBottom: "2.5rem" }}>
+          We&apos;ll show you where your competitors are winning — and how to take the top spot.
         </p>
-        <Link
-          href="/contact"
-          className="inline-block bg-coral text-white px-8 py-4 rounded-lg text-base font-medium hover:bg-[#c24e26] hover:no-underline transition-colors"
-        >
-          Book a call
-        </Link>
+        <a href="/contact" className="btn-primary">
+          Book a strategy call
+        </a>
       </div>
     </section>
   );

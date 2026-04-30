@@ -1,31 +1,32 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Manrope } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
-const inter = Inter({
+const manrope = Manrope({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-manrope",
   display: "swap",
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
   title: {
-    default: "AlwaysCited — The AI Search Agency",
-    template: "%s | AlwaysCited",
+    default: "getcited — Be the brand AI recommends",
+    template: "%s | getcited",
   },
   description:
-    "AlwaysCited engineers brand visibility across AI search systems — Google's AI Overview, ChatGPT, Perplexity, and other LLMs. Be the brand AI recommends.",
-  metadataBase: new URL("https://alwayscited.com"),
+    "getcited helps you win visibility across Google, AI search, and recommendation platforms by getting your brand featured, cited, and ranked on authoritative third-party content.",
+  metadataBase: new URL("https://getcited.com"),
   openGraph: {
-    siteName: "AlwaysCited",
+    siteName: "getcited",
     type: "website",
-    locale: "en_GB",
+    locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
-    site: "@alwayscited",
+    site: "@getcited",
   },
 };
 
@@ -35,7 +36,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} h-full`}>
+    <html lang="en" className={`${manrope.variable} h-full`}>
       <body className="min-h-full flex flex-col">
         <Header />
         <main className="flex-1">{children}</main>
