@@ -1,7 +1,11 @@
 export default function CtaSection() {
   return (
-    <section id="cta" style={{ background: "#0B1220", padding: "6rem 1.5rem" }}>
-      <div style={{ maxWidth: "640px", margin: "0 auto", textAlign: "center" }}>
+    <section id="cta" style={{ background: "#0B1220", padding: "6rem 1.5rem", position: "relative", overflow: "hidden" }}>
+      {/* Gradient wash orbs */}
+      <div className="gradient-orb" style={{ position: "absolute", width: "500px", height: "500px", background: "radial-gradient(circle, rgba(168,85,247,0.15) 0%, transparent 70%)", top: "-150px", left: "-100px", pointerEvents: "none" }} aria-hidden="true" />
+      <div className="gradient-orb" style={{ position: "absolute", width: "400px", height: "400px", background: "radial-gradient(circle, rgba(124,58,237,0.12) 0%, transparent 70%)", bottom: "-100px", right: "-80px", pointerEvents: "none", animationDelay: "-15s" }} aria-hidden="true" />
+
+      <div style={{ maxWidth: "640px", margin: "0 auto", textAlign: "center", position: "relative" }}>
         {/* Authority flow strip */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.375rem", flexWrap: "wrap", marginBottom: "2.5rem" }}>
           {["Your brand", "→", "Google", "→", "AI Overviews", "→", "ChatGPT", "→", "Buyer shortlist"].map((item, i) => (

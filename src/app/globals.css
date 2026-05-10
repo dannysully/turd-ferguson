@@ -120,6 +120,105 @@ details summary::-webkit-details-marker {
   color: #ffffff;
 }
 
+/* Screen-reader only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* ─── Card hover lift ─── */
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.card-hover:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(11,18,32,0.12) !important;
+}
+
+/* ─── Gradient wash orbs (hero + CTA) ─── */
+@keyframes orbFloat {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(-24px, -16px) scale(1.04); }
+  66% { transform: translate(16px, 8px) scale(0.97); }
+}
+
+.gradient-orb {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  will-change: transform;
+  animation: orbFloat 30s ease-in-out infinite;
+}
+
+/* ─── Hero authority flow ─── */
+@keyframes glowLineTravel {
+  0% { transform: translateX(-120px); opacity: 0; }
+  6% { opacity: 1; }
+  58% { transform: translateX(560px); opacity: 1; }
+  65% { opacity: 0; transform: translateX(560px); }
+  100% { transform: translateX(-120px); opacity: 0; }
+}
+
+.hero-flow-glow-line {
+  position: absolute;
+  top: 5px;
+  left: 32px;
+  width: 80px;
+  height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent 0%, #A855F7 50%, transparent 100%);
+  will-change: transform, opacity;
+  animation: glowLineTravel 5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@media (max-width: 540px) {
+  .hero-flow-wrapper { display: none; }
+}
+
+/* ─── Staged reveal (Authority flow steps) ─── */
+@keyframes stageUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.stage-hidden { opacity: 0; }
+.stage-visible { animation: stageUp 0.4s ease forwards; }
+
+/* ─── Comparison table column reveal ─── */
+.col-left {
+  opacity: 0;
+  transform: translateX(-14px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+.col-right {
+  opacity: 0;
+  transform: translateX(14px);
+  transition: opacity 0.4s ease 0.4s, transform 0.4s ease 0.4s;
+}
+.col-left.col-visible,
+.col-right.col-visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* ─── Reduced motion overrides ─── */
+@media (prefers-reduced-motion: reduce) {
+  .gradient-orb { animation: none; }
+  .hero-flow-glow-line { animation: none; opacity: 0.5; transform: translateX(240px); }
+  .card-hover { transition: none; }
+  .stage-hidden { opacity: 1 !important; }
+  .stage-visible { animation: none; opacity: 1; transform: none; }
+  .col-left, .col-right { opacity: 1 !important; transform: none !important; transition: none !important; }
+}
+
 /* Purple CTA button */
 .btn-primary {
   display: inline-block;

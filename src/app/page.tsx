@@ -1,5 +1,10 @@
 import type { Metadata } from "next";
 import CtaSection from "@/components/CtaSection";
+import HeroAuthorityFlow from "@/components/HeroAuthorityFlow";
+import ProofBand from "@/components/ProofBand";
+import AnimatedAuthorityFlow from "@/components/AnimatedAuthorityFlow";
+import PlacementOutcomeAnimated from "@/components/PlacementOutcomeAnimated";
+import AnimatedComparisonTable from "@/components/AnimatedComparisonTable";
 
 export const metadata: Metadata = {
   title: "AlwaysCited — Be the brand AI recommends",
@@ -253,10 +258,14 @@ export default function HomePage() {
   return (
     <>
       {/* ════════════════════════════════════════
-          SECTION 1 — HERO (compressed, text-only)
+          SECTION 1 — HERO
       ════════════════════════════════════════ */}
-      <section style={{ background: C.white, padding: "6rem 1.5rem 5rem" }}>
-        <div style={{ maxWidth: "720px", margin: "0 auto", textAlign: "center" }}>
+      <section style={{ background: C.white, padding: "6rem 1.5rem 5rem", position: "relative", overflow: "hidden" }}>
+        {/* Gradient wash orbs */}
+        <div className="gradient-orb" style={{ width: "600px", height: "600px", background: "radial-gradient(circle, rgba(124,58,237,0.07) 0%, transparent 70%)", position: "absolute", top: "-200px", right: "-100px" }} aria-hidden="true" />
+        <div className="gradient-orb" style={{ width: "400px", height: "400px", background: "radial-gradient(circle, rgba(168,85,247,0.05) 0%, transparent 70%)", position: "absolute", bottom: "-80px", left: "-80px", animationDelay: "-12s" }} aria-hidden="true" />
+
+        <div style={{ maxWidth: "720px", margin: "0 auto", textAlign: "center", position: "relative" }}>
           <h1 style={{ fontWeight: 700, fontSize: "clamp(2.75rem, 6vw, 4.25rem)", lineHeight: 1.05, color: C.navy, letterSpacing: "-0.03em", marginBottom: "1.375rem" }}>
             Be the brand <span style={grad}>AI recommends.</span>
           </h1>
@@ -275,32 +284,15 @@ export default function HomePage() {
               See how it works
             </a>
           </div>
+
+          <HeroAuthorityFlow />
         </div>
       </section>
 
       {/* ════════════════════════════════════════
           SECTION 2 — PROOF BAND
       ════════════════════════════════════════ */}
-      <section style={{ background: C.soft, borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}`, padding: "2.75rem 1.5rem" }}>
-        <div style={{ maxWidth: "860px", margin: "0 auto" }}>
-          <p style={{ textAlign: "center", fontSize: "0.8125rem", color: "#9CA3AF", letterSpacing: "0.02em", marginBottom: "1.75rem" }}>
-            Currently driving #1 rankings and AI Overview citations for SaaS, retail, and public-safety brands.
-          </p>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "0.5rem 2rem", textAlign: "center" }}>
-            {[
-              { val: "0 → 35", label: "Domain rating" },
-              { val: "#83 → #1", label: "Primary keyword" },
-              { val: "3", label: "AI Overview citations" },
-              { val: "20%", label: "ChatGPT visibility" },
-            ].map(({ val, label }) => (
-              <div key={label} style={{ padding: "0.5rem 0" }}>
-                <p style={{ fontWeight: 700, fontSize: "clamp(1.375rem, 3vw, 1.875rem)", color: C.navy, letterSpacing: "-0.02em", lineHeight: 1 }}>{val}</p>
-                <p style={{ fontSize: "0.6875rem", color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em", marginTop: "0.5rem", fontWeight: 600 }}>{label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <ProofBand />
 
       {/* ════════════════════════════════════════
           SECTION 3 — THE SHIFT (consolidated)
@@ -358,7 +350,7 @@ export default function HomePage() {
             </p>
           </div>
           <div style={{ display: "flex", justifyContent: "center" }}>
-            <PlacementOutcomeVisual />
+            <PlacementOutcomeAnimated />
           </div>
         </div>
       </section>
@@ -382,7 +374,7 @@ export default function HomePage() {
             </p>
           </div>
           <div>
-            <AuthorityFlow />
+            <AnimatedAuthorityFlow />
           </div>
         </div>
       </section>
@@ -412,7 +404,7 @@ export default function HomePage() {
                 body: "We report on ranking movement, AI visibility, referral traffic, and leads — weekly. Every placement is measured against its commercial outcomes, not just its link metrics.",
               },
             ].map(({ step, title, body }) => (
-              <div key={step} style={card}>
+              <div key={step} className="card-hover" style={card}>
                 <div style={{ width: "36px", height: "36px", borderRadius: "10px", background: gradBg, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "1.25rem", fontSize: "0.875rem", fontWeight: 700, color: C.white }}>{step}</div>
                 <h3 style={{ fontWeight: 700, fontSize: "1.0625rem", color: C.navy, marginBottom: "0.75rem", lineHeight: 1.3 }}>{title}</h3>
                 <p style={{ color: C.body, lineHeight: 1.65, fontSize: "0.9375rem" }}>{body}</p>
@@ -435,7 +427,7 @@ export default function HomePage() {
               { n: "02", title: "Real traffic", body: "A high-authority page with no visitors is a dead asset. We look for pages and domains with actual search demand — real people, real intent." },
               { n: "03", title: "Relevance", body: "Niche relevance matters. The closer the publication is to your category, the stronger the signal — to Google and to the AI systems that cite it." },
             ].map(({ n, title, body }) => (
-              <div key={title} style={{ ...card, display: "flex", gap: "1.25rem", alignItems: "flex-start" }}>
+              <div key={title} className="card-hover" style={{ ...card, display: "flex", gap: "1.25rem", alignItems: "flex-start" }}>
                 <span style={{ fontSize: "1.5rem", fontWeight: 700, color: C.border, lineHeight: 1, flexShrink: 0, fontFamily: "monospace" }}>{n}</span>
                 <div>
                   <h3 style={{ fontWeight: 700, fontSize: "1.0625rem", color: C.navy, marginBottom: "0.5rem" }}>{title}</h3>
@@ -475,32 +467,7 @@ export default function HomePage() {
         <div style={wrap}>
           {sectionHead("Most link building stops at the link.", "AlwaysCited builds assets that appreciate.")}
 
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.9375rem" }}>
-              <thead>
-                <tr style={{ borderBottom: `2px solid ${C.navy}` }}>
-                  <th style={{ textAlign: "left", padding: "0.875rem 1rem 0.875rem 0", color: C.navy, fontWeight: 600, minWidth: "180px" }}>&nbsp;</th>
-                  <th style={{ textAlign: "left", padding: "0.875rem 1rem", color: "#9CA3AF", fontWeight: 600, minWidth: "200px" }}>Traditional link building</th>
-                  <th style={{ textAlign: "left", padding: "0.875rem 1rem", color: C.purple, fontWeight: 700, minWidth: "200px" }}>AlwaysCited</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  { attr: "Target pages", old: "Any available page", neu: "Pages that already rank" },
-                  { attr: "Traffic on host page", old: "Little or no traffic", neu: "Real visitors, proven demand" },
-                  { attr: "Authority basis", old: "Built for DA/DR metrics", neu: "Trust transfer from ranking pages" },
-                  { attr: "AI citation strategy", old: "None", neu: "Structured for AI extraction" },
-                  { attr: "Long-term result", old: "Equity often plateaus", neu: "Rankings, traffic, and leads compound" },
-                ].map(({ attr, old, neu }) => (
-                  <tr key={attr} style={{ borderBottom: `1px solid ${C.border}` }}>
-                    <td style={{ padding: "1rem 1rem 1rem 0", fontWeight: 600, color: C.navy, fontSize: "0.875rem" }}>{attr}</td>
-                    <td style={{ padding: "1rem", color: "#9CA3AF" }}>{old}</td>
-                    <td style={{ padding: "1rem", color: C.navy, fontWeight: 500, background: `${C.purple}08` }}>{neu}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <AnimatedComparisonTable />
 
           <p style={{ marginTop: "2rem", textAlign: "center", fontWeight: 600, color: C.navy, fontSize: "1rem" }}>
             Same budget. Different category of result.
@@ -674,7 +641,7 @@ export default function HomePage() {
           </h2>
           <div style={{ borderTop: `1px solid ${C.border}` }}>
             {faqs.map((faq) => (
-              <details key={faq.q} style={{ borderBottom: `1px solid ${C.border}` }}>
+              <details key={faq.q} className="card-hover" style={{ borderBottom: `1px solid ${C.border}` }}>
                 <summary style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem", padding: "1.375rem 0", cursor: "pointer", color: C.navy, fontWeight: 600, fontSize: "1rem", listStyle: "none" }}>
                   <span>{faq.q}</span>
                   <span style={{ color: C.purple, fontSize: "1.25rem", lineHeight: 1, flexShrink: 0 }}>+</span>
