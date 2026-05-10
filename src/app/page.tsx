@@ -5,6 +5,7 @@ import ProofBand from "@/components/ProofBand";
 import AnimatedAuthorityFlow from "@/components/AnimatedAuthorityFlow";
 import PlacementOutcomeAnimated from "@/components/PlacementOutcomeAnimated";
 import AnimatedComparisonTable from "@/components/AnimatedComparisonTable";
+import AnimatedLinkDiagram from "@/components/AnimatedLinkDiagram";
 
 export const metadata: Metadata = {
   title: "AlwaysCited — Be the brand AI recommends",
@@ -174,36 +175,7 @@ function AuthorityFlow() {
   );
 }
 
-/* ─── VISUAL: 1+1 link structure diagram ─── */
-function LinkStructureDiagram() {
-  return (
-    <div style={{ ...card, border: `1.5px solid rgba(124,58,237,0.2)`, maxWidth: "440px" }}>
-      <div style={{ background: C.soft, borderRadius: "12px", padding: "1rem 1.25rem", marginBottom: "1.25rem" }}>
-        <p style={{ fontSize: "0.7rem", color: C.body, marginBottom: "0.375rem" }}>Article · DA 74 · 3,200 monthly visitors</p>
-        <p style={{ fontWeight: 700, color: C.navy, fontSize: "0.9375rem" }}>&ldquo;Best [Category] Platforms for 2026&rdquo;</p>
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", marginBottom: "1.25rem" }}>
-        {[
-          { n: "1", label: "Brand anchor → Homepage", desc: "\"YourBrand\" — builds domain authority" },
-          { n: "2", label: "Money keyword anchor → Deep page", desc: "\"best [category] software\" — moves the page that earns" },
-        ].map(({ n, label, desc }) => (
-          <div key={n} style={{ background: C.white, border: `1px solid rgba(124,58,237,0.25)`, borderRadius: "12px", padding: "0.875rem 1rem", display: "flex", gap: "0.75rem", alignItems: "center" }}>
-            <div style={{ width: "28px", height: "28px", borderRadius: "8px", background: gradBg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <span style={{ color: C.white, fontSize: "0.7rem", fontWeight: 700 }}>{n}</span>
-            </div>
-            <div>
-              <p style={{ fontSize: "0.75rem", fontWeight: 600, color: C.purple, marginBottom: "0.1rem" }}>{label}</p>
-              <p style={{ fontSize: "0.7rem", color: C.body }}>{desc}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-      <div style={{ background: C.soft, borderRadius: "10px", padding: "0.75rem 1rem", textAlign: "center" }}>
-        <p style={{ fontSize: "0.8125rem", fontWeight: 600, color: C.navy }}>This is link architecture, not link volume.</p>
-      </div>
-    </div>
-  );
-}
+
 
 /* ─── VISUAL: screenshot placeholder ─── */
 function ScreenshotPlaceholder({ label }: { label: string }) {
@@ -456,7 +428,7 @@ export default function HomePage() {
               The brand anchor strengthens your domain. The exact-match anchor helps move the page that earns revenue. Same placement. Two outcomes.
             </p>
           </div>
-          <LinkStructureDiagram />
+          <AnimatedLinkDiagram />
         </div>
       </section>
 
