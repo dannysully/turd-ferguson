@@ -32,9 +32,7 @@ const grad: React.CSSProperties = {
 };
 
 const gradBg = `linear-gradient(135deg, ${C.purple} 0%, ${C.purpleLight} 100%)`;
-
 const wrap: React.CSSProperties = { maxWidth: "1100px", margin: "0 auto", padding: "0 1.5rem" };
-const sp = (v: string) => ({ padding: v });
 
 const card: React.CSSProperties = {
   background: C.white,
@@ -53,34 +51,31 @@ const sectionHead = (title: string, sub?: string, centre = true) => (
   </div>
 );
 
-/* ─── VISUAL: Hero placement flow ─── */
-function HeroVisual() {
+/* ─── VISUAL: Placement → outcomes → AI surfaces (moved from hero) ─── */
+function PlacementOutcomeVisual() {
   return (
     <div style={{ position: "relative", width: "100%", maxWidth: "520px" }}>
-      {/* Central placement card */}
       <div style={{ ...card, border: `1.5px solid rgba(124,58,237,0.3)`, boxShadow: "0 8px 40px rgba(124,58,237,0.14)", textAlign: "center", padding: "1.75rem 2rem", marginBottom: "1.25rem" }}>
         <div style={{ width: "40px", height: "40px", borderRadius: "12px", background: gradBg, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 0.875rem" }}>
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2L10.5 7.5L16 9L10.5 10.5L9 16L7.5 10.5L2 9L7.5 7.5L9 2Z" fill="white"/></svg>
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M9 2L10.5 7.5L16 9L10.5 10.5L9 16L7.5 10.5L2 9L7.5 7.5L9 2Z" fill="white"/></svg>
         </div>
         <p style={{ fontWeight: 700, fontSize: "1rem", color: C.navy, marginBottom: "0.25rem" }}>High-authority placement</p>
         <p style={{ fontSize: "0.8125rem", color: C.body }}>Engineered. Relevant. Already trusted.</p>
       </div>
 
-      {/* Three outcome cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.875rem", marginBottom: "1.25rem" }}>
         {[
-          { icon: "📈", label: "Google rankings", colour: "#10B981" },
+          { icon: "↑", label: "Google rankings", colour: "#10B981" },
           { icon: "✦", label: "AI citations", colour: C.purple },
-          { icon: "🔗", label: "Referral traffic", colour: "#3B82F6" },
+          { icon: "→", label: "Referral traffic", colour: "#3B82F6" },
         ].map(({ icon, label, colour }) => (
           <div key={label} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: "14px", padding: "1rem 0.75rem", textAlign: "center", boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}>
-            <span style={{ fontSize: "1.25rem", display: "block", marginBottom: "0.375rem" }}>{icon}</span>
+            <span style={{ fontSize: "1.125rem", fontWeight: 700, display: "block", marginBottom: "0.375rem", color: colour }}>{icon}</span>
             <p style={{ fontSize: "0.7rem", fontWeight: 600, color: colour }}>{label}</p>
           </div>
         ))}
       </div>
 
-      {/* Mock AI cards row */}
       <div style={{ display: "flex", flexDirection: "column", gap: "0.625rem" }}>
         {[
           { platform: "Google AI Overview", snippet: "Best platform in [your category]: YourBrand is recommended for…", color: "#4285F4" },
@@ -88,13 +83,51 @@ function HeroVisual() {
           { platform: "Perplexity", snippet: "According to [publication], YourBrand ranks #1 for…", color: "#6366F1" },
         ].map(({ platform, snippet, color }) => (
           <div key={platform} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: "12px", padding: "0.875rem 1rem", display: "flex", gap: "0.75rem", alignItems: "flex-start" }}>
-            <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: color, flexShrink: 0, marginTop: "0.35rem" }} />
+            <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: color, flexShrink: 0, marginTop: "0.35rem" }} aria-hidden="true" />
             <div>
               <p style={{ fontSize: "0.7rem", fontWeight: 600, color: C.navy, marginBottom: "0.2rem" }}>{platform}</p>
               <p style={{ fontSize: "0.7rem", color: C.body, lineHeight: 1.5 }}>{snippet}</p>
             </div>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+/* ─── VISUAL: Google AI Overview mockup (for The Shift section) ─── */
+function GoogleAIOPreview() {
+  return (
+    <div style={{ maxWidth: "580px", margin: "2.5rem auto 0" }}>
+      <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: "16px", padding: "1.25rem 1.5rem", boxShadow: "0 4px 24px rgba(0,0,0,0.06)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", marginBottom: "1rem", paddingBottom: "0.875rem", borderBottom: `1px solid ${C.border}` }}>
+          <div style={{ display: "flex", gap: "5px" }} aria-hidden="true">
+            {["#FF5F57", "#FFBD2E", "#28C840"].map((c) => (
+              <span key={c} style={{ width: "10px", height: "10px", borderRadius: "50%", background: c, display: "inline-block" }} />
+            ))}
+          </div>
+          <div style={{ flex: 1, background: "#F3F4F6", borderRadius: "6px", padding: "0.2rem 0.75rem", fontSize: "0.75rem", color: "#9CA3AF" }}>
+            google.com · best [category] platform
+          </div>
+        </div>
+        <div style={{ background: "#EEF2FF", border: "1px solid #C7D2FE", borderRadius: "12px", padding: "1rem 1.25rem", marginBottom: "0.875rem" }}>
+          <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginBottom: "0.75rem" }}>
+            <span style={{ background: "#4285F4", borderRadius: "4px", padding: "0.125rem 0.5rem", fontSize: "0.65rem", fontWeight: 700, color: C.white }}>AI Overview</span>
+          </div>
+          <p style={{ fontSize: "0.875rem", lineHeight: 1.65, color: C.navy, marginBottom: "0.75rem" }}>
+            Based on industry reviews and user comparisons, <strong>YourBrand</strong> is consistently recommended as a top platform for [category]. Multiple trusted sources confirm strong rankings and user satisfaction.
+          </p>
+          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+            {["[Publication]", "TechRadar", "G2"].map((src) => (
+              <span key={src} style={{ fontSize: "0.7rem", background: C.white, border: `1px solid ${C.border}`, borderRadius: "6px", padding: "0.2rem 0.5rem", color: "#4285F4" }}>{src}</span>
+            ))}
+          </div>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.375rem" }}>
+          {["#1 — YourBrand: Best [Category] Platform 2026", "#2 — [Competitor] Alternative Review"].map((r) => (
+            <p key={r} style={{ fontSize: "0.75rem", color: "#4285F4", lineHeight: 1.4 }}>{r}</p>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -114,7 +147,7 @@ function AuthorityFlow() {
       {steps.map(({ label, sub }, i) => (
         <div key={label}>
           <div style={{ background: i % 2 === 0 ? C.soft : C.white, border: `1px solid ${C.border}`, borderRadius: "14px", padding: "1rem 1.25rem", display: "flex", alignItems: "center", gap: "0.875rem" }}>
-            <div style={{ width: "32px", height: "32px", borderRadius: "10px", background: gradBg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "0.75rem", fontWeight: 700, color: "#fff" }}>
+            <div style={{ width: "32px", height: "32px", borderRadius: "10px", background: gradBg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "0.75rem", fontWeight: 700, color: C.white }}>
               {i + 1}
             </div>
             <div>
@@ -123,14 +156,14 @@ function AuthorityFlow() {
             </div>
           </div>
           {i < steps.length - 1 && (
-            <div style={{ display: "flex", justifyContent: "center", padding: "0.25rem 0" }}>
+            <div style={{ display: "flex", justifyContent: "center", padding: "0.25rem 0" }} aria-hidden="true">
               <svg width="12" height="16" viewBox="0 0 12 16" fill="none"><path d="M6 0V12M6 12L2 8M6 12L10 8" stroke="#A855F7" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </div>
           )}
         </div>
       ))}
       <div style={{ marginTop: "1.25rem", background: gradBg, borderRadius: "12px", padding: "0.875rem 1.25rem", textAlign: "center" }}>
-        <p style={{ fontWeight: 700, color: "#fff", fontSize: "0.875rem" }}>Trust transfers. Traffic validates. Rankings follow.</p>
+        <p style={{ fontWeight: 700, color: C.white, fontSize: "0.875rem" }}>Trust transfers. Traffic validates. Rankings follow.</p>
       </div>
     </div>
   );
@@ -140,31 +173,25 @@ function AuthorityFlow() {
 function LinkStructureDiagram() {
   return (
     <div style={{ ...card, border: `1.5px solid rgba(124,58,237,0.2)`, maxWidth: "440px" }}>
-      {/* Article header */}
       <div style={{ background: C.soft, borderRadius: "12px", padding: "1rem 1.25rem", marginBottom: "1.25rem" }}>
         <p style={{ fontSize: "0.7rem", color: C.body, marginBottom: "0.375rem" }}>Article · DA 74 · 3,200 monthly visitors</p>
         <p style={{ fontWeight: 700, color: C.navy, fontSize: "0.9375rem" }}>&ldquo;Best [Category] Platforms for 2026&rdquo;</p>
       </div>
-      {/* Two links */}
       <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", marginBottom: "1.25rem" }}>
-        <div style={{ background: C.white, border: `1px solid rgba(124,58,237,0.25)`, borderRadius: "12px", padding: "0.875rem 1rem", display: "flex", gap: "0.75rem", alignItems: "center" }}>
-          <div style={{ width: "28px", height: "28px", borderRadius: "8px", background: gradBg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            <span style={{ color: "#fff", fontSize: "0.7rem", fontWeight: 700 }}>1</span>
+        {[
+          { n: "1", label: "Brand anchor → Homepage", desc: "\"YourBrand\" — builds domain authority" },
+          { n: "2", label: "Money keyword anchor → Deep page", desc: "\"best [category] software\" — moves the page that earns" },
+        ].map(({ n, label, desc }) => (
+          <div key={n} style={{ background: C.white, border: `1px solid rgba(124,58,237,0.25)`, borderRadius: "12px", padding: "0.875rem 1rem", display: "flex", gap: "0.75rem", alignItems: "center" }}>
+            <div style={{ width: "28px", height: "28px", borderRadius: "8px", background: gradBg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <span style={{ color: C.white, fontSize: "0.7rem", fontWeight: 700 }}>{n}</span>
+            </div>
+            <div>
+              <p style={{ fontSize: "0.75rem", fontWeight: 600, color: C.purple, marginBottom: "0.1rem" }}>{label}</p>
+              <p style={{ fontSize: "0.7rem", color: C.body }}>{desc}</p>
+            </div>
           </div>
-          <div>
-            <p style={{ fontSize: "0.75rem", fontWeight: 600, color: C.purple, marginBottom: "0.1rem" }}>Brand anchor → Homepage</p>
-            <p style={{ fontSize: "0.7rem", color: C.body }}>&ldquo;YourBrand&rdquo; — builds domain authority</p>
-          </div>
-        </div>
-        <div style={{ background: C.white, border: `1px solid rgba(124,58,237,0.25)`, borderRadius: "12px", padding: "0.875rem 1rem", display: "flex", gap: "0.75rem", alignItems: "center" }}>
-          <div style={{ width: "28px", height: "28px", borderRadius: "8px", background: gradBg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            <span style={{ color: "#fff", fontSize: "0.7rem", fontWeight: 700 }}>2</span>
-          </div>
-          <div>
-            <p style={{ fontSize: "0.75rem", fontWeight: 600, color: C.purple, marginBottom: "0.1rem" }}>Money keyword anchor → Deep page</p>
-            <p style={{ fontSize: "0.7rem", color: C.body }}>&ldquo;best [category] software&rdquo; — moves the page that earns</p>
-          </div>
-        </div>
+        ))}
       </div>
       <div style={{ background: C.soft, borderRadius: "10px", padding: "0.75rem 1rem", textAlign: "center" }}>
         <p style={{ fontSize: "0.8125rem", fontWeight: 600, color: C.navy }}>This is link architecture, not link volume.</p>
@@ -182,98 +209,164 @@ function ScreenshotPlaceholder({ label }: { label: string }) {
   );
 }
 
+/* ─── Guarantee icons ─── */
+function RankingIcon() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+      <path d="M4 20L10 13L14 17L24 7" stroke="#A855F7" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M4 24h20" stroke="#A855F7" strokeWidth="1.75" strokeLinecap="round"/>
+    </svg>
+  );
+}
+function AIOverviewIcon() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+      <rect x="3" y="9" width="19" height="13" rx="3" stroke="#A855F7" strokeWidth="1.75"/>
+      <path d="M8 14h9M8 18h6" stroke="#A855F7" strokeWidth="1.5" strokeLinecap="round"/>
+      <circle cx="20" cy="8" r="4" fill="#7C3AED"/>
+      <path d="M20 6v4M18 8h4" stroke="white" strokeWidth="1.25" strokeLinecap="round"/>
+    </svg>
+  );
+}
+function CitationIcon() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+      <path d="M6 5C6 3.9 6.9 3 8 3H19C20.1 3 21 3.9 21 5V20L17 24H8C6.9 24 6 23.1 6 22V5Z" stroke="#A855F7" strokeWidth="1.75"/>
+      <path d="M10 9h8M10 13h8M10 17h5" stroke="#A855F7" strokeWidth="1.5" strokeLinecap="round"/>
+      <path d="M17 20V24L21 20H17" stroke="#A855F7" strokeWidth="1.5" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
 /* ─── FAQ data ─── */
 const faqs = [
+  { q: "Who is this best for?", a: "Brands competing in commercial search categories where recommendations, comparisons, and third-party authority influence buying decisions. SaaS, B2B services, category challengers, and any business where being recommended matters." },
   { q: "Is this SEO?", a: "Partly — but it goes beyond traditional SEO. AlwaysCited combines authority building, third-party content placement, AI citation optimisation, and ranking strategy. The goal is commercial outcomes: rankings, traffic, and leads — not just links." },
   { q: "How does this help with AI recommendations?", a: "AI systems rely heavily on trusted third-party sources. By placing your brand inside the pages those systems cite, we increase your chance of appearing in AI answers across Google, ChatGPT, Perplexity, Gemini, and Claude." },
   { q: "Why are already-ranking pages more powerful?", a: "Because Google already trusts them. If a page ranks and gets traffic, a link from that page carries more meaningful authority than a link from a page nobody visits. We target pages that have already earned trust — and engineer new ones that will." },
   { q: "What is a placement?", a: "A placement is a strategically created or secured article on a third-party publication, structured around a high-intent commercial query. It's engineered to rank, to be cited by AI systems, and to carry authority to your site via the 1+1 link structure." },
-  { q: "What types of keywords do you target?", a: 'High-intent commercial keywords, especially "best", "top", "alternative", "software", "platform", "service", and category comparison searches — the queries where buying decisions are made.' },
+  { q: "What types of keywords do you target?", a: "High-intent commercial keywords, especially \"best\", \"top\", \"alternative\", \"software\", \"platform\", \"service\", and category comparison searches — the queries where buying decisions are made." },
   { q: "How long does it take?", a: "Most campaigns run over 2–4 weeks, with ranking and AI visibility effects compounding over time. First AI citations typically appear within 1–4 weeks of a placement going live." },
-  { q: "Who is this best for?", a: "Brands competing in commercial search categories where recommendations, comparisons, and third-party authority influence buying decisions. SaaS, B2B services, category challengers, and any business where being recommended matters." },
 ];
 
 export default function HomePage() {
   return (
     <>
       {/* ════════════════════════════════════════
-          SECTION 1 — HERO
+          SECTION 1 — HERO (compressed, text-only)
       ════════════════════════════════════════ */}
-      <section style={{ background: C.white, ...sp("5rem 1.5rem 4rem") }}>
-        <div style={{ ...wrap, display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4rem", alignItems: "center" }} className="hero-grid">
-          <div className="hero-content">
-            {/* Badge */}
-            <div style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", background: C.soft, border: `1px solid ${C.border}`, borderRadius: "99px", padding: "0.35rem 0.875rem", marginBottom: "1.75rem" }}>
-              <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: gradBg, display: "inline-block" }} />
-              <span style={{ fontSize: "0.8125rem", fontWeight: 600, color: C.purple }}>AI-era authority engineering</span>
-            </div>
+      <section style={{ background: C.white, padding: "6rem 1.5rem 5rem" }}>
+        <div style={{ maxWidth: "720px", margin: "0 auto", textAlign: "center" }}>
+          <h1 style={{ fontWeight: 700, fontSize: "clamp(2.75rem, 6vw, 4.25rem)", lineHeight: 1.05, color: C.navy, letterSpacing: "-0.03em", marginBottom: "1.375rem" }}>
+            Be the brand <span style={grad}>AI recommends.</span>
+          </h1>
 
-            <h1 style={{ fontWeight: 700, fontSize: "clamp(2.5rem, 5vw, 3.75rem)", lineHeight: 1.1, color: C.navy, letterSpacing: "-0.03em", marginBottom: "1.25rem" }}>
-              Be the brand <span style={grad}>AI recommends.</span>
-            </h1>
+          <p style={{ color: C.body, fontSize: "1.1875rem", lineHeight: 1.65, maxWidth: "580px", margin: "0 auto 1rem" }}>
+            AlwaysCited places you inside the pages Google and ChatGPT already trust — so you rank higher, get cited more often, and reach buyers before your competitors do.
+          </p>
 
-            <p style={{ color: C.body, fontSize: "1.125rem", lineHeight: 1.65, marginBottom: "2rem", maxWidth: "440px" }}>
-              AlwaysCited places your brand inside the pages Google and AI systems already trust — so you rank higher, get cited more often, and win buyers before they reach your competitors.
-            </p>
+          <p style={{ fontSize: "0.875rem", color: "#9CA3AF", marginBottom: "2.5rem" }}>
+            Built for B2B SaaS, professional services, and considered-purchase commercial brands.
+          </p>
 
-            <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-              <a href="/contact" className="btn-primary">Book a strategy call</a>
-              <a href="#how-it-works" style={{ display: "inline-block", background: "transparent", color: C.navy, padding: "0.875rem 2rem", borderRadius: "12px", fontWeight: 600, fontSize: "1rem", textDecoration: "none", border: `1.5px solid ${C.border}` }}>
-                See how it works
-              </a>
-            </div>
-
-            {/* One placement tagline */}
-            <div style={{ marginTop: "2.5rem", paddingTop: "2rem", borderTop: `1px solid ${C.border}` }}>
-              <p style={{ fontWeight: 700, fontSize: "0.9375rem", color: C.navy, marginBottom: "0.5rem" }}>One placement. Three commercial outcomes.</p>
-              <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap" }}>
-                {["↑ Rankings", "✦ AI citations", "→ Referral traffic"].map((item) => (
-                  <span key={item} style={{ fontSize: "0.8125rem", color: C.body, fontWeight: 500 }}>{item}</span>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="hero-visual" style={{ display: "flex", justifyContent: "flex-end" }}>
-            <HeroVisual />
+          <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
+            <a href="/contact" className="btn-primary">Book a strategy call</a>
+            <a href="#how-it-works" style={{ display: "inline-block", background: "transparent", color: C.navy, padding: "0.875rem 2rem", borderRadius: "12px", fontWeight: 600, fontSize: "1rem", textDecoration: "none", border: `1.5px solid ${C.border}` }}>
+              See how it works
+            </a>
           </div>
         </div>
       </section>
 
       {/* ════════════════════════════════════════
-          SECTION 2 — THE SHIFT
+          SECTION 2 — PROOF BAND
       ════════════════════════════════════════ */}
-      <section id="why-it-works" style={{ background: C.soft, ...sp("5rem 1.5rem") }}>
-        <div style={wrap}>
-          {sectionHead(
-            "Search is no longer a list of links.",
-            "Buyers now ask Google, ChatGPT, Perplexity, Gemini, and Claude who to trust. The brands cited in those answers become the shortlist."
-          )}
-
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1.5rem", marginBottom: "3rem" }}>
+      <section style={{ background: C.soft, borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}`, padding: "2.75rem 1.5rem" }}>
+        <div style={{ maxWidth: "860px", margin: "0 auto" }}>
+          <p style={{ textAlign: "center", fontSize: "0.8125rem", color: "#9CA3AF", letterSpacing: "0.02em", marginBottom: "1.75rem" }}>
+            Currently driving #1 rankings and AI Overview citations for SaaS, retail, and public-safety brands.
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "0.5rem 2rem", textAlign: "center" }}>
             {[
-              { icon: "🔍", title: "Google AI Overviews", body: "Commercial searches now surface AI answers before traditional organic results. If you're not cited in the AI answer, you've already lost the impression." },
-              { icon: "🤖", title: "LLM recommendations", body: "ChatGPT, Perplexity, Claude, and Gemini pull from trusted third-party sources. The brands they cite are the brands on the buyer's shortlist." },
-              { icon: "📋", title: "Third-party listicles", body: '"Best of" pages increasingly shape who gets recommended — and who gets ignored. They also drive the AI citations that follow.' },
-            ].map(({ icon, title, body }) => (
-              <div key={title} style={card}>
-                <span style={{ fontSize: "1.5rem", display: "block", marginBottom: "1rem" }}>{icon}</span>
-                <h3 style={{ fontWeight: 600, fontSize: "1.0625rem", color: C.navy, marginBottom: "0.625rem" }}>{title}</h3>
-                <p style={{ color: C.body, lineHeight: 1.65, fontSize: "0.9375rem" }}>{body}</p>
+              { val: "0 → 35", label: "Domain rating" },
+              { val: "#83 → #1", label: "Primary keyword" },
+              { val: "3", label: "AI Overview citations" },
+              { val: "20%", label: "ChatGPT visibility" },
+            ].map(({ val, label }) => (
+              <div key={label} style={{ padding: "0.5rem 0" }}>
+                <p style={{ fontWeight: 700, fontSize: "clamp(1.375rem, 3vw, 1.875rem)", color: C.navy, letterSpacing: "-0.02em", lineHeight: 1 }}>{val}</p>
+                <p style={{ fontSize: "0.6875rem", color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em", marginTop: "0.5rem", fontWeight: 600 }}>{label}</p>
               </div>
             ))}
           </div>
+        </div>
+      </section>
 
-          <p style={{ textAlign: "center", fontWeight: 700, fontSize: "1.25rem", color: C.navy }}>
+      {/* ════════════════════════════════════════
+          SECTION 3 — THE SHIFT (consolidated)
+      ════════════════════════════════════════ */}
+      <section id="why-it-works" style={{ background: C.white, padding: "5rem 1.5rem" }}>
+        <div style={{ maxWidth: "780px", margin: "0 auto" }}>
+          <div style={{ textAlign: "center", marginBottom: "2.5rem" }}>
+            <h2 style={{ fontWeight: 700, fontSize: "clamp(1.875rem, 4vw, 2.75rem)", color: C.navy, lineHeight: 1.15, letterSpacing: "-0.02em", marginBottom: "1.25rem" }}>
+              Search is no longer a list of links.
+            </h2>
+            <p style={{ color: C.body, fontSize: "1.0625rem", lineHeight: 1.7, maxWidth: "620px", margin: "0 auto" }}>
+              Google, ChatGPT, Perplexity, Gemini, and Claude now answer commercial queries directly — and the brands they cite become the shortlist. Those citations pull from the same third-party sources that rank in organic search: comparison pages, listicles, editorial roundups. If you appear there, AI picks you up. If you don&apos;t, you don&apos;t exist.
+            </p>
+          </div>
+
+          <GoogleAIOPreview />
+
+          <p style={{ textAlign: "center", fontWeight: 700, fontSize: "1.25rem", color: C.navy, marginTop: "2.5rem" }}>
             If you&apos;re not cited, you&apos;re invisible.
           </p>
         </div>
       </section>
 
       {/* ════════════════════════════════════════
-          SECTION 3 — CORE INSIGHT
+          SECTION 4 — ONE PLACEMENT, THREE OUTCOMES
       ════════════════════════════════════════ */}
-      <section style={{ background: C.white, ...sp("5rem 1.5rem") }}>
+      <section style={{ background: C.soft, padding: "5rem 1.5rem" }}>
+        <div style={{ ...wrap, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "5rem", alignItems: "center" }}>
+          <div>
+            <span style={{ fontSize: "0.8125rem", fontWeight: 600, color: C.purple, textTransform: "uppercase", letterSpacing: "0.08em", display: "block", marginBottom: "1rem" }}>How it compounds</span>
+            <h2 style={{ fontWeight: 700, fontSize: "clamp(1.75rem, 3vw, 2.5rem)", color: C.navy, lineHeight: 1.15, letterSpacing: "-0.02em", marginBottom: "1.25rem" }}>
+              One placement.{" "}
+              <span style={grad}>Three commercial outcomes.</span>
+            </h2>
+            <p style={{ color: C.body, fontSize: "1.0625rem", lineHeight: 1.7, marginBottom: "1.75rem" }}>
+              Every placement is engineered to drive authority, traffic, and leads simultaneously — not just a link.
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "1rem", marginBottom: "2rem" }}>
+              {[
+                { icon: "↑", label: "Google rankings", desc: "Your pages gain ranking power from relevant, trusted placements on pages Google already crawls and trusts.", colour: "#10B981" },
+                { icon: "✦", label: "AI citations", desc: "Your brand appears in AI answers because it's in the sources AI systems cite.", colour: C.purple },
+                { icon: "→", label: "Referral traffic", desc: "Buyers arrive from pages they're already visiting with genuine commercial intent.", colour: "#3B82F6" },
+              ].map(({ icon, label, desc, colour }) => (
+                <div key={label} style={{ display: "flex", gap: "1rem", alignItems: "flex-start" }}>
+                  <span style={{ width: "32px", height: "32px", borderRadius: "10px", background: `${colour}15`, border: `1.5px solid ${colour}40`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: colour, fontWeight: 700, fontSize: "1rem" }}>{icon}</span>
+                  <div>
+                    <p style={{ fontWeight: 600, fontSize: "0.9375rem", color: C.navy, marginBottom: "0.2rem" }}>{label}</p>
+                    <p style={{ fontSize: "0.875rem", color: C.body, lineHeight: 1.55 }}>{desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p style={{ fontSize: "0.9375rem", color: C.body, fontWeight: 500, paddingTop: "1.5rem", borderTop: `1px solid ${C.border}` }}>
+              Most agencies deliver one. We engineer all three.
+            </p>
+          </div>
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <PlacementOutcomeVisual />
+          </div>
+        </div>
+      </section>
+
+      {/* ════════════════════════════════════════
+          SECTION 5 — CORE INSIGHT
+      ════════════════════════════════════════ */}
+      <section style={{ background: C.white, padding: "5rem 1.5rem" }}>
         <div style={{ ...wrap, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "5rem", alignItems: "center" }}>
           <div>
             <span style={{ fontSize: "0.8125rem", fontWeight: 600, color: C.purple, textTransform: "uppercase", letterSpacing: "0.08em", display: "block", marginBottom: "1rem" }}>The core insight</span>
@@ -295,105 +388,34 @@ export default function HomePage() {
       </section>
 
       {/* ════════════════════════════════════════
-          SECTION 4 — ONE PLACEMENT, THREE OUTCOMES
+          SECTION 6 — HOW IT WORKS (3 steps)
       ════════════════════════════════════════ */}
-      <section style={{ background: C.soft, ...sp("5rem 1.5rem") }}>
+      <section id="how-it-works" style={{ background: C.soft, padding: "5rem 1.5rem" }}>
         <div style={wrap}>
-          {sectionHead(
-            "One placement. Three commercial outcomes.",
-            "Every placement is engineered to drive authority, traffic, and leads — not just links."
-          )}
+          {sectionHead("How AlwaysCited works.", "We place you where buying decisions are already being made.")}
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1.5rem", marginBottom: "2.5rem" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1.5rem" }}>
             {[
-              { n: "01", icon: "🏛️", title: "Authority", body: "Your pages gain ranking power from trusted, relevant placements on pages Google already crawls and trusts." },
-              { n: "02", icon: "→", title: "Traffic", body: "Your brand appears on pages buyers are already visiting — driving referral traffic with genuine commercial intent." },
-              { n: "03", icon: "💬", title: "Leads", body: "You reach people actively searching for your category — at the moment they're evaluating who to choose." },
-            ].map(({ n, icon, title, body }) => (
-              <div key={title} style={{ ...card, borderTop: `3px solid ${C.purple}`, position: "relative" }}>
-                <span style={{ position: "absolute", top: "1.25rem", right: "1.5rem", fontSize: "0.75rem", fontWeight: 700, color: C.border }}>{n}</span>
-                <span style={{ fontSize: "1.5rem", display: "block", marginBottom: "1rem" }}>{icon}</span>
-                <h3 style={{ fontWeight: 700, fontSize: "1.25rem", color: C.navy, marginBottom: "0.625rem" }}>{title}</h3>
+              {
+                step: "1",
+                title: "We find the placements that already move outcomes.",
+                body: "We map the recommendation landscape — the keywords, listicles, AI citations, and third-party pages shaping decisions in your category. Then we screen every target for authority, real traffic, and niche relevance. Not vanity metrics.",
+              },
+              {
+                step: "2",
+                title: "We engineer the placement.",
+                body: "We create or secure a placement structured around the right anchors: one brand link to your homepage, one exact-match anchor to the page that converts. Sometimes that means placing you inside pages Google already ranks. Sometimes it means engineering new ones designed to rank. Either way, the outcome is the same.",
+              },
+              {
+                step: "3",
+                title: "We measure rankings, citations, and traffic.",
+                body: "We report on ranking movement, AI visibility, referral traffic, and leads — weekly. Every placement is measured against its commercial outcomes, not just its link metrics.",
+              },
+            ].map(({ step, title, body }) => (
+              <div key={step} style={card}>
+                <div style={{ width: "36px", height: "36px", borderRadius: "10px", background: gradBg, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "1.25rem", fontSize: "0.875rem", fontWeight: 700, color: C.white }}>{step}</div>
+                <h3 style={{ fontWeight: 700, fontSize: "1.0625rem", color: C.navy, marginBottom: "0.75rem", lineHeight: 1.3 }}>{title}</h3>
                 <p style={{ color: C.body, lineHeight: 1.65, fontSize: "0.9375rem" }}>{body}</p>
-              </div>
-            ))}
-          </div>
-
-          <p style={{ textAlign: "center", fontSize: "0.9375rem", color: C.body, fontWeight: 500 }}>
-            Most agencies deliver one. We engineer all three.
-          </p>
-        </div>
-      </section>
-
-      {/* ════════════════════════════════════════
-          SECTION 5 — HOW IT WORKS
-      ════════════════════════════════════════ */}
-      <section id="how-it-works" style={{ background: C.white, ...sp("5rem 1.5rem") }}>
-        <div style={wrap}>
-          {sectionHead(
-            "How AlwaysCited works.",
-            "We place you where buying decisions are already being made."
-          )}
-
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "1.25rem" }}>
-            {[
-              { step: "1", icon: "🗺️", title: "Map the recommendation landscape", body: "We identify the keywords, listicles, AI citations, and third-party pages shaping decisions in your category." },
-              { step: "2", icon: "🎯", title: "Select the right authority targets", body: "We screen for authority, real traffic, and niche relevance — not vanity DA/DR metrics." },
-              { step: "3", icon: "✍️", title: "Create or secure the placement", body: "We either place your brand inside pages already ranking or create new editorial content engineered to rank." },
-              { step: "4", icon: "🔗", title: "Build the 1+1 link structure", body: "One brand anchor builds homepage authority. One deep-page anchor moves the page that converts." },
-              { step: "5", icon: "📊", title: "Track rankings, citations, and traffic", body: "We report on ranking movement, AI visibility, referral traffic, and leads — weekly." },
-            ].map(({ step, icon, title, body }) => (
-              <div key={step} style={{ ...card, padding: "1.5rem", position: "relative" }}>
-                <div style={{ width: "32px", height: "32px", borderRadius: "10px", background: gradBg, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "1rem", fontSize: "0.8125rem", fontWeight: 700, color: "#fff" }}>{step}</div>
-                <span style={{ fontSize: "1.25rem", display: "block", marginBottom: "0.75rem" }}>{icon}</span>
-                <h3 style={{ fontWeight: 600, fontSize: "0.9375rem", color: C.navy, marginBottom: "0.5rem", lineHeight: 1.3 }}>{title}</h3>
-                <p style={{ color: C.body, lineHeight: 1.6, fontSize: "0.875rem" }}>{body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ════════════════════════════════════════
-          SECTION 6 — TWO WAYS WE DELIVER
-      ════════════════════════════════════════ */}
-      <section style={{ background: C.soft, ...sp("5rem 1.5rem") }}>
-        <div style={wrap}>
-          {sectionHead("Two ways to place you where it matters.")}
-
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "1.5rem" }}>
-            {[
-              {
-                label: "Capture existing authority",
-                description: "We place your brand inside pages Google already ranks for relevant commercial searches.",
-                bullets: ["Already trusted by Google", "Already driving traffic", "Already influencing buyers", "Faster authority transfer"],
-                outcome: "Immediate visibility + ranking power",
-                accent: "#10B981",
-              },
-              {
-                label: "Engineer new ranking pages",
-                description: "We create editorial placements on high-authority publications and structure them to rank for high-intent searches.",
-                bullets: ["Built around commercial keywords", "Structured for AI extraction", "Designed to rank", "Compounds over time"],
-                outcome: "Scalable authority + traffic growth",
-                accent: C.purple,
-              },
-            ].map(({ label, description, bullets, outcome, accent }) => (
-              <div key={label} style={{ ...card, borderTop: `3px solid ${accent}` }}>
-                <h3 style={{ fontWeight: 700, fontSize: "1.125rem", color: C.navy, marginBottom: "0.75rem" }}>{label}</h3>
-                <p style={{ color: C.body, fontSize: "0.9375rem", lineHeight: 1.65, marginBottom: "1.5rem" }}>{description}</p>
-                <ul style={{ listStyle: "none", padding: 0, margin: "0 0 1.5rem", display: "flex", flexDirection: "column", gap: "0.625rem" }}>
-                  {bullets.map((b) => (
-                    <li key={b} style={{ display: "flex", gap: "0.75rem", alignItems: "center", fontSize: "0.9rem", color: C.navy, fontWeight: 500 }}>
-                      <span style={{ width: "18px", height: "18px", borderRadius: "50%", background: accent, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                        <svg width="9" height="7" viewBox="0 0 9 7" fill="none"><path d="M1 3.5L3 5.5L8 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                      </span>
-                      {b}
-                    </li>
-                  ))}
-                </ul>
-                <div style={{ background: `${accent}18`, border: `1px solid ${accent}30`, borderRadius: "10px", padding: "0.625rem 1rem" }}>
-                  <p style={{ fontSize: "0.8125rem", fontWeight: 600, color: accent }}>Outcome: {outcome}</p>
-                </div>
               </div>
             ))}
           </div>
@@ -403,14 +425,11 @@ export default function HomePage() {
       {/* ════════════════════════════════════════
           SECTION 7 — SELECTION CRITERIA
       ════════════════════════════════════════ */}
-      <section style={{ background: C.white, ...sp("5rem 1.5rem") }}>
+      <section style={{ background: C.white, padding: "5rem 1.5rem" }}>
         <div style={wrap}>
-          {sectionHead(
-            "We don't place everywhere. We place where it moves outcomes.",
-            "Every placement has to pass three filters."
-          )}
+          {sectionHead("We don't place everywhere. We place where it moves outcomes.", "Every placement has to pass three filters.")}
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "1.5rem", marginBottom: "3rem" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "1.5rem" }}>
             {[
               { n: "01", title: "Authority", body: "The host needs to meet or beat the authority of pages currently being cited or ranked in your category. We don't place on weak domains." },
               { n: "02", title: "Real traffic", body: "A high-authority page with no visitors is a dead asset. We look for pages and domains with actual search demand — real people, real intent." },
@@ -425,17 +444,13 @@ export default function HomePage() {
               </div>
             ))}
           </div>
-
-          <p style={{ textAlign: "center", fontWeight: 600, fontSize: "1rem", color: C.navy }}>
-            The goal is not to get a link. The goal is to become part of the answer.
-          </p>
         </div>
       </section>
 
       {/* ════════════════════════════════════════
-          SECTION 8 — THE 1+1 STRUCTURE
+          SECTION 8 — LINK ARCHITECTURE
       ════════════════════════════════════════ */}
-      <section style={{ background: C.soft, ...sp("5rem 1.5rem") }}>
+      <section style={{ background: C.soft, padding: "5rem 1.5rem" }}>
         <div style={{ ...wrap, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "5rem", alignItems: "center" }}>
           <div>
             <span style={{ fontSize: "0.8125rem", fontWeight: 600, color: C.purple, textTransform: "uppercase", letterSpacing: "0.08em", display: "block", marginBottom: "1rem" }}>Link architecture</span>
@@ -454,14 +469,11 @@ export default function HomePage() {
       </section>
 
       {/* ════════════════════════════════════════
-          SECTION 9 — WHY TRADITIONAL FAILS
+          SECTION 9 — COMPARISON TABLE
       ════════════════════════════════════════ */}
-      <section style={{ background: C.white, ...sp("5rem 1.5rem") }}>
+      <section style={{ background: C.white, padding: "5rem 1.5rem" }}>
         <div style={wrap}>
-          {sectionHead(
-            "Most link building stops at the link.",
-            "AlwaysCited builds assets that appreciate."
-          )}
+          {sectionHead("Most link building stops at the link.", "AlwaysCited builds assets that appreciate.")}
 
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.9375rem" }}>
@@ -497,9 +509,21 @@ export default function HomePage() {
       </section>
 
       {/* ════════════════════════════════════════
-          SECTION 10 — PROOF / CASE STUDIES
+          SECTION 10 — QUOTE BAND
       ════════════════════════════════════════ */}
-      <section id="proof" style={{ background: C.soft, ...sp("5rem 1.5rem") }}>
+      <section style={{ background: C.navy, padding: "4.5rem 1.5rem" }}>
+        <div style={{ maxWidth: "760px", margin: "0 auto", textAlign: "center" }}>
+          <p style={{ fontWeight: 700, fontSize: "clamp(1.5rem, 3.5vw, 2.25rem)", lineHeight: 1.3, letterSpacing: "-0.02em", color: C.white }}>
+            The goal is not to get a link.{" "}
+            <span style={grad}>The goal is to become part of the answer.</span>
+          </p>
+        </div>
+      </section>
+
+      {/* ════════════════════════════════════════
+          SECTION 11 — PROOF / CASE STUDIES
+      ════════════════════════════════════════ */}
+      <section id="proof" style={{ background: C.soft, padding: "5rem 1.5rem" }}>
         <div style={wrap}>
           {sectionHead("Proof that the system compounds.")}
 
@@ -524,7 +548,7 @@ export default function HomePage() {
               </div>
 
               <p style={{ color: C.body, fontSize: "0.875rem", lineHeight: 1.65, marginBottom: "1.5rem" }}>
-                The placements ranked. Their traffic compounded. Authority transferred through the right anchors. The product page climbed.
+                The placements ranked. Their traffic compounded. Authority transferred through the right anchors. And the page that converts climbed to #1.
               </p>
               <ScreenshotPlaceholder label="Google AI Overview screenshot — add before launch" />
             </div>
@@ -558,9 +582,44 @@ export default function HomePage() {
       </section>
 
       {/* ════════════════════════════════════════
-          SECTION 11 — PRODUCT / PROOF PACKAGE
+          SECTION 12 — GUARANTEE BAND
       ════════════════════════════════════════ */}
-      <section id="pricing" style={{ background: C.white, ...sp("5rem 1.5rem") }}>
+      <section style={{ background: C.navy, padding: "5rem 1.5rem" }}>
+        <div style={{ maxWidth: "760px", margin: "0 auto", textAlign: "center" }}>
+          <h2 style={{ fontWeight: 700, fontSize: "clamp(1.75rem, 3.5vw, 2.5rem)", color: C.white, lineHeight: 1.2, letterSpacing: "-0.02em", marginBottom: "3rem" }}>
+            The only agency that puts{" "}
+            <span style={grad}>outcomes in the contract.</span>
+          </h2>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "2rem", marginBottom: "2.5rem" }}>
+            {[
+              { Icon: RankingIcon, label: "Ranking growth" },
+              { Icon: AIOverviewIcon, label: "AI Overview inclusion" },
+              { Icon: CitationIcon, label: "LLM citations" },
+            ].map(({ Icon, label }) => (
+              <div key={label} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.875rem" }}>
+                <div style={{ width: "60px", height: "60px", borderRadius: "16px", background: "rgba(168,85,247,0.12)", border: "1.5px solid rgba(168,85,247,0.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Icon />
+                </div>
+                <p style={{ fontSize: "0.9375rem", fontWeight: 600, color: C.white }}>{label}</p>
+              </div>
+            ))}
+          </div>
+
+          <p style={{ fontSize: "1.25rem", fontWeight: 700, color: C.white, marginBottom: "2rem" }}>
+            If we don&apos;t deliver one of these, you don&apos;t pay.
+          </p>
+
+          <a href="#pricing" style={{ display: "inline-block", background: "transparent", color: C.white, padding: "0.875rem 2rem", borderRadius: "12px", fontWeight: 600, fontSize: "1rem", textDecoration: "none", border: "1.5px solid rgba(255,255,255,0.25)" }}>
+            See the proof package
+          </a>
+        </div>
+      </section>
+
+      {/* ════════════════════════════════════════
+          SECTION 13 — PRICING
+      ════════════════════════════════════════ */}
+      <section id="pricing" style={{ background: C.white, padding: "5rem 1.5rem" }}>
         <div style={{ ...wrap, maxWidth: "720px" }}>
           {sectionHead("A proof package for AI-era search.", undefined, true)}
 
@@ -586,7 +645,7 @@ export default function HomePage() {
               ].map((item) => (
                 <div key={item} style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
                   <span style={{ width: "20px", height: "20px", borderRadius: "50%", background: gradBg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    <svg width="9" height="7" viewBox="0 0 9 7" fill="none"><path d="M1 3.5L3 5.5L8 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    <svg width="9" height="7" viewBox="0 0 9 7" fill="none" aria-hidden="true"><path d="M1 3.5L3 5.5L8 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                   </span>
                   <span style={{ fontSize: "0.9rem", color: C.navy, fontWeight: 500 }}>{item}</span>
                 </div>
@@ -606,9 +665,9 @@ export default function HomePage() {
       </section>
 
       {/* ════════════════════════════════════════
-          SECTION 12 — FAQ
+          SECTION 14 — FAQ
       ════════════════════════════════════════ */}
-      <section id="faq" style={{ background: C.soft, ...sp("5rem 1.5rem") }}>
+      <section id="faq" style={{ background: C.soft, padding: "5rem 1.5rem" }}>
         <div style={{ ...wrap, maxWidth: "720px" }}>
           <h2 style={{ fontWeight: 700, fontSize: "clamp(1.75rem, 3.5vw, 2.25rem)", color: C.navy, lineHeight: 1.15, letterSpacing: "-0.02em", marginBottom: "3rem", textAlign: "center" }}>
             Frequently asked questions.
@@ -628,7 +687,7 @@ export default function HomePage() {
       </section>
 
       {/* ════════════════════════════════════════
-          SECTION 13 — FINAL CTA
+          SECTION 15 — FINAL CTA
       ════════════════════════════════════════ */}
       <CtaSection />
     </>
