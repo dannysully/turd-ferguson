@@ -14,7 +14,7 @@ function Logo() {
         <path d="M16 7 L17.6 13.4 L24 15 L17.6 16.6 L16 23 L14.4 16.6 L8 15 L14.4 13.4 Z" fill="white" />
       </svg>
       <span style={{ fontWeight: 700, fontSize: "1rem", color: "#ffffff", letterSpacing: "-0.02em" }}>
-        Always<span style={{ color: "#A855F7" }}>Cited</span>
+        always<span style={{ color: "#A855F7" }}>cited</span>
       </span>
     </div>
   );
@@ -64,7 +64,7 @@ export default function Footer() {
         </div>
 
         <div style={{ borderTop: "1px solid #1F2937", paddingTop: "1.5rem", display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "1rem", fontSize: "0.8125rem", color: "#4B5563" }}>
-          <p>&copy; {new Date().getFullYear()} AlwaysCited. Part of <a href="https://nomadadigital.co.uk" target="_blank" rel="noopener noreferrer" className="footer-link" style={{ fontSize: "0.8125rem" }}>Nomada Digital Ltd</a>.</p>
+          <p>&copy; {new Date().getFullYear()} alwayscited. Part of <a href="https://nomadadigital.co.uk" target="_blank" rel="noopener noreferrer" className="footer-link" style={{ fontSize: "0.8125rem" }}>Nomada Digital Ltd</a>.</p>
           <p>hello@alwayscited.com</p>
         </div>
       </div>

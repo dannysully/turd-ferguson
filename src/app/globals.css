@@ -225,6 +225,34 @@ details summary::-webkit-details-marker {
   stroke-dashoffset: 0;
 }
 
+/* ─── Citation orbit float animations ─── */
+@keyframes floatA {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-10px); }
+}
+@keyframes floatB {
+  0%, 100% { transform: translateY(-7px); }
+  50%       { transform: translateY(5px); }
+}
+@keyframes floatC {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(9px); }
+}
+@keyframes floatD {
+  0%, 100% { transform: translateY(-5px); }
+  50%       { transform: translateY(7px); }
+}
+@keyframes centerGlow {
+  0%, 100% { box-shadow: 0 8px 32px rgba(124,58,237,0.35); }
+  50%       { box-shadow: 0 8px 48px rgba(124,58,237,0.5), 0 0 0 22px rgba(168,85,247,0); }
+}
+
+.float-a { animation: floatA 4s ease-in-out infinite; }
+.float-b { animation: floatB 5s ease-in-out infinite 0.5s; }
+.float-c { animation: floatC 4.5s ease-in-out infinite 1s; }
+.float-d { animation: floatD 5.5s ease-in-out infinite 0.25s; }
+.center-glow { animation: centerGlow 3s ease-in-out infinite; }
+
 /* ─── Reduced motion overrides ─── */
 @media (prefers-reduced-motion: reduce) {
   .gradient-orb { animation: none; }
@@ -234,6 +262,20 @@ details summary::-webkit-details-marker {
   .stage-visible { animation: none; opacity: 1; transform: none; }
   .col-left, .col-right { opacity: 1 !important; transform: none !important; transition: none !important; }
   .link-arrow, .link-arrow-delayed { stroke-dashoffset: 0 !important; transition: none !important; }
+  .float-a, .float-b, .float-c, .float-d { animation: none !important; transform: none !important; }
+  .center-glow { animation: none !important; }
+}
+
+/* ─── Responsive layout helpers ─── */
+@media (max-width: 900px) {
+  .hide-below-900 { display: none !important; }
+  .hero-two-col { grid-template-columns: 1fr !important; }
+}
+@media (max-width: 768px) {
+  .hide-mobile { display: none !important; }
+  .stack-mobile { grid-template-columns: 1fr !important; }
+  .dark-trust-flow { flex-direction: column !important; align-items: center !important; }
+  .dark-trust-flow > * { flex-direction: column !important; }
 }
 
 /* Purple CTA button */

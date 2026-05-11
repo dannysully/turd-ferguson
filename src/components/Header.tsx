@@ -27,7 +27,7 @@ function Logo() {
         <path d="M16 7 L17.6 13.4 L24 15 L17.6 16.6 L16 23 L14.4 16.6 L8 15 L14.4 13.4 Z" fill="white" />
       </svg>
       <span style={{ fontWeight: 700, fontSize: "1.0625rem", color: "#0B1220", letterSpacing: "-0.02em" }}>
-        Always<span style={{ background: "linear-gradient(135deg,#7C3AED,#A855F7)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>Cited</span>
+        always<span style={{ background: "linear-gradient(135deg,#7C3AED,#A855F7)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>cited</span>
       </span>
     </Link>
   );

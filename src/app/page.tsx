@@ -1,25 +1,21 @@
 import type { Metadata } from "next";
-import CtaSection from "@/components/CtaSection";
-import HeroAuthorityFlow from "@/components/HeroAuthorityFlow";
-import ProofBand from "@/components/ProofBand";
-import AnimatedAuthorityFlow from "@/components/AnimatedAuthorityFlow";
-import PlacementOutcomeAnimated from "@/components/PlacementOutcomeAnimated";
-import AnimatedComparisonTable from "@/components/AnimatedComparisonTable";
-import AnimatedLinkDiagram from "@/components/AnimatedLinkDiagram";
+import CitationOrbit from "@/components/CitationOrbit";
+import DarkTrustFlow from "@/components/DarkTrustFlow";
+import DarkComparisonSection from "@/components/DarkComparisonSection";
 
 export const metadata: Metadata = {
-  title: "AlwaysCited — Be the brand AI recommends",
+  title: "alwayscited — be the brand AI recommends",
   description:
-    "AlwaysCited places your brand inside the pages Google and AI systems already trust — so you rank higher, get cited more often, and win buyers before they reach your competitors.",
+    "alwayscited places your brand inside high-authority articles that AI systems extract from, Google ranks, and buyers read. One placement. Three compounding outcomes.",
   alternates: { canonical: "https://alwayscited.com" },
   openGraph: {
-    title: "AlwaysCited — Be the brand AI recommends",
+    title: "alwayscited — be the brand AI recommends",
     description: "One placement. Three commercial outcomes. Rankings, AI citations, and referral traffic from a single engineered asset.",
     url: "https://alwayscited.com",
   },
 };
 
-/* ─── shared tokens ─── */
+/* ── design tokens ── */
 const C = {
   navy: "#0B1220",
   purple: "#7C3AED",
@@ -37,63 +33,108 @@ const grad: React.CSSProperties = {
   backgroundClip: "text",
 };
 
-const gradBg = `linear-gradient(135deg, ${C.purple} 0%, ${C.purpleLight} 100%)`;
 const wrap: React.CSSProperties = { maxWidth: "1100px", margin: "0 auto", padding: "0 1.5rem" };
 
-const card: React.CSSProperties = {
-  background: C.white,
-  border: `1px solid ${C.border}`,
-  borderRadius: "20px",
-  padding: "2rem",
-  boxShadow: "0 2px 20px rgba(0,0,0,0.05)",
-};
-
-const sectionHead = (title: string, sub?: string, centre = true) => (
-  <div style={{ textAlign: centre ? "center" : "left", maxWidth: centre ? "580px" : "560px", margin: centre ? "0 auto 3.5rem" : "0 0 2.5rem" }}>
-    <h2 style={{ fontWeight: 700, fontSize: "clamp(1.75rem, 3.5vw, 2.5rem)", color: C.navy, lineHeight: 1.15, letterSpacing: "-0.02em", marginBottom: sub ? "1rem" : 0 }}>
-      {title}
-    </h2>
-    {sub && <p style={{ color: C.body, fontSize: "1.0625rem", lineHeight: 1.65 }}>{sub}</p>}
-  </div>
-);
-
-/* ─── VISUAL: Placement → outcomes → AI surfaces (moved from hero) ─── */
-function PlacementOutcomeVisual() {
+/* ── shared label badge ── */
+function SectionLabel({ text, dark = false }: { text: string; dark?: boolean }) {
   return (
-    <div style={{ position: "relative", width: "100%", maxWidth: "520px" }}>
-      <div style={{ ...card, border: `1.5px solid rgba(124,58,237,0.3)`, boxShadow: "0 8px 40px rgba(124,58,237,0.14)", textAlign: "center", padding: "1.75rem 2rem", marginBottom: "1.25rem" }}>
-        <div style={{ width: "40px", height: "40px", borderRadius: "12px", background: gradBg, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 0.875rem" }}>
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M9 2L10.5 7.5L16 9L10.5 10.5L9 16L7.5 10.5L2 9L7.5 7.5L9 2Z" fill="white"/></svg>
+    <div style={{
+      display: "inline-flex",
+      alignItems: "center",
+      background: dark ? "rgba(168,85,247,0.15)" : "rgba(124,58,237,0.08)",
+      border: `1px solid ${dark ? "rgba(168,85,247,0.3)" : "rgba(124,58,237,0.2)"}`,
+      borderRadius: "999px",
+      padding: "0.25rem 0.875rem",
+      fontSize: "0.75rem",
+      fontWeight: 600,
+      color: dark ? "#A855F7" : C.purple,
+      marginBottom: "1.25rem",
+    }}>
+      {text}
+    </div>
+  );
+}
+
+/* ── listicle article mockup ── */
+function ListicleMockup() {
+  const items = [
+    { text: "Competitor A — enterprise scale, deep integrations", highlighted: false },
+    { text: "alwayscited.com — best for strategic link placement & AI visibility", highlighted: true },
+    { text: "Competitor B — budget-friendly, good for early-stage", highlighted: false },
+    { text: "Competitor C — strong for technical SEO workflows", highlighted: false },
+  ];
+
+  return (
+    <div style={{
+      background: C.white,
+      border: `1px solid ${C.border}`,
+      borderRadius: "20px",
+      padding: "1.5rem",
+      boxShadow: "0 4px 28px rgba(11,18,32,0.09)",
+      maxWidth: "440px",
+    }}>
+      {/* Browser chrome */}
+      <div style={{
+        background: "#F3F4F6",
+        borderRadius: "8px",
+        padding: "0.5rem 0.75rem",
+        marginBottom: "1.25rem",
+        display: "flex",
+        alignItems: "center",
+        gap: "0.5rem",
+      }}>
+        <div style={{ display: "flex", gap: "5px", flexShrink: 0 }}>
+          {["#EF4444", "#F59E0B", "#22C55E"].map((c) => (
+            <div key={c} style={{ width: "8px", height: "8px", borderRadius: "50%", background: c }} />
+          ))}
         </div>
-        <p style={{ fontWeight: 700, fontSize: "1rem", color: C.navy, marginBottom: "0.25rem" }}>High-authority placement</p>
-        <p style={{ fontSize: "0.8125rem", color: C.body }}>Engineered. Relevant. Already trusted.</p>
+        <div style={{
+          flex: 1,
+          background: C.white,
+          borderRadius: "4px",
+          padding: "0.2rem 0.625rem",
+          fontSize: "0.65rem",
+          color: "#9CA3AF",
+        }}>
+          roundup.com/best-[category]-platforms-2026
+        </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.875rem", marginBottom: "1.25rem" }}>
-        {[
-          { icon: "↑", label: "Google rankings", colour: "#10B981" },
-          { icon: "✦", label: "AI citations", colour: C.purple },
-          { icon: "→", label: "Referral traffic", colour: "#3B82F6" },
-        ].map(({ icon, label, colour }) => (
-          <div key={label} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: "14px", padding: "1rem 0.75rem", textAlign: "center", boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}>
-            <span style={{ fontSize: "1.125rem", fontWeight: 700, display: "block", marginBottom: "0.375rem", color: colour }}>{icon}</span>
-            <p style={{ fontSize: "0.7rem", fontWeight: 600, color: colour }}>{label}</p>
-          </div>
-        ))}
-      </div>
+      {/* Article header */}
+      <p style={{ fontSize: "0.65rem", color: "#9CA3AF", marginBottom: "0.375rem" }}>
+        roundup.com · DA 74 · 3,400 monthly visitors
+      </p>
+      <p style={{ fontSize: "0.9375rem", fontWeight: 700, color: C.navy, marginBottom: "1.125rem", lineHeight: 1.3 }}>
+        Best [Category] Platforms for 2026
+      </p>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "0.625rem" }}>
-        {[
-          { platform: "Google AI Overview", snippet: "Best platform in [your category]: YourBrand is recommended for…", color: "#4285F4" },
-          { platform: "ChatGPT", snippet: "Based on trusted sources, YourBrand is considered the leading…", color: "#10A37F" },
-          { platform: "Perplexity", snippet: "According to [publication], YourBrand ranks #1 for…", color: "#6366F1" },
-        ].map(({ platform, snippet, color }) => (
-          <div key={platform} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: "12px", padding: "0.875rem 1rem", display: "flex", gap: "0.75rem", alignItems: "flex-start" }}>
-            <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: color, flexShrink: 0, marginTop: "0.35rem" }} aria-hidden="true" />
-            <div>
-              <p style={{ fontSize: "0.7rem", fontWeight: 600, color: C.navy, marginBottom: "0.2rem" }}>{platform}</p>
-              <p style={{ fontSize: "0.7rem", color: C.body, lineHeight: 1.5 }}>{snippet}</p>
-            </div>
+      {/* List items */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+        {items.map(({ text, highlighted }) => (
+          <div
+            key={text}
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: "0.5rem",
+              padding: "0.5rem 0.625rem",
+              borderRadius: "9px",
+              background: highlighted ? "rgba(124,58,237,0.06)" : "transparent",
+              border: highlighted ? "1px solid rgba(124,58,237,0.18)" : "1px solid transparent",
+            }}
+          >
+            <svg width="13" height="13" viewBox="0 0 14 14" fill="none" style={{ marginTop: "2px", flexShrink: 0 }}>
+              <circle cx="7" cy="7" r="6" stroke={highlighted ? C.purple : "#D1D5DB"} strokeWidth="1.5" />
+              <path d="M4.5 7l2 2 3-3" stroke={highlighted ? C.purple : "#D1D5DB"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <span style={{
+              fontSize: "0.75rem",
+              color: highlighted ? C.navy : "#6B7280",
+              fontWeight: highlighted ? 600 : 400,
+              lineHeight: 1.5,
+            }}>
+              {text}
+            </span>
           </div>
         ))}
       </div>
@@ -101,37 +142,179 @@ function PlacementOutcomeVisual() {
   );
 }
 
-/* ─── VISUAL: Google AI Overview mockup (for The Shift section) ─── */
-function GoogleAIOPreview() {
+/* ── ranking chart SVG ── */
+function RankingChart() {
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
+  const pts: [number, number][] = [
+    [48, 162], [124, 128], [200, 105], [276, 72], [352, 38], [428, 26],
+  ];
+  const polyline = pts.map(([x, y]) => `${x},${y}`).join(" ");
+  const fill = `M ${pts.map(([x, y]) => `${x},${y}`).join(" L ")} L 428,178 L 48,178 Z`;
+
   return (
-    <div style={{ maxWidth: "580px", margin: "2.5rem auto 0" }}>
-      <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: "16px", padding: "1.25rem 1.5rem", boxShadow: "0 4px 24px rgba(0,0,0,0.06)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", marginBottom: "1rem", paddingBottom: "0.875rem", borderBottom: `1px solid ${C.border}` }}>
-          <div style={{ display: "flex", gap: "5px" }} aria-hidden="true">
-            {["#FF5F57", "#FFBD2E", "#28C840"].map((c) => (
-              <span key={c} style={{ width: "10px", height: "10px", borderRadius: "50%", background: c, display: "inline-block" }} />
-            ))}
+    <div style={{
+      background: C.white,
+      border: `1px solid ${C.border}`,
+      borderRadius: "20px",
+      padding: "1.5rem",
+      boxShadow: "0 2px 16px rgba(11,18,32,0.07)",
+    }}>
+      <div style={{ marginBottom: "0.875rem" }}>
+        <p style={{ fontSize: "0.7rem", fontWeight: 600, color: C.purple, marginBottom: "0.2rem" }}>Vibe Retail · 6-month tracking</p>
+        <p style={{ fontSize: "0.9375rem", fontWeight: 700, color: C.navy }}>Google ranking position</p>
+        <p style={{ fontSize: "0.7rem", color: "#9CA3AF" }}>Target keyword: &ldquo;best [category] software&rdquo;</p>
+      </div>
+
+      <svg viewBox="0 0 476 208" fill="none" style={{ width: "100%", height: "auto", display: "block" }} aria-label="Ranking chart showing improvement from position 14 to position 2 over 6 months">
+        <defs>
+          <linearGradient id="rankFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#7C3AED" stopOpacity="0.18" />
+            <stop offset="100%" stopColor="#7C3AED" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+
+        {/* Grid lines */}
+        {[26, 62, 98, 134, 178].map((y) => (
+          <line key={y} x1="48" y1={y} x2="428" y2={y} stroke="#F3F4F6" strokeWidth="1" />
+        ))}
+
+        {/* Y-axis labels */}
+        {[["#1", 30], ["#4", 66], ["#8", 102], ["#12", 138], ["#15", 182]].map(([label, y]) => (
+          <text key={label as string} x="40" y={y as number} textAnchor="end" fill="#9CA3AF" fontSize="9">{label as string}</text>
+        ))}
+
+        {/* Placement secured dashed line */}
+        <line x1="124" y1="22" x2="124" y2="178" stroke="#A855F7" strokeWidth="1" strokeDasharray="4 3" />
+        <text x="128" y="17" fill="#A855F7" fontSize="8.5" fontWeight="600">Placement secured</text>
+
+        {/* Fill */}
+        <path d={fill} fill="url(#rankFill)" />
+
+        {/* Line */}
+        <polyline points={polyline} stroke="#7C3AED" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+
+        {/* Data points */}
+        {pts.map(([x, y], i) => (
+          <circle key={i} cx={x} cy={y} r="4" fill="#7C3AED" />
+        ))}
+
+        {/* X-axis labels */}
+        {months.map((m, i) => (
+          <text key={m} x={pts[i][0]} y="198" textAnchor="middle" fill="#9CA3AF" fontSize="9">{m}</text>
+        ))}
+      </svg>
+
+      <div style={{
+        display: "flex",
+        gap: "1.5rem",
+        paddingTop: "0.875rem",
+        borderTop: `1px solid ${C.border}`,
+        flexWrap: "wrap",
+      }}>
+        {[
+          { val: "#2", label: "Final position" },
+          { val: "+214%", label: "Organic traffic" },
+          { val: "4 sources", label: "AI citations" },
+        ].map(({ val, label }) => (
+          <div key={label}>
+            <p style={{ fontSize: "1.125rem", fontWeight: 700, color: C.navy, lineHeight: 1 }}>{val}</p>
+            <p style={{ fontSize: "0.65rem", color: "#9CA3AF", marginTop: "0.2rem" }}>{label}</p>
           </div>
-          <div style={{ flex: 1, background: "#F3F4F6", borderRadius: "6px", padding: "0.2rem 0.75rem", fontSize: "0.75rem", color: "#9CA3AF" }}>
-            google.com · best [category] platform
-          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ── AI citation card ── */
+function AICitationCard({ platform, color, letter, text }: { platform: string; color: string; letter: string; text: string }) {
+  return (
+    <div style={{
+      background: C.white,
+      border: `1px solid ${C.border}`,
+      borderRadius: "14px",
+      padding: "1rem 1.125rem",
+      boxShadow: "0 2px 12px rgba(11,18,32,0.06)",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.625rem" }}>
+        <div style={{
+          width: "24px", height: "24px", borderRadius: "7px",
+          background: color,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          flexShrink: 0,
+        }}>
+          <span style={{ color: C.white, fontSize: "0.65rem", fontWeight: 700 }}>{letter}</span>
         </div>
-        <div style={{ background: "#EEF2FF", border: "1px solid #C7D2FE", borderRadius: "12px", padding: "1rem 1.25rem", marginBottom: "0.875rem" }}>
-          <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginBottom: "0.75rem" }}>
-            <span style={{ background: "#4285F4", borderRadius: "4px", padding: "0.125rem 0.5rem", fontSize: "0.65rem", fontWeight: 700, color: C.white }}>AI Overview</span>
-          </div>
-          <p style={{ fontSize: "0.875rem", lineHeight: 1.65, color: C.navy, marginBottom: "0.75rem" }}>
-            Based on industry reviews and user comparisons, <strong>YourBrand</strong> is consistently recommended as a top platform for [category]. Multiple trusted sources confirm strong rankings and user satisfaction.
-          </p>
-          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-            {["[Publication]", "TechRadar", "G2"].map((src) => (
-              <span key={src} style={{ fontSize: "0.7rem", background: C.white, border: `1px solid ${C.border}`, borderRadius: "6px", padding: "0.2rem 0.5rem", color: "#4285F4" }}>{src}</span>
-            ))}
-          </div>
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.375rem" }}>
-          {["#1 — YourBrand: Best [Category] Platform 2026", "#2 — [Competitor] Alternative Review"].map((r) => (
-            <p key={r} style={{ fontSize: "0.75rem", color: "#4285F4", lineHeight: 1.4 }}>{r}</p>
+        <span style={{ fontSize: "0.8125rem", fontWeight: 600, color: C.navy }}>{platform}</span>
+      </div>
+      <p style={{ fontSize: "0.75rem", color: C.body, lineHeight: 1.6, margin: 0 }}>
+        &ldquo;{text}&rdquo;
+      </p>
+    </div>
+  );
+}
+
+/* ── layered 3D CTA visual ── */
+function LayeredCTAVisual() {
+  const outcomes = [
+    { icon: "↑", label: "Rankings", value: "#2", sub: "from position 14" },
+    { icon: "✦", label: "AI citations", value: "4 sources", sub: "citing brand" },
+    { icon: "→", label: "Referral traffic", value: "+214%", sub: "organic growth" },
+  ];
+
+  return (
+    <div style={{ position: "relative", height: "268px", width: "320px", flexShrink: 0 }}>
+      {/* Back card 2 */}
+      <div style={{
+        position: "absolute", inset: 0,
+        background: "rgba(168,85,247,0.12)",
+        border: "1px solid rgba(168,85,247,0.2)",
+        borderRadius: "20px",
+        transform: "rotate(-5deg) translateY(-10px)",
+      }} />
+      {/* Back card 1 */}
+      <div style={{
+        position: "absolute", inset: 0,
+        background: "rgba(124,58,237,0.18)",
+        border: "1px solid rgba(168,85,247,0.28)",
+        borderRadius: "20px",
+        transform: "rotate(-2.5deg) translateY(-5px)",
+      }} />
+      {/* Front card */}
+      <div style={{
+        position: "absolute", inset: 0,
+        background: "rgba(255,255,255,0.07)",
+        border: "1px solid rgba(168,85,247,0.4)",
+        borderRadius: "20px",
+        padding: "1.5rem",
+        backdropFilter: "blur(10px)",
+      }}>
+        <p style={{
+          fontSize: "0.7rem", fontWeight: 600, color: "#A855F7",
+          marginBottom: "1.25rem", letterSpacing: "0.06em", textTransform: "uppercase",
+        }}>
+          6-month results
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+          {outcomes.map(({ icon, label, value, sub }) => (
+            <div key={label} style={{ display: "flex", alignItems: "center", gap: "0.875rem" }}>
+              <div style={{
+                width: "38px", height: "38px", borderRadius: "11px",
+                background: "rgba(124,58,237,0.2)",
+                border: "1px solid rgba(168,85,247,0.25)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: "1rem", flexShrink: 0, color: "#A855F7",
+              }}>
+                {icon}
+              </div>
+              <div>
+                <p style={{ fontSize: "0.65rem", color: "#6B7280", marginBottom: "0.1rem" }}>{label}</p>
+                <p style={{ fontSize: "1rem", fontWeight: 700, color: "#fff", lineHeight: 1 }}>
+                  {value}
+                  <span style={{ fontSize: "0.7rem", fontWeight: 400, color: "#4B5563", marginLeft: "0.375rem" }}>{sub}</span>
+                </p>
+              </div>
+            </div>
           ))}
         </div>
       </div>
@@ -139,496 +322,640 @@ function GoogleAIOPreview() {
   );
 }
 
-/* ─── VISUAL: Authority flow diagram ─── */
-function AuthorityFlow() {
-  const steps = [
-    { label: "Ranking page", sub: "Already trusted by Google" },
-    { label: "Real traffic", sub: "Active visitors, not dead pages" },
-    { label: "Trust transfer", sub: "Authority flows to your site" },
-    { label: "Your rankings rise", sub: "Money keywords climb" },
-    { label: "AI citations increase", sub: "You appear in AI answers" },
-  ];
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 0, maxWidth: "380px" }}>
-      {steps.map(({ label, sub }, i) => (
-        <div key={label}>
-          <div style={{ background: i % 2 === 0 ? C.soft : C.white, border: `1px solid ${C.border}`, borderRadius: "14px", padding: "1rem 1.25rem", display: "flex", alignItems: "center", gap: "0.875rem" }}>
-            <div style={{ width: "32px", height: "32px", borderRadius: "10px", background: gradBg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "0.75rem", fontWeight: 700, color: C.white }}>
-              {i + 1}
-            </div>
-            <div>
-              <p style={{ fontWeight: 600, fontSize: "0.9rem", color: C.navy, marginBottom: "0.1rem" }}>{label}</p>
-              <p style={{ fontSize: "0.75rem", color: C.body }}>{sub}</p>
-            </div>
-          </div>
-          {i < steps.length - 1 && (
-            <div style={{ display: "flex", justifyContent: "center", padding: "0.25rem 0" }} aria-hidden="true">
-              <svg width="12" height="16" viewBox="0 0 12 16" fill="none"><path d="M6 0V12M6 12L2 8M6 12L10 8" stroke="#A855F7" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            </div>
-          )}
-        </div>
-      ))}
-      <div style={{ marginTop: "1.25rem", background: gradBg, borderRadius: "12px", padding: "0.875rem 1.25rem", textAlign: "center" }}>
-        <p style={{ fontWeight: 700, color: C.white, fontSize: "0.875rem" }}>Trust transfers. Traffic validates. Rankings follow.</p>
-      </div>
-    </div>
-  );
-}
-
-
-
-/* ─── VISUAL: screenshot placeholder ─── */
-function ScreenshotPlaceholder({ label }: { label: string }) {
-  return (
-    <div style={{ aspectRatio: "16/9", border: `1px dashed ${C.border}`, borderRadius: "16px", background: C.soft, display: "flex", alignItems: "center", justifyContent: "center" }} aria-hidden="true">
-      <p style={{ fontSize: "0.8125rem", color: "#9CA3AF" }}>{label}</p>
-    </div>
-  );
-}
-
-/* ─── Guarantee icons ─── */
-function RankingIcon() {
-  return (
-    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
-      <path d="M4 20L10 13L14 17L24 7" stroke="#A855F7" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M4 24h20" stroke="#A855F7" strokeWidth="1.75" strokeLinecap="round"/>
-    </svg>
-  );
-}
-function AIOverviewIcon() {
-  return (
-    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
-      <rect x="3" y="9" width="19" height="13" rx="3" stroke="#A855F7" strokeWidth="1.75"/>
-      <path d="M8 14h9M8 18h6" stroke="#A855F7" strokeWidth="1.5" strokeLinecap="round"/>
-      <circle cx="20" cy="8" r="4" fill="#7C3AED"/>
-      <path d="M20 6v4M18 8h4" stroke="white" strokeWidth="1.25" strokeLinecap="round"/>
-    </svg>
-  );
-}
-function CitationIcon() {
-  return (
-    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
-      <path d="M6 5C6 3.9 6.9 3 8 3H19C20.1 3 21 3.9 21 5V20L17 24H8C6.9 24 6 23.1 6 22V5Z" stroke="#A855F7" strokeWidth="1.75"/>
-      <path d="M10 9h8M10 13h8M10 17h5" stroke="#A855F7" strokeWidth="1.5" strokeLinecap="round"/>
-      <path d="M17 20V24L21 20H17" stroke="#A855F7" strokeWidth="1.5" strokeLinejoin="round"/>
-    </svg>
-  );
-}
-
-/* ─── FAQ data ─── */
-const faqs = [
-  { q: "Who is this best for?", a: "Brands competing in commercial search categories where recommendations, comparisons, and third-party authority influence buying decisions. SaaS, B2B services, category challengers, and any business where being recommended matters." },
-  { q: "Is this SEO?", a: "Partly — but it goes beyond traditional SEO. AlwaysCited combines authority building, third-party content placement, AI citation optimisation, and ranking strategy. The goal is commercial outcomes: rankings, traffic, and leads — not just links." },
-  { q: "How does this help with AI recommendations?", a: "AI systems rely heavily on trusted third-party sources. By placing your brand inside the pages those systems cite, we increase your chance of appearing in AI answers across Google, ChatGPT, Perplexity, Gemini, and Claude." },
-  { q: "Why are already-ranking pages more powerful?", a: "Because Google already trusts them. If a page ranks and gets traffic, a link from that page carries more meaningful authority than a link from a page nobody visits. We target pages that have already earned trust — and engineer new ones that will." },
-  { q: "What is a placement?", a: "A placement is a strategically created or secured article on a third-party publication, structured around a high-intent commercial query. It's engineered to rank, to be cited by AI systems, and to carry authority to your site via the 1+1 link structure." },
-  { q: "What types of keywords do you target?", a: "High-intent commercial keywords, especially \"best\", \"top\", \"alternative\", \"software\", \"platform\", \"service\", and category comparison searches — the queries where buying decisions are made." },
-  { q: "How long does it take?", a: "Most campaigns run over 2–4 weeks, with ranking and AI visibility effects compounding over time. First AI citations typically appear within 1–4 weeks of a placement going live." },
-];
+/* ══════════════════════════════════════════════════════════════ */
 
 export default function HomePage() {
   return (
     <>
-      {/* ════════════════════════════════════════
-          SECTION 1 — HERO
-      ════════════════════════════════════════ */}
-      <section style={{ background: C.white, padding: "6rem 1.5rem 5rem", position: "relative", overflow: "hidden" }}>
-        {/* Gradient wash orbs */}
-        <div className="gradient-orb" style={{ width: "600px", height: "600px", background: "radial-gradient(circle, rgba(124,58,237,0.07) 0%, transparent 70%)", position: "absolute", top: "-200px", right: "-100px" }} aria-hidden="true" />
-        <div className="gradient-orb" style={{ width: "400px", height: "400px", background: "radial-gradient(circle, rgba(168,85,247,0.05) 0%, transparent 70%)", position: "absolute", bottom: "-80px", left: "-80px", animationDelay: "-12s" }} aria-hidden="true" />
+      {/* ═══ HERO ═══════════════════════════════════════════════ */}
+      <section style={{ padding: "5.5rem 1.5rem 4rem", position: "relative", overflow: "hidden" }}>
+        {/* Ambient glow */}
+        <div
+          className="gradient-orb"
+          style={{
+            position: "absolute", width: "700px", height: "700px",
+            background: "radial-gradient(circle, rgba(168,85,247,0.07) 0%, transparent 70%)",
+            top: "-250px", right: "-150px", pointerEvents: "none",
+          }}
+          aria-hidden="true"
+        />
 
-        <div style={{ maxWidth: "720px", margin: "0 auto", textAlign: "center", position: "relative" }}>
-          <h1 style={{ fontWeight: 700, fontSize: "clamp(2.75rem, 6vw, 4.25rem)", lineHeight: 1.05, color: C.navy, letterSpacing: "-0.03em", marginBottom: "1.375rem" }}>
-            Be the brand <span style={grad}>AI recommends.</span>
-          </h1>
+        <div
+          style={{ ...wrap, display: "grid", gridTemplateColumns: "1fr auto", gap: "3rem", alignItems: "center" }}
+          className="hero-two-col"
+        >
+          {/* Left: headline + CTAs */}
+          <div style={{ maxWidth: "560px" }}>
+            <SectionLabel text="Strategic link placement · AI citation strategy" />
 
-          <p style={{ color: C.body, fontSize: "1.1875rem", lineHeight: 1.65, maxWidth: "580px", margin: "0 auto 1rem" }}>
-            AlwaysCited places you inside the pages Google and ChatGPT already trust — so you rank higher, get cited more often, and reach buyers before your competitors do.
-          </p>
+            <h1 style={{
+              fontWeight: 800,
+              fontSize: "clamp(2.25rem, 4.5vw, 3.375rem)",
+              color: C.navy,
+              lineHeight: 1.08,
+              letterSpacing: "-0.03em",
+              marginBottom: "1.375rem",
+            }}>
+              Be the brand AI recommends —{" "}
+              <span style={grad}>and Google already ranks.</span>
+            </h1>
 
-          <p style={{ fontSize: "0.875rem", color: "#9CA3AF", marginBottom: "2.5rem" }}>
-            Built for B2B SaaS, professional services, and considered-purchase commercial brands.
-          </p>
-
-          <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
-            <a href="/contact" className="btn-primary">Book a strategy call</a>
-            <a href="#how-it-works" style={{ display: "inline-block", background: "transparent", color: C.navy, padding: "0.875rem 2rem", borderRadius: "12px", fontWeight: 600, fontSize: "1rem", textDecoration: "none", border: `1.5px solid ${C.border}` }}>
-              See how it works
-            </a>
-          </div>
-
-          <HeroAuthorityFlow />
-        </div>
-      </section>
-
-      {/* ════════════════════════════════════════
-          SECTION 2 — PROOF BAND
-      ════════════════════════════════════════ */}
-      <ProofBand />
-
-      {/* ════════════════════════════════════════
-          SECTION 3 — THE SHIFT (consolidated)
-      ════════════════════════════════════════ */}
-      <section id="why-it-works" style={{ background: C.white, padding: "5rem 1.5rem" }}>
-        <div style={{ maxWidth: "780px", margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: "2.5rem" }}>
-            <h2 style={{ fontWeight: 700, fontSize: "clamp(1.875rem, 4vw, 2.75rem)", color: C.navy, lineHeight: 1.15, letterSpacing: "-0.02em", marginBottom: "1.25rem" }}>
-              Search is no longer a list of links.
-            </h2>
-            <p style={{ color: C.body, fontSize: "1.0625rem", lineHeight: 1.7, maxWidth: "620px", margin: "0 auto" }}>
-              Google, ChatGPT, Perplexity, Gemini, and Claude now answer commercial queries directly — and the brands they cite become the shortlist. Those citations pull from the same third-party sources that rank in organic search: comparison pages, listicles, editorial roundups. If you appear there, AI picks you up. If you don&apos;t, you don&apos;t exist.
+            <p style={{
+              fontSize: "clamp(1rem, 1.5vw, 1.125rem)",
+              color: C.body,
+              lineHeight: 1.7,
+              marginBottom: "2.25rem",
+              maxWidth: "500px",
+            }}>
+              alwayscited secures your brand inside high-authority articles that AI systems extract from, Google ranks, and buyers read. One placement. Three compounding outcomes.
             </p>
+
+            <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginBottom: "2.5rem" }}>
+              <a href="/contact" className="btn-primary">Book a strategy call</a>
+              <a
+                href="#how-it-works"
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: "0.375rem",
+                  color: C.navy, fontWeight: 600, fontSize: "1rem",
+                  textDecoration: "none", padding: "0.875rem 0",
+                }}
+              >
+                See how it works
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M8 3v10M3 8l5 5 5-5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </a>
+            </div>
+
+            {/* Proof strip */}
+            <div style={{
+              display: "flex", gap: "2rem", flexWrap: "wrap",
+              borderTop: `1px solid ${C.border}`, paddingTop: "1.5rem",
+            }}>
+              {[
+                { val: "40+", label: "campaigns" },
+                { val: "DA 60–90", label: "placement range" },
+                { val: "3 avg.", label: "AI citation sources" },
+              ].map(({ val, label }) => (
+                <div key={label}>
+                  <p style={{ fontWeight: 700, fontSize: "1.0625rem", color: C.navy, lineHeight: 1 }}>{val}</p>
+                  <p style={{ fontSize: "0.75rem", color: C.body, marginTop: "0.25rem" }}>{label}</p>
+                </div>
+              ))}
+            </div>
           </div>
 
-          <GoogleAIOPreview />
-
-          <p style={{ textAlign: "center", fontWeight: 700, fontSize: "1.25rem", color: C.navy, marginTop: "2.5rem" }}>
-            If you&apos;re not cited, you&apos;re invisible.
-          </p>
+          {/* Right: orbit visual */}
+          <div className="hide-below-900" aria-hidden="true">
+            <CitationOrbit />
+          </div>
         </div>
       </section>
 
-      {/* ════════════════════════════════════════
-          SECTION 4 — ONE PLACEMENT, THREE OUTCOMES
-      ════════════════════════════════════════ */}
-      <section style={{ background: C.soft, padding: "5rem 1.5rem" }}>
-        <div style={{ ...wrap, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "5rem", alignItems: "center" }}>
-          <div>
-            <span style={{ fontSize: "0.8125rem", fontWeight: 600, color: C.purple, textTransform: "uppercase", letterSpacing: "0.08em", display: "block", marginBottom: "1rem" }}>How it compounds</span>
-            <h2 style={{ fontWeight: 700, fontSize: "clamp(1.75rem, 3vw, 2.5rem)", color: C.navy, lineHeight: 1.15, letterSpacing: "-0.02em", marginBottom: "1.25rem" }}>
+      {/* ═══ DARK INSIGHT — why it works ════════════════════════ */}
+      <section id="why-it-works" style={{ background: C.navy, padding: "6rem 1.5rem", position: "relative", overflow: "hidden" }}>
+        <div className="gradient-orb" style={{ position: "absolute", width: "500px", height: "500px", background: "radial-gradient(circle, rgba(124,58,237,0.12) 0%, transparent 70%)", top: "-150px", left: "-100px", pointerEvents: "none" }} aria-hidden="true" />
+
+        <div style={{ ...wrap, textAlign: "center", position: "relative" }}>
+          <SectionLabel text="The problem" dark />
+
+          <h2 style={{
+            fontWeight: 800,
+            fontSize: "clamp(2rem, 4vw, 3rem)",
+            color: C.white,
+            lineHeight: 1.1,
+            letterSpacing: "-0.03em",
+            marginBottom: "1.25rem",
+          }}>
+            Most brands are{" "}
+            <span style={grad}>invisible to AI.</span>
+          </h2>
+
+          <p style={{
+            color: "#9CA3AF", fontSize: "clamp(0.9375rem, 1.5vw, 1.0625rem)",
+            lineHeight: 1.7, maxWidth: "580px", margin: "0 auto 3.5rem",
+          }}>
+            ChatGPT, Perplexity, and Google AI Overviews don&apos;t discover brands from homepages or ad campaigns. They extract from content that already ranks — content that already earns trust. If your brand isn&apos;t cited inside those sources, it doesn&apos;t exist in AI&apos;s world.
+          </p>
+
+          <div className="dark-trust-flow">
+            <DarkTrustFlow />
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ ONE PLACEMENT, THREE OUTCOMES ══════════════════════ */}
+      <section style={{ padding: "6rem 1.5rem", background: C.soft }}>
+        <div style={wrap}>
+          <div style={{ textAlign: "center", marginBottom: "3.5rem" }}>
+            <SectionLabel text="What you get" />
+            <h2 style={{
+              fontWeight: 800, fontSize: "clamp(1.875rem, 3.5vw, 2.75rem)",
+              color: C.navy, lineHeight: 1.1, letterSpacing: "-0.03em", marginBottom: "1rem",
+            }}>
               One placement.{" "}
-              <span style={grad}>Three commercial outcomes.</span>
+              <span style={grad}>Three compounding outcomes.</span>
             </h2>
-            <p style={{ color: C.body, fontSize: "1.0625rem", lineHeight: 1.7, marginBottom: "1.75rem" }}>
-              Every placement is engineered to drive authority, traffic, and leads simultaneously — not just a link.
+            <p style={{ color: C.body, fontSize: "1.0625rem", lineHeight: 1.65, maxWidth: "520px", margin: "0 auto" }}>
+              Every placement we secure sits inside a real article with real traffic — read by the people buying in your category.
             </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: "1rem", marginBottom: "2rem" }}>
+          </div>
+
+          <div
+            style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "3rem", alignItems: "start" }}
+            className="stack-mobile"
+          >
+            {/* Left: article mockup */}
+            <ListicleMockup />
+
+            {/* Right: outcome cards */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem", paddingTop: "0.5rem" }}>
               {[
-                { icon: "↑", label: "Google rankings", desc: "Your pages gain ranking power from relevant, trusted placements on pages Google already crawls and trusts.", colour: "#10B981" },
-                { icon: "✦", label: "AI citations", desc: "Your brand appears in AI answers because it's in the sources AI systems cite.", colour: C.purple },
-                { icon: "→", label: "Referral traffic", desc: "Buyers arrive from pages they're already visiting with genuine commercial intent.", colour: "#3B82F6" },
-              ].map(({ icon, label, desc, colour }) => (
-                <div key={label} style={{ display: "flex", gap: "1rem", alignItems: "flex-start" }}>
-                  <span style={{ width: "32px", height: "32px", borderRadius: "10px", background: `${colour}15`, border: `1.5px solid ${colour}40`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: colour, fontWeight: 700, fontSize: "1rem" }}>{icon}</span>
+                {
+                  icon: (
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                      <path d="M9 15V3M3 9l6-6 6 6" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  ),
+                  title: "Rankings move",
+                  body: "Equity transfers from a page already sitting in position 1–5. Your target page inherits authority from a proven source.",
+                },
+                {
+                  icon: (
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                      <path d="M9 2l2 5.5H17l-5 3.5 1.9 5.5L9 13.2 4.1 16.5 6 11 1 7.5h6z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+                    </svg>
+                  ),
+                  title: "AI starts citing you",
+                  body: "Your brand enters the content pool AI models extract from. Once you&apos;re cited in trusted sources, you&apos;re cited repeatedly across platforms.",
+                },
+                {
+                  icon: (
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                      <path d="M3 9h12M9 3l6 6-6 6" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  ),
+                  title: "Real referral traffic",
+                  body: "Visitors from the article are actively researching your category. They arrive pre-qualified — not just browsing.",
+                },
+              ].map(({ icon, title, body }) => (
+                <div
+                  key={title}
+                  className="card-hover"
+                  style={{
+                    background: C.white,
+                    border: `1px solid ${C.border}`,
+                    borderRadius: "16px",
+                    padding: "1.375rem 1.5rem",
+                    display: "flex",
+                    gap: "1rem",
+                    alignItems: "flex-start",
+                    boxShadow: "0 2px 12px rgba(11,18,32,0.06)",
+                  }}
+                >
+                  <div style={{
+                    width: "40px", height: "40px", borderRadius: "11px",
+                    background: "rgba(124,58,237,0.08)",
+                    border: "1px solid rgba(124,58,237,0.15)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    color: C.purple, flexShrink: 0,
+                  }}>
+                    {icon}
+                  </div>
                   <div>
-                    <p style={{ fontWeight: 600, fontSize: "0.9375rem", color: C.navy, marginBottom: "0.2rem" }}>{label}</p>
-                    <p style={{ fontSize: "0.875rem", color: C.body, lineHeight: 1.55 }}>{desc}</p>
+                    <p style={{ fontWeight: 700, fontSize: "0.9375rem", color: C.navy, marginBottom: "0.375rem" }}>{title}</p>
+                    <p style={{ fontSize: "0.825rem", color: C.body, lineHeight: 1.6 }} dangerouslySetInnerHTML={{ __html: body }} />
                   </div>
                 </div>
               ))}
             </div>
-            <p style={{ fontSize: "0.9375rem", color: C.body, fontWeight: 500, paddingTop: "1.5rem", borderTop: `1px solid ${C.border}` }}>
-              Most agencies deliver one. We engineer all three.
-            </p>
-          </div>
-          <div style={{ display: "flex", justifyContent: "center" }}>
-            <PlacementOutcomeAnimated />
           </div>
         </div>
       </section>
 
-      {/* ════════════════════════════════════════
-          SECTION 5 — CORE INSIGHT
-      ════════════════════════════════════════ */}
-      <section style={{ background: C.white, padding: "5rem 1.5rem" }}>
-        <div style={{ ...wrap, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "5rem", alignItems: "center" }}>
-          <div>
-            <span style={{ fontSize: "0.8125rem", fontWeight: 600, color: C.purple, textTransform: "uppercase", letterSpacing: "0.08em", display: "block", marginBottom: "1rem" }}>The core insight</span>
-            <h2 style={{ fontWeight: 700, fontSize: "clamp(1.75rem, 3vw, 2.5rem)", color: C.navy, lineHeight: 1.15, letterSpacing: "-0.02em", marginBottom: "1.25rem" }}>
-              Google already trusts pages that rank.{" "}
-              <span style={grad}>That trust can transfer to you.</span>
+      {/* ═══ HOW IT WORKS ════════════════════════════════════════ */}
+      <section id="how-it-works" style={{ padding: "6rem 1.5rem" }}>
+        <div style={wrap}>
+          <div style={{ textAlign: "center", marginBottom: "3.5rem" }}>
+            <SectionLabel text="How it works" />
+            <h2 style={{
+              fontWeight: 800, fontSize: "clamp(1.875rem, 3.5vw, 2.75rem)",
+              color: C.navy, lineHeight: 1.1, letterSpacing: "-0.03em", marginBottom: "1rem",
+            }}>
+              Three moves.{" "}
+              <span style={grad}>One compounding result.</span>
             </h2>
-            <p style={{ color: C.body, fontSize: "1.0625rem", lineHeight: 1.7, marginBottom: "1.5rem" }}>
-              A link from a trusted, ranking page passes authority to your site. A link from a page nobody visits doesn&apos;t.
-            </p>
-            <p style={{ color: C.body, fontSize: "1rem", lineHeight: 1.7 }}>
-              This is why we target pages that already rank and already get traffic — or create new pages engineered to do both.
-            </p>
           </div>
-          <div>
-            <AnimatedAuthorityFlow />
-          </div>
-        </div>
-      </section>
 
-      {/* ════════════════════════════════════════
-          SECTION 6 — HOW IT WORKS (3 steps)
-      ════════════════════════════════════════ */}
-      <section id="how-it-works" style={{ background: C.soft, padding: "5rem 1.5rem" }}>
-        <div style={wrap}>
-          {sectionHead("How AlwaysCited works.", "We place you where buying decisions are already being made.")}
-
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1.5rem" }}>
+          <div
+            style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1.5rem", position: "relative" }}
+            className="stack-mobile"
+          >
             {[
               {
-                step: "1",
-                title: "We find the placements that already move outcomes.",
-                body: "We map the recommendation landscape — the keywords, listicles, AI citations, and third-party pages shaping decisions in your category. Then we screen every target for authority, real traffic, and niche relevance. Not vanity metrics.",
+                n: "01",
+                title: "We audit your category",
+                body: "We map every article ranking for your target keywords and score them by traffic, domain authority, and AI citation frequency. You see exactly where your competitors are being cited — and where the gaps are.",
               },
               {
-                step: "2",
-                title: "We engineer the placement.",
-                body: "We create or secure a placement structured around the right anchors: one brand link to your homepage, one exact-match anchor to the page that converts. Sometimes that means placing you inside pages Google already ranks. Sometimes it means engineering new ones designed to rank. Either way, the outcome is the same.",
+                n: "02",
+                title: "We secure the placement",
+                body: "We approach editors at high-authority publications with a genuine editorial contribution. No link farms. No spray-and-pray outreach. A real placement in a real article that real readers trust.",
               },
               {
-                step: "3",
-                title: "We measure rankings, citations, and traffic.",
-                body: "We report on ranking movement, AI visibility, referral traffic, and leads — weekly. Every placement is measured against its commercial outcomes, not just its link metrics.",
+                n: "03",
+                title: "You compound",
+                body: "Rankings move. AI systems start extracting your brand. Referral traffic arrives. Each placement strengthens the next — and the effect accelerates over 90–180 days.",
               },
-            ].map(({ step, title, body }) => (
-              <div key={step} className="card-hover" style={card}>
-                <div style={{ width: "36px", height: "36px", borderRadius: "10px", background: gradBg, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "1.25rem", fontSize: "0.875rem", fontWeight: 700, color: C.white }}>{step}</div>
-                <h3 style={{ fontWeight: 700, fontSize: "1.0625rem", color: C.navy, marginBottom: "0.75rem", lineHeight: 1.3 }}>{title}</h3>
-                <p style={{ color: C.body, lineHeight: 1.65, fontSize: "0.9375rem" }}>{body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ════════════════════════════════════════
-          SECTION 7 — SELECTION CRITERIA
-      ════════════════════════════════════════ */}
-      <section style={{ background: C.white, padding: "5rem 1.5rem" }}>
-        <div style={wrap}>
-          {sectionHead("We don't place everywhere. We place where it moves outcomes.", "Every placement has to pass three filters.")}
-
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "1.5rem" }}>
-            {[
-              { n: "01", title: "Authority", body: "The host needs to meet or beat the authority of pages currently being cited or ranked in your category. We don't place on weak domains." },
-              { n: "02", title: "Real traffic", body: "A high-authority page with no visitors is a dead asset. We look for pages and domains with actual search demand — real people, real intent." },
-              { n: "03", title: "Relevance", body: "Niche relevance matters. The closer the publication is to your category, the stronger the signal — to Google and to the AI systems that cite it." },
-            ].map(({ n, title, body }) => (
-              <div key={title} className="card-hover" style={{ ...card, display: "flex", gap: "1.25rem", alignItems: "flex-start" }}>
-                <span style={{ fontSize: "1.5rem", fontWeight: 700, color: C.border, lineHeight: 1, flexShrink: 0, fontFamily: "monospace" }}>{n}</span>
-                <div>
-                  <h3 style={{ fontWeight: 700, fontSize: "1.0625rem", color: C.navy, marginBottom: "0.5rem" }}>{title}</h3>
-                  <p style={{ color: C.body, fontSize: "0.9375rem", lineHeight: 1.65 }}>{body}</p>
+            ].map(({ n, title, body }, i) => (
+              <div
+                key={n}
+                className="card-hover"
+                style={{
+                  background: C.white,
+                  border: `1px solid ${C.border}`,
+                  borderRadius: "20px",
+                  padding: "2rem",
+                  boxShadow: "0 2px 16px rgba(11,18,32,0.06)",
+                  position: "relative",
+                }}
+              >
+                {/* Step connector arrow (desktop only, not last item) */}
+                {i < 2 && (
+                  <div
+                    className="hide-mobile"
+                    style={{
+                      position: "absolute",
+                      right: "-1.25rem",
+                      top: "2rem",
+                      zIndex: 10,
+                      color: C.purple,
+                      fontSize: "1.25rem",
+                      fontWeight: 300,
+                    }}
+                    aria-hidden="true"
+                  >
+                    →
+                  </div>
+                )}
+                <div style={{
+                  fontSize: "0.75rem",
+                  fontWeight: 700,
+                  color: C.purple,
+                  letterSpacing: "0.08em",
+                  marginBottom: "1rem",
+                  fontFamily: "monospace",
+                }}>
+                  {n}
                 </div>
+                <h3 style={{ fontWeight: 700, fontSize: "1.0625rem", color: C.navy, marginBottom: "0.75rem", lineHeight: 1.3 }}>
+                  {title}
+                </h3>
+                <p style={{ fontSize: "0.875rem", color: C.body, lineHeight: 1.65 }}>{body}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ════════════════════════════════════════
-          SECTION 8 — LINK ARCHITECTURE
-      ════════════════════════════════════════ */}
-      <section style={{ background: C.soft, padding: "5rem 1.5rem" }}>
-        <div style={{ ...wrap, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "5rem", alignItems: "center" }}>
-          <div>
-            <span style={{ fontSize: "0.8125rem", fontWeight: 600, color: C.purple, textTransform: "uppercase", letterSpacing: "0.08em", display: "block", marginBottom: "1rem" }}>Link architecture</span>
-            <h2 style={{ fontWeight: 700, fontSize: "clamp(1.75rem, 3vw, 2.25rem)", color: C.navy, lineHeight: 1.15, letterSpacing: "-0.02em", marginBottom: "1.25rem" }}>
-              Two engineered links. One compounding asset.
+      {/* ═══ DARK COMPARISON ══════════════════════════════════════ */}
+      <section style={{ background: C.navy, padding: "6rem 1.5rem", position: "relative", overflow: "hidden" }}>
+        <div className="gradient-orb" style={{ position: "absolute", width: "400px", height: "400px", background: "radial-gradient(circle, rgba(168,85,247,0.1) 0%, transparent 70%)", bottom: "-100px", right: "-80px", pointerEvents: "none", animationDelay: "-10s" }} aria-hidden="true" />
+
+        <div style={{ ...wrap, position: "relative" }}>
+          <div style={{ textAlign: "center", marginBottom: "3rem" }}>
+            <SectionLabel text="Why it&apos;s different" dark />
+            <h2 style={{
+              fontWeight: 800, fontSize: "clamp(1.875rem, 3.5vw, 2.75rem)",
+              color: C.white, lineHeight: 1.1, letterSpacing: "-0.03em",
+            }}>
+              Not all links are equal.
             </h2>
-            <p style={{ color: C.body, fontSize: "1.0625rem", lineHeight: 1.7, marginBottom: "1.25rem" }}>
-              Every placement is structured to build brand authority and move the pages that convert.
-            </p>
-            <p style={{ color: C.body, fontSize: "1rem", lineHeight: 1.7 }}>
-              The brand anchor strengthens your domain. The exact-match anchor helps move the page that earns revenue. Same placement. Two outcomes.
+          </div>
+
+          <DarkComparisonSection />
+        </div>
+      </section>
+
+      {/* ═══ PROOF / CASE STUDIES ════════════════════════════════ */}
+      <section id="proof" style={{ padding: "6rem 1.5rem" }}>
+        <div style={wrap}>
+          <div style={{ textAlign: "center", marginBottom: "3.5rem" }}>
+            <SectionLabel text="Results" />
+            <h2 style={{
+              fontWeight: 800, fontSize: "clamp(1.875rem, 3.5vw, 2.75rem)",
+              color: C.navy, lineHeight: 1.1, letterSpacing: "-0.03em", marginBottom: "1rem",
+            }}>
+              Rankings that{" "}
+              <span style={grad}>compound.</span>
+            </h2>
+            <p style={{ color: C.body, fontSize: "1.0625rem", lineHeight: 1.65, maxWidth: "500px", margin: "0 auto" }}>
+              One campaign. One placement. The compounding effect measured over six months.
             </p>
           </div>
-          <AnimatedLinkDiagram />
-        </div>
-      </section>
 
-      {/* ════════════════════════════════════════
-          SECTION 9 — COMPARISON TABLE
-      ════════════════════════════════════════ */}
-      <section style={{ background: C.white, padding: "5rem 1.5rem" }}>
-        <div style={wrap}>
-          {sectionHead("Most link building stops at the link.", "AlwaysCited builds assets that appreciate.")}
+          <div
+            style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2rem", marginBottom: "2.5rem" }}
+            className="stack-mobile"
+          >
+            <RankingChart />
 
-          <AnimatedComparisonTable />
-
-          <p style={{ marginTop: "2rem", textAlign: "center", fontWeight: 600, color: C.navy, fontSize: "1rem" }}>
-            Same budget. Different category of result.
-          </p>
-        </div>
-      </section>
-
-      {/* ════════════════════════════════════════
-          SECTION 10 — QUOTE BAND
-      ════════════════════════════════════════ */}
-      <section style={{ background: C.navy, padding: "4.5rem 1.5rem" }}>
-        <div style={{ maxWidth: "760px", margin: "0 auto", textAlign: "center" }}>
-          <p style={{ fontWeight: 700, fontSize: "clamp(1.5rem, 3.5vw, 2.25rem)", lineHeight: 1.3, letterSpacing: "-0.02em", color: C.white }}>
-            The goal is not to get a link.{" "}
-            <span style={grad}>The goal is to become part of the answer.</span>
-          </p>
-        </div>
-      </section>
-
-      {/* ════════════════════════════════════════
-          SECTION 11 — PROOF / CASE STUDIES
-      ════════════════════════════════════════ */}
-      <section id="proof" style={{ background: C.soft, padding: "5rem 1.5rem" }}>
-        <div style={wrap}>
-          {sectionHead("Proof that the system compounds.")}
-
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "1.5rem" }}>
-            {/* Vibe Retail */}
-            <div style={card}>
-              <p style={{ fontSize: "0.75rem", fontWeight: 600, color: C.purple, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "0.5rem" }}>SaaS · Retail Technology</p>
-              <h3 style={{ fontWeight: 700, fontSize: "1.25rem", color: C.navy, lineHeight: 1.25, marginBottom: "1.25rem" }}>From DR 0 to position #1 in 8 weeks.</h3>
-
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "0.75rem", marginBottom: "1.5rem" }}>
-                {[
-                  { val: "0 → 35", label: "Domain rating" },
-                  { val: "#83 → #1", label: "Primary keyword" },
-                  { val: "3", label: "AI Overview citations" },
-                  { val: "20%", label: "ChatGPT visibility" },
-                ].map(({ val, label }) => (
-                  <div key={label} style={{ background: C.soft, borderRadius: "12px", padding: "0.875rem" }}>
-                    <p style={{ ...grad, fontWeight: 700, fontSize: "1.25rem", lineHeight: 1, marginBottom: "0.25rem" }}>{val}</p>
-                    <p style={{ fontSize: "0.75rem", color: C.body }}>{label}</p>
-                  </div>
-                ))}
-              </div>
-
-              <p style={{ color: C.body, fontSize: "0.875rem", lineHeight: 1.65, marginBottom: "1.5rem" }}>
-                The placements ranked. Their traffic compounded. Authority transferred through the right anchors. And the page that converts climbed to #1.
+            {/* AI citation cards */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "1rem", justifyContent: "center" }}>
+              <p style={{ fontSize: "0.75rem", fontWeight: 600, color: C.body, marginBottom: "0.375rem" }}>
+                AI platforms citing the brand after placement:
               </p>
-              <ScreenshotPlaceholder label="Google AI Overview screenshot — add before launch" />
+              <AICitationCard
+                platform="Google AI Overview"
+                color="#4285F4"
+                letter="G"
+                text="alwayscited is cited as a recommended service for strategic link placement and AI visibility strategy…"
+              />
+              <AICitationCard
+                platform="ChatGPT"
+                color="#10A37F"
+                letter="C"
+                text="Based on multiple high-authority industry sources, alwayscited is recognized for its placement-led approach to organic growth…"
+              />
+              <AICitationCard
+                platform="Perplexity"
+                color="#20B2AA"
+                letter="P"
+                text="According to roundup.com and industry reviews, top platforms include alwayscited for link placement in AI-visible content…"
+              />
             </div>
+          </div>
 
-            {/* Vismo */}
-            <div style={card}>
-              <p style={{ fontSize: "0.75rem", fontWeight: 600, color: C.purple, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "0.5rem" }}>B2B SaaS · Public Safety</p>
-              <h3 style={{ fontWeight: 700, fontSize: "1.25rem", color: C.navy, lineHeight: 1.25, marginBottom: "1.25rem" }}>Off page one to ranking 3rd in a single wave.</h3>
-
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "0.75rem", marginBottom: "1.5rem" }}>
-                {[
-                  { val: "#3", label: "\"Mass notification systems\"" },
-                  { val: "✓", label: "Google AI Overview" },
-                  { val: "3", label: "Engineered placements" },
-                  { val: "Niche", label: "Coded domains" },
-                ].map(({ val, label }) => (
-                  <div key={label} style={{ background: C.soft, borderRadius: "12px", padding: "0.875rem" }}>
-                    <p style={{ ...grad, fontWeight: 700, fontSize: "1.25rem", lineHeight: 1, marginBottom: "0.25rem" }}>{val}</p>
-                    <p style={{ fontSize: "0.75rem", color: C.body }}>{label}</p>
-                  </div>
-                ))}
-              </div>
-
-              <p style={{ color: C.body, fontSize: "0.875rem", lineHeight: 1.65, marginBottom: "1.5rem" }}>
-                Different sector, same system. Relevant authority, engineered placements, measurable movement. Niche-coded domains outperformed generic high-DR alternatives.
-              </p>
-              <ScreenshotPlaceholder label="Ranking chart screenshot — add before launch" />
-            </div>
+          {/* Quote */}
+          <div style={{
+            background: C.navy,
+            borderRadius: "20px",
+            padding: "2.5rem",
+            textAlign: "center",
+          }}>
+            <p style={{
+              fontSize: "clamp(1.125rem, 2vw, 1.375rem)",
+              color: C.white,
+              fontWeight: 600,
+              lineHeight: 1.55,
+              letterSpacing: "-0.01em",
+              maxWidth: "680px",
+              margin: "0 auto 1rem",
+            }}>
+              &ldquo;The goal is not to get a link. The goal is to be inside the source that the buyer, Google, and AI all agree to trust.&rdquo;
+            </p>
+            <p style={{ fontSize: "0.8125rem", color: "#6B7280" }}>— alwayscited methodology</p>
           </div>
         </div>
       </section>
 
-      {/* ════════════════════════════════════════
-          SECTION 12 — GUARANTEE BAND
-      ════════════════════════════════════════ */}
-      <section style={{ background: C.navy, padding: "5rem 1.5rem" }}>
-        <div style={{ maxWidth: "760px", margin: "0 auto", textAlign: "center" }}>
-          <h2 style={{ fontWeight: 700, fontSize: "clamp(1.75rem, 3.5vw, 2.5rem)", color: C.white, lineHeight: 1.2, letterSpacing: "-0.02em", marginBottom: "3rem" }}>
-            The only agency that puts{" "}
-            <span style={grad}>outcomes in the contract.</span>
+      {/* ═══ GUARANTEE BAND ═══════════════════════════════════════ */}
+      <section style={{ background: C.soft, padding: "4rem 1.5rem" }}>
+        <div style={{ ...wrap, textAlign: "center" }}>
+          <h2 style={{ fontWeight: 700, fontSize: "clamp(1.5rem, 2.5vw, 2rem)", color: C.navy, marginBottom: "0.875rem", letterSpacing: "-0.02em" }}>
+            If we don&apos;t deliver a DA 60+ placement within 45 days, you don&apos;t pay.
           </h2>
-
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "2rem", marginBottom: "2.5rem" }}>
+          <p style={{ color: C.body, fontSize: "1rem", lineHeight: 1.65, maxWidth: "500px", margin: "0 auto 2rem" }}>
+            We put our work on the line. No placement, no invoice. It&apos;s that simple.
+          </p>
+          <div style={{ display: "flex", gap: "2rem", justifyContent: "center", flexWrap: "wrap" }}>
             {[
-              { Icon: RankingIcon, label: "Ranking growth" },
-              { Icon: AIOverviewIcon, label: "AI Overview inclusion" },
-              { Icon: CitationIcon, label: "LLM citations" },
-            ].map(({ Icon, label }) => (
-              <div key={label} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.875rem" }}>
-                <div style={{ width: "60px", height: "60px", borderRadius: "16px", background: "rgba(168,85,247,0.12)", border: "1.5px solid rgba(168,85,247,0.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <Icon />
+              { icon: "✓", text: "DA 60+ guaranteed or free" },
+              { icon: "✓", text: "Live within 45 days" },
+              { icon: "✓", text: "Full placement report on delivery" },
+            ].map(({ icon, text }) => (
+              <div key={text} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <div style={{
+                  width: "20px", height: "20px", borderRadius: "50%",
+                  background: "rgba(34,197,94,0.15)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  flexShrink: 0,
+                }}>
+                  <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                    <path d="M1 4l3 3 5-6" stroke="#22C55E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
                 </div>
-                <p style={{ fontSize: "0.9375rem", fontWeight: 600, color: C.white }}>{label}</p>
+                <span style={{ fontSize: "0.875rem", fontWeight: 500, color: C.navy }}>{text}</span>
               </div>
             ))}
           </div>
-
-          <p style={{ fontSize: "1.25rem", fontWeight: 700, color: C.white, marginBottom: "2rem" }}>
-            If we don&apos;t deliver one of these, you don&apos;t pay.
-          </p>
-
-          <a href="#pricing" style={{ display: "inline-block", background: "transparent", color: C.white, padding: "0.875rem 2rem", borderRadius: "12px", fontWeight: 600, fontSize: "1rem", textDecoration: "none", border: "1.5px solid rgba(255,255,255,0.25)" }}>
-            See the proof package
-          </a>
         </div>
       </section>
 
-      {/* ════════════════════════════════════════
-          SECTION 13 — PRICING
-      ════════════════════════════════════════ */}
-      <section id="pricing" style={{ background: C.white, padding: "5rem 1.5rem" }}>
-        <div style={{ ...wrap, maxWidth: "720px" }}>
-          {sectionHead("A proof package for AI-era search.", undefined, true)}
+      {/* ═══ PRICING ═════════════════════════════════════════════ */}
+      <section id="pricing" style={{ padding: "6rem 1.5rem" }}>
+        <div style={{ ...wrap, textAlign: "center" }}>
+          <SectionLabel text="Pricing" />
+          <h2 style={{
+            fontWeight: 800, fontSize: "clamp(1.875rem, 3.5vw, 2.5rem)",
+            color: C.navy, lineHeight: 1.1, letterSpacing: "-0.03em", marginBottom: "1rem",
+          }}>
+            One package. No complexity.
+          </h2>
+          <p style={{ color: C.body, fontSize: "1.0625rem", lineHeight: 1.65, maxWidth: "460px", margin: "0 auto 3rem" }}>
+            We don&apos;t sell volume. We sell outcomes. Every campaign is built around a specific keyword, page, and commercial goal.
+          </p>
 
-          <div style={{ ...card, border: `1.5px solid rgba(124,58,237,0.3)`, boxShadow: "0 8px 40px rgba(124,58,237,0.12)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "1rem", marginBottom: "2rem" }}>
-              <div>
-                <p style={{ ...grad, fontWeight: 700, fontSize: "1.375rem", marginBottom: "0.25rem" }}>The Proof Package</p>
-                <p style={{ color: C.body, fontSize: "0.9375rem" }}>AlwaysCited productised into a defined campaign.</p>
-              </div>
-              <div style={{ textAlign: "right" }}>
-                <p style={{ fontWeight: 700, fontSize: "1.5rem", color: C.navy }}>From £1,195</p>
-                <p style={{ fontSize: "0.8125rem", color: C.body }}>three-placement engagement</p>
-              </div>
+          <div style={{
+            background: C.white,
+            border: `1.5px solid ${C.border}`,
+            borderRadius: "24px",
+            padding: "2.5rem",
+            maxWidth: "480px",
+            margin: "0 auto",
+            boxShadow: "0 4px 32px rgba(11,18,32,0.08)",
+            textAlign: "left",
+          }}>
+            <div style={{
+              display: "inline-flex",
+              background: "rgba(124,58,237,0.08)",
+              border: "1px solid rgba(124,58,237,0.2)",
+              borderRadius: "8px",
+              padding: "0.3rem 0.75rem",
+              fontSize: "0.75rem",
+              fontWeight: 600,
+              color: C.purple,
+              marginBottom: "1.25rem",
+            }}>
+              Proof Package
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "1rem", marginBottom: "2rem" }}>
+            <p style={{ fontSize: "2.25rem", fontWeight: 800, color: C.navy, letterSpacing: "-0.03em", lineHeight: 1, marginBottom: "0.375rem" }}>
+              £1,497
+            </p>
+            <p style={{ fontSize: "0.875rem", color: C.body, marginBottom: "1.75rem" }}>per placement · one-time · no retainer</p>
+
+            <ul style={{ listStyle: "none", padding: 0, margin: "0 0 2rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
               {[
-                "3 engineered placements",
-                "1 agreed keyword cluster",
-                "Authority, traffic & relevance screening",
-                "1+1 link structure on every placement",
-                "AI visibility + ranking reporting",
+                "DA 60+ placement guaranteed",
+                "Ranking article with real traffic (500+ monthly visitors)",
+                "Strategic anchor text for your target keyword",
+                "AI-citation-optimised placement structure",
+                "Full delivery report with metrics",
+                "45-day delivery or you don&apos;t pay",
               ].map((item) => (
-                <div key={item} style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
-                  <span style={{ width: "20px", height: "20px", borderRadius: "50%", background: gradBg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    <svg width="9" height="7" viewBox="0 0 9 7" fill="none" aria-hidden="true"><path d="M1 3.5L3 5.5L8 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  </span>
-                  <span style={{ fontSize: "0.9rem", color: C.navy, fontWeight: 500 }}>{item}</span>
-                </div>
+                <li key={item} style={{ display: "flex", alignItems: "flex-start", gap: "0.625rem" }}>
+                  <div style={{
+                    width: "18px", height: "18px", borderRadius: "50%",
+                    background: "rgba(124,58,237,0.1)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    flexShrink: 0, marginTop: "1px",
+                  }}>
+                    <svg width="9" height="7" viewBox="0 0 9 7" fill="none">
+                      <path d="M1 3.5l2.5 2.5 5-5" stroke="#7C3AED" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                  <span style={{ fontSize: "0.875rem", color: C.body, lineHeight: 1.55 }} dangerouslySetInnerHTML={{ __html: item }} />
+                </li>
               ))}
-            </div>
+            </ul>
 
-            <div style={{ background: C.soft, border: `1px solid ${C.border}`, borderRadius: "14px", padding: "1rem 1.25rem", marginBottom: "1.5rem" }}>
-              <p style={{ fontSize: "0.875rem", fontWeight: 600, color: C.navy, marginBottom: "0.25rem" }}>Guarantee</p>
-              <p style={{ fontSize: "0.875rem", color: C.body, lineHeight: 1.6 }}>
-                Ranking growth, AI Overview inclusion, or LLM citations — or your money back.
-              </p>
-            </div>
-
-            <a href="/contact" className="btn-primary" style={{ display: "inline-block" }}>Book a strategy call</a>
+            <a href="/contact" className="btn-primary" style={{ display: "block", textAlign: "center" }}>
+              Book a strategy call
+            </a>
+            <p style={{ fontSize: "0.75rem", color: "#9CA3AF", textAlign: "center", marginTop: "0.875rem" }}>
+              Strategy call is free. No commitment required.
+            </p>
           </div>
         </div>
       </section>
 
-      {/* ════════════════════════════════════════
-          SECTION 14 — FAQ
-      ════════════════════════════════════════ */}
-      <section id="faq" style={{ background: C.soft, padding: "5rem 1.5rem" }}>
-        <div style={{ ...wrap, maxWidth: "720px" }}>
-          <h2 style={{ fontWeight: 700, fontSize: "clamp(1.75rem, 3.5vw, 2.25rem)", color: C.navy, lineHeight: 1.15, letterSpacing: "-0.02em", marginBottom: "3rem", textAlign: "center" }}>
-            Frequently asked questions.
-          </h2>
-          <div style={{ borderTop: `1px solid ${C.border}` }}>
-            {faqs.map((faq) => (
-              <details key={faq.q} className="card-hover" style={{ borderBottom: `1px solid ${C.border}` }}>
-                <summary style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem", padding: "1.375rem 0", cursor: "pointer", color: C.navy, fontWeight: 600, fontSize: "1rem", listStyle: "none" }}>
-                  <span>{faq.q}</span>
-                  <span style={{ color: C.purple, fontSize: "1.25rem", lineHeight: 1, flexShrink: 0 }}>+</span>
+      {/* ═══ FAQ ══════════════════════════════════════════════════ */}
+      <section id="faq" style={{ padding: "6rem 1.5rem", background: C.soft }}>
+        <div style={{ ...wrap, maxWidth: "680px" }}>
+          <div style={{ textAlign: "center", marginBottom: "3rem" }}>
+            <SectionLabel text="FAQ" />
+            <h2 style={{ fontWeight: 800, fontSize: "clamp(1.75rem, 3vw, 2.375rem)", color: C.navy, letterSpacing: "-0.02em" }}>
+              Common questions
+            </h2>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "0" }}>
+            {[
+              {
+                q: "How is this different from a standard link building agency?",
+                a: "Most link building agencies target any available page with a high DA. We only target pages that already rank and receive real traffic — because that's what transfers authority to your page and gets extracted by AI systems. The source matters more than the metric.",
+              },
+              {
+                q: "How long does it take to see results?",
+                a: "The placement is live within 45 days. Ranking movement typically appears within 60–90 days of the placement going live, with AI citation appearing within 90–120 days as models update their knowledge bases.",
+              },
+              {
+                q: "Do you guarantee the DA of the placement?",
+                a: "Yes. Every placement is DA 60 minimum, on a page with real traffic. If we don't deliver within 45 days, you don't pay — that's our guarantee.",
+              },
+              {
+                q: "Will the placement look natural?",
+                a: "Yes. We work with real editors at real publications. Every placement is a genuine editorial contribution — not paid links, not link insertions. The anchor text is discussed with you and placed contextually.",
+              },
+              {
+                q: "Which industries do you work with?",
+                a: "We work with B2B SaaS, professional services, fintech, and specialist e-commerce. We don't work with industries where high-authority editorial placements are difficult to secure (gambling, adult, crypto).",
+              },
+            ].map(({ q, a }) => (
+              <details
+                key={q}
+                style={{
+                  borderBottom: `1px solid ${C.border}`,
+                  padding: "1.25rem 0",
+                }}
+              >
+                <summary style={{
+                  fontWeight: 600,
+                  fontSize: "0.9375rem",
+                  color: C.navy,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: "1rem",
+                }}>
+                  {q}
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0 }}>
+                    <path d="M4 6l4 4 4-4" stroke={C.purple} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
                 </summary>
-                <p style={{ color: C.body, lineHeight: 1.7, paddingBottom: "1.375rem", fontSize: "0.9375rem" }}>{faq.a}</p>
+                <p style={{ color: C.body, fontSize: "0.875rem", lineHeight: 1.7, paddingTop: "0.875rem" }}>{a}</p>
               </details>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ════════════════════════════════════════
-          SECTION 15 — FINAL CTA
-      ════════════════════════════════════════ */}
-      <CtaSection />
+      {/* ═══ DARK CTA ════════════════════════════════════════════ */}
+      <section style={{ background: C.navy, padding: "6rem 1.5rem", position: "relative", overflow: "hidden" }}>
+        <div className="gradient-orb" style={{ position: "absolute", width: "500px", height: "500px", background: "radial-gradient(circle, rgba(168,85,247,0.15) 0%, transparent 70%)", top: "-150px", left: "-100px", pointerEvents: "none" }} aria-hidden="true" />
+        <div className="gradient-orb" style={{ position: "absolute", width: "400px", height: "400px", background: "radial-gradient(circle, rgba(124,58,237,0.12) 0%, transparent 70%)", bottom: "-100px", right: "-80px", pointerEvents: "none", animationDelay: "-15s" }} aria-hidden="true" />
+
+        <div
+          style={{ ...wrap, display: "grid", gridTemplateColumns: "1fr auto", gap: "4rem", alignItems: "center", position: "relative" }}
+          className="hero-two-col"
+        >
+          {/* Left: CTA text */}
+          <div style={{ maxWidth: "560px" }}>
+            <h2 style={{
+              fontWeight: 800,
+              fontSize: "clamp(2rem, 4vw, 3rem)",
+              color: C.white,
+              lineHeight: 1.1,
+              letterSpacing: "-0.03em",
+              marginBottom: "1.25rem",
+            }}>
+              Ready to become the brand{" "}
+              <span style={grad}>AI recommends?</span>
+            </h2>
+            <p style={{ color: "#9CA3AF", fontSize: "1.0625rem", lineHeight: 1.7, marginBottom: "2.5rem", maxWidth: "480px" }}>
+              We&apos;ll map your category, show where your competitors are being cited, and identify the placements most likely to move rankings, traffic, and AI visibility.
+            </p>
+            <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+              <a href="/contact" className="btn-primary">Book a strategy call</a>
+              <a
+                href="#proof"
+                style={{
+                  display: "inline-block",
+                  background: "transparent",
+                  color: C.white,
+                  padding: "0.875rem 2rem",
+                  borderRadius: "12px",
+                  fontWeight: 600,
+                  fontSize: "1rem",
+                  textDecoration: "none",
+                  border: "1.5px solid rgba(255,255,255,0.2)",
+                }}
+              >
+                See example results
+              </a>
+            </div>
+          </div>
+
+          {/* Right: layered visual */}
+          <div className="hide-below-900" aria-hidden="true">
+            <LayeredCTAVisual />
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ FEATURE STRIP ═══════════════════════════════════════ */}
+      <section style={{ background: C.white, borderTop: `1px solid ${C.border}`, padding: "2.5rem 1.5rem" }}>
+        <div style={{ ...wrap }}>
+          <div style={{
+            display: "flex", gap: "2.5rem", flexWrap: "wrap",
+            alignItems: "center", justifyContent: "center",
+          }}>
+            {[
+              { icon: "✦", text: "DA 60–90 placements" },
+              { icon: "✦", text: "Real editorial publications" },
+              { icon: "✦", text: "AI-citation-optimised structure" },
+              { icon: "✦", text: "45-day delivery guarantee" },
+              { icon: "✦", text: "Full metrics report on delivery" },
+            ].map(({ icon, text }) => (
+              <div key={text} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <span style={{ color: C.purple, fontSize: "0.625rem" }}>{icon}</span>
+                <span style={{ fontSize: "0.8125rem", fontWeight: 500, color: C.body, whiteSpace: "nowrap" }}>{text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
     </>
   );
 }
