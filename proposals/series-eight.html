@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Private, link-shared proposal. Keep out of search and sitemaps. -->
+  <meta name="robots" content="noindex, nofollow" />
+  <title>A proposal for Series Eight — Nomada Digital</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Brand tokens — single source of truth ── */
+    :root {
+      --color-bg: #f0f0f0;
+      --color-surface: #ffffff;
+      --color-ink: #111111;
+      --color-accent: #1A31BE;
+      --color-muted: #6b7280;
+      --color-border: #e3e3e6;
+      --font-heading: "Open Sans", sans-serif;
+      --font-body: "Open Sans", sans-serif;
+      --maxw: 1080px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--color-bg);
+      color: var(--color-ink);
+      font-family: var(--font-body);
+      font-weight: 400;
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1, h2, h3, h4 { font-family: var(--font-heading); color: var(--color-ink); line-height: 1.12; letter-spacing: -0.02em; margin: 0; }
+    p { margin: 0; }
+    a { color: var(--color-accent); }
+
+    .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 1.5rem; }
+    .section { padding: 5rem 0; }
+    .section--tight { padding: 3.5rem 0; }
+    .surface { background: var(--color-surface); }
+
+    .eyebrow {
+      display: inline-block;
+      font-size: 0.8125rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: var(--color-accent);
+      margin-bottom: 1rem;
+    }
+    .muted { color: var(--color-muted); }
+
+    .btn {
+      display: inline-block;
+      background: var(--color-accent);
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 1rem;
+      text-decoration: none;
+      padding: 0.875rem 1.75rem;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(26,49,190,0.22); }
+
+    /* ── Header ── */
+    .site-header {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(240,240,240,0.85);
+      backdrop-filter: saturate(180%) blur(10px);
+      border-bottom: 1px solid var(--color-border);
+    }
+    .site-header .wrap { display: flex; align-items: center; justify-content: space-between; padding-top: 0.9rem; padding-bottom: 0.9rem; }
+    .logo { font-family: var(--font-heading); font-weight: 800; font-size: 1.0625rem; letter-spacing: -0.02em; text-decoration: none; display: inline-flex; align-items: baseline; gap: 0.15rem; }
+    .logo .ast { color: var(--color-accent); }
+    .logo .nomada { color: var(--color-ink); }
+    .logo .digital { color: var(--color-accent); }
+    .logo .stop { color: var(--color-ink); }
+    .header-tag { font-size: 0.8125rem; color: var(--color-muted); }
+
+    /* ── Hero ── */
+    .hero { padding: 5.5rem 0 4rem; }
+    .hero h1 { font-size: clamp(2.1rem, 4.8vw, 3.4rem); font-weight: 800; margin: 0.5rem 0 1.25rem; max-width: 20ch; }
+    .hero .sub { font-size: clamp(1.0625rem, 1.6vw, 1.25rem); color: var(--color-muted); max-width: 56ch; margin-bottom: 2rem; line-height: 1.6; }
+
+    /* ── Cards / grids ── */
+    .card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 16px; padding: 1.75rem; }
+    .grid { display: grid; gap: 1.25rem; }
+    .grid-3 { grid-template-columns: repeat(3, 1fr); }
+    .grid-2 { grid-template-columns: 1fr 1fr; }
+
+    .stat .n { font-family: var(--font-heading); font-weight: 800; font-size: clamp(1.75rem, 3vw, 2.5rem); color: var(--color-ink); line-height: 1; letter-spacing: -0.03em; }
+    .stat .l { font-size: 0.875rem; color: var(--color-muted); margin-top: 0.4rem; }
+
+    h2.section-title { font-size: clamp(1.6rem, 3vw, 2.25rem); font-weight: 800; margin-bottom: 0.75rem; }
+    .lede { font-size: 1.0625rem; color: var(--color-muted); max-width: 62ch; line-height: 1.65; }
+
+    /* ── Tier list ── */
+    .tier { display: flex; gap: 1.1rem; padding: 1.25rem 0; border-top: 1px solid var(--color-border); align-items: flex-start; }
+    .tier:first-child { border-top: none; }
+    .tier .num { flex-shrink: 0; width: 2.25rem; height: 2.25rem; border-radius: 9px; background: var(--color-accent); color: #fff; font-weight: 800; display: flex; align-items: center; justify-content: center; font-size: 0.95rem; }
+    .tier.out .num { background: #e3e3e6; color: var(--color-muted); }
+    .tier.out h4, .tier.out p { color: var(--color-muted); }
+    .tier h4 { font-size: 1.05rem; font-weight: 700; margin-bottom: 0.25rem; }
+    .tier .pill { display: inline-block; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; padding: 0.15rem 0.5rem; border-radius: 999px; margin-left: 0.5rem; vertical-align: middle; }
+    .pill--in { background: rgba(26,49,190,0.1); color: var(--color-accent); }
+    .pill--out { background: #ececef; color: var(--color-muted); }
+
+    /* ── Clusters table ── */
+    table.clusters { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    table.clusters th, table.clusters td { text-align: left; padding: 0.7rem 0.6rem; border-bottom: 1px solid var(--color-border); }
+    table.clusters th { font-weight: 700; color: var(--color-muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.03em; }
+    table.clusters td.num, table.clusters th.num { text-align: right; white-space: nowrap; }
+
+    /* ── Chart ── */
+    .chart-shell { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 18px; padding: 1.75rem; }
+    .toggle { display: inline-flex; background: #ececef; border-radius: 10px; padding: 0.25rem; gap: 0.25rem; margin-bottom: 1.25rem; }
+    .toggle button { border: none; background: transparent; font-family: var(--font-body); font-weight: 700; font-size: 0.85rem; padding: 0.5rem 0.9rem; border-radius: 8px; cursor: pointer; color: var(--color-muted); }
+    .toggle button[aria-pressed="true"] { background: var(--color-surface); color: var(--color-ink); box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+    .readouts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 1.25rem; }
+    .readout .rn { font-family: var(--font-heading); font-weight: 800; font-size: 1.5rem; letter-spacing: -0.02em; }
+    .readout .rl { font-size: 0.8rem; color: var(--color-muted); margin-top: 0.15rem; }
+    .chart-caption { font-size: 0.8rem; color: var(--color-muted); margin-top: 1rem; line-height: 1.5; }
+    .proj-label { display: inline-block; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-muted); border: 1px solid var(--color-border); border-radius: 999px; padding: 0.2rem 0.6rem; margin-bottom: 1rem; }
+
+    /* ── Proof ── */
+    .proof-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.25rem; }
+    blockquote { margin: 0; border-left: 3px solid var(--color-accent); padding-left: 1.25rem; color: var(--color-muted); font-style: italic; }
+
+    /* ── Scope ── */
+    .scope-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.75rem; }
+    .scope-list li { display: flex; gap: 0.6rem; align-items: flex-start; font-size: 0.95rem; }
+    .scope-list .tick { color: var(--color-accent); font-weight: 800; flex-shrink: 0; }
+    .month { border-left: 2px solid var(--color-accent); padding-left: 1.1rem; }
+    .month h4 { font-size: 1rem; font-weight: 700; margin-bottom: 0.35rem; }
+    .month p { font-size: 0.9rem; color: var(--color-muted); }
+
+    /* ── Close ── */
+    .close { background: var(--color-ink); color: #fff; border-radius: 20px; padding: 3rem 2rem; text-align: center; }
+    .close h2 { color: #fff; font-size: clamp(1.5rem, 3vw, 2.25rem); font-weight: 800; max-width: 24ch; margin: 0 auto 1.5rem; }
+    .close .btn { background: var(--color-accent); }
+    .close .contact { color: rgba(255,255,255,0.6); font-size: 0.875rem; margin-top: 1.5rem; }
+    .close .contact a { color: #fff; }
+
+    footer.site-footer { padding: 2.5rem 0; border-top: 1px solid var(--color-border); font-size: 0.8125rem; color: var(--color-muted); }
+
+    /* ── Responsive ── */
+    @media (max-width: 860px) {
+      .grid-3, .grid-2, .proof-metrics, .readouts { grid-template-columns: 1fr; }
+      .proof-metrics { grid-template-columns: 1fr 1fr; }
+      .split { grid-template-columns: 1fr !important; }
+      .header-tag { display: none; }
+    }
+    @media (max-width: 520px) {
+      .proof-metrics { grid-template-columns: 1fr; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      .btn { transition: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ═══ Header ═══ -->
+  <header class="site-header">
+    <div class="wrap">
+      <a class="logo" href="https://nomadadigital.co.uk" target="_blank" rel="noopener">
+        <span class="ast">&#10033;</span><span class="nomada">nomada</span><span class="digital">digital</span><span class="stop">.</span>
+      </a>
+      <span class="header-tag">Private proposal · prepared for Series Eight</span>
+    </div>
+  </header>
+
+  <!-- ═══ Section 1 — Hero (the diagnosis, not the pitch) ═══ -->
+  <section class="hero">
+    <div class="wrap">
+      <span class="eyebrow">A proposal for Series Eight</span>
+      <h1>Series Eight's path to qualified, commercial traffic — from the authority you already have.</h1>
+      <p class="sub">A cross-platform visibility plan, sequenced in the right order for Series Eight — Tiers 1 and 2, built around where serieseight.com is today, not a generic package.</p>
+      <a href="#next" class="btn">Book the kickoff call</a>
+    </div>
+  </section>
+
+  <!-- ═══ Section 2 — Where Series Eight is today ═══ -->
+  <section class="section surface">
+    <div class="wrap">
+      <span class="eyebrow">Where you are today</span>
+      <h2 class="section-title">You have the authority. It's pointed at the wrong pages.</h2>
+      <p class="lede" style="margin-bottom:2rem;">
+        Today, Series Eight has the domain authority most clients spend a year building — but your organic traffic is being earned by content that will never buy. Of 147 monthly organic visits, the bulk comes from a single off-target journal post (&ldquo;wordpress vs shopify&rdquo;) pulling unqualified readers from Brazil and the Philippines. Genuine commercial GB/US traffic is thin, and your AI citation footprint is only just beginning to register. The gap isn't authority. It's direction.
+      </p>
+      <div class="grid grid-3">
+        <div class="card stat"><div class="n">DR 62</div><div class="l">629 referring domains · 4.3K all-time backlinks — the authority layer is already in place</div></div>
+        <div class="card stat"><div class="n">147 visits</div><div class="l">Current monthly organic — ~83% driven by one off-target post (Brazil 66% + Philippines 17%)</div></div>
+        <div class="card stat"><div class="n">3 citations</div><div class="l">AI footprint just registering: 1 AI Overview, 2 AI Mode — clear, addressable headroom</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ Section 3 — The cost of the current order ═══ -->
+  <section class="section">
+    <div class="wrap">
+      <span class="eyebrow">The cost of the current order</span>
+      <h2 class="section-title">Wrong order: authority compounding into traffic that won't convert.</h2>
+      <p class="lede" style="margin-bottom:2rem;">
+        Here's what carrying on as-is looks like — or worse, pouring budget into ads and broad content before the right pages exist. Your domain strength keeps working, but it works against you: ranking pages that attract platform-comparison readers, not buyers. Do the tiers out of order and every bit of authority is wasted on the wrong intent.
+      </p>
+
+      <div class="chart-shell" id="order-graph">
+        <span class="proj-label">Illustrative projection · not a guarantee</span>
+        <div class="toggle" role="group" aria-label="Toggle order">
+          <button id="btn-wrong" aria-pressed="true" onclick="setOrder('wrong')">Wrong order</button>
+          <button id="btn-right" aria-pressed="false" onclick="setOrder('right')">Right order</button>
+        </div>
+
+        <svg id="chart" viewBox="0 0 600 320" width="100%" role="img" aria-labelledby="chart-title chart-desc">
+          <title id="chart-title">Projected qualified organic value over the engagement</title>
+          <desc id="chart-desc">A line chart comparing the right order (foundation first, compounding above breakeven) with the wrong order (paid or unfocused first, staying flat below breakeven).</desc>
+          <!-- gridlines -->
+          <g stroke="#ececef" stroke-width="1">
+            <line x1="60" y1="40" x2="560" y2="40" />
+            <line x1="60" y1="95" x2="560" y2="95" />
+            <line x1="60" y1="150" x2="560" y2="150" />
+            <line x1="60" y1="205" x2="560" y2="205" />
+            <line x1="60" y1="260" x2="560" y2="260" />
+          </g>
+          <!-- breakeven -->
+          <line id="breakeven" x1="60" y1="194" x2="560" y2="194" stroke="#6b7280" stroke-width="1.5" stroke-dasharray="5 4" />
+          <text x="64" y="188" fill="#6b7280" font-size="11" font-weight="700" font-family="Open Sans, sans-serif">Breakeven</text>
+          <!-- axes -->
+          <line x1="60" y1="260" x2="560" y2="260" stroke="#cfcfd4" stroke-width="1.5" />
+          <!-- area + line injected by JS -->
+          <path id="area" fill="rgba(26,49,190,0.08)" stroke="none" d="" />
+          <path id="curve" fill="none" stroke="#1A31BE" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="" />
+          <g id="dots"></g>
+          <!-- x labels -->
+          <g fill="#6b7280" font-size="11" font-family="Open Sans, sans-serif" text-anchor="middle">
+            <text x="60"  y="280">Now</text>
+            <text x="143" y="280">M1</text>
+            <text x="226" y="280">M2</text>
+            <text x="310" y="280">M3</text>
+            <text x="393" y="280">M4</text>
+            <text x="476" y="280">M5</text>
+            <text x="560" y="280">M6</text>
+          </g>
+          <text x="20" y="150" fill="#6b7280" font-size="11" font-family="Open Sans, sans-serif" transform="rotate(-90 20 150)" text-anchor="middle">Qualified organic value (indexed)</text>
+        </svg>
+
+        <div class="readouts">
+          <div class="readout"><div class="rn" id="r-traffic">~150</div><div class="rl" id="rl-traffic">Projected qualified monthly visits (flat)</div></div>
+          <div class="readout"><div class="rn" id="r-clusters">0</div><div class="rl">Priority clusters reaching page 1</div></div>
+          <div class="readout"><div class="rn" id="r-ai">3</div><div class="rl">AI citations (no change)</div></div>
+        </div>
+
+        <p class="chart-caption" id="chart-caption">
+          Wrong order: ads or broad content first. Spend props up the whole operation, qualified traffic stays flat below breakeven, and nothing compounds — the moment effort stops, so does the result.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ Section 4 — Series Eight's path through the framework ═══ -->
+  <section class="section surface">
+    <div class="wrap">
+      <span class="eyebrow">Your path through the framework</span>
+      <h2 class="section-title">Tiers 1 and 2, in the right order — built on the authority you already have.</h2>
+      <p class="lede" style="margin-bottom:2.25rem;">
+        The order of the framework is fixed; the number of tiers is not. Because your authority foundation already exists (DR 62), this engagement goes straight into Tiers 1 and 2 and runs strategic link building from day one — no link-gap analysis or brand-mention groundwork needed.
+      </p>
+
+      <div class="card" style="margin-bottom:2.25rem;">
+        <div class="tier">
+          <div class="num">1</div>
+          <div>
+            <h4>Compounding foundation — SEO + AEO <span class="pill pill--in">In scope</span></h4>
+            <p>Build ~16 dedicated child pages under your service subfolders (e.g. <code>/services/design/web-design-for-architects</code>), each engineered around one near-zero-difficulty cluster. Fix the technical base, and engineer AI Overview / LLM citations on top of the entity work. These are the pages the whole link and content programme points at.</p>
+          </div>
+        </div>
+        <div class="tier">
+          <div class="num">2</div>
+          <div>
+            <h4>Organic extension — content + CRO <span class="pill pill--in">In scope</span></h4>
+            <p>Vertical content mapped to your 37+ existing case studies links up to each dedicated page, building topical authority. CRO is introduced end of Month 2 once Microsoft Clarity has gathered real data — to convert the qualified traffic the foundation builds.</p>
+          </div>
+        </div>
+        <div class="tier out">
+          <div class="num">3</div>
+          <div><h4>Efficient paid — Bing + LinkedIn <span class="pill pill--out">Later</span></h4><p>Not in this engagement. Reintroduced once the foundation is proven.</p></div>
+        </div>
+        <div class="tier out">
+          <div class="num">4</div>
+          <div><h4>Authority — Brand PR + Reddit <span class="pill pill--out">Already in place</span></h4><p>Largely pre-built — DR 62 is why we skip foundational link work and go straight to strategic alwayscited placements pointed at the new pages.</p></div>
+        </div>
+        <div class="tier out">
+          <div class="num">5</div>
+          <div><h4>Scale — Google Ads <span class="pill pill--out">Later</span></h4><p>Not in this engagement. Reintroduced later, working harder on a leaner, proven base.</p></div>
+        </div>
+      </div>
+
+      <p style="font-weight:700; margin-bottom:1.25rem;">Cluster priority — by combined volume and winnability:</p>
+      <div class="card" style="overflow-x:auto; padding-top:0.5rem; padding-bottom:0.5rem;">
+        <table class="clusters">
+          <thead>
+            <tr><th class="num">#</th><th>Vertical</th><th>Hero case study</th><th class="num">Keywords</th><th class="num">US vol</th><th class="num">Avg KD</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="num">1</td><td>Architecture / engineered stone</td><td>Jonite</td><td class="num">11</td><td class="num">1,400</td><td class="num">~3</td></tr>
+            <tr><td class="num">2</td><td>Wellness tech / robotics</td><td>Aescape</td><td class="num">9</td><td class="num">1,050</td><td class="num">~1</td></tr>
+            <tr><td class="num">3</td><td>Jewellery</td><td>Keanis</td><td class="num">7</td><td class="num">400</td><td class="num">~1</td></tr>
+            <tr><td class="num">4</td><td>Sports / padel</td><td>Blanca Padel</td><td class="num">6</td><td class="num">360</td><td class="num">0</td></tr>
+            <tr><td class="num">5</td><td>Fashion / clothing</td><td>Peregrine</td><td class="num">9</td><td class="num">240</td><td class="num">~1</td></tr>
+            <tr><td class="num">6</td><td>Beauty / makeup</td><td>Outside In</td><td class="num">6</td><td class="num">230</td><td class="num">~1</td></tr>
+            <tr><td class="num">7</td><td>Skincare</td><td>Dr Few</td><td class="num">4</td><td class="num">150</td><td class="num">0</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="muted" style="font-size:0.85rem; margin-top:0.9rem;">52 keywords · ~3,830 combined US monthly volume · average KD ~2.5. Each keyword maps to a hero case study (relevance signal) and a target service page (conversion destination).</p>
+
+      <p style="margin-top:2rem; font-weight:700;">Your on-ramp — lean, foundation-first.</p>
+      <p class="lede" style="margin-top:0.5rem;">We start with Tiers 1 and 2 on purpose — build the foundation on top of the authority you already have, so that when paid is scaled later, it scales profitably. Your budget sets the speed, not the strategy.</p>
+    </div>
+  </section>
+
+  <!-- ═══ Section 5 — The compounding effect, tuned to Series Eight ═══ -->
+  <section class="section">
+    <div class="wrap">
+      <span class="eyebrow">The compounding effect, tuned to Series Eight</span>
+      <h2 class="section-title">The right order: build the foundation, then watch it compound.</h2>
+      <p class="lede" style="margin-bottom:1.5rem;">
+        Use the toggle on the graph above to switch from the wrong order to the right one — or read it here. Month 1 is the build (pages specced and shipped, not yet ranking). From Month 2 the dedicated pages index, links land, and qualified traffic crosses breakeven and keeps climbing.
+      </p>
+      <p class="muted" style="font-size:0.9rem; max-width:62ch;">
+        Projected for Series Eight based on a DR 62 domain, 52 mapped keywords at an average KD of ~2.5, and ~3,830 monthly US searches of addressable volume. Authority is already built, so qualified traffic compounds as the dedicated pages index and rank. Illustrative projection, not a guarantee.
+      </p>
+      <p style="margin-top:1.25rem;"><a href="#order-graph" onclick="setOrder('right')">Show the right-order projection &uarr;</a> <span class="muted">(scroll up to the graph)</span></p>
+    </div>
+  </section>
+
+  <!-- ═══ Section 6 — Proof (matched case study) ═══ -->
+  <section class="section surface">
+    <div class="wrap">
+      <span class="eyebrow">Proof — the playbook, already delivered</span>
+      <h2 class="section-title">This engagement mirrors what we delivered for Vibe Retail.</h2>
+      <p class="lede" style="margin-bottom:2rem;">
+        A US retail SaaS went from an invisible organic footprint to the most-cited cloud POS brand in AI search in under eight weeks — the same Tier 1 + 2 playbook this Series Eight project applies to your domain, only here we start from DR 62 rather than zero.
+      </p>
+
+      <div class="proof-metrics" style="margin-bottom:2rem;">
+        <div class="card stat"><div class="n">3</div><div class="l">AI Overview top citations on commercial-intent queries</div></div>
+        <div class="card stat"><div class="n">#83&rarr;#4</div><div class="l">Movement on the primary money keyword</div></div>
+        <div class="card stat"><div class="n">0&rarr;14%</div><div class="l">ChatGPT brand visibility in one week of tracking</div></div>
+        <div class="card stat"><div class="n">+26.4</div><div class="l">Avg. position gain; 17 terms on page 1&ndash;2, 81 newly ranking</div></div>
+      </div>
+
+      <div class="card">
+        <blockquote>[Client testimonial to be confirmed with Vibe Retail before sharing — not fabricated.]</blockquote>
+        <p style="margin-top:1.25rem;"><a href="https://alwayscited.com/case-studies/vibe-retail" target="_blank" rel="noopener">Read the full Vibe Retail case study &rarr;</a></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ Section 7 — Scope, cadence & commercials ═══ -->
+  <section class="section">
+    <div class="wrap">
+      <span class="eyebrow">Scope, cadence &amp; commercials</span>
+      <h2 class="section-title">A 3-month engagement: build the foundation, build authority to it, convert.</h2>
+
+      <div class="grid grid-2 split" style="margin: 1.5rem 0 2.5rem; align-items:start;">
+        <div class="card">
+          <h4 style="font-weight:700; margin-bottom:1rem;">What's included</h4>
+          <ul class="scope-list">
+            <li><span class="tick">&rarr;</span><span><strong>~16 dedicated subfolder pages</strong> — specced by Naz, built by the Series Eight dev team, each structured around its cluster with FAQ / AEO blocks and schema baked in.</span></li>
+            <li><span class="tick">&rarr;</span><span><strong>Technical SEO</strong> — full audit and remediation plan (crawlability, load speed, indexation, entity architecture + Schema.org).</span></li>
+            <li><span class="tick">&rarr;</span><span><strong>AEO</strong> — AI Overview / LLM citation targeting and visibility tracking across a defined prompt set.</span></li>
+            <li><span class="tick">&rarr;</span><span><strong>Tracking &amp; baseline</strong> — analytics and Search Console repaired; Microsoft Clarity stood up for heatmaps and session recordings.</span></li>
+            <li><span class="tick">&rarr;</span><span><strong>Strategic link building</strong> — alwayscited &ldquo;best of&rdquo; and contextual placements pointed at the live pages with deliberate anchors.</span></li>
+            <li><span class="tick">&rarr;</span><span><strong>Internal linking &amp; content</strong> — every relevant case study links to its dedicated page; vertical content sequenced by cluster priority; CRO from end of Month 2.</span></li>
+          </ul>
+        </div>
+        <div>
+          <div class="card" style="margin-bottom:1.25rem;">
+            <h4 style="font-weight:700; margin-bottom:0.75rem;">Team</h4>
+            <p style="font-size:0.92rem; color:var(--color-muted);"><strong style="color:var(--color-ink);">Naz</strong> — project lead · technical SEO (spec) · AEO · content · internal linking · link-building map<br/>
+            <strong style="color:var(--color-ink);">Matt</strong> — tracking &amp; analytics audit · baseline · Microsoft Clarity<br/>
+            <strong style="color:var(--color-ink);">Kev</strong> — strategic link building (alwayscited placements)</p>
+          </div>
+          <div class="card">
+            <h4 style="font-weight:700; margin-bottom:0.75rem;">Commercials</h4>
+            <p style="font-size:0.92rem; color:var(--color-muted);">A 3-month term, funded by spreading the Vibe Retail referral fee owed to Series Eight across the engagement — converting an outstanding payable into delivered growth work on your own asset.</p>
+          </div>
+        </div>
+      </div>
+
+      <p style="font-weight:700; margin-bottom:1.25rem;">The three months</p>
+      <div class="grid grid-3" style="margin-bottom:2rem;">
+        <div class="month">
+          <h4>Month 1 — Build the foundation</h4>
+          <p>The build month. Dedicated pages specced and shipped via the dev team; technical + tracking audit; Clarity live; pages internally linked from their hero case studies; keyword-to-page link map produced.</p>
+        </div>
+        <div class="month">
+          <h4>Month 2 — Build links to the pages</h4>
+          <p>With pages live and indexed, Kev's strategic links point at them; technical remediation implemented; AEO / schema live; content expanded; Clarity reviewed and CRO drafted.</p>
+        </div>
+        <div class="month">
+          <h4>Month 3 — Convert &amp; prove</h4>
+          <p>Link building continues; internal linking loop completed; AEO citations tracked against baseline; first CRO tests live; end-of-term review of rankings, qualified GB/US traffic and AI citation growth.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h4 style="font-weight:700; margin-bottom:0.75rem;">What happens next</h4>
+        <p style="color:var(--color-muted); font-size:0.95rem;">At kickoff we agree dev-team turnaround expectations (the Month 1 build is the critical path), secure Naz direct CMS access, establish the tracking baseline and stand up Clarity, and lock the cluster build order — Architecture and Wellness Tech first.</p>
+        <p style="margin-top:1.25rem;"><a href="#next" class="btn">Book the kickoff call</a></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ Section 8 — Close ═══ -->
+  <section class="section" id="next">
+    <div class="wrap">
+      <div class="close">
+        <h2>Series Eight — qualified, commercial traffic from the authority you already have, by building in the right order.</h2>
+        <a href="https://nomadadigital.co.uk" target="_blank" rel="noopener" class="btn">Book the kickoff call</a>
+        <p class="contact">Prepared by Nomada Digital for Series Eight (Mario Vassiliades) · Project lead: Naz · <a href="https://nomadadigital.co.uk" target="_blank" rel="noopener">nomadadigital.co.uk</a></p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      Private proposal — link-shared, not indexed. &copy; <span id="yr"></span> Nomada Digital Ltd. Projected figures are illustrative and not a guarantee of results.
+    </div>
+  </footer>
+
+  <script>
+    document.getElementById('yr').textContent = new Date().getFullYear();
+
+    /* ── Compounding chart data (indexed projection) ── */
+    // x positions for Now, M1..M6
+    var X = [60, 143, 226, 310, 393, 476, 560];
+    // y mapping: value 0..100 -> y 260..40
+    function yOf(v) { return 260 - (v / 100) * 220; }
+
+    var DATA = {
+      wrong: {
+        values: [8, 10, 12, 11, 13, 12, 14],
+        caption: "Wrong order: ads or broad content first. Spend props up the whole operation, qualified traffic stays flat below breakeven, and nothing compounds — the moment effort stops, so does the result.",
+        traffic: 150, trafficLabel: "Projected qualified monthly visits (flat)",
+        clusters: 0, ai: 3, aiLabel: "AI citations (no change)"
+      },
+      right: {
+        values: [8, 5, 22, 44, 64, 81, 95],
+        caption: "Right order: foundation first. Month 1 is the build; from Month 2 the dedicated pages index and links land, qualified traffic crosses breakeven and compounds — the result keeps growing on a base that's already paid for.",
+        traffic: 1100, trafficLabel: "Projected qualified monthly visits", trafficPrefix: "~",
+        clusters: 5, ai: 22, aiLabel: "AI citations (3 → 20+ projected)"
+      }
+    };
+
+    var prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var current = 'wrong';
+
+    function buildPath(values) {
+      var d = '';
+      for (var i = 0; i < values.length; i++) {
+        d += (i === 0 ? 'M ' : ' L ') + X[i] + ' ' + yOf(values[i]).toFixed(1);
+      }
+      return d;
+    }
+    function buildArea(values) {
+      return buildPath(values) + ' L ' + X[X.length - 1] + ' 260 L ' + X[0] + ' 260 Z';
+    }
+    function renderDots(values) {
+      var g = document.getElementById('dots');
+      g.innerHTML = '';
+      for (var i = 0; i < values.length; i++) {
+        var c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        c.setAttribute('cx', X[i]);
+        c.setAttribute('cy', yOf(values[i]).toFixed(1));
+        c.setAttribute('r', '4');
+        c.setAttribute('fill', '#1A31BE');
+        g.appendChild(c);
+      }
+    }
+
+    function animateValue(el, to, prefix) {
+      prefix = prefix || '';
+      if (prefersReduced) { el.textContent = prefix + to.toLocaleString(); return; }
+      var from = 0, start = null, dur = 650;
+      function step(ts) {
+        if (!start) start = ts;
+        var p = Math.min((ts - start) / dur, 1);
+        var val = Math.round(from + (to - from) * (1 - Math.pow(1 - p, 3)));
+        el.textContent = prefix + val.toLocaleString();
+        if (p < 1) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    }
+
+    function setOrder(order) {
+      current = order;
+      var d = DATA[order];
+      document.getElementById('curve').setAttribute('d', buildPath(d.values));
+      document.getElementById('area').setAttribute('d', buildArea(d.values));
+      renderDots(d.values);
+
+      document.getElementById('btn-wrong').setAttribute('aria-pressed', order === 'wrong');
+      document.getElementById('btn-right').setAttribute('aria-pressed', order === 'right');
+
+      document.getElementById('chart-caption').textContent = d.caption;
+      document.getElementById('rl-traffic').textContent = d.trafficLabel;
+      document.getElementById('r-ai').nextElementSibling.textContent = d.aiLabel;
+
+      animateValue(document.getElementById('r-traffic'), d.traffic, d.trafficPrefix);
+      animateValue(document.getElementById('r-clusters'), d.clusters);
+      animateValue(document.getElementById('r-ai'), d.ai);
+    }
+
+    // initial render (wrong order — the diagnosis)
+    setOrder('wrong');
+  </script>
+</body>
+</html>
