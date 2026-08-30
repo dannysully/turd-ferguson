@@ -173,6 +173,20 @@ export default function CaseStudyPage() {
               </div>
             ))}
           </div>
+
+          {/* Task 3 - define the visibility percentage where it first appears */}
+          <p
+            style={{
+              color: "#6B6B66",
+              fontSize: "0.8125rem",
+              lineHeight: 1.6,
+              maxWidth: "44rem",
+              marginTop: "1.5rem",
+            }}
+          >
+            ChatGPT brand visibility: the share of tracked buyer prompts in ChatGPT where the brand
+            is named or cited. Measured weekly against a frozen prompt set.
+          </p>
         </div>
       </section>
 
