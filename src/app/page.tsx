@@ -707,6 +707,26 @@ export default function HomePage() {
             </p>
             <p style={{ fontSize: "0.8125rem", color: "#6B7280" }}>- alwayscited methodology</p>
           </div>
+
+          {/* Task 7 - provenance line */}
+          <p style={{
+            textAlign: "center",
+            fontSize: "0.875rem",
+            color: C.body,
+            marginTop: "2rem",
+            lineHeight: 1.65,
+          }}>
+            alwayscited is built and run by the senior team at{" "}
+            <a
+              href="https://nomadadigital.co.uk"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: C.purple, fontWeight: 600, textDecoration: "none" }}
+            >
+              Nomada Digital
+            </a>
+            .
+          </p>
         </div>
       </section>
 
@@ -858,6 +878,10 @@ export default function HomePage() {
               {
                 q: "How is this different from a standard link building agency?",
                 a: "Most link building agencies target any available page with a high DA. We only target pages that already rank and receive real traffic - because that's what transfers authority to your page and gets extracted by AI systems. The source matters more than the metric.",
+              },
+              {
+                q: "How many placements do I get?",
+                a: "The Proof Package is a single placement, priced per placement with no retainer - so you scale by buying more, not by committing to a monthly minimum. A placement that fails the three-criteria screen is replaced, not counted - you are buying placements that passed, not attempts.",
               },
               {
                 q: "How long does it take to see results?",
