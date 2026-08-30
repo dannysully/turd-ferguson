@@ -35,7 +35,7 @@ const wrap: React.CSSProperties = { maxWidth: "1100px", margin: "0 auto", paddin
 const blocks = [
   {
     n: "1",
-    title: "Fulfilment, not another tool.",
+    title: "Fulfillment, not another tool.",
     body: "We run the entity audit, engineer the placements, and track citations across AI Overviews, ChatGPT, Gemini and Perplexity. You present the results.",
   },
   {
