@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import CitationOrbit from "@/components/CitationOrbit";
 import DarkTrustFlow from "@/components/DarkTrustFlow";
 import DarkComparisonSection from "@/components/DarkComparisonSection";
+import TrackerMock from "@/components/TrackerMock";
 
 export const metadata: Metadata = {
   title: "alwayscited — be the brand AI recommends",
@@ -706,6 +707,28 @@ export default function HomePage() {
             </p>
             <p style={{ fontSize: "0.8125rem", color: "#6B7280" }}>— alwayscited methodology</p>
           </div>
+        </div>
+      </section>
+
+      {/* ═══ THE RECEIPTS - tracker (Task 8) ═════════════════════ */}
+      <section id="receipts" style={{ background: C.navy, padding: "6rem 1.5rem", position: "relative", overflow: "hidden" }}>
+        <div className="gradient-orb" style={{ position: "absolute", width: "450px", height: "450px", background: "radial-gradient(circle, rgba(124,58,237,0.1) 0%, transparent 70%)", top: "-120px", right: "-90px", pointerEvents: "none", animationDelay: "-8s" }} aria-hidden="true" />
+
+        <div style={{ ...wrap, position: "relative" }}>
+          <div style={{ textAlign: "center", marginBottom: "3rem" }}>
+            <SectionLabel text="The receipts" dark />
+            <h2 style={{
+              fontWeight: 800, fontSize: "clamp(1.875rem, 3.5vw, 2.75rem)",
+              color: C.white, lineHeight: 1.1, letterSpacing: "-0.03em", marginBottom: "1.25rem",
+            }}>
+              Every placement has a receipt.
+            </h2>
+            <p style={{ color: "#9CA3AF", fontSize: "1.0625rem", lineHeight: 1.7, maxWidth: "660px", margin: "0 auto" }}>
+              Each placement gets a live tracker page: is the link still there and still followed, where the article ranks for its own keywords, where your page ranks for yours, whether the AI Overview cited you - and when it didn&apos;t. We record &ldquo;shown but not cited&rdquo; separately from &ldquo;no Overview appeared&rdquo;, because those are different results and you deserve to know which one you got. Nothing is estimated. If we didn&apos;t measure it, the field is blank.
+            </p>
+          </div>
+
+          <TrackerMock />
         </div>
       </section>
 
