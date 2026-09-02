@@ -126,7 +126,7 @@ export default function BlogPost3() {
             how often the brand was mentioned. A competitive comparison showing where direct
             competitors are showing up. A set of &ldquo;recommendations&rdquo; — usually generic SEO best
             practices repackaged: improve your schema, write more FAQ content, structure your H2s
-            as questions. The deliverable is a slide deck. The cost is typically £3,000-15,000.
+            as questions. The deliverable is a slide deck. The cost is typically [[PLACEHOLDER: USD equivalent of the GBP 3,000-15,000 audit range]].
           </P>
 
           <H2>What&apos;s actually wrong with this.</H2>

@@ -2,12 +2,12 @@ import type { Metadata } from "next";
 import CtaSection from "@/components/CtaSection";
 
 export const metadata: Metadata = {
-  title: "Case Study: US Retail SaaS — AI Overview Top Citations in Under Eight Weeks",
+  title: "Case Study: US Retail SaaS - AI Overview Top Citations in Under Eight Weeks",
   description:
     "How a US retail SaaS became the most cited cloud POS brand on AI search in under eight weeks. Three AI Overview top citations. Same-day citation engineering. Page-one Google rankings on the money keyword.",
   alternates: { canonical: "https://alwayscited.com/case-studies/vibe-retail" },
   openGraph: {
-    title: "Case Study: US Retail SaaS — AI Overview Top Citations in Under Eight Weeks",
+    title: "Case Study: US Retail SaaS - AI Overview Top Citations in Under Eight Weeks",
     description:
       "Three AI Overview top citations. 0 → 14% ChatGPT visibility in one week. #83 → #4 on the money keyword. Same-day citation engineering.",
     url: "https://alwayscited.com/case-studies/vibe-retail",
@@ -173,6 +173,15 @@ export default function CaseStudyPage() {
               </div>
             ))}
           </div>
+
+          {/* Task 7 - denominator for the visibility percentage. Blocked on D5.
+              Draft pending verification, do not publish as-is:
+              "the share of tracked buyer prompts across ChatGPT, Gemini and
+              Perplexity where the brand is named or cited, measured against a
+              frozen prompt set." */}
+          <p style={{ color: "#6B6B66", fontSize: "0.8125rem", lineHeight: 1.6, maxWidth: "44rem", marginTop: "1.5rem" }}>
+            ChatGPT brand visibility: [[D5]]
+          </p>
         </div>
       </section>
 
@@ -225,10 +234,10 @@ export default function CaseStudyPage() {
             footprint. Launched in late 2025, the site was effectively invisible across both
             traditional search and the emerging AI-driven discovery layer. Competitive visibility
             for &ldquo;cloud based POS&rdquo; and &ldquo;retail POS&rdquo; queries was dominated by entrenched names with
-            a decade of authority — Lightspeed, Shopify POS, Square, Clover. The challenge was
+            a decade of authority - Lightspeed, Shopify POS, Square, Clover. The challenge was
             clear: build search authority from scratch in a competitive SaaS category, and
             simultaneously establish the brand as one that LLMs and Google&apos;s AI Overview would
-            cite — at a moment when most B2B buyers now research through AI before clicking
+            cite - at a moment when most B2B buyers now research through AI before clicking
             anything.
           </Prose>
           <div
@@ -252,9 +261,9 @@ export default function CaseStudyPage() {
             </p>
             <p style={{ color: "#5F5E5A", fontSize: "0.9375rem", lineHeight: 1.7 }}>
               A US-based SaaS platform serving independent and multi-location retailers across the
-              US. Their cloud-based POS system is built specifically for retail workflows —
+              US. Their cloud-based POS system is built specifically for retail workflows -
               inventory management, multi-store operations, barcoding, integrated payment
-              processing — rather than adapted from a hospitality or general-purpose platform.
+              processing - rather than adapted from a hospitality or general-purpose platform.
             </p>
           </div>
         </div>
@@ -274,13 +283,13 @@ export default function CaseStudyPage() {
               deliberately. The pattern: LLMs and AI Overviews lean heavily on up-to-date &ldquo;best
               of&rdquo; listicles published on high-authority domains. When a buyer asks ChatGPT or
               Google&apos;s AI Overview &ldquo;what&apos;s the best retail POS system?&rdquo; the AI doesn&apos;t
-              independently evaluate platforms — it cites a ranked list from a publication it
+              independently evaluate platforms - it cites a ranked list from a publication it
               considers authoritative.
             </Prose>
             <br />
             <Prose>
               This produces a deliberate two-pronged outcome. The same listicle placements that
-              capture AI Overview citations are the highest-authority backlinks money can buy —
+              capture AI Overview citations are the highest-authority backlinks money can buy -
               pages with real organic traffic in the client&apos;s exact niche carry significantly more
               ranking weight than generic high-DR placements. Every listicle does two jobs: gets
               the brand cited by AI search, and pulls product pages up Google&apos;s traditional
@@ -307,7 +316,7 @@ export default function CaseStudyPage() {
                 },
                 {
                   heading: "Anchored authority transfer.",
-                  body: "Every external placement carried two contextual links — one to the homepage, one to the relevant on-site cluster page — ensuring authority flowed into the pages designed to convert.",
+                  body: "Every external placement carried two contextual links - one to the homepage, one to the relevant on-site cluster page - ensuring authority flowed into the pages designed to convert.",
                 },
               ].map(({ heading, body }) => (
                 <li
@@ -348,7 +357,7 @@ export default function CaseStudyPage() {
             <Prose>
               The strongest evidence that this playbook works on demand: the most recent listicle we
               placed went live in the morning, and Google&apos;s AI Overview was citing it as the top
-              source by that same evening — naming the client as Best Overall in their category.
+              source by that same evening - naming the client as Best Overall in their category.
               That&apos;s not a side effect of traditional SEO. That&apos;s an engineered outcome.
             </Prose>
           </div>
@@ -357,7 +366,7 @@ export default function CaseStudyPage() {
             <H3>SEO strategy: Topical clusters built for retail buyers.</H3>
             <Prose>
               Alongside the AEO play, we built out a content cluster strategy mapping product
-              features to retail verticals — pairing capabilities like inventory management and
+              features to retail verticals - pairing capabilities like inventory management and
               multi-location operations with the specific industries the client serves. Each cluster
               article reinforced topical authority and created additional surfaces for AI citation.
             </Prose>
@@ -423,7 +432,7 @@ export default function CaseStudyPage() {
                     ✓
                   </span>
                   <p style={{ color: "#3D3D3A", fontSize: "0.9375rem", lineHeight: 1.6 }}>
-                    <strong style={{ color: "#0D1B2A" }}>{query}</strong> — {result}
+                    <strong style={{ color: "#0D1B2A" }}>{query}</strong> - {result}
                   </p>
                 </li>
               ))}
@@ -438,13 +447,13 @@ export default function CaseStudyPage() {
               }}
             >
               The third citation appeared inside Google&apos;s AI Overview the same day the supporting
-              listicle went live. That kind of citation velocity isn&apos;t accidental — it&apos;s only
+              listicle went live. That kind of citation velocity isn&apos;t accidental - it&apos;s only
               possible when the underlying placement is engineered for AI consumption from the outset.
             </p>
 
             {/* IMAGE PLACEHOLDER: AI Overview screenshots */}
             {/* IMAGE: drop AI Overview screenshot here before publication */}
-            <ImagePlaceholder label="AI Overview screenshots — three citations" />
+            <ImagePlaceholder label="AI Overview screenshots - three citations" />
           </div>
 
           {/* Impact 2 */}
@@ -467,9 +476,9 @@ export default function CaseStudyPage() {
             <H3 coral>0 to 14% ChatGPT brand visibility in one week.</H3>
             <Prose>
               Across the tracked prompt set, the client&apos;s ChatGPT mention rate climbed from 0% to
-              14% in seven days. On the highest-intent prompts — &ldquo;cloud retail POS system
+              14% in seven days. On the highest-intent prompts - &ldquo;cloud retail POS system
               comparison&rdquo; and &ldquo;top cloud-based POS systems for retail stores with inventory
-              management&rdquo; — the brand now achieves{" "}
+              management&rdquo; - the brand now achieves{" "}
               <strong style={{ color: "#0D1B2A" }}>100% visibility</strong>, mentioned in every AI
               response.
             </Prose>
@@ -480,7 +489,7 @@ export default function CaseStudyPage() {
       {/* Testimonial placeholder */}
       <section style={{ background: "#ffffff" }}>
         <div className="mx-auto max-w-[1100px] px-6 py-16">
-          {/* CLIENT TESTIMONIAL — to be confirmed before publication */}
+          {/* CLIENT TESTIMONIAL - to be confirmed before publication */}
           <blockquote
             style={{
               borderLeft: "3px solid #D85A30",
@@ -497,7 +506,7 @@ export default function CaseStudyPage() {
                 fontStyle: "italic",
               }}
             >
-              [Client testimonial — to be confirmed before publication]
+              [Client testimonial - to be confirmed before publication]
             </p>
           </blockquote>
         </div>
