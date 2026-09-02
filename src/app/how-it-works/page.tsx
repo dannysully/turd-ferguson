@@ -4,12 +4,12 @@ import CtaSection from "@/components/CtaSection";
 export const metadata: Metadata = {
   title: "How AI Search Citations Are Engineered",
   description:
-    "The exact mechanism AlwaysCited uses to engineer AI Overview and ChatGPT citations for B2B brands — listicle placements, on-site AEO content, and anchored authority transfer.",
+    "The exact mechanism alwayscited uses to engineer AI Overview and ChatGPT citations for B2B brands — listicle placements, on-site AEO content, and anchored authority transfer.",
   alternates: { canonical: "https://alwayscited.com/how-it-works" },
   openGraph: {
-    title: "How AI Search Citations Are Engineered | AlwaysCited",
+    title: "How AI Search Citations Are Engineered | alwayscited",
     description:
-      "The exact mechanism AlwaysCited uses to engineer AI Overview and ChatGPT citations for B2B brands.",
+      "The exact mechanism alwayscited uses to engineer AI Overview and ChatGPT citations for B2B brands.",
     url: "https://alwayscited.com/how-it-works",
   },
 };
@@ -19,12 +19,12 @@ const articleSchema = {
   "@type": "Article",
   headline: "How AI search citations are engineered",
   description:
-    "The pattern most agencies haven't seen yet — how AlwaysCited engineers AI Overview and LLM citations through strategic listicle placements and AEO-structured content.",
+    "The pattern most agencies haven't seen yet — how alwayscited engineers AI Overview and LLM citations through strategic listicle placements and AEO-structured content.",
   url: "https://alwayscited.com/how-it-works",
-  author: { "@type": "Organization", name: "AlwaysCited" },
+  author: { "@type": "Organization", name: "alwayscited" },
   publisher: {
     "@type": "Organization",
-    name: "AlwaysCited",
+    name: "alwayscited",
     url: "https://alwayscited.com",
   },
 };
@@ -185,7 +185,7 @@ export default function HowItWorksPage() {
       {/* Section 5 — Comparison table */}
       <section style={{ background: "#ffffff" }}>
         <div className="mx-auto max-w-[1100px] px-6 py-24">
-          <H>How AlwaysCited compares.</H>
+          <H>How alwayscited compares.</H>
           <div style={{ overflowX: "auto" }}>
             <table
               style={{
@@ -209,14 +209,14 @@ export default function HowItWorksPage() {
                   >
                     &nbsp;
                   </th>
-                  {["Traditional SEO", "Generic AEO services", "AlwaysCited"].map((col) => (
+                  {["Traditional SEO", "Generic AEO services", "alwayscited"].map((col) => (
                     <th
                       key={col}
                       style={{
                         textAlign: "left",
                         padding: "0.75rem 1rem",
                         fontFamily: "Georgia, 'Times New Roman', Times, serif",
-                        color: col === "AlwaysCited" ? "#D85A30" : "#0D1B2A",
+                        color: col === "alwayscited" ? "#D85A30" : "#0D1B2A",
                         fontWeight: "normal",
                         minWidth: "160px",
                       }}

@@ -3,15 +3,15 @@ import CitationOrbit from "@/components/CitationOrbit";
 import DarkTrustFlow from "@/components/DarkTrustFlow";
 import DarkComparisonSection from "@/components/DarkComparisonSection";
 import SectorPricing from "@/components/SectorPricing";
-import { D3_FREE_LIMITS, D8_SIGNUP_URL, D9_PARTNER_CALL_URL } from "@/config/pricing";
+import { CONTACT_URL } from "@/config/pricing";
 
 export const metadata: Metadata = {
-  title: "alwayscited - be the brand AI recommends",
+  title: "White-Label AI Citation Placements for SEO Agencies | alwayscited",
   description:
     "White-label AI citation placements for SEO agencies. Track the placements you have already built free, then buy placements in the third-party articles AI engines cite. Prices on the page.",
   alternates: { canonical: "https://alwayscited.com" },
   openGraph: {
-    title: "alwayscited - be the brand AI recommends",
+    title: "White-Label AI Citation Placements for SEO Agencies | alwayscited",
     description: "White-label AI citation placements for SEO agencies. Free placement tracking, four tiers, prices on the page.",
     url: "https://alwayscited.com",
   },
@@ -61,7 +61,7 @@ function SectionLabel({ text, dark = false }: { text: string; dark?: boolean }) 
 function ListicleMockup() {
   const items = [
     { text: "Competitor A - enterprise scale, deep integrations", highlighted: false },
-    { text: "alwayscited.com - best for strategic link placement & AI visibility", highlighted: true },
+    { text: "Your client - best for [their differentiator]", highlighted: true },
     { text: "Competitor B - budget-friendly, good for early-stage", highlighted: false },
     { text: "Competitor C - strong for technical SEO workflows", highlighted: false },
   ];
@@ -214,8 +214,8 @@ function RankingChart() {
         flexWrap: "wrap",
       }}>
         {[
-          { val: "#83 → #4", label: "Money keyword, Vibe Retail" },
-          { val: "0 → 14%", label: "ChatGPT visibility, week 1" },
+          { val: "#83 → #4", label: "Money keyword, US retail SaaS" },
+          { val: "0 → 14%", label: "AI visibility, full prompt set, week 1" },
           { val: "3", label: "AI Overview citations" },
         ].map(({ val, label }) => (
           <div key={label}>
@@ -259,9 +259,9 @@ function AICitationCard({ platform, color, letter, text }: { platform: string; c
 /* ── layered 3D CTA visual ── */
 function LayeredCTAVisual() {
   const outcomes = [
-    { icon: "↑", label: "Money keyword", value: "#83 → #4", sub: "Vibe Retail" },
+    { icon: "↑", label: "Money keyword", value: "#83 → #4", sub: "US retail SaaS" },
     { icon: "✦", label: "AI Overview citations", value: "3", sub: "commercial queries" },
-    { icon: "→", label: "ChatGPT visibility", value: "0 → 14%", sub: "in week 1" },
+    { icon: "→", label: "AI visibility", value: "0 → 14%", sub: "full prompt set, week 1" },
   ];
 
   return (
@@ -295,7 +295,7 @@ function LayeredCTAVisual() {
           fontSize: "0.7rem", fontWeight: 600, color: "#A855F7",
           marginBottom: "1.25rem", letterSpacing: "0.06em", textTransform: "uppercase",
         }}>
-          Vibe Retail, eight weeks
+          US retail SaaS, eight weeks
         </p>
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
           {outcomes.map(({ icon, label, value, sub }) => (
@@ -348,7 +348,7 @@ export default function HomePage() {
         >
           {/* Left: headline + CTAs */}
           <div style={{ maxWidth: "560px" }}>
-            <SectionLabel text="Strategic link placement · AI citation strategy" />
+            <SectionLabel text="For SEO agencies · AI citation placements" />
 
             <h1 style={{
               fontWeight: 800,
@@ -374,7 +374,7 @@ export default function HomePage() {
 
             {/* Task 2 - free tool is the primary CTA, ahead of buying anything */}
             <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginBottom: "2.5rem" }}>
-              <a href={D8_SIGNUP_URL} className="btn-primary">Track your placements free</a>
+              <a href={CONTACT_URL} className="btn-primary">Join the waitlist</a>
               <a
                 href="#pricing"
                 style={{
@@ -396,8 +396,8 @@ export default function HomePage() {
               borderTop: `1px solid ${C.border}`, paddingTop: "1.5rem",
             }}>
               {[
-                { val: "40+", label: "campaigns" },
                 { val: "Page-1", label: "host articles only" },
+                { val: "4", label: "AI engines tracked" },
                 { val: "3 avg.", label: "AI citation sources" },
               ].map(({ val, label }) => (
                 <div key={label}>
@@ -419,7 +419,7 @@ export default function HomePage() {
       <section id="free-tool" style={{ padding: "5rem 1.5rem", background: C.soft }}>
         <div style={wrap}>
           <div style={{ maxWidth: "680px", marginBottom: "3rem" }}>
-            <SectionLabel text="Free forever" />
+            <SectionLabel text="Free forever, launching soon" />
             <h2 style={{
               fontWeight: 800, fontSize: "clamp(1.875rem, 3.5vw, 2.5rem)",
               color: C.navy, lineHeight: 1.12, letterSpacing: "-0.03em", marginBottom: "1.25rem",
@@ -427,12 +427,12 @@ export default function HomePage() {
               Upload the links you have already built. See what they actually did.
             </h2>
             <p style={{ color: C.body, fontSize: "1.0625rem", lineHeight: 1.7, marginBottom: "1.25rem" }}>
-              Add your placements, pick your target keyword, and we track what happens next - where the article ranks, where your client&apos;s page ranks, and whether the AI engines started citing them. We backfill 90 days of history at signup, so you see a trend on day one instead of an empty chart.
+              Add the placements you have already built and we will track what happened next - where the article ranks, where your client&apos;s page ranks, and whether the AI engines started citing them. We backfill 90 days of history at signup, so you see a trend on day one instead of an empty chart.
             </p>
             <p style={{ color: C.navy, fontSize: "0.9375rem", fontWeight: 600, lineHeight: 1.65, marginBottom: "1.75rem" }}>
-              Free for {D3_FREE_LIMITS} placements on one domain. No card, no call.
+              Join the list and you get access first. No card, no call.
             </p>
-            <a href={D8_SIGNUP_URL} className="btn-primary">Track your placements free</a>
+            <a href={CONTACT_URL} className="btn-primary">Join the waitlist</a>
           </div>
 
           {/* Four proof points */}
@@ -507,7 +507,7 @@ export default function HomePage() {
             letterSpacing: "-0.03em",
             marginBottom: "1.25rem",
           }}>
-            Most brands are{" "}
+            Your clients are{" "}
             <span style={grad}>invisible to AI.</span>
           </h2>
 
@@ -515,7 +515,7 @@ export default function HomePage() {
             color: "#9CA3AF", fontSize: "clamp(0.9375rem, 1.5vw, 1.0625rem)",
             lineHeight: 1.7, maxWidth: "580px", margin: "0 auto 3.5rem",
           }}>
-            ChatGPT, Perplexity, and Google AI Overviews don&apos;t discover brands from homepages or ad campaigns. They extract from content that already ranks - content that already earns trust. If your brand isn&apos;t cited inside those sources, it doesn&apos;t exist in AI&apos;s world.
+            ChatGPT, Gemini, Perplexity and Google AI Overviews do not discover brands from homepages or ad campaigns. They extract from content that already ranks - content that already earns trust. If your client is not cited inside those sources, they do not exist in AI&apos;s world.
           </p>
 
           <div className="dark-trust-flow">
@@ -558,7 +558,7 @@ export default function HomePage() {
                     </svg>
                   ),
                   title: "Rankings move",
-                  body: "The host article already ranks page 1 for its own terms. Your target page is linked from it, and the tracker shows where that page sat before and where it sits now.",
+                  body: "The host article already ranks page 1 for its own terms. Your client&apos;s page is linked from it, and the tracker shows where that page sat before and where it sits now.",
                 },
                 {
                   icon: (
@@ -567,7 +567,7 @@ export default function HomePage() {
                     </svg>
                   ),
                   title: "AI starts citing you",
-                  body: "Your brand enters the content pool AI models extract from. Once you&apos;re cited in trusted sources, you&apos;re cited repeatedly across platforms.",
+                  body: "Your client enters the content pool AI models extract from. Once they are cited in trusted sources, they tend to be cited repeatedly across platforms.",
                 },
                 {
                   icon: (
@@ -576,7 +576,7 @@ export default function HomePage() {
                     </svg>
                   ),
                   title: "Real referral traffic",
-                  body: "Visitors from the article are actively researching your category. They arrive pre-qualified - not just browsing.",
+                  body: "Visitors from the article are actively researching your client&apos;s category. They arrive pre-qualified - not just browsing.",
                 },
               ].map(({ icon, title, body }) => (
                 <div
@@ -742,26 +742,29 @@ export default function HomePage() {
 
             {/* AI citation cards */}
             <div style={{ display: "flex", flexDirection: "column", gap: "1rem", justifyContent: "center" }}>
-              <p style={{ fontSize: "0.75rem", fontWeight: 600, color: C.body, marginBottom: "0.375rem" }}>
-                AI platforms citing the brand after placement:
+              <p style={{ fontSize: "0.75rem", fontWeight: 600, color: C.body, marginBottom: "0.2rem" }}>
+                What an AI citation looks like once a placement lands:
+              </p>
+              <p style={{ fontSize: "0.7rem", color: "#9CA3AF", marginBottom: "0.5rem" }}>
+                Illustrative examples, not captured responses.
               </p>
               <AICitationCard
                 platform="Google AI Overview"
                 color="#4285F4"
                 letter="G"
-                text="alwayscited is cited as a recommended service for strategic link placement and AI visibility strategy…"
+                text="Your client is cited as a recommended provider for the category…"
               />
               <AICitationCard
                 platform="ChatGPT"
                 color="#10A37F"
                 letter="C"
-                text="Based on multiple high-authority industry sources, alwayscited is recognized for its placement-led approach to organic growth…"
+                text="Based on multiple high-authority industry sources, your client is recognized for…"
               />
               <AICitationCard
                 platform="Perplexity"
                 color="#20B2AA"
                 letter="P"
-                text="According to roundup.com and industry reviews, top platforms include alwayscited for link placement in AI-visible content…"
+                text="According to industry roundups and reviews, top providers include your client for…"
               />
             </div>
           </div>
@@ -785,6 +788,29 @@ export default function HomePage() {
               &ldquo;The goal is not to get a link. The goal is to be inside the source that the buyer, Google, and AI all agree to trust.&rdquo;
             </p>
             <p style={{ fontSize: "0.8125rem", color: "#6B7280" }}>- alwayscited methodology</p>
+          </div>
+
+          {/* 2.8 - the case study's best finding belongs on the homepage */}
+          <div style={{
+            background: C.soft,
+            border: `1px solid ${C.border}`,
+            borderRadius: "20px",
+            padding: "2rem",
+            marginTop: "1.5rem",
+            textAlign: "center",
+          }}>
+            <p style={{ fontSize: "clamp(1rem, 1.6vw, 1.125rem)", color: C.navy, fontWeight: 600, lineHeight: 1.6, maxWidth: "640px", margin: "0 auto 1.25rem" }}>
+              On one US retail SaaS campaign, the listicle went live in the morning and Google&apos;s AI Overview was citing it as the top source by that evening.
+            </p>
+            <a
+              href="/case-studies/vibe-retail"
+              style={{ display: "inline-flex", alignItems: "center", gap: "0.375rem", color: C.purple, fontWeight: 600, fontSize: "0.9375rem", textDecoration: "none" }}
+            >
+              Read the full case study
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+                <path d="M3 8h10M9 3l5 5-5 5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </a>
           </div>
 
           {/* Task 9 - provenance. Shipped without client names pending D7. */}
@@ -846,7 +872,7 @@ export default function HomePage() {
 
           {/* Task 5 - replaces the retainer-hostile line */}
           <p style={{ color: C.body, fontSize: "1.0625rem", lineHeight: 1.65, maxWidth: "520px", margin: "0 auto 1.5rem" }}>
-            Prices on the page. Order when you want it. No scoping call to find out what it costs.
+            Order when you want it. No scoping call to find out what it costs.
           </p>
 
           {/* Task 3 - per-keyword framing above the table */}
@@ -931,7 +957,23 @@ export default function HomePage() {
               },
               {
                 q: "Will the placement look natural?",
-                a: "Yes. We work with real editors at real publications. Every placement is a genuine editorial contribution - not paid links, not link insertions. The anchor text is discussed with you and placed contextually.",
+                a: "Yes. We work with real editors at real publications, and every placement is a genuine editorial contribution rather than a link farm or an automated outreach blast. On Always Cited we also place contextual links inside existing high-authority articles - agreed with the publisher, agreed with you, and always inside content that already ranks and gets read.",
+              },
+              {
+                q: "Will you approach our clients?",
+                a: "No. We have no contact with your client at any point - no calls, no emails, no name on the report. That is in the partner agreement, not just on this page.",
+              },
+              {
+                q: "What does the client see?",
+                a: "Your brand. The tracker, the monthly report and the placement records all carry your logo.",
+              },
+              {
+                q: "Can I cancel?",
+                a: "Monthly, no notice period. Placements already commissioned are delivered.",
+              },
+              {
+                q: "How many placements do I get per month?",
+                a: "Always Mentioned includes three. A placement that fails the three-criteria screen is replaced, not counted - you are buying placements that passed, not attempts.",
               },
               {
                 q: "Which industries do you work with?",
@@ -992,9 +1034,9 @@ export default function HomePage() {
               We&apos;ll map your category, show where your competitors are being cited, and identify the placements most likely to move rankings, traffic, and AI visibility.
             </p>
             <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-              <a href={D8_SIGNUP_URL} className="btn-primary">Track your placements free</a>
+              <a href={CONTACT_URL} className="btn-primary">Join the waitlist</a>
               <a
-                href={D9_PARTNER_CALL_URL}
+                href={CONTACT_URL}
                 style={{
                   display: "inline-block",
                   background: "transparent",
@@ -1029,7 +1071,7 @@ export default function HomePage() {
             {[
               { icon: "✦", text: "Page-1 host articles only" },
               { icon: "✦", text: "Real editorial publications" },
-              { icon: "✦", text: "AI-citation-optimized structure" },
+              { icon: "✦", text: "Built to be quoted by AI, not just crawled" },
               { icon: "✦", text: "White-label reporting" },
               { icon: "✦", text: "Full metrics report on delivery" },
             ].map(({ icon, text }) => (

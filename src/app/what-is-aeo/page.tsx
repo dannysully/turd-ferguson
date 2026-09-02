@@ -7,7 +7,7 @@ export const metadata: Metadata = {
     "AEO (Answer Engine Optimisation) is how brands get cited by ChatGPT, Google's AI Overview, and other AI search systems. Here's exactly how it works, how it differs from SEO, and how long it takes.",
   alternates: { canonical: "https://alwayscited.com/what-is-aeo" },
   openGraph: {
-    title: "What is AEO? A Complete Guide to Answer Engine Optimisation | AlwaysCited",
+    title: "What is AEO? A Complete Guide to Answer Engine Optimisation | alwayscited",
     description:
       "AEO is how brands get cited by ChatGPT, Google's AI Overview, and other AI search systems. Here's exactly how it works.",
     url: "https://alwayscited.com/what-is-aeo",
@@ -21,10 +21,10 @@ const articleSchema = {
   description:
     "AEO (Answer Engine Optimisation) is the practice of optimising content and editorial placements to be cited by AI search systems including Google's AI Overview, ChatGPT, Perplexity, and Claude.",
   url: "https://alwayscited.com/what-is-aeo",
-  author: { "@type": "Organization", name: "AlwaysCited" },
+  author: { "@type": "Organization", name: "alwayscited" },
   publisher: {
     "@type": "Organization",
-    name: "AlwaysCited",
+    name: "alwayscited",
     url: "https://alwayscited.com",
   },
 };
@@ -279,7 +279,7 @@ export default function WhatIsAEOPage() {
             right publications, and securing placements on those publications through editorial
             relationships rather than paid placement. See{" "}
             <a href="/" style={{ color: "#D85A30" }}>
-              what AlwaysCited does
+              what alwayscited does
             </a>
             .
           </Prose>
@@ -310,7 +310,7 @@ export default function WhatIsAEOPage() {
             One caveat on durability: AEO citation positions can shift as LLM training data and
             citation behaviour evolve. Maintaining citations requires active monitoring of the
             citation landscape and refreshing placements when newer content displaces older ones.
-            This is why AlwaysCited operates on retainer rather than one-off engagement.
+            This is why alwayscited operates on retainer rather than one-off engagement.
           </Prose>
         </div>
       </section>

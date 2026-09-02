@@ -4,10 +4,10 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "Blog — Notes on AI Search",
   description:
-    "How LLMs pick brands, why most AEO services miss the point, and what's actually changing in B2B search. Notes from the AlwaysCited team.",
+    "How LLMs pick brands, why most AEO services miss the point, and what's actually changing in B2B search. Notes from the alwayscited team.",
   alternates: { canonical: "https://alwayscited.com/blog" },
   openGraph: {
-    title: "Blog — Notes on AI Search | AlwaysCited",
+    title: "Blog — Notes on AI Search | alwayscited",
     description:
       "How LLMs pick brands, why most AEO services miss the point, and what's actually changing in B2B search.",
     url: "https://alwayscited.com/blog",
@@ -17,12 +17,12 @@ export const metadata: Metadata = {
 const blogSchema = {
   "@context": "https://schema.org",
   "@type": "Blog",
-  name: "AlwaysCited Blog",
+  name: "alwayscited Blog",
   description: "Notes on AI search, AEO, and what's actually changing in B2B search.",
   url: "https://alwayscited.com/blog",
   publisher: {
     "@type": "Organization",
-    name: "AlwaysCited",
+    name: "alwayscited",
     url: "https://alwayscited.com",
   },
 };

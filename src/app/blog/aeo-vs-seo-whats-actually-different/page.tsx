@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     canonical: "https://alwayscited.com/blog/aeo-vs-seo-whats-actually-different",
   },
   openGraph: {
-    title: "AEO vs SEO: What's Actually Different | AlwaysCited",
+    title: "AEO vs SEO: What's Actually Different | alwayscited",
     description:
       "The clearest comparison of AEO and SEO you'll read this year — written by people who actually do both.",
     url: "https://alwayscited.com/blog/aeo-vs-seo-whats-actually-different",
@@ -25,10 +25,10 @@ const postSchema = {
     "The clearest comparison of AEO and SEO you'll read this year — written by people who actually do both.",
   url: "https://alwayscited.com/blog/aeo-vs-seo-whats-actually-different",
   datePublished: "2026-04-30",
-  author: { "@type": "Organization", name: "AlwaysCited" },
+  author: { "@type": "Organization", name: "alwayscited" },
   publisher: {
     "@type": "Organization",
-    name: "AlwaysCited",
+    name: "alwayscited",
     url: "https://alwayscited.com",
   },
 };
@@ -162,7 +162,7 @@ export default function BlogPost2() {
             The trade is durability. SEO investments compound for years; a strong link profile
             from five years ago still contributes. AEO citation positions can shift faster because
             LLM training data and citation behaviour both evolve — a newer, fresher placement on
-            the same domain can displace an older one. This is why AlwaysCited operates on retainer
+            the same domain can displace an older one. This is why alwayscited operates on retainer
             rather than one-off engagements: citation maintenance requires ongoing attention.
           </P>
 
@@ -190,7 +190,7 @@ export default function BlogPost2() {
             generic link-building campaigns produce in a year.
           </P>
           <P>
-            Same placement, two channels improved. This is why AlwaysCited treats AEO and SEO as
+            Same placement, two channels improved. This is why alwayscited treats AEO and SEO as
             one campaign with two outcomes, not two campaigns. Most agencies sell them as separate
             retainers, which is double-charging for one piece of work. If you&apos;re paying an agency
             for SEO and a different agency for AEO, check whether their work is actually distinct
@@ -222,7 +222,7 @@ export default function BlogPost2() {
               paddingTop: "2rem",
             }}
           >
-            AlwaysCited runs AEO and SEO as one campaign with two outcomes.{" "}
+            alwayscited runs AEO and SEO as one campaign with two outcomes.{" "}
             <Link href="/contact" style={{ color: "#D85A30" }}>
               Book a call
             </Link>

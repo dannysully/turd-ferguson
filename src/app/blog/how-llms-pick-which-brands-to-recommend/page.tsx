@@ -11,7 +11,7 @@ export const metadata: Metadata = {
       "https://alwayscited.com/blog/how-llms-pick-which-brands-to-recommend",
   },
   openGraph: {
-    title: "How LLMs Pick Which Brands to Recommend | AlwaysCited",
+    title: "How LLMs Pick Which Brands to Recommend | alwayscited",
     description:
       "The mechanics of LLM citation are simpler — and more exploitable — than most agencies realise.",
     url: "https://alwayscited.com/blog/how-llms-pick-which-brands-to-recommend",
@@ -27,10 +27,10 @@ const postSchema = {
     "The mechanics of LLM citation are simpler — and more exploitable — than most agencies realise.",
   url: "https://alwayscited.com/blog/how-llms-pick-which-brands-to-recommend",
   datePublished: "2026-04-30",
-  author: { "@type": "Organization", name: "AlwaysCited" },
+  author: { "@type": "Organization", name: "alwayscited" },
   publisher: {
     "@type": "Organization",
-    name: "AlwaysCited",
+    name: "alwayscited",
     url: "https://alwayscited.com",
   },
 };
@@ -220,7 +220,7 @@ export default function BlogPost1() {
               paddingTop: "2rem",
             }}
           >
-            AlwaysCited is the AI search agency for B2B brands that want to be cited by AI when
+            alwayscited is the AI search agency for B2B brands that want to be cited by AI when
             their buyers ask.{" "}
             <Link href="/contact" style={{ color: "#D85A30" }}>
               Book a call

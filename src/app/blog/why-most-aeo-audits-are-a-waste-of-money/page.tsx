@@ -11,7 +11,7 @@ export const metadata: Metadata = {
       "https://alwayscited.com/blog/why-most-aeo-audits-are-a-waste-of-money",
   },
   openGraph: {
-    title: "Why Most AEO Audits Are a Waste of Money | AlwaysCited",
+    title: "Why Most AEO Audits Are a Waste of Money | alwayscited",
     description:
       "The agency industry has a new product to sell. Most of it is a report you don't need.",
     url: "https://alwayscited.com/blog/why-most-aeo-audits-are-a-waste-of-money",
@@ -26,10 +26,10 @@ const postSchema = {
     "The agency industry has a new product to sell. Most of it is a report you don't need. If you're being pitched an AEO audit as a standalone deliverable, you're being sold the wrong thing.",
   url: "https://alwayscited.com/blog/why-most-aeo-audits-are-a-waste-of-money",
   datePublished: "2026-04-30",
-  author: { "@type": "Organization", name: "AlwaysCited" },
+  author: { "@type": "Organization", name: "alwayscited" },
   publisher: {
     "@type": "Organization",
-    name: "AlwaysCited",
+    name: "alwayscited",
     url: "https://alwayscited.com",
   },
 };
@@ -126,7 +126,7 @@ export default function BlogPost3() {
             how often the brand was mentioned. A competitive comparison showing where direct
             competitors are showing up. A set of &ldquo;recommendations&rdquo; - usually generic SEO best
             practices repackaged: improve your schema, write more FAQ content, structure your H2s
-            as questions. The deliverable is a slide deck. The cost is typically [[PLACEHOLDER: USD equivalent of the GBP 3,000-15,000 audit range]].
+            as questions. The deliverable is a slide deck.
           </P>
 
           <H2>What&apos;s actually wrong with this.</H2>
@@ -154,7 +154,7 @@ export default function BlogPost3() {
           </P>
           <P>
             This isn&apos;t hypothetical - it&apos;s the outcome we see most often when clients come to
-            AlwaysCited after buying an AEO audit from another agency. They have a detailed
+            alwayscited after buying an AEO audit from another agency. They have a detailed
             document. They don&apos;t have any citations.
           </P>
 
@@ -211,7 +211,7 @@ export default function BlogPost3() {
               paddingTop: "2rem",
             }}
           >
-            AlwaysCited doesn&apos;t sell AEO audits. We engineer AI citations and report on the
+            alwayscited doesn&apos;t sell AEO audits. We engineer AI citations and report on the
             outcomes.{" "}
             <Link href="/contact" style={{ color: "#D85A30" }}>
               Book a call
