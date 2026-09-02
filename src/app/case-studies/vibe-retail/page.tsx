@@ -20,12 +20,12 @@ const articleSchema = {
   headline:
     "How a US retail SaaS became the most cited cloud POS brand on AI search in under eight weeks",
   description:
-    "A US retail SaaS went from zero AI search visibility to three AI Overview top citations, 14% ChatGPT brand visibility, and page-one Google rankings in under eight weeks through AlwaysCited's AEO campaign.",
+    "A US retail SaaS went from zero AI search visibility to three AI Overview top citations, 14% ChatGPT brand visibility, and page-one Google rankings in under eight weeks through alwayscited's AEO campaign.",
   url: "https://alwayscited.com/case-studies/vibe-retail",
-  author: { "@type": "Organization", name: "AlwaysCited" },
+  author: { "@type": "Organization", name: "alwayscited" },
   publisher: {
     "@type": "Organization",
-    name: "AlwaysCited",
+    name: "alwayscited",
     url: "https://alwayscited.com",
   },
 };
@@ -150,7 +150,7 @@ export default function CaseStudyPage() {
           >
             {[
               { stat: "3", label: "AI Overview top citations on commercial-intent retail POS queries" },
-              { stat: "0 → 14%", label: "ChatGPT brand visibility, one week of tracking" },
+              { stat: "0 → 14%", label: "AI visibility across the full prompt set, one week of tracking" },
               { stat: "#83 → #4", label: "Movement on the client's primary money keyword" },
               { stat: "Same-day", label: "Time from listicle going live to AI Overview citing the brand as Best Overall" },
             ].map(({ stat, label }) => (
@@ -180,7 +180,9 @@ export default function CaseStudyPage() {
               Perplexity where the brand is named or cited, measured against a
               frozen prompt set." */}
           <p style={{ color: "#6B6B66", fontSize: "0.8125rem", lineHeight: 1.6, maxWidth: "44rem", marginTop: "1.5rem" }}>
-            ChatGPT brand visibility: [[D5]]
+            AI visibility: the share of tracked buyer prompts where the brand is named or
+            cited, measured against a frozen prompt set across ChatGPT, Gemini and Perplexity.
+            The 14% figure is across the full prompt set.
           </p>
         </div>
       </section>
@@ -230,7 +232,7 @@ export default function CaseStudyPage() {
         <div className="mx-auto max-w-[1100px] px-6 py-24">
           <H2>The challenge.</H2>
           <Prose>
-            When the client engaged AlwaysCited, they had a strong product but no organic
+            When the client engaged alwayscited, they had a strong product but no organic
             footprint. Launched in late 2025, the site was effectively invisible across both
             traditional search and the emerging AI-driven discovery layer. Competitive visibility
             for &ldquo;cloud based POS&rdquo; and &ldquo;retail POS&rdquo; queries was dominated by entrenched names with
@@ -487,30 +489,6 @@ export default function CaseStudyPage() {
       </section>
 
       {/* Testimonial placeholder */}
-      <section style={{ background: "#ffffff" }}>
-        <div className="mx-auto max-w-[1100px] px-6 py-16">
-          {/* CLIENT TESTIMONIAL - to be confirmed before publication */}
-          <blockquote
-            style={{
-              borderLeft: "3px solid #D85A30",
-              paddingLeft: "2rem",
-              maxWidth: "44rem",
-            }}
-          >
-            <p
-              style={{
-                fontFamily: "Georgia, 'Times New Roman', Times, serif",
-                color: "#5F5E5A",
-                fontSize: "1.1rem",
-                lineHeight: 1.7,
-                fontStyle: "italic",
-              }}
-            >
-              [Client testimonial - to be confirmed before publication]
-            </p>
-          </blockquote>
-        </div>
-      </section>
 
       {/* SEO Impact */}
       <section style={{ background: "#F5F5F4" }}>
