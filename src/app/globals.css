@@ -271,7 +271,16 @@ details summary::-webkit-details-marker {
   .hide-below-900 { display: none !important; }
   .hero-two-col { grid-template-columns: 1fr !important; }
 }
+/* Four-tier pricing grid + dashboards comparison */
+@media (max-width: 1000px) {
+  .tier-grid { grid-template-columns: 1fr 1fr !important; }
+}
+@media (max-width: 560px) {
+  .tier-grid { grid-template-columns: 1fr !important; }
+}
 @media (max-width: 768px) {
+  .comparison-grid { grid-template-columns: 1fr !important; }
+  .comparison-vs { padding-top: 0 !important; }
   .hide-mobile { display: none !important; }
   .stack-mobile { grid-template-columns: 1fr !important; }
   .dark-trust-flow { flex-direction: column !important; align-items: center !important; }

@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { useState } from "react";
 
+import { D8_SIGNUP_URL } from "@/config/pricing";
+
 const navLinks = [
+  { href: "#free-tool", label: "Free tool" },
   { href: "#how-it-works", label: "How it works" },
-  { href: "#why-it-works", label: "Why it works" },
   { href: "#proof", label: "Proof" },
   { href: "#pricing", label: "Pricing" },
   { href: "#faq", label: "FAQ" },
@@ -46,8 +48,8 @@ export default function Header() {
           {navLinks.map((link) => (
             <a key={link.href} href={link.href} className="nav-link">{link.label}</a>
           ))}
-          <a href="/contact" className="btn-primary" style={{ padding: "0.5rem 1.25rem", fontSize: "0.9rem", borderRadius: "10px" }}>
-            Book a strategy call
+          <a href={D8_SIGNUP_URL} className="btn-primary" style={{ padding: "0.5rem 1.25rem", fontSize: "0.9rem", borderRadius: "10px" }}>
+            Track your placements free
           </a>
         </nav>
 
@@ -70,7 +72,7 @@ export default function Header() {
               </li>
             ))}
             <li>
-              <a href="/contact" className="btn-primary" style={{ padding: "0.625rem 1.5rem" }} onClick={() => setOpen(false)}>Book a strategy call</a>
+              <a href={D8_SIGNUP_URL} className="btn-primary" style={{ padding: "0.625rem 1.5rem" }} onClick={() => setOpen(false)}>Track your placements free</a>
             </li>
           </ul>
         </nav>
