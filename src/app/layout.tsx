@@ -13,14 +13,14 @@ const manrope = Manrope({
 
 export const metadata: Metadata = {
   title: {
-    default: "AlwaysCited — Be the brand AI recommends",
-    template: "%s | AlwaysCited",
+    default: "alwayscited - Be the brand AI recommends",
+    template: "%s | alwayscited",
   },
   description:
-    "AlwaysCited places your brand inside the pages Google and AI systems already trust — so you rank higher, get cited more often, and win buyers before they reach your competitors.",
+    "alwayscited places your brand inside the pages Google and AI systems already trust - so you rank higher, get cited more often, and win buyers before they reach your competitors.",
   metadataBase: new URL("https://alwayscited.com"),
   openGraph: {
-    siteName: "AlwaysCited",
+    siteName: "alwayscited",
     type: "website",
     locale: "en_GB",
   },

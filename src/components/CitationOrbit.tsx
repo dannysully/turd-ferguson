@@ -1,4 +1,4 @@
-/* Server component — CSS-only animations, no JS needed */
+/* Server component - CSS-only animations, no JS needed */
 
 const cardBase: React.CSSProperties = {
   background: "#ffffff",
@@ -73,7 +73,7 @@ export default function CitationOrbit() {
         </svg>
       </div>
 
-      {/* Card 1: Google AI Overview — top-center (outer ring top) */}
+      {/* Card 1: Google AI Overview - top-center (outer ring top) */}
       <div className="float-a" style={{ ...cardBase, top: "14px", left: "148px", width: "192px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", marginBottom: "0.375rem" }}>
           <PlatformIcon color="#4285F4" letter="G" />
@@ -84,7 +84,7 @@ export default function CitationOrbit() {
         </p>
       </div>
 
-      {/* Card 2: ChatGPT — right (outer ring right) */}
+      {/* Card 2: ChatGPT - right (outer ring right) */}
       <div className="float-b" style={{ ...cardBase, top: "152px", right: "4px", width: "168px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", marginBottom: "0.375rem" }}>
           <PlatformIcon color="#10A37F" letter="C" />
@@ -95,7 +95,7 @@ export default function CitationOrbit() {
         </p>
       </div>
 
-      {/* Card 3: Perplexity — bottom-left (outer ring bottom) */}
+      {/* Card 3: Perplexity - bottom-left (outer ring bottom) */}
       <div className="float-c" style={{ ...cardBase, bottom: "44px", left: "16px", width: "162px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", marginBottom: "0.375rem" }}>
           <PlatformIcon color="#20B2AA" letter="P" />
@@ -106,7 +106,7 @@ export default function CitationOrbit() {
         </p>
       </div>
 
-      {/* Card 4: Organic #1 — left (inner ring left) */}
+      {/* Card 4: Organic #1 - left (inner ring left) */}
       <div className="float-d" style={{ ...cardBase, top: "186px", left: "4px", width: "158px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", marginBottom: "0.375rem" }}>
           <div style={{

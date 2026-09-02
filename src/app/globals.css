@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  /* getcited colour palette */
+  /* getcited color palette */
   --color-purple-start: #7C3AED;
   --color-purple-end: #A855F7;
   --color-text-primary: #0B1220;
@@ -26,7 +26,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Gradient text — signature style */
+/* Gradient text - signature style */
 .text-gradient {
   background: linear-gradient(135deg, #7C3AED 0%, #A855F7 100%);
   -webkit-background-clip: text;

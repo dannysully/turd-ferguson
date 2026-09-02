@@ -2,22 +2,31 @@
 
 import { useEffect, useRef, useState } from "react";
 
-const oldWay = [
-  "Links from low-traffic, forgotten pages",
-  "DA/DR metrics with no relevance filter",
-  "No anchor text strategy",
-  "Zero AI citation value",
-  "Link farms and PBNs",
-  "Authority that plateaus after 90 days",
+/**
+ * Task 5 - the real competitive set is AI visibility dashboards, not agencies.
+ * The argument: they tell you whether you are cited, we change whether you are
+ * cited and then show you the sequence.
+ *
+ * Task 8 applies here - every line about the tool's output is temporal, never
+ * causal. Nothing claims a placement is proven to have caused a change.
+ */
+
+const dashboards = [
+  "Tell you whether you are cited",
+  "Report the gap, not the fix",
+  "No placements, no editorial work",
+  "Winning the citation is still your problem",
+  "Your client sees a dashboard, not a result",
+  "Priced per seat, every month, indefinitely",
 ];
 
-const newWay = [
-  "Links from pages already ranking & getting traffic",
-  "Contextual relevance + domain authority",
-  "Strategic anchor text for target keywords",
-  "Structured to enter AI training and citation pools",
-  "Real editorial placements at real publications",
-  "Rankings, AI visibility, and referral traffic that compound",
+const alwayscited = [
+  "Change whether you are cited",
+  "Place you in the third-party articles the engines draw on",
+  "Editorial placements, schema work, link insertions",
+  "Then show what moved after each link went live",
+  "Your client sees a report with your logo on it",
+  "Priced per target keyword, with the work included",
 ];
 
 export default function DarkComparisonSection() {
@@ -47,11 +56,12 @@ export default function DarkComparisonSection() {
         gridTemplateColumns: "1fr auto 1fr",
         gap: "1.5rem",
         alignItems: "start",
-        maxWidth: "860px",
+        maxWidth: "880px",
         margin: "0 auto",
       }}
+      className="comparison-grid"
     >
-      {/* Left: old way */}
+      {/* Left: AI visibility dashboards */}
       <div
         className={visible ? "col-left col-visible" : "col-left"}
         style={{
@@ -62,10 +72,10 @@ export default function DarkComparisonSection() {
         }}
       >
         <p style={{ fontSize: "0.75rem", fontWeight: 600, color: "#6B7280", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "1.25rem" }}>
-          Generic link building
+          AI visibility dashboards
         </p>
         <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "0.875rem" }}>
-          {oldWay.map((item) => (
+          {dashboards.map((item) => (
             <li key={item} style={{ display: "flex", alignItems: "flex-start", gap: "0.625rem" }}>
               <div style={{
                 width: "18px", height: "18px", borderRadius: "50%",
@@ -84,10 +94,7 @@ export default function DarkComparisonSection() {
       </div>
 
       {/* Centre vs. badge */}
-      <div style={{
-        display: "flex", alignItems: "center", justifyContent: "center",
-        paddingTop: "3.5rem",
-      }}>
+      <div className="comparison-vs" style={{ display: "flex", alignItems: "center", justifyContent: "center", paddingTop: "3.5rem" }}>
         <div style={{
           background: "rgba(124,58,237,0.2)",
           border: "1px solid rgba(168,85,247,0.3)",
@@ -103,7 +110,7 @@ export default function DarkComparisonSection() {
         </div>
       </div>
 
-      {/* Right: alwayscited way */}
+      {/* Right: alwayscited */}
       <div
         className={visible ? "col-right col-visible" : "col-right"}
         style={{
@@ -117,7 +124,7 @@ export default function DarkComparisonSection() {
           alwayscited
         </p>
         <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "0.875rem" }}>
-          {newWay.map((item) => (
+          {alwayscited.map((item) => (
             <li key={item} style={{ display: "flex", alignItems: "flex-start", gap: "0.625rem" }}>
               <div style={{
                 width: "18px", height: "18px", borderRadius: "50%",

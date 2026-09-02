@@ -11,7 +11,7 @@ const steps = [
       </svg>
     ),
     label: "Ranking article",
-    sub: "DA 60–90 · 3k+ monthly readers",
+    sub: "Page 1 for its own terms · real readers",
   },
   {
     icon: (
