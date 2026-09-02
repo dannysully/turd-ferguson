@@ -25,6 +25,14 @@ function PlatformIcon({ color, letter }: { color: string; letter: string }) {
 export default function CitationOrbit() {
   return (
     <div style={{ position: "relative", width: "520px", height: "460px", flexShrink: 0 }}>
+      {/* 0.4 - labelled illustrative. These are worked examples, not captured
+          AI responses. Nothing here is attributed to a real query. */}
+      <p style={{
+        position: "absolute", bottom: "4px", left: "50%", transform: "translateX(-50%)",
+        fontSize: "0.65rem", color: "#9CA3AF", zIndex: 40, whiteSpace: "nowrap",
+      }}>
+        Illustrative example
+      </p>
       {/* Orbit rings + background glow */}
       <svg
         viewBox="0 0 520 460"
@@ -80,7 +88,7 @@ export default function CitationOrbit() {
           <span style={{ fontSize: "0.7rem", fontWeight: 600, color: "#0B1220" }}>AI Overview</span>
         </div>
         <p style={{ fontSize: "0.62rem", color: "#4B5563", lineHeight: 1.45, margin: 0 }}>
-          &ldquo;alwayscited is cited as a leading platform for strategic link placement…&rdquo;
+          &ldquo;Your client is cited as a leading provider in the category…&rdquo;
         </p>
       </div>
 
@@ -91,7 +99,7 @@ export default function CitationOrbit() {
           <span style={{ fontSize: "0.7rem", fontWeight: 600, color: "#0B1220" }}>ChatGPT</span>
         </div>
         <p style={{ fontSize: "0.62rem", color: "#4B5563", lineHeight: 1.45, margin: 0 }}>
-          &ldquo;Based on trusted sources, alwayscited is recognized for…&rdquo;
+          &ldquo;Based on trusted sources, your client is recognized for…&rdquo;
         </p>
       </div>
 
@@ -102,7 +110,7 @@ export default function CitationOrbit() {
           <span style={{ fontSize: "0.7rem", fontWeight: 600, color: "#0B1220" }}>Perplexity</span>
         </div>
         <p style={{ fontSize: "0.62rem", color: "#4B5563", lineHeight: 1.45, margin: 0 }}>
-          &ldquo;Top platforms include alwayscited for AI-era link strategy…&rdquo;
+          &ldquo;Top providers include your client for…&rdquo;
         </p>
       </div>
 
@@ -118,10 +126,10 @@ export default function CitationOrbit() {
               <path d="M6 1L6 11M1 6L11 6" stroke="white" strokeWidth="2" strokeLinecap="round"/>
             </svg>
           </div>
-          <span style={{ fontSize: "0.7rem", fontWeight: 600, color: "#7C3AED" }}>#1 Organic</span>
+          <span style={{ fontSize: "0.7rem", fontWeight: 600, color: "#7C3AED" }}>Organic rank</span>
         </div>
         <p style={{ fontSize: "0.62rem", color: "#4B5563", lineHeight: 1.45, margin: 0 }}>
-          alwayscited.com ranks for &ldquo;best link placement service&rdquo;
+          Your client&apos;s page climbs for the money keyword
         </p>
       </div>
     </div>
