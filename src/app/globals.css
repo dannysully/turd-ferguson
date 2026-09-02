@@ -71,6 +71,20 @@ details summary::-webkit-details-marker {
   animation: fadeUp 0.3s ease forwards;
 }
 
+/* Hero responsive grid */
+.hero-grid {
+  grid-template-columns: 1fr 1fr;
+}
+
+@media (max-width: 768px) {
+  .hero-grid {
+    grid-template-columns: 1fr;
+  }
+  .hero-visual {
+    justify-content: center !important;
+  }
+}
+
 /* Hide desktop nav on mobile */
 @media (max-width: 767px) {
   .nav-links {
@@ -143,6 +157,32 @@ details summary::-webkit-details-marker {
   animation: orbFloat 30s ease-in-out infinite;
 }
 
+/* ─── Hero authority flow ─── */
+@keyframes glowLineTravel {
+  0% { transform: translateX(-120px); opacity: 0; }
+  6% { opacity: 1; }
+  58% { transform: translateX(560px); opacity: 1; }
+  65% { opacity: 0; transform: translateX(560px); }
+  100% { transform: translateX(-120px); opacity: 0; }
+}
+
+.hero-flow-glow-line {
+  position: absolute;
+  top: 5px;
+  left: 32px;
+  width: 80px;
+  height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent 0%, #A855F7 50%, transparent 100%);
+  will-change: transform, opacity;
+  animation: glowLineTravel 5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@media (max-width: 540px) {
+  .hero-flow-wrapper { display: none; }
+}
+
 /* ─── Staged reveal (Authority flow steps) ─── */
 @keyframes stageUp {
   from { opacity: 0; transform: translateY(12px); }
@@ -167,6 +207,22 @@ details summary::-webkit-details-marker {
 .col-right.col-visible {
   opacity: 1;
   transform: translateX(0);
+}
+
+/* ─── Link architecture arrow draw ─── */
+.link-arrow {
+  stroke-dasharray: 160;
+  stroke-dashoffset: 160;
+  transition: stroke-dashoffset 0.6s ease;
+}
+.link-arrow-delayed {
+  stroke-dasharray: 160;
+  stroke-dashoffset: 160;
+  transition: stroke-dashoffset 0.6s ease 0.2s;
+}
+.link-arrow.link-drawn,
+.link-arrow-delayed.link-drawn {
+  stroke-dashoffset: 0;
 }
 
 /* ─── Citation orbit float animations ─── */
@@ -200,10 +256,12 @@ details summary::-webkit-details-marker {
 /* ─── Reduced motion overrides ─── */
 @media (prefers-reduced-motion: reduce) {
   .gradient-orb { animation: none; }
+  .hero-flow-glow-line { animation: none; opacity: 0.5; transform: translateX(240px); }
   .card-hover { transition: none; }
   .stage-hidden { opacity: 1 !important; }
   .stage-visible { animation: none; opacity: 1; transform: none; }
   .col-left, .col-right { opacity: 1 !important; transform: none !important; transition: none !important; }
+  .link-arrow, .link-arrow-delayed { stroke-dashoffset: 0 !important; transition: none !important; }
   .float-a, .float-b, .float-c, .float-d { animation: none !important; transform: none !important; }
   .center-glow { animation: none !important; }
 }

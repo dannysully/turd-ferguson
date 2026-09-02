@@ -2,15 +2,14 @@ import type { Metadata } from "next";
 import CitationOrbit from "@/components/CitationOrbit";
 import DarkTrustFlow from "@/components/DarkTrustFlow";
 import DarkComparisonSection from "@/components/DarkComparisonSection";
-import TrackerMock from "@/components/TrackerMock";
 
 export const metadata: Metadata = {
-  title: "alwayscited - be the brand AI recommends",
+  title: "alwayscited — be the brand AI recommends",
   description:
     "alwayscited places your brand inside high-authority articles that AI systems extract from, Google ranks, and buyers read. One placement. Three compounding outcomes.",
   alternates: { canonical: "https://alwayscited.com" },
   openGraph: {
-    title: "alwayscited - be the brand AI recommends",
+    title: "alwayscited — be the brand AI recommends",
     description: "One placement. Three commercial outcomes. Rankings, AI citations, and referral traffic from a single engineered asset.",
     url: "https://alwayscited.com",
   },
@@ -59,10 +58,10 @@ function SectionLabel({ text, dark = false }: { text: string; dark?: boolean }) 
 /* ── listicle article mockup ── */
 function ListicleMockup() {
   const items = [
-    { text: "Competitor A - enterprise scale, deep integrations", highlighted: false },
-    { text: "alwayscited.com - best for strategic link placement & AI visibility", highlighted: true },
-    { text: "Competitor B - budget-friendly, good for early-stage", highlighted: false },
-    { text: "Competitor C - strong for technical SEO workflows", highlighted: false },
+    { text: "Competitor A — enterprise scale, deep integrations", highlighted: false },
+    { text: "alwayscited.com — best for strategic link placement & AI visibility", highlighted: true },
+    { text: "Competitor B — budget-friendly, good for early-stage", highlighted: false },
+    { text: "Competitor C — strong for technical SEO workflows", highlighted: false },
   ];
 
   return (
@@ -357,7 +356,7 @@ export default function HomePage() {
               letterSpacing: "-0.03em",
               marginBottom: "1.375rem",
             }}>
-              Be the brand AI recommends -{" "}
+              Be the brand AI recommends —{" "}
               <span style={grad}>and Google already ranks.</span>
             </h1>
 
@@ -395,7 +394,7 @@ export default function HomePage() {
             }}>
               {[
                 { val: "40+", label: "campaigns" },
-                { val: "DA 60-90", label: "placement range" },
+                { val: "DA 60–90", label: "placement range" },
                 { val: "3 avg.", label: "AI citation sources" },
               ].map(({ val, label }) => (
                 <div key={label}>
@@ -413,7 +412,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ═══ DARK INSIGHT - why it works ════════════════════════ */}
+      {/* ═══ DARK INSIGHT — why it works ════════════════════════ */}
       <section id="why-it-works" style={{ background: C.navy, padding: "6rem 1.5rem", position: "relative", overflow: "hidden" }}>
         <div className="gradient-orb" style={{ position: "absolute", width: "500px", height: "500px", background: "radial-gradient(circle, rgba(124,58,237,0.12) 0%, transparent 70%)", top: "-150px", left: "-100px", pointerEvents: "none" }} aria-hidden="true" />
 
@@ -436,7 +435,7 @@ export default function HomePage() {
             color: "#9CA3AF", fontSize: "clamp(0.9375rem, 1.5vw, 1.0625rem)",
             lineHeight: 1.7, maxWidth: "580px", margin: "0 auto 3.5rem",
           }}>
-            ChatGPT, Perplexity, and Google AI Overviews don&apos;t discover brands from homepages or ad campaigns. They extract from content that already ranks - content that already earns trust. If your brand isn&apos;t cited inside those sources, it doesn&apos;t exist in AI&apos;s world.
+            ChatGPT, Perplexity, and Google AI Overviews don&apos;t discover brands from homepages or ad campaigns. They extract from content that already ranks — content that already earns trust. If your brand isn&apos;t cited inside those sources, it doesn&apos;t exist in AI&apos;s world.
           </p>
 
           <div className="dark-trust-flow">
@@ -458,7 +457,7 @@ export default function HomePage() {
               <span style={grad}>Three compounding outcomes.</span>
             </h2>
             <p style={{ color: C.body, fontSize: "1.0625rem", lineHeight: 1.65, maxWidth: "520px", margin: "0 auto" }}>
-              Every placement we secure sits inside a real article with real traffic - read by the people buying in your category.
+              Every placement we secure sits inside a real article with real traffic — read by the people buying in your category.
             </p>
           </div>
 
@@ -479,7 +478,7 @@ export default function HomePage() {
                     </svg>
                   ),
                   title: "Rankings move",
-                  body: "Equity transfers from a page already sitting in position 1-5. Your target page inherits authority from a proven source.",
+                  body: "Equity transfers from a page already sitting in position 1–5. Your target page inherits authority from a proven source.",
                 },
                 {
                   icon: (
@@ -497,7 +496,7 @@ export default function HomePage() {
                     </svg>
                   ),
                   title: "Real referral traffic",
-                  body: "Visitors from the article are actively researching your category. They arrive pre-qualified - not just browsing.",
+                  body: "Visitors from the article are actively researching your category. They arrive pre-qualified — not just browsing.",
                 },
               ].map(({ icon, title, body }) => (
                 <div
@@ -556,7 +555,7 @@ export default function HomePage() {
               {
                 n: "01",
                 title: "We audit your category",
-                body: "We map every article ranking for your target keywords and score them by traffic, domain authority, and AI citation frequency. You see exactly where your competitors are being cited - and where the gaps are.",
+                body: "We map every article ranking for your target keywords and score them by traffic, domain authority, and AI citation frequency. You see exactly where your competitors are being cited — and where the gaps are.",
               },
               {
                 n: "02",
@@ -566,7 +565,7 @@ export default function HomePage() {
               {
                 n: "03",
                 title: "You compound",
-                body: "Rankings move. AI systems start extracting your brand. Referral traffic arrives. Each placement strengthens the next - and the effect accelerates over 90-180 days.",
+                body: "Rankings move. AI systems start extracting your brand. Referral traffic arrives. Each placement strengthens the next — and the effect accelerates over 90–180 days.",
               },
             ].map(({ n, title, body }, i) => (
               <div
@@ -705,50 +704,8 @@ export default function HomePage() {
             }}>
               &ldquo;The goal is not to get a link. The goal is to be inside the source that the buyer, Google, and AI all agree to trust.&rdquo;
             </p>
-            <p style={{ fontSize: "0.8125rem", color: "#6B7280" }}>- alwayscited methodology</p>
+            <p style={{ fontSize: "0.8125rem", color: "#6B7280" }}>— alwayscited methodology</p>
           </div>
-
-          {/* Task 7 - provenance line */}
-          <p style={{
-            textAlign: "center",
-            fontSize: "0.875rem",
-            color: C.body,
-            marginTop: "2rem",
-            lineHeight: 1.65,
-          }}>
-            alwayscited is built and run by the senior team at{" "}
-            <a
-              href="https://nomadadigital.co.uk"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: C.purple, fontWeight: 600, textDecoration: "none" }}
-            >
-              Nomada Digital
-            </a>
-            .
-          </p>
-        </div>
-      </section>
-
-      {/* ═══ THE RECEIPTS - tracker (Task 8) ═════════════════════ */}
-      <section id="receipts" style={{ background: C.navy, padding: "6rem 1.5rem", position: "relative", overflow: "hidden" }}>
-        <div className="gradient-orb" style={{ position: "absolute", width: "450px", height: "450px", background: "radial-gradient(circle, rgba(124,58,237,0.1) 0%, transparent 70%)", top: "-120px", right: "-90px", pointerEvents: "none", animationDelay: "-8s" }} aria-hidden="true" />
-
-        <div style={{ ...wrap, position: "relative" }}>
-          <div style={{ textAlign: "center", marginBottom: "3rem" }}>
-            <SectionLabel text="The receipts" dark />
-            <h2 style={{
-              fontWeight: 800, fontSize: "clamp(1.875rem, 3.5vw, 2.75rem)",
-              color: C.white, lineHeight: 1.1, letterSpacing: "-0.03em", marginBottom: "1.25rem",
-            }}>
-              Every placement has a receipt.
-            </h2>
-            <p style={{ color: "#9CA3AF", fontSize: "1.0625rem", lineHeight: 1.7, maxWidth: "660px", margin: "0 auto" }}>
-              Each placement gets a live tracker page: is the link still there and still followed, where the article ranks for its own keywords, where your page ranks for yours, whether the AI Overview cited you - and when it didn&apos;t. We record &ldquo;shown but not cited&rdquo; separately from &ldquo;no Overview appeared&rdquo;, because those are different results and you deserve to know which one you got. Nothing is estimated. If we didn&apos;t measure it, the field is blank.
-            </p>
-          </div>
-
-          <TrackerMock />
         </div>
       </section>
 
@@ -833,7 +790,7 @@ export default function HomePage() {
                 "DA 60+ placement guaranteed",
                 "Ranking article with real traffic (500+ monthly visitors)",
                 "Strategic anchor text for your target keyword",
-                "AI-citation-optimized placement structure",
+                "AI-citation-optimised placement structure",
                 "Full delivery report with metrics",
                 "45-day delivery or you don&apos;t pay",
               ].map((item) => (
@@ -877,23 +834,19 @@ export default function HomePage() {
             {[
               {
                 q: "How is this different from a standard link building agency?",
-                a: "Most link building agencies target any available page with a high DA. We only target pages that already rank and receive real traffic - because that's what transfers authority to your page and gets extracted by AI systems. The source matters more than the metric.",
-              },
-              {
-                q: "How many placements do I get?",
-                a: "The Proof Package is a single placement, priced per placement with no retainer - so you scale by buying more, not by committing to a monthly minimum. A placement that fails the three-criteria screen is replaced, not counted - you are buying placements that passed, not attempts.",
+                a: "Most link building agencies target any available page with a high DA. We only target pages that already rank and receive real traffic — because that's what transfers authority to your page and gets extracted by AI systems. The source matters more than the metric.",
               },
               {
                 q: "How long does it take to see results?",
-                a: "The placement is live within 45 days. Ranking movement typically appears within 60-90 days of the placement going live, with AI citation appearing within 90-120 days as models update their knowledge bases.",
+                a: "The placement is live within 45 days. Ranking movement typically appears within 60–90 days of the placement going live, with AI citation appearing within 90–120 days as models update their knowledge bases.",
               },
               {
                 q: "Do you guarantee the DA of the placement?",
-                a: "Yes. Every placement is DA 60 minimum, on a page with real traffic. If we don't deliver within 45 days, you don't pay - that's our guarantee.",
+                a: "Yes. Every placement is DA 60 minimum, on a page with real traffic. If we don't deliver within 45 days, you don't pay — that's our guarantee.",
               },
               {
                 q: "Will the placement look natural?",
-                a: "Yes. We work with real editors at real publications. Every placement is a genuine editorial contribution - not paid links, not link insertions. The anchor text is discussed with you and placed contextually.",
+                a: "Yes. We work with real editors at real publications. Every placement is a genuine editorial contribution — not paid links, not link insertions. The anchor text is discussed with you and placed contextually.",
               },
               {
                 q: "Which industries do you work with?",
@@ -989,9 +942,9 @@ export default function HomePage() {
             alignItems: "center", justifyContent: "center",
           }}>
             {[
-              { icon: "✦", text: "DA 60-90 placements" },
+              { icon: "✦", text: "DA 60–90 placements" },
               { icon: "✦", text: "Real editorial publications" },
-              { icon: "✦", text: "AI-citation-optimized structure" },
+              { icon: "✦", text: "AI-citation-optimised structure" },
               { icon: "✦", text: "45-day delivery guarantee" },
               { icon: "✦", text: "Full metrics report on delivery" },
             ].map(({ icon, text }) => (

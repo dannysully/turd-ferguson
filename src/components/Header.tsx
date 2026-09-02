@@ -7,7 +7,6 @@ const navLinks = [
   { href: "#how-it-works", label: "How it works" },
   { href: "#why-it-works", label: "Why it works" },
   { href: "#proof", label: "Proof" },
-  { href: "/agencies", label: "For agencies" },
   { href: "#pricing", label: "Pricing" },
   { href: "#faq", label: "FAQ" },
 ];
@@ -44,13 +43,9 @@ export default function Header() {
 
         {/* Desktop nav */}
         <nav className="nav-links" style={{ display: "flex", alignItems: "center", gap: "2rem" }} aria-label="Main navigation">
-          {navLinks.map((link) =>
-            link.href.startsWith("#") ? (
-              <a key={link.href} href={link.href} className="nav-link">{link.label}</a>
-            ) : (
-              <Link key={link.href} href={link.href} className="nav-link">{link.label}</Link>
-            )
-          )}
+          {navLinks.map((link) => (
+            <a key={link.href} href={link.href} className="nav-link">{link.label}</a>
+          ))}
           <a href="/contact" className="btn-primary" style={{ padding: "0.5rem 1.25rem", fontSize: "0.9rem", borderRadius: "10px" }}>
             Book a strategy call
           </a>
@@ -71,11 +66,7 @@ export default function Header() {
           <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "1rem" }}>
             {navLinks.map((link) => (
               <li key={link.href}>
-                {link.href.startsWith("#") ? (
-                  <a href={link.href} style={{ color: "#4B5563", fontWeight: 500, textDecoration: "none" }} onClick={() => setOpen(false)}>{link.label}</a>
-                ) : (
-                  <Link href={link.href} style={{ color: "#4B5563", fontWeight: 500, textDecoration: "none" }} onClick={() => setOpen(false)}>{link.label}</Link>
-                )}
+                <a href={link.href} style={{ color: "#4B5563", fontWeight: 500, textDecoration: "none" }} onClick={() => setOpen(false)}>{link.label}</a>
               </li>
             ))}
             <li>
