@@ -1,28 +1,32 @@
 /**
- * Pricing configuration - Tasks 3 and 4.
+ * Pricing configuration.
  *
- * Static config by design. Task 4: "Sectors and their prices come from D4 as a
- * static config object in the repo. No runtime API call. Pricing needs to be
- * deterministic and instant, and a displayed price must not be able to change
- * between someone seeing it and ordering it."
+ * Static by design: pricing must be deterministic and instant, and a displayed
+ * price must not be able to change between someone seeing it and ordering it.
  *
  * All prices USD, monthly.
  *
- * Unresolved decisions are literal [[Dn]] markers so they grep cleanly and
- * cannot be mistaken for real values. Do not deploy while any remain.
+ * Critique 0.1: every placeholder is stripped rather than shipped. Where a
+ * value is not yet confirmed the feature line is omitted entirely - a page with
+ * fewer claims beats a page with broken ones. Values still outstanding:
+ *   D1 - Always Cited placements per month
+ *   D2 - Always Tracked Pro limits (domains, placements, keywords, refresh)
+ *   D3 - free tier limits
+ *   D4 - sector list and per-sector prices
+ * Add them back as feature lines once confirmed.
+ *
+ * Critique 1.7: the tracking tool is not built, so both Tracked tiers are
+ * waitlist CTAs rather than signup links pointing at a product that does not
+ * exist. Critique 0.1: every CTA resolves to a real page.
  */
 
-/* ── Blocked decisions ───────────────────────────────────────── */
-export const D1_CITED_PLACEMENTS = "[[D1]]";   // Always Cited placements/mo
-export const D2_PAID_LIMITS = "[[D2]]";        // Always Tracked $99 limits
-export const D3_FREE_LIMITS = "[[D3]]";        // Free tier limits
-export const D8_SIGNUP_URL = "[[D8]]";         // Free tool signup destination
-export const D9_PARTNER_CALL_URL = "[[D9]]";   // Enterprise booking link
+/** Single destination for every CTA until real signup and booking flows exist. */
+export const CONTACT_URL = "/contact";
 
 export type Tier = {
   id: string;
   name: string;
-  /** Base monthly price in USD. null = not a numeric price (free, or book a call). */
+  /** Base monthly price in USD. null = not a numeric price. */
   basePrice: number | null;
   priceLabel: string;
   positioning: string;
@@ -34,24 +38,38 @@ export type Tier = {
 };
 
 /**
- * Task 3 tier order is ascending intensity, and Always Cited carries the
- * emphasis treatment because it is the core product.
+ * Ascending intensity. Critique 2.3: Always Tracked is split into two cards so
+ * the free and paid offers are not one card with two prices.
  */
 export const TIERS: Tier[] = [
   {
-    id: "tracked",
+    id: "tracked-free",
     name: "Always Tracked",
     basePrice: null,
-    priceLabel: "Free, and $99/mo",
+    priceLabel: "Free",
     positioning: "Know what your links did",
     sectorPriced: false,
     includes: [
-      `Free: ${D3_FREE_LIMITS}`,
-      `Paid: ${D2_PAID_LIMITS}`,
+      "Upload placements you have already built",
+      "Both keyword sets, tracked separately",
+      "Four honest AI Overview outcomes",
+      "90 days of history backfilled",
+    ],
+    cta: { label: "Join the waitlist", href: CONTACT_URL },
+  },
+  {
+    id: "tracked-pro",
+    name: "Always Tracked Pro",
+    basePrice: 99,
+    priceLabel: "$99/mo",
+    positioning: "Report it under your own brand",
+    sectorPriced: false,
+    includes: [
+      "Everything in Always Tracked",
       "White-label reports",
       "Daily refresh",
     ],
-    cta: { label: "Track your placements free", href: D8_SIGNUP_URL },
+    cta: { label: "Join the waitlist", href: CONTACT_URL },
   },
   {
     id: "mentioned",
@@ -63,10 +81,9 @@ export const TIERS: Tier[] = [
     includes: [
       "3 placements/mo",
       "One target keyword",
-      "Everything in Always Tracked",
-      "White-label reporting",
+      "Everything in Always Tracked Pro",
     ],
-    cta: { label: "Get started", href: D8_SIGNUP_URL },
+    cta: { label: "Get started", href: CONTACT_URL },
   },
   {
     id: "cited",
@@ -76,12 +93,11 @@ export const TIERS: Tier[] = [
     positioning: "Get cited, and rank for it",
     sectorPriced: true,
     includes: [
-      `${D1_CITED_PLACEMENTS} placements/mo`,
       "Schema work on your pages",
       "Link insertions from the placements",
       "Everything in Always Mentioned",
     ],
-    cta: { label: "Get started", href: D8_SIGNUP_URL },
+    cta: { label: "Get started", href: CONTACT_URL },
     emphasis: true,
   },
   {
@@ -96,22 +112,22 @@ export const TIERS: Tier[] = [
       "Dedicated strategy",
       "Multi-market and multi-brand coverage",
     ],
-    cta: { label: "Book a partner call", href: D9_PARTNER_CALL_URL },
+    cta: { label: "Book a partner call", href: CONTACT_URL },
   },
 ];
 
 /**
- * Sector pricing - blocked on D4 (sector list, and the Always Mentioned /
+ * Sector pricing - outstanding on D4 (sector list, and the Always Mentioned and
  * Always Cited price for each).
  *
  * Shape required, one entry per sector:
  *   { id: "invoice-factoring", label: "Invoice factoring",
  *     prices: { mentioned: 1295, cited: 2995 } }
  *
- * Prices are whole USD figures, consistent with the base tiers. Intentionally
- * empty: Task 4 forbids inventing a price, and the standing rules forbid
- * inventing any value. The selector below renders only once this is populated,
- * so no fabricated sector price can reach the page.
+ * Intentionally empty: inventing a price is not an option, so the selector
+ * below renders only once this is populated. Critique 1.8 reads the selector as
+ * "never built" - it is built and gated on this data, which is the same thing
+ * from the outside until D4 lands.
  */
 export type Sector = {
   id: string;

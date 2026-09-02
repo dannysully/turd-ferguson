@@ -272,7 +272,10 @@ details summary::-webkit-details-marker {
   .hero-two-col { grid-template-columns: 1fr !important; }
 }
 /* Four-tier pricing grid + dashboards comparison */
-@media (max-width: 1000px) {
+@media (max-width: 1180px) {
+  .tier-grid { grid-template-columns: repeat(3, 1fr) !important; }
+}
+@media (max-width: 860px) {
   .tier-grid { grid-template-columns: 1fr 1fr !important; }
 }
 @media (max-width: 560px) {

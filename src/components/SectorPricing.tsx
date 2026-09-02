@@ -67,7 +67,7 @@ export default function SectorPricing() {
 
       {/* Four tiers, ascending */}
       <div
-        style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1.25rem", textAlign: "left" }}
+        style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "1.25rem", textAlign: "left" }}
         className="tier-grid"
       >
         {TIERS.map((tier) => {
