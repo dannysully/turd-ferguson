@@ -3,6 +3,7 @@ import CitationOrbit from "@/components/CitationOrbit";
 import DarkTrustFlow from "@/components/DarkTrustFlow";
 import DarkComparisonSection from "@/components/DarkComparisonSection";
 import SectorPricing from "@/components/SectorPricing";
+import TierName from "@/components/TierName";
 import { CONTACT_URL } from "@/config/pricing";
 
 export const metadata: Metadata = {
@@ -892,10 +893,10 @@ export default function HomePage() {
             gap: "1rem",
           }}>
             <p style={{ fontSize: "0.9375rem", color: C.body, lineHeight: 1.7 }}>
-              <strong style={{ color: C.navy }}>Always Mentioned</strong> puts you in the third-party articles AI engines draw on when someone asks who to use. The focus is recommendations and brand mentions for one target keyword. Rankings improve as a side effect.
+              The <TierName tier="mentioned" /> plan puts you in the third-party articles AI engines draw on when someone asks who to use. The focus is recommendations and brand mentions for one target keyword. Rankings improve as a side effect.
             </p>
             <p style={{ fontSize: "0.9375rem", color: C.body, lineHeight: 1.7 }}>
-              <strong style={{ color: C.navy }}>Always Cited</strong> does all of that, then goes after the ranking directly - schema work on your pages and link insertions from the placements, so the same coverage that wins the AI answer also moves the keyword. This is the one most agencies buy.
+              The <TierName tier="cited" /> plan does all of that, then goes after the ranking directly - schema work on your pages and link insertions from the placements, so the same coverage that wins the AI answer also moves the keyword. This is the one most agencies buy.
             </p>
           </div>
         </div>
@@ -957,7 +958,7 @@ export default function HomePage() {
               },
               {
                 q: "Will the placement look natural?",
-                a: "Yes. We work with real editors at real publications, and every placement is a genuine editorial contribution rather than a link farm or an automated outreach blast. On Always Cited we also place contextual links inside existing high-authority articles - agreed with the publisher, agreed with you, and always inside content that already ranks and gets read.",
+                a: "Yes. We work with real editors at real publications, and every placement is a genuine editorial contribution rather than a link farm or an automated outreach blast. On the alwayscited plan we also place contextual links inside existing high-authority articles - agreed with the publisher, agreed with you, and always inside content that already ranks and gets read.",
               },
               {
                 q: "Will you approach our clients?",
@@ -973,7 +974,7 @@ export default function HomePage() {
               },
               {
                 q: "How many placements do I get per month?",
-                a: "Always Mentioned includes three. A placement that fails the three-criteria screen is replaced, not counted - you are buying placements that passed, not attempts.",
+                a: "The alwaysmentioned plan includes three. A placement that fails the three-criteria screen is replaced, not counted - you are buying placements that passed, not attempts.",
               },
               {
                 q: "Which industries do you work with?",

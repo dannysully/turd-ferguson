@@ -9,8 +9,8 @@
  * Critique 0.1: every placeholder is stripped rather than shipped. Where a
  * value is not yet confirmed the feature line is omitted entirely - a page with
  * fewer claims beats a page with broken ones. Values still outstanding:
- *   D1 - Always Cited placements per month
- *   D2 - Always Tracked Pro limits (domains, placements, keywords, refresh)
+ *   D1 - alwayscited placements per month
+ *   D2 - alwaystracked pro limits (domains, placements, keywords, refresh)
  *   D3 - free tier limits
  *   D4 - sector list and per-sector prices
  * Add them back as feature lines once confirmed.
@@ -20,12 +20,19 @@
  * exist. Critique 0.1: every CTA resolves to a real page.
  */
 
+import { TIER_PLAIN, type TierKey } from "@/components/TierName";
+
 /** Single destination for every CTA until real signup and booking flows exist. */
 export const CONTACT_URL = "/contact";
 
 export type Tier = {
   id: string;
-  name: string;
+  /** Which lockup the TierName component renders. */
+  key: TierKey;
+  /** Plan variant, rendered outside the brand word. */
+  qualifier?: string;
+  /** Unstyled one-word form for plain-text contexts (meta, alt, JSON-LD). */
+  plainName: string;
   /** Base monthly price in USD. null = not a numeric price. */
   basePrice: number | null;
   priceLabel: string;
@@ -38,13 +45,14 @@ export type Tier = {
 };
 
 /**
- * Ascending intensity. Critique 2.3: Always Tracked is split into two cards so
+ * Ascending intensity. Critique 2.3: alwaystracked is split into two cards so
  * the free and paid offers are not one card with two prices.
  */
 export const TIERS: Tier[] = [
   {
     id: "tracked-free",
-    name: "Always Tracked",
+    key: "tracked",
+    plainName: TIER_PLAIN.tracked,
     basePrice: null,
     priceLabel: "Free",
     positioning: "Know what your links did",
@@ -59,13 +67,15 @@ export const TIERS: Tier[] = [
   },
   {
     id: "tracked-pro",
-    name: "Always Tracked Pro",
+    key: "tracked",
+    qualifier: "pro",
+    plainName: `${TIER_PLAIN.tracked} pro`,
     basePrice: 99,
     priceLabel: "$99/mo",
     positioning: "Report it under your own brand",
     sectorPriced: false,
     includes: [
-      "Everything in Always Tracked",
+      `Everything in ${TIER_PLAIN.tracked}`,
       "White-label reports",
       "Daily refresh",
     ],
@@ -73,7 +83,8 @@ export const TIERS: Tier[] = [
   },
   {
     id: "mentioned",
-    name: "Always Mentioned",
+    key: "mentioned",
+    plainName: TIER_PLAIN.mentioned,
     basePrice: 995,
     priceLabel: "$995/mo",
     positioning: "Get named when AI recommends",
@@ -81,13 +92,14 @@ export const TIERS: Tier[] = [
     includes: [
       "3 placements/mo",
       "One target keyword",
-      "Everything in Always Tracked Pro",
+      `Everything in ${TIER_PLAIN.tracked} pro`,
     ],
     cta: { label: "Get started", href: CONTACT_URL },
   },
   {
     id: "cited",
-    name: "Always Cited",
+    key: "cited",
+    plainName: TIER_PLAIN.cited,
     basePrice: 2495,
     priceLabel: "$2,495/mo",
     positioning: "Get cited, and rank for it",
@@ -95,20 +107,21 @@ export const TIERS: Tier[] = [
     includes: [
       "Schema work on your pages",
       "Link insertions from the placements",
-      "Everything in Always Mentioned",
+      `Everything in ${TIER_PLAIN.mentioned}`,
     ],
     cta: { label: "Get started", href: CONTACT_URL },
     emphasis: true,
   },
   {
-    id: "recommended",
-    name: "Always Recommended",
+    id: "everywhere",
+    key: "everywhere",
+    plainName: TIER_PLAIN.everywhere,
     basePrice: null,
     priceLabel: "Book a call",
-    positioning: "Multi-market, multi-brand, service-led",
+    positioning: "Every market, every brand, every surface",
     sectorPriced: false,
     includes: [
-      "Everything in Always Cited",
+      `Everything in ${TIER_PLAIN.cited}`,
       "Dedicated strategy",
       "Multi-market and multi-brand coverage",
     ],
@@ -117,8 +130,8 @@ export const TIERS: Tier[] = [
 ];
 
 /**
- * Sector pricing - outstanding on D4 (sector list, and the Always Mentioned and
- * Always Cited price for each).
+ * Sector pricing - outstanding on D4 (sector list, and the alwaysmentioned and
+ * alwayscited price for each).
  *
  * Shape required, one entry per sector:
  *   { id: "invoice-factoring", label: "Invoice factoring",

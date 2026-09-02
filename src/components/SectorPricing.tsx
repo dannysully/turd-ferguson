@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { SECTORS, TIERS, priceFor, type Sector } from "@/config/pricing";
+import TierName from "@/components/TierName";
 
 const C = {
   navy: "#0B1220",
@@ -110,7 +111,7 @@ export default function SectorPricing() {
               )}
 
               <p style={{ fontWeight: 700, fontSize: "1rem", color: C.navy, marginBottom: "0.375rem" }}>
-                {tier.name}
+                <TierName tier={tier.key} qualifier={tier.qualifier} />
               </p>
               <p style={{ fontSize: "0.75rem", color: C.purple, fontWeight: 600, marginBottom: "1rem", lineHeight: 1.4 }}>
                 {tier.positioning}

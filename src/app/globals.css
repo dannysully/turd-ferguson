@@ -9,6 +9,9 @@
   --color-bg-soft: #F8F7FF;
   --color-border: #E5E7EB;
 
+  /* Brand purple - the accent half of the logo lockup */
+  --brand-purple: #7C3AED;
+
   /* Font */
   --font-sans: var(--font-manrope), "Manrope", Inter, system-ui, -apple-system, sans-serif;
 }
@@ -96,6 +99,10 @@ details summary::-webkit-details-marker {
     display: none !important;
   }
 }
+
+/* ─── Tier names ─── */
+.tier-name { white-space: nowrap; font-weight: 700; }
+.tier-name__accent { color: var(--brand-purple); }
 
 /* Nav link hover */
 .nav-link {
