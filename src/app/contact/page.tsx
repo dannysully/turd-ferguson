@@ -2,14 +2,14 @@ import type { Metadata } from "next";
 import ContactForm from "@/components/ContactForm";
 
 export const metadata: Metadata = {
-  title: "Contact — Book a Call",
+  title: "Contact alwayscited",
   description:
-    "Book a 30-minute call with AlwaysCited. We'll show you exactly which AI surfaces your brand is missing from, and what it would take to fix that.",
+    "Prices, placement counts and what each tier includes are all published. Partner enquiries and everything else, here.",
   alternates: { canonical: "https://alwayscited.com/contact" },
   openGraph: {
-    title: "Contact AlwaysCited — Book a Call",
+    title: "Contact alwayscited",
     description:
-      "Book a 30-minute call. We'll show you exactly which AI surfaces your brand is missing from.",
+      "Prices are on the pricing page. Partner enquiries and everything else, here.",
     url: "https://alwayscited.com/contact",
   },
 };
@@ -17,9 +17,9 @@ export const metadata: Metadata = {
 const contactSchema = {
   "@context": "https://schema.org",
   "@type": "ContactPage",
-  name: "Contact AlwaysCited",
+  name: "Contact alwayscited",
   description:
-    "Book a call with AlwaysCited. We'll show you exactly which AI surfaces your brand is missing from, and what it would take to fix that.",
+    "Book a call with alwayscited. We'll show you exactly which AI surfaces your brand is missing from, and what it would take to fix that.",
   url: "https://alwayscited.com/contact",
 };
 
@@ -44,11 +44,11 @@ export default function ContactPage() {
               maxWidth: "36rem",
             }}
           >
-            Let&apos;s talk about your AI search visibility.
+            Talk to us.
           </h1>
           <p style={{ color: "#b4c5d6", fontSize: "1.1rem", lineHeight: 1.6, maxWidth: "32rem" }}>
-            We&apos;ll show you exactly which AI surfaces your brand is missing from, and what it would
-            take to fix that.
+            Most of what you need is on the pricing page - prices, placement counts, what each
+            tier includes. If you want to buy, you do not need to speak to us first.
           </p>
         </div>
       </section>
@@ -104,7 +104,21 @@ export default function ContactPage() {
                     marginBottom: "1.25rem",
                   }}
                 >
-                  What to expect on the call.
+                  Partner enquiries.
+                </h3>
+                <p style={{ color: "#3D3D3A", fontSize: "0.9375rem", lineHeight: 1.6, marginBottom: "1.25rem" }}>
+                  Running this across several clients, or need multi-market coverage? That is a
+                  conversation - use the form and say so, and we will set one up.
+                </p>
+                <h3
+                  style={{
+                    fontFamily: "Georgia, 'Times New Roman', Times, serif",
+                    color: "#0D1B2A",
+                    fontSize: "1.1rem",
+                    marginBottom: "1.25rem",
+                  }}
+                >
+                  Everything else.
                 </h3>
                 <ul
                   style={{
@@ -116,10 +130,10 @@ export default function ContactPage() {
                   }}
                 >
                   {[
-                    "We'll run your brand across the AI surfaces your buyers actually use.",
-                    "We'll show you where your competitors are being cited and you're not.",
-                    "We'll outline a specific campaign structure for your category.",
-                    "No hard sell. If we can't help, we'll say so.",
+                    "Prices, placement counts and tier contents are published - no call needed.",
+                    "Your brand on everything the client sees. We never contact your client.",
+                    "Monthly, no notice period. Placements already commissioned are delivered.",
+                    "hello@alwayscited.com, or the form on this page.",
                   ].map((item) => (
                     <li
                       key={item}

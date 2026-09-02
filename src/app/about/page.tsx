@@ -2,12 +2,12 @@ import type { Metadata } from "next";
 import CtaSection from "@/components/CtaSection";
 
 export const metadata: Metadata = {
-  title: "About AlwaysCited — The AI Search Agency",
+  title: "About alwayscited | AI Citation Placements for Agencies",
   description:
-    "AlwaysCited is a focused AI Search agency. We engineer brand visibility across Google's AI Overview, ChatGPT, Perplexity, and other LLMs for B2B brands. A sub-brand of Nomada Digital.",
+    "alwayscited places brands inside the third-party articles AI engines cite, and tracks what happens next. We work mainly through SEO agencies, white-labelled. A sub-brand of Nomada Digital.",
   alternates: { canonical: "https://alwayscited.com/about" },
   openGraph: {
-    title: "About AlwaysCited | The AI Search Agency",
+    title: "About alwayscited | AI Citation Placements for Agencies",
     description:
       "We engineer brand visibility across AI search systems for B2B brands. A sub-brand of Nomada Digital — 5-star Google-reviewed B2B search agency, York, UK.",
     url: "https://alwayscited.com/about",
@@ -17,13 +17,13 @@ export const metadata: Metadata = {
 const aboutSchema = {
   "@context": "https://schema.org",
   "@type": "AboutPage",
-  name: "About AlwaysCited",
+  name: "About alwayscited",
   description:
-    "AlwaysCited is a focused AI Search agency. We engineer brand visibility across AI search systems — Google's AI Overview, ChatGPT, Perplexity, Claude, and other LLMs — for B2B brands.",
+    "alwayscited places brands inside the third-party articles AI engines cite - Google AI Overviews, ChatGPT, Gemini and Perplexity - and tracks what happens next.",
   url: "https://alwayscited.com/about",
   publisher: {
     "@type": "Organization",
-    name: "AlwaysCited",
+    name: "alwayscited",
     url: "https://alwayscited.com",
     parentOrganization: {
       "@type": "Organization",
@@ -53,15 +53,15 @@ export default function AboutPage() {
               marginBottom: "1.25rem",
             }}
           >
-            About AlwaysCited.
+            About alwayscited.
           </h1>
           <p style={{ color: "#b4c5d6", fontSize: "1.1rem", lineHeight: 1.6, maxWidth: "36rem" }}>
-            The AI Search Agency for B2B brands that want to be cited by AI when their buyers ask.
+            We place brands inside the third-party articles AI engines cite, and we track what happens next.
           </p>
         </div>
       </section>
 
-      {/* Section 1 — What AlwaysCited is */}
+      {/* Section 1 — What alwayscited is */}
       <section style={{ background: "#ffffff" }}>
         <div className="mx-auto max-w-[1100px] px-6 py-24">
           <h2
@@ -73,21 +73,27 @@ export default function AboutPage() {
               marginBottom: "1.5rem",
             }}
           >
-            What AlwaysCited is.
+            What alwayscited is.
           </h2>
           <div style={{ maxWidth: "44rem" }}>
             <p style={{ color: "#3D3D3A", fontSize: "1.0625rem", lineHeight: 1.75, marginBottom: "1.25rem" }}>
-              AlwaysCited is a focused AI Search agency. We do one thing: we engineer brand
-              visibility across AI search systems — Google&apos;s AI Overview, ChatGPT, Perplexity,
-              Claude, and other LLMs — for B2B brands whose buyers research through AI before
-              clicking any traditional search result.
+              We place brands inside the third-party articles that AI engines cite, and we track
+              what happens next. That is the whole product.
+            </p>
+            <p style={{ color: "#3D3D3A", fontSize: "1.0625rem", lineHeight: 1.75, marginBottom: "1.25rem" }}>
+              We work mainly through SEO agencies. Your clients are asking what you are doing about
+              AI search, and most agencies do not yet have a fulfillment answer. We are that answer,
+              white-labelled - our work, your brand on the report, no contact with your client at
+              any point.
+            </p>
+            <p style={{ color: "#3D3D3A", fontSize: "1.0625rem", lineHeight: 1.75, marginBottom: "1.25rem", fontWeight: 600 }}>
+              Why placements rather than a dashboard.
             </p>
             <p style={{ color: "#3D3D3A", fontSize: "1.0625rem", lineHeight: 1.75 }}>
-              We don&apos;t sell AEO audits. We don&apos;t run generic SEO retainers and call them AEO. We
-              secure the editorial placements that get our clients cited by AI, and we engineer the
-              on-site content that supports those placements. The result is brand visibility on the
-              surfaces where buying decisions actually happen — in under eight weeks, on a
-              performance-linked retainer.
+              AI engines do not evaluate brands independently. They extract from content that
+              already ranks and already gets read. Knowing you are not cited does not get you
+              cited - so we go and change the source, then show you the sequence: where the page
+              ranked before, where it ranks now, and the date the link went live.
             </p>
           </div>
         </div>
@@ -105,11 +111,11 @@ export default function AboutPage() {
               marginBottom: "1.5rem",
             }}
           >
-            Powered by Nomada Digital.
+            Built by Nomada Digital.
           </h2>
           <div style={{ maxWidth: "44rem" }}>
             <p style={{ color: "#3D3D3A", fontSize: "1.0625rem", lineHeight: 1.75, marginBottom: "1.25rem" }}>
-              AlwaysCited is a sub-brand of{" "}
+              alwayscited is a sub-brand of{" "}
               <a
                 href="https://nomadadigital.co.uk"
                 target="_blank"
@@ -118,12 +124,14 @@ export default function AboutPage() {
               >
                 Nomada Digital
               </a>{" "}
-              — a 5-star Google-reviewed B2B search agency in York, UK. Nomada has spent the last
-              decade building organic visibility for brands that previously couldn&apos;t compete on
-              Google: Hitachi Capital, Devyce, Volunteero, Xpatfone, and others. AlwaysCited is
-              the AI Search-specific offering, applying the same publisher network and editorial
-              relationships that drove those clients to page 1 of Google to a new visibility
-              channel — citation by AI.
+, a B2B search agency in York, UK. Nomada has spent the last decade building organic
+              visibility for B2B brands in competitive categories - financial services, SaaS,
+              professional services and telecoms. alwayscited applies the same publisher network
+              and editorial relationships to a new visibility channel: citation by AI.
+            </p>
+            <p style={{ color: "#3D3D3A", fontSize: "1.0625rem", lineHeight: 1.75 }}>
+              We run this on our own clients before we sell it to anyone. That is also why the
+              tracker exists.
             </p>
           </div>
         </div>
