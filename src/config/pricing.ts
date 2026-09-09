@@ -10,9 +10,15 @@
  * value is not yet confirmed the feature line is omitted entirely - a page with
  * fewer claims beats a page with broken ones. Values still outstanding:
  *   D1 - alwayscited placements per month
- *   D2 - alwaystracked pro limits (domains, placements, keywords, refresh)
- *   D3 - free tier limits
  *   D4 - sector list and per-sector prices
+ *
+ * D2 and D3 were settled by the 9 Sep audit: the free tier is one client and
+ * ten questions a day, permanently, AI visibility only; pro adds Google
+ * rankings, multiple clients, white-label and daily refresh on a 30-day trial.
+ *
+ * Currency: USD throughout, per the repositioning brief and the audit's own
+ * tile table. The internal GBP 100 figure is a cost input, not a list price -
+ * flagged for Danny rather than converted here.
  * Add them back as feature lines once confirmed.
  *
  * Critique 1.7: the tracking tool is not built, so both Tracked tiers are
@@ -36,6 +42,8 @@ export type Tier = {
   /** Base monthly price in USD. null = not a numeric price. */
   basePrice: number | null;
   priceLabel: string;
+  /** Trial or qualifier shown under the price. */
+  priceNote?: string;
   positioning: string;
   /** True where the sector selector adjusts this tier's price. */
   sectorPriced: boolean;
@@ -55,13 +63,14 @@ export const TIERS: Tier[] = [
     plainName: TIER_PLAIN.tracked,
     basePrice: null,
     priceLabel: "Free",
-    positioning: "Know what your links did",
+    positioning: "See what AI already says",
     sectorPriced: false,
     includes: [
-      "Upload placements you have already built",
-      "Both keyword sets, tracked separately",
-      "Four honest AI Overview outcomes",
-      "90 days of history backfilled",
+      "AI visibility only",
+      "One client, ten questions a day",
+      "Category leaderboard and cited sources",
+      "Upload coverage and see what is cited",
+      "Free permanently, no expiry",
     ],
     cta: { label: "Join the waitlist", href: CONTACT_URL },
   },
@@ -72,10 +81,13 @@ export const TIERS: Tier[] = [
     plainName: `${TIER_PLAIN.tracked} pro`,
     basePrice: 99,
     priceLabel: "$99/mo",
-    positioning: "Report it under your own brand",
+    priceNote: "30 days free",
+    positioning: "Add Google rankings and your logo",
     sectorPriced: false,
     includes: [
       `Everything in ${TIER_PLAIN.tracked}`,
+      "Google rankings for the article and the client page",
+      "Multiple clients",
       "White-label reports",
       "Daily refresh",
     ],
@@ -91,7 +103,7 @@ export const TIERS: Tier[] = [
     sectorPriced: true,
     includes: [
       "3 placements/mo",
-      "One target keyword",
+      "One target topic",
       `Everything in ${TIER_PLAIN.tracked} pro`,
     ],
     cta: { label: "Get started", href: CONTACT_URL },
