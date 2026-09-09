@@ -67,7 +67,7 @@ export default function DarkTrustFlow() {
         {routes.map((route, i) => (
           <div
             key={route.label}
-            className={cls}
+            className={`${cls} trust-route-card`}
             style={{
               animationDelay: `${i * 120}ms`,
               background: "rgba(255,255,255,0.05)",
@@ -77,6 +77,7 @@ export default function DarkTrustFlow() {
               display: "flex",
               flexDirection: "column",
               gap: "0.75rem",
+              textAlign: "left",
             }}
           >
             <div style={{

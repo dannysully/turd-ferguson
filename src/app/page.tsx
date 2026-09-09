@@ -7,13 +7,13 @@ import TierName from "@/components/TierName";
 import { CONTACT_URL } from "@/config/pricing";
 
 export const metadata: Metadata = {
-  title: "White-Label AI Citation Placements for Agencies | alwayscited",
+  title: "LLM Visibility Checker | alwayscited",
   description:
-    "White-label AI citation placements for agencies. Track the coverage and links you have already earned free, then buy placements in the third-party articles AI engines cite. Prices on the page.",
+    "Check whether AI engines name your client. Run a free scan to see who Google AI Overviews and ChatGPT cite for a topic, then get placed in those sources. White-labelled for agencies, prices on the page.",
   alternates: { canonical: "https://alwayscited.com" },
   openGraph: {
-    title: "White-Label AI Citation Placements for Agencies | alwayscited",
-    description: "White-label AI citation placements for agencies. Free placement tracking, four tiers, prices on the page.",
+    title: "LLM Visibility Checker | alwayscited",
+    description: "Check whether AI engines name your client. Free scan, then white-label placements in the sources they cite. Prices on the page.",
     url: "https://alwayscited.com",
   },
 };
@@ -129,9 +129,7 @@ export default function HomePage() {
             ChatGPT, Gemini, Perplexity and Google AI Overviews do not discover brands from homepages or ad campaigns. They extract from third-party content they already trust. If your client is not inside those sources, they do not exist in an AI answer.
           </p>
 
-          <div className="dark-trust-flow">
-            <DarkTrustFlow />
-          </div>
+          <DarkTrustFlow />
         </div>
       </section>
 

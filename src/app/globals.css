@@ -298,14 +298,17 @@ details summary::-webkit-details-marker {
     justify-content: center;
     padding: 0.5rem 0;
   }
+  .trust-route-card {
+    flex-direction: row !important;
+    align-items: flex-start !important;
+    gap: 0.875rem !important;
+  }
 }
 @media (max-width: 768px) {
   .comparison-grid { grid-template-columns: 1fr !important; }
   .comparison-vs { padding-top: 0 !important; }
   .hide-mobile { display: none !important; }
   .stack-mobile { grid-template-columns: 1fr !important; }
-  .dark-trust-flow { flex-direction: column !important; align-items: center !important; }
-  .dark-trust-flow > * { flex-direction: column !important; }
 }
 
 /* Purple CTA button */
