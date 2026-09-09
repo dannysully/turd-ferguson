@@ -51,7 +51,7 @@ function Step({ id, n, lead, body, children }: { id: string; n: number; lead: st
 }
 
 export default async function ExamplePage() {
-  /* Real sources and history from the fixture; the rest overlaid as example data */
+  /* Real cited sources from the fixture; the rest overlaid as example data */
   const start = await fixtureAdapter.startScan({ domain: "nomadadigital.co.uk" });
   const real = await fixtureAdapter.runScan({ scan_id: start.scan_id, topic: "b2b seo agency", market: "UK" });
   const r = buildIllustrativeResult(real);
@@ -61,7 +61,7 @@ export default async function ExamplePage() {
     <>
       <p style={{ fontWeight: 700, color: C.navy, marginBottom: "0.5rem" }}>See everything behind this.</p>
       <p style={{ fontSize: "0.875rem", color: C.body, lineHeight: 1.6, marginBottom: "1rem" }}>
-        The full leaderboard, every source the engines cite for {r.topic}, and the history. Then upload the coverage you have already earned and find out which pieces are doing the work.
+        The full leaderboard and every source the engines cite for {r.topic}. Then upload the coverage you have already earned and find out which pieces are doing the work.
       </p>
       <label htmlFor="ex-email" style={label}>Your email</label>
       <div style={{ display: "flex", gap: "0.625rem", flexWrap: "wrap" }}>
@@ -106,7 +106,7 @@ export default async function ExamplePage() {
             <ResultScreen result={r} gated compact gate={frozenGate} />
           </Step>
 
-          <Step id="step-5" n={5} lead="Give an email and the rest opens." body="The full leaderboard, every source the engines cite for the topic ranked by how often, and mentions month by month. The scan is saved as your first client.">
+          <Step id="step-5" n={5} lead="Give an email and the rest opens." body="The full leaderboard, and every source the engines cite for the topic ranked by how often. The scan is saved as your first client.">
             <ResultScreen result={r} gated={false} />
           </Step>
 

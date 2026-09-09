@@ -211,13 +211,13 @@ export default function ScanChecker({
               gate={emailDone ? (
                 <>
                   <p style={{ fontWeight: 700, color: C.navy, marginBottom: "0.5rem" }}>Thanks. Your report is on its way.</p>
-                  <p style={{ fontSize: "0.875rem", color: C.body, lineHeight: 1.6, margin: 0 }}>The full source list and history for {result.topic}, by email within one working day.</p>
+                  <p style={{ fontSize: "0.875rem", color: C.body, lineHeight: 1.6, margin: 0 }}>The full leaderboard and source list for {result.topic}, by email within one working day.</p>
                 </>
               ) : (
                 <>
                   <p style={{ fontWeight: 700, color: C.navy, marginBottom: "0.5rem" }}>See everything behind this.</p>
                   <p style={{ fontSize: "0.875rem", color: C.body, lineHeight: 1.6, marginBottom: "1rem" }}>
-                    The full source list and the history for {result.topic}. Then upload the coverage you have already earned and find out which pieces are doing the work.
+                    The full leaderboard and every source the engines cite for {result.topic}. Then upload the coverage you have already earned and find out which pieces are doing the work.
                   </p>
                   {emailForm}
                 </>

@@ -158,7 +158,7 @@ export function Sources({ r, limit }: { r: RunScanResponse; limit?: number }) {
   );
 }
 
-/* ── History: mentions by month ── */
+/* ── History: mentions by month. Not rendered - retrospective data is out of scope. ── */
 export function History({ r }: { r: RunScanResponse }) {
   const pts = r.history;
   if (pts.length === 0) {
@@ -209,7 +209,6 @@ export default function ResultDashboard({ r, sourceLimit }: { r: RunScanResponse
     <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
       <Leaderboard r={r} />
       <Sources r={r} limit={sourceLimit} />
-      <History r={r} />
     </div>
   );
 }
