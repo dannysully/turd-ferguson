@@ -1,0 +1,55 @@
+{
+  "version": "0.1.20260902",
+  "status_code": 20000,
+  "status_message": "Ok.",
+  "time": "0.6396 sec.",
+  "cost": 0.116,
+  "tasks_count": 1,
+  "tasks_error": 0,
+  "tasks": [
+    {
+      "id": "09091423-1210-0658-0000-365f65a4f3ce",
+      "status_code": 20000,
+      "status_message": "Ok.",
+      "time": "0.6263 sec.",
+      "cost": 0.116,
+      "result_count": 1,
+      "path": ["v3", "ai_optimization", "llm_mentions", "top_mentioned_domains_lite", "live"],
+      "data": {
+        "api": "ai_optimization",
+        "function": "top_mentioned_domains_lite",
+        "target": [{ "keyword": "b2b seo agency", "match_type": "word_match", "search_scope": ["question"] }],
+        "platform": "google",
+        "location_name": "United Kingdom",
+        "language_code": "en",
+        "limit": 16
+      },
+      "result": [
+        {
+          "total_count": 16,
+          "offset": 0,
+          "items_count": 16,
+          "aggregated_metrics": null,
+          "items": [
+            { "domain": "www.breakingb2b.com",           "location": 2826, "language": "en", "platform": "google", "metrics": { "mentions": 2, "ai_search_volume": 850 } },
+            { "domain": "gripped.io",                    "location": 2826, "language": "en", "platform": "google", "metrics": { "mentions": 2, "ai_search_volume": 640 } },
+            { "domain": "www.polarisagency.com",         "location": 2826, "language": "en", "platform": "google", "metrics": { "mentions": 2, "ai_search_volume": 310 } },
+            { "domain": "growth-labs.co.uk",             "location": 2826, "language": "en", "platform": "google", "metrics": { "mentions": 1, "ai_search_volume": 590 } },
+            { "domain": "targetedseo.co.uk",             "location": 2826, "language": "en", "platform": "google", "metrics": { "mentions": 1, "ai_search_volume": 590 } },
+            { "domain": "www.geekytech.co.uk",           "location": 2826, "language": "en", "platform": "google", "metrics": { "mentions": 1, "ai_search_volume": 590 } },
+            { "domain": "www.leverdigital.co.uk",        "location": 2826, "language": "en", "platform": "google", "metrics": { "mentions": 1, "ai_search_volume": 590 } },
+            { "domain": "www.motion-marketing.com",      "location": 2826, "language": "en", "platform": "google", "metrics": { "mentions": 1, "ai_search_volume": 590 } },
+            { "domain": "www.redevolution.com",          "location": 2826, "language": "en", "platform": "google", "metrics": { "mentions": 1, "ai_search_volume": 590 } },
+            { "domain": "www.reflectdigital.co.uk",      "location": 2826, "language": "en", "platform": "google", "metrics": { "mentions": 1, "ai_search_volume": 590 } },
+            { "domain": "www.smartmonkeymarketing.co.uk","location": 2826, "language": "en", "platform": "google", "metrics": { "mentions": 1, "ai_search_volume": 590 } },
+            { "domain": "linkquest.co.uk",               "location": 2826, "language": "en", "platform": "google", "metrics": { "mentions": 1, "ai_search_volume": 260 } },
+            { "domain": "rocket-saas.io",                "location": 2826, "language": "en", "platform": "google", "metrics": { "mentions": 1, "ai_search_volume": 260 } },
+            { "domain": "bulldogdigitalmedia.com",       "location": 2826, "language": "en", "platform": "google", "metrics": { "mentions": 1, "ai_search_volume": 50 } },
+            { "domain": "ink-digital.co.uk",             "location": 2826, "language": "en", "platform": "google", "metrics": { "mentions": 1, "ai_search_volume": 50 } },
+            { "domain": "mrs.digital",                   "location": 2826, "language": "en", "platform": "google", "metrics": { "mentions": 1, "ai_search_volume": 50 } }
+          ]
+        }
+      ]
+    }
+  ]
+}

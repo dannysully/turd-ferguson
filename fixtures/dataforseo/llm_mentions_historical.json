@@ -1,0 +1,49 @@
+{
+  "version": "0.1.20260902",
+  "status_code": 20000,
+  "status_message": "Ok.",
+  "time": "2.0714 sec.",
+  "cost": 0.101,
+  "tasks_count": 1,
+  "tasks_error": 0,
+  "tasks": [
+    {
+      "id": "09091423-1210-0662-0000-8d9ef35c7ff1",
+      "status_code": 20000,
+      "status_message": "Ok.",
+      "time": "2.0373 sec.",
+      "cost": 0.101,
+      "result_count": 1,
+      "path": ["v3", "ai_optimization", "llm_mentions", "historical", "live"],
+      "data": {
+        "api": "ai_optimization",
+        "function": "historical",
+        "target": [{ "keyword": "nomada digital", "match_type": "word_match", "search_scope": ["any"] }],
+        "platform": "google",
+        "location_name": "United Kingdom",
+        "language_code": "en",
+        "date_from": "2025-09-01"
+      },
+      "result": [
+        {
+          "items_count": 13,
+          "items": [
+            { "year": 2026, "month": 9,  "metrics": { "mentions": 0, "ai_search_volume": 0 } },
+            { "year": 2026, "month": 8,  "metrics": { "mentions": 4, "ai_search_volume": 2370 } },
+            { "year": 2026, "month": 7,  "metrics": { "mentions": 3, "ai_search_volume": 440 } },
+            { "year": 2026, "month": 6,  "metrics": { "mentions": 1, "ai_search_volume": 170 } },
+            { "year": 2026, "month": 5,  "metrics": { "mentions": 1, "ai_search_volume": 70 } },
+            { "year": 2026, "month": 4,  "metrics": { "mentions": 1, "ai_search_volume": 140 } },
+            { "year": 2026, "month": 3,  "metrics": { "mentions": 0, "ai_search_volume": 0 } },
+            { "year": 2026, "month": 2,  "metrics": { "mentions": 0, "ai_search_volume": 0 } },
+            { "year": 2026, "month": 1,  "metrics": { "mentions": 0, "ai_search_volume": 0 } },
+            { "year": 2025, "month": 12, "metrics": { "mentions": 3, "ai_search_volume": 870 } },
+            { "year": 2025, "month": 11, "metrics": { "mentions": 0, "ai_search_volume": 0 } },
+            { "year": 2025, "month": 10, "metrics": { "mentions": 2, "ai_search_volume": 140 } },
+            { "year": 2025, "month": 9,  "metrics": { "mentions": 0, "ai_search_volume": 0 } }
+          ]
+        }
+      ]
+    }
+  ]
+}
