@@ -21,7 +21,7 @@ const dashboards = [
 ];
 
 const alwayscited = [
-  "Show you the gap, free and permanently",
+  "Show you the gap with a free scan",
   "Then name the sources the engines actually cite",
   "Then place you in them",
   "Editorial coverage, schema work, link insertions",

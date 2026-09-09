@@ -66,9 +66,9 @@ export default function SectorPricing() {
         </div>
       )}
 
-      {/* Four tiers, ascending */}
+      {/* Four paid tiers, ascending. Each links to its package page. */}
       <div
-        style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "1.25rem", textAlign: "left" }}
+        style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1.25rem", textAlign: "left" }}
         className="tier-grid"
       >
         {TIERS.map((tier) => {
@@ -127,12 +127,6 @@ export default function SectorPricing() {
               }}>
                 {priceFor(tier, sector)}
               </p>
-              {tier.priceNote && (
-                <p style={{ fontSize: "0.7rem", fontWeight: 600, color: C.purple, marginTop: "-1rem", marginBottom: "1.25rem" }}>
-                  {tier.priceNote}
-                </p>
-              )}
-
               <ul style={{ listStyle: "none", padding: 0, margin: "0 0 1.5rem", display: "flex", flexDirection: "column", gap: "0.5rem", flex: 1 }}>
                 {tier.includes.map((item) => (
                   <li key={item} style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem" }}>

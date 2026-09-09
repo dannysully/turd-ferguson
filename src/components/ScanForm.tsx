@@ -106,8 +106,8 @@ export default function ScanForm({ compact = false }: { compact?: boolean }) {
         <p style={{ fontSize: "0.875rem", color: C.body, lineHeight: 1.65 }}>
           We will run <strong style={{ color: C.navy }}>{brand || domain}</strong> against{" "}
           <strong style={{ color: C.navy }}>{topic}</strong> in the {market} and send the results to{" "}
-          {state.email}. Reports are produced by hand while the scan is being finished, so it will
-          not be instant - expect it within one working day.
+          {state.email}. Reports are produced by hand while the scan is being finished, so expect it within one
+          working day.
         </p>
       </div>
     );
@@ -234,7 +234,7 @@ export default function ScanForm({ compact = false }: { compact?: boolean }) {
           </p>
           <p style={{ fontSize: "0.875rem", color: C.body, lineHeight: 1.65, marginBottom: "1.25rem" }}>
             The full leaderboard for <strong style={{ color: C.navy }}>{topic}</strong>, every source the
-            engines cite for it, and history back to August 2025.
+            engines cite for it.
           </p>
 
           <label htmlFor="scan-email" style={label}>Your email</label>
@@ -260,7 +260,7 @@ export default function ScanForm({ compact = false }: { compact?: boolean }) {
           )}
 
           <p style={{ fontSize: "0.8125rem", color: C.body, marginTop: "0.875rem", lineHeight: 1.6 }}>
-            No card. Your scan is saved as your first client.
+            One scan, no charge. Ongoing tracking is a paid plan.
           </p>
           <button
             type="button"

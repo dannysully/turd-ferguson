@@ -6,26 +6,15 @@
  *
  * All prices USD, monthly.
  *
- * Critique 0.1: every placeholder is stripped rather than shipped. Where a
- * value is not yet confirmed the feature line is omitted entirely - a page with
- * fewer claims beats a page with broken ones. Values still outstanding:
- *   D1 - alwayscited placements per month
- *   D4 - sector list and per-sector prices
+ * The free surface is a one-off scan, promoted in the hero. It is not a tier -
+ * every plan below is paid, because ongoing checks cost us money per account
+ * and "free forever" was never true. There is no free tile.
  *
- * D2 and D3 are settled. Per the v2 audit's decision 1, the free permanent
- * surface is the ungated scan, and alwaystracked itself is a 30-day trial that
- * starts when someone gives an email. The tile reads "free for 30 days"
- * accordingly - if alwaystracked becomes free forever instead, only this tile
- * and the gate copy change.
+ * Each tier links to its own page. The homepage gets to the packages; the
+ * detail of what is included lives on the package page.
  *
- * Currency: USD throughout, per the repositioning brief and the audit's own
- * tile table. The internal GBP 100 figure is a cost input, not a list price -
- * flagged for Danny rather than converted here.
- * Add them back as feature lines once confirmed.
- *
- * Critique 1.7: the tracking tool is not built, so both Tracked tiers are
- * waitlist CTAs rather than signup links pointing at a product that does not
- * exist. Critique 0.1: every CTA resolves to a real page.
+ * Outstanding: D1 (alwayscited placements per month) and D4 (sector list and
+ * per-sector prices). Feature lines for those are omitted rather than guessed.
  */
 
 import { TIER_PLAIN, type TierKey } from "@/components/TierName";
@@ -44,9 +33,9 @@ export type Tier = {
   /** Base monthly price in USD. null = not a numeric price. */
   basePrice: number | null;
   priceLabel: string;
-  /** Trial or qualifier shown under the price. */
-  priceNote?: string;
   positioning: string;
+  /** The package page this tier links to. */
+  href: string;
   /** True where the sector selector adjusts this tier's price. */
   sectorPriced: boolean;
   includes: string[];
@@ -60,39 +49,22 @@ export type Tier = {
  */
 export const TIERS: Tier[] = [
   {
-    id: "tracked-free",
+    id: "tracked",
     key: "tracked",
     plainName: TIER_PLAIN.tracked,
-    basePrice: null,
-    priceLabel: "Free for 30 days",
-    positioning: "See what AI already says",
-    sectorPriced: false,
-    includes: [
-      "AI visibility only",
-      "One client, one market, four engines, ten questions a day",
-      "Category leaderboard and cited sources",
-      "Coverage matching",
-      "13 months of AI Overview history",
-    ],
-    cta: { label: "Start free", href: "/#scan" },
-  },
-  {
-    id: "tracked-pro",
-    key: "tracked",
-    qualifier: "pro",
-    plainName: `${TIER_PLAIN.tracked} pro`,
     basePrice: 99,
     priceLabel: "$99/mo",
-    positioning: "Add Google rankings and your logo",
+    positioning: "Know what your coverage did",
     sectorPriced: false,
+    href: "/alwaystracked",
     includes: [
-      `Everything in ${TIER_PLAIN.tracked}`,
-      "The article's and the client page's Google positions, tracked separately",
-      "The four AI Overview outcomes",
-      "Unlimited clients, both markets, eight engines",
-      "White-label reports, daily readings",
+      "Ongoing AI visibility tracking",
+      "Category leaderboard and cited sources",
+      "Coverage matching, URL for URL",
+      "Google positions for the article and the client page",
+      "White-label reports",
     ],
-    cta: { label: "Start free", href: "/#scan" },
+    cta: { label: "See what is included", href: "/alwaystracked" },
   },
   {
     id: "mentioned",
@@ -102,11 +74,13 @@ export const TIERS: Tier[] = [
     priceLabel: "$995/mo",
     positioning: "Get named when AI recommends",
     sectorPriced: true,
+    href: "/alwaysmentioned",
     includes: [
       "3 placements a month on one topic",
-      `Everything in ${TIER_PLAIN.tracked} pro`,
+      "Placed in sources the engines already cite",
+      `Everything in ${TIER_PLAIN.tracked}`,
     ],
-    cta: { label: "Get started", href: CONTACT_URL },
+    cta: { label: "See what is included", href: "/alwaysmentioned" },
   },
   {
     id: "cited",
@@ -116,12 +90,13 @@ export const TIERS: Tier[] = [
     priceLabel: "$2,495/mo",
     positioning: "Get cited, and rank for it",
     sectorPriced: true,
+    href: "/alwayscited",
     includes: [
       "Schema work on your pages",
       "Link insertions from the placements",
       `Everything in ${TIER_PLAIN.mentioned}`,
     ],
-    cta: { label: "Get started", href: CONTACT_URL },
+    cta: { label: "See what is included", href: "/alwayscited" },
     emphasis: true,
   },
   {
@@ -132,14 +107,16 @@ export const TIERS: Tier[] = [
     priceLabel: "Book a call",
     positioning: "Every market, every brand, every surface",
     sectorPriced: false,
+    href: "/alwayseverywhere",
     includes: [
       `Everything in ${TIER_PLAIN.cited}`,
       "Dedicated strategy",
       "Multi-market and multi-brand coverage",
     ],
-    cta: { label: "Book a partner call", href: CONTACT_URL },
+    cta: { label: "See what is included", href: "/alwayseverywhere" },
   },
 ];
+
 
 /**
  * Sector pricing - outstanding on D4 (sector list, and the alwaysmentioned and
