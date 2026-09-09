@@ -1,17 +1,22 @@
 "use server";
 
 import { Resend } from "resend";
+import { checkAiOverview, DataForSeoNotConfigured, normalizeDomain } from "@/lib/dataforseo";
 
 /**
  * Scan request submission.
  *
- * The scan backend does not exist yet, so this collects the request and emails
- * it to us rather than rendering a result. Nothing is estimated and no figure
- * is shown to the user - the report is produced by hand until the aggregate
- * endpoints are live.
+ * Two things happen server-side. We run one AI Overview check for the topic
+ * through DataForSEO, and we email the request plus whatever that check
+ * returned. The visitor is not shown a figure - the report goes out by hand,
+ * so nothing unverified reaches the page.
  *
- * If RESEND_API_KEY is unset the action returns an error the user can act on.
- * It never reports success for a submission that went nowhere.
+ * Exactly one API call per submission, so the cost per scan is predictable,
+ * and we log the cost DataForSEO returns rather than a price-list estimate.
+ *
+ * If DataForSEO is unconfigured or errors, the submission still goes through -
+ * the lead matters more than the lookup. If RESEND_API_KEY is unset the action
+ * returns an error the user can act on, and never reports a false success.
  */
 
 const DESTINATION = process.env.CONTACT_EMAIL_DESTINATION ?? "hello@alwayscited.com";
@@ -40,6 +45,31 @@ export async function submitScanRequest(
     return { status: "error", message: "That email address does not look right." };
   }
 
+  /* One check, one call. Failure here must not lose the lead. */
+  let findings = "AI Overview check: not run.";
+  let costNote = "";
+  try {
+    const result = await checkAiOverview({ question: topic, market, brandDomain: domain });
+    costNote = `DataForSEO cost: $${result.cost.toFixed(4)}`;
+    if (!result.overviewPresent) {
+      findings = "AI Overview check: no Overview appeared for this topic in this market.";
+    } else {
+      const top = result.sources.slice(0, 10).map((x, i) => `  ${i + 1}. ${x.domain}`).join("\n");
+      findings = [
+        `AI Overview check: Overview appeared.`,
+        `${normalizeDomain(domain)} cited: ${result.brandCited ? "YES" : "no"}`,
+        `Cited sources (${result.sources.length} distinct):`,
+        top,
+      ].join("\n");
+    }
+    console.log("[scan]", { domain, topic, market, cost: result.cost, brandCited: result.brandCited });
+  } catch (err) {
+    findings =
+      err instanceof DataForSeoNotConfigured
+        ? "AI Overview check: skipped, DataForSEO credentials not configured."
+        : `AI Overview check: failed (${err instanceof Error ? err.message : "unknown"}).`;
+  }
+
   const key = process.env.RESEND_API_KEY;
   if (!key) {
     return {
@@ -61,6 +91,9 @@ export async function submitScanRequest(
         `Topic:  ${topic}`,
         `Market: ${market || "not given"}`,
         `Email:  ${email}`,
+        "",
+        findings,
+        costNote,
       ].join("\n"),
     });
     if (error) {
