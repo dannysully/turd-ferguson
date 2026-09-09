@@ -1,9 +1,17 @@
 "use server";
 
-// TODO: wire up email sending here — recommended: Resend (https://resend.com)
-// Install: npm install resend
-// Then replace the placeholder below with actual send logic
-const CONTACT_EMAIL_DESTINATION = "hello@alwayscited.com"; // PLACEHOLDER: confirm actual email before launch
+import { Resend } from "resend";
+
+/**
+ * Contact form submission. This previously logged to the server console behind
+ * a TODO, which silently dropped every enquiry while the whole site pointed
+ * its CTAs here. It now sends, and reports an error rather than a false
+ * success when sending is not configured.
+ */
+
+const CONTACT_EMAIL_DESTINATION =
+  process.env.CONTACT_EMAIL_DESTINATION ?? "hello@alwayscited.com";
+const FROM = process.env.SCAN_FROM_EMAIL ?? "alwayscited <onboarding@resend.dev>";
 
 export type ContactFormState =
   | { status: "idle" }
@@ -28,19 +36,45 @@ export async function submitContactForm(
     return { status: "error", message: "Please enter a valid email address." };
   }
 
-  // TODO: replace this log with actual email send via Resend or similar
-  console.log("Contact form submission:", {
-    to: CONTACT_EMAIL_DESTINATION,
-    name,
-    email,
-    company,
-    website,
-    message,
-  });
+  const key = process.env.RESEND_API_KEY;
+  if (!key) {
+    return {
+      status: "error",
+      message:
+        "We could not send that just now. Please email hello@alwayscited.com directly and we will pick it up.",
+    };
+  }
 
-  // TODO: throw on send failure so the error branch below catches it
-  // const resend = new Resend(process.env.RESEND_API_KEY);
-  // await resend.emails.send({ from: "...", to: CONTACT_EMAIL_DESTINATION, ... });
+  try {
+    const resend = new Resend(key);
+    const { error } = await resend.emails.send({
+      from: FROM,
+      to: CONTACT_EMAIL_DESTINATION,
+      replyTo: email,
+      subject: `Contact form: ${name}`,
+      text: [
+        `Name:    ${name}`,
+        `Email:   ${email}`,
+        `Company: ${company || "not given"}`,
+        `Website: ${website || "not given"}`,
+        "",
+        message,
+      ].join("\n"),
+    });
+    if (error) {
+      return {
+        status: "error",
+        message:
+          "We could not send that just now. Please email hello@alwayscited.com directly and we will pick it up.",
+      };
+    }
+  } catch {
+    return {
+      status: "error",
+      message:
+        "We could not send that just now. Please email hello@alwayscited.com directly and we will pick it up.",
+    };
+  }
 
   return { status: "success" };
 }
