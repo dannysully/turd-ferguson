@@ -46,7 +46,7 @@ export default function Footer() {
           <div>
             <p style={{ color: "#9CA3AF", fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "1rem" }}>Product</p>
             <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "0.625rem" }}>
-              {[["Free tool", "/#free-tool"], ["How it works", "/#how-it-works"], ["Proof", "/#proof"], ["Pricing", "/#pricing"]].map(([label, href]) => (
+              {[["Free tool", "/alwaystracked"], ["How it works", "/#how-it-works"], ["Proof", "/#proof"], ["Pricing", "/#pricing"]].map(([label, href]) => (
                 <li key={label}><a href={href} className="footer-link">{label}</a></li>
               ))}
             </ul>

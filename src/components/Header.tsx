@@ -6,7 +6,7 @@ import { useState } from "react";
 import { CONTACT_URL } from "@/config/pricing";
 
 const navLinks = [
-  { href: "/#free-tool", label: "Free tool" },
+  { href: "/alwaystracked", label: "Free tool" },
   { href: "/#how-it-works", label: "How it works" },
   { href: "/#proof", label: "Proof" },
   { href: "/#pricing", label: "Pricing" },
