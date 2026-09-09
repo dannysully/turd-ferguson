@@ -103,6 +103,7 @@ export default function DarkTrustFlow() {
       <svg
         viewBox="0 0 620 44"
         fill="none"
+        className="trust-converge"
         style={{ width: "100%", height: "44px", display: "block" }}
         aria-hidden="true"
       >
@@ -110,6 +111,13 @@ export default function DarkTrustFlow() {
         <path d="M465 2 L465 20 L310 32" stroke="#4B5563" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
         <path d="M310 32 L310 42" stroke="#4B5563" strokeWidth="1.5" strokeLinecap="round"/>
       </svg>
+
+      {/* Stacked layout gets a plain vertical connector instead */}
+      <div className="trust-converge-stacked" aria-hidden="true">
+        <svg width="16" height="32" viewBox="0 0 16 32" fill="none">
+          <path d="M8 2 L8 30" stroke="#4B5563" strokeWidth="1.5" strokeLinecap="round"/>
+        </svg>
+      </div>
 
       <div
         className={cls}
