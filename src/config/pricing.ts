@@ -12,9 +12,11 @@
  *   D1 - alwayscited placements per month
  *   D4 - sector list and per-sector prices
  *
- * D2 and D3 were settled by the 9 Sep audit: the free tier is one client and
- * ten questions a day, permanently, AI visibility only; pro adds Google
- * rankings, multiple clients, white-label and daily refresh on a 30-day trial.
+ * D2 and D3 are settled. Per the v2 audit's decision 1, the free permanent
+ * surface is the ungated scan, and alwaystracked itself is a 30-day trial that
+ * starts when someone gives an email. The tile reads "free for 30 days"
+ * accordingly - if alwaystracked becomes free forever instead, only this tile
+ * and the gate copy change.
  *
  * Currency: USD throughout, per the repositioning brief and the audit's own
  * tile table. The internal GBP 100 figure is a cost input, not a list price -
@@ -62,15 +64,15 @@ export const TIERS: Tier[] = [
     key: "tracked",
     plainName: TIER_PLAIN.tracked,
     basePrice: null,
-    priceLabel: "Free",
+    priceLabel: "Free for 30 days",
     positioning: "See what AI already says",
     sectorPriced: false,
     includes: [
       "AI visibility only",
-      "One client, ten questions a day",
+      "One client, one market, four engines, ten questions a day",
       "Category leaderboard and cited sources",
-      "Upload coverage and see what is cited",
-      "Free permanently, no expiry",
+      "Coverage matching",
+      "13 months of AI Overview history",
     ],
     cta: { label: "Join the waitlist", href: CONTACT_URL },
   },
@@ -81,15 +83,14 @@ export const TIERS: Tier[] = [
     plainName: `${TIER_PLAIN.tracked} pro`,
     basePrice: 99,
     priceLabel: "$99/mo",
-    priceNote: "30 days free",
     positioning: "Add Google rankings and your logo",
     sectorPriced: false,
     includes: [
       `Everything in ${TIER_PLAIN.tracked}`,
-      "Google rankings for the article and the client page",
-      "Multiple clients",
-      "White-label reports",
-      "Daily refresh",
+      "The article's and the client page's Google positions, tracked separately",
+      "The four AI Overview outcomes",
+      "Unlimited clients, both markets, eight engines",
+      "White-label reports, daily readings",
     ],
     cta: { label: "Join the waitlist", href: CONTACT_URL },
   },
@@ -102,8 +103,7 @@ export const TIERS: Tier[] = [
     positioning: "Get named when AI recommends",
     sectorPriced: true,
     includes: [
-      "3 placements/mo",
-      "One target topic",
+      "3 placements a month on one topic",
       `Everything in ${TIER_PLAIN.tracked} pro`,
     ],
     cta: { label: "Get started", href: CONTACT_URL },
