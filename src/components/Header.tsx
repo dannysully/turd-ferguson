@@ -4,10 +4,9 @@ import Link from "next/link";
 import { useState } from "react";
 
 const navLinks = [
-  { href: "/alwaystracked", label: "Free scan" },
-  { href: "/#how-it-works", label: "How it works" },
+  { href: "/#scan", label: "Free scan" },
+  { href: "/#pricing", label: "Packages" },
   { href: "/#proof", label: "Proof" },
-  { href: "/#pricing", label: "Pricing" },
   { href: "/#faq", label: "FAQ" },
 ];
 
