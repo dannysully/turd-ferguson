@@ -311,6 +311,15 @@ details summary::-webkit-details-marker {
   .stack-mobile { grid-template-columns: 1fr !important; }
 }
 
+/* ─── Scan checker ─── */
+.scan-gated { filter: blur(6px); pointer-events: none; user-select: none; }
+.scan-step-dot { transition: background 0.25s ease, transform 0.25s ease; }
+.scan-step-active .scan-step-dot { transform: scale(1.15); }
+@media (prefers-reduced-motion: reduce) {
+  .scan-step-dot { transition: none; }
+  .scan-step-active .scan-step-dot { transform: none; }
+}
+
 /* Purple CTA button */
 .btn-primary {
   display: inline-block;

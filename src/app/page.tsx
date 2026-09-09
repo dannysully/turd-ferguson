@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import DarkTrustFlow from "@/components/DarkTrustFlow";
 import DarkComparisonSection from "@/components/DarkComparisonSection";
 import SectorPricing from "@/components/SectorPricing";
-import ScanForm from "@/components/ScanForm";
+import ScanChecker from "@/components/scan/ScanChecker";
 import TierName from "@/components/TierName";
 import { CONTACT_URL } from "@/config/pricing";
 
@@ -98,7 +98,7 @@ export default function HomePage() {
             Start by finding out whether your client already is. Enter their domain.
           </p>
 
-          <ScanForm />
+          <ScanChecker />
 
         </div>
       </section>
@@ -423,7 +423,7 @@ export default function HomePage() {
             </p>
             <div style={{ display: "flex", justifyContent: "center", marginBottom: "1.5rem" }}>
               <div style={{ background: C.white, borderRadius: "20px", padding: "1.75rem", textAlign: "left" }}>
-                <ScanForm compact />
+                <ScanChecker compact />
               </div>
             </div>
             <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", justifyContent: "center" }}>

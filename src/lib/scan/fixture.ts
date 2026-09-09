@@ -27,8 +27,15 @@ function load<T>(name: string): T {
 
 const NOMADA = new Set(["nomadadigital.co.uk", "nomadadigital.com"]);
 
-/* scan_id -> what startScan learned, so runScan does not need the domain again */
-const sessions = new Map<string, { domain: string; brand: string | null }>();
+/* The scan_id carries what startScan learned. Stateless on purpose: on
+   serverless hosting startScan and runScan can land on different instances,
+   so an in-memory map would lose the session between steps. */
+type Session = { domain: string; brand: string | null };
+const encode = (s: Session) => "fx_" + Buffer.from(JSON.stringify(s)).toString("base64url");
+const decode = (id: string): Session | null => {
+  if (!id.startsWith("fx_")) return null;
+  try { return JSON.parse(Buffer.from(id.slice(3), "base64url").toString("utf8")); } catch { return null; }
+};
 
 function raiseSentinel(domain: string) {
   if (domain === "unreachable.test") throw new ScanError("unreachable", `Could not load ${domain}`);
@@ -42,7 +49,6 @@ export const fixtureAdapter: ScanAdapter = {
     const host = normalizeDomain(domain);
     raiseSentinel(host);
 
-    const scan_id = `fx_${Date.now().toString(36)}`;
     let brand: string | null;
     let suggested_topic: string | null;
 
@@ -59,12 +65,12 @@ export const fixtureAdapter: ScanAdapter = {
       suggested_topic = null;
     }
 
-    sessions.set(scan_id, { domain: host, brand });
+    const scan_id = encode({ domain: host, brand });
     return { scan_id, brand, suggested_topic, markets: ["UK", "US"] };
   },
 
   async runScan({ scan_id, topic, market }): Promise<RunScanResponse> {
-    const session = sessions.get(scan_id);
+    const session = decode(scan_id);
     if (!session) throw new ScanError("api_down", "Unknown scan_id");
     raiseSentinel(session.domain);
 
@@ -94,7 +100,7 @@ export const fixtureAdapter: ScanAdapter = {
   },
 
   async signUp({ scan_id }): Promise<SignUpResponse> {
-    if (!sessions.has(scan_id)) throw new ScanError("api_down", "Unknown scan_id");
+    if (!decode(scan_id)) throw new ScanError("api_down", "Unknown scan_id");
     return { ok: true };
   },
 };
