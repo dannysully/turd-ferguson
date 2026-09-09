@@ -3,10 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 
-import { CONTACT_URL } from "@/config/pricing";
-
 const navLinks = [
-  { href: "/alwaystracked", label: "Free tool" },
+  { href: "/alwaystracked", label: "Free scan" },
   { href: "/#how-it-works", label: "How it works" },
   { href: "/#proof", label: "Proof" },
   { href: "/#pricing", label: "Pricing" },
@@ -48,8 +46,8 @@ export default function Header() {
           {navLinks.map((link) => (
             <a key={link.href} href={link.href} className="nav-link">{link.label}</a>
           ))}
-          <a href={CONTACT_URL} className="btn-primary" style={{ padding: "0.5rem 1.25rem", fontSize: "0.9rem", borderRadius: "10px" }}>
-            Join the waitlist
+          <a href="/#scan" className="btn-primary" style={{ padding: "0.5rem 1.25rem", fontSize: "0.9rem", borderRadius: "10px" }}>
+            Start free
           </a>
         </nav>
 
@@ -72,7 +70,7 @@ export default function Header() {
               </li>
             ))}
             <li>
-              <a href={CONTACT_URL} className="btn-primary" style={{ padding: "0.625rem 1.5rem" }} onClick={() => setOpen(false)}>Join the waitlist</a>
+              <a href="/#scan" className="btn-primary" style={{ padding: "0.625rem 1.5rem" }} onClick={() => setOpen(false)}>Start free</a>
             </li>
           </ul>
         </nav>

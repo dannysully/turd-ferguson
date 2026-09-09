@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import CitationOrbit from "@/components/CitationOrbit";
 import DarkTrustFlow from "@/components/DarkTrustFlow";
 import DarkComparisonSection from "@/components/DarkComparisonSection";
 import SectorPricing from "@/components/SectorPricing";
+import ScanForm from "@/components/ScanForm";
 import TierName from "@/components/TierName";
 import { CONTACT_URL } from "@/config/pricing";
 
@@ -154,7 +154,7 @@ export default function HomePage() {
   return (
     <>
       {/* ═══ HERO ═══════════════════════════════════════════════ */}
-      <section style={{ padding: "5.5rem 1.5rem 4rem", position: "relative", overflow: "hidden" }}>
+      <section id="scan" style={{ padding: "5.5rem 1.5rem 4rem", position: "relative", overflow: "hidden" }}>
         {/* Ambient glow */}
         <div
           className="gradient-orb"
@@ -166,76 +166,35 @@ export default function HomePage() {
           aria-hidden="true"
         />
 
-        <div
-          style={{ ...wrap, display: "grid", gridTemplateColumns: "1fr auto", gap: "3rem", alignItems: "center" }}
-          className="hero-two-col"
-        >
-          {/* Left: headline + CTAs */}
-          <div style={{ maxWidth: "560px" }}>
-            <SectionLabel text="Agencies that earn coverage and build links · AI citation placements" />
+        <div style={{ ...wrap, maxWidth: "760px", position: "relative" }}>
+          <SectionLabel text="For SEO and PR agencies" />
 
-            <h1 style={{
-              fontWeight: 800,
-              fontSize: "clamp(2.25rem, 4.5vw, 3.375rem)",
-              color: C.navy,
-              lineHeight: 1.08,
-              letterSpacing: "-0.03em",
-              marginBottom: "1.375rem",
-            }}>
-              Be the brand <span style={grad}>AI recommends</span>
-            </h1>
+          <h1 style={{
+            fontWeight: 800,
+            fontSize: "clamp(2.25rem, 4.5vw, 3.375rem)",
+            color: C.navy,
+            lineHeight: 1.08,
+            letterSpacing: "-0.03em",
+            marginBottom: "1.375rem",
+          }}>
+            Be the brand <span style={grad}>AI recommends.</span>
+          </h1>
 
-            {/* Task 5 - agency-first hero subhead */}
-            <p style={{
-              fontSize: "clamp(1rem, 1.5vw, 1.125rem)",
-              color: C.body,
-              lineHeight: 1.7,
-              marginBottom: "2.25rem",
-              maxWidth: "520px",
-            }}>
-              Your clients are asking what you are doing about AI search. This is the answer - coverage and placements in the third-party articles AI engines cite, tracked in a report that carries your logo.
-            </p>
+          <p style={{
+            fontSize: "clamp(1rem, 1.5vw, 1.125rem)",
+            color: C.body,
+            lineHeight: 1.7,
+            marginBottom: "2rem",
+            maxWidth: "540px",
+          }}>
+            Start by finding out whether your client already is. Enter their domain.
+          </p>
 
-            {/* Task 2 - free tool is the primary CTA, ahead of buying anything */}
-            <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginBottom: "2.5rem" }}>
-              <a href={CONTACT_URL} className="btn-primary">Join the waitlist</a>
-              <a
-                href="#pricing"
-                style={{
-                  display: "inline-flex", alignItems: "center", gap: "0.375rem",
-                  color: C.navy, fontWeight: 600, fontSize: "1rem",
-                  textDecoration: "none", padding: "0.875rem 0",
-                }}
-              >
-                See pricing
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M8 3v10M3 8l5 5 5-5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </a>
-            </div>
+          <ScanForm />
 
-            {/* Proof strip - Task 9: DA/DR figures removed */}
-            <div style={{
-              display: "flex", gap: "2rem", flexWrap: "wrap",
-              borderTop: `1px solid ${C.border}`, paddingTop: "1.5rem",
-            }}>
-              {[
-                { val: "Cited", label: "sources only, chosen from the scan" },
-                { val: "4", label: "AI engines tracked" },
-                { val: "Aug 2025", label: "AI Overview history back to" },
-              ].map(({ val, label }) => (
-                <div key={label}>
-                  <p style={{ fontWeight: 700, fontSize: "1.0625rem", color: C.navy, lineHeight: 1 }}>{val}</p>
-                  <p style={{ fontSize: "0.75rem", color: C.body, marginTop: "0.25rem" }}>{label}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Right: orbit visual */}
-          <div className="hide-below-900" aria-hidden="true">
-            <CitationOrbit />
-          </div>
+          <p style={{ fontSize: "0.8125rem", color: "#9CA3AF", marginTop: "1.25rem" }}>
+            Free. No card, no account.
+          </p>
         </div>
       </section>
 
@@ -260,7 +219,7 @@ export default function HomePage() {
               Free, no card, no expiry.
             </p>
             <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", alignItems: "center" }}>
-              <a href={CONTACT_URL} className="btn-primary">Join the waitlist</a>
+              
               <a
                 href="/alwaystracked"
                 style={{
@@ -897,8 +856,12 @@ export default function HomePage() {
             <p style={{ color: "#9CA3AF", fontSize: "1.0625rem", lineHeight: 1.7, marginBottom: "2.5rem" }}>
               Start with a scan. It takes a minute, it is free, and it tells you exactly which sources decide your client&apos;s category.
             </p>
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: "1.5rem" }}>
+              <div style={{ background: C.white, borderRadius: "20px", padding: "1.75rem", textAlign: "left" }}>
+                <ScanForm compact />
+              </div>
+            </div>
             <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", justifyContent: "center" }}>
-              <a href={CONTACT_URL} className="btn-primary">Join the waitlist</a>
               <a
                 href={CONTACT_URL}
                 style={{

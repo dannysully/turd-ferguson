@@ -1,12 +1,10 @@
-import { CONTACT_URL } from "@/config/pricing";
-
 /**
  * Shared closing CTA, used on the secondary pages.
  *
  * Critique 0.2: links are root-relative so they work off the homepage.
  * Critique 2.4: the previous copy described a consultative audit ("we'll map
  * your category...") which contradicts the self-serve positioning. It now
- * points at pricing first and the waitlist second.
+ * points at the free scan first and pricing second.
  */
 export default function CtaSection() {
   return (
@@ -25,9 +23,9 @@ export default function CtaSection() {
           Placement counts, what each tier includes and what it costs are all published. If you want to buy, you do not need to speak to us first.
         </p>
         <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
-          <a href="/#pricing" className="btn-primary">See pricing</a>
-          <a href={CONTACT_URL} style={{ display: "inline-block", background: "transparent", color: "#ffffff", padding: "0.875rem 2rem", borderRadius: "12px", fontWeight: 600, fontSize: "1rem", textDecoration: "none", border: "1.5px solid rgba(255,255,255,0.2)" }}>
-            Join the waitlist
+          <a href="/#scan" className="btn-primary">Run a free scan</a>
+          <a href="/#pricing" style={{ display: "inline-block", background: "transparent", color: "#ffffff", padding: "0.875rem 2rem", borderRadius: "12px", fontWeight: 600, fontSize: "1rem", textDecoration: "none", border: "1.5px solid rgba(255,255,255,0.2)" }}>
+            See pricing
           </a>
         </div>
       </div>

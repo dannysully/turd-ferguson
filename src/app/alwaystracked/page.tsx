@@ -112,7 +112,7 @@ export default function AlwaystrackedPage() {
             One client and ten questions a day, free, with no expiry. No card and no call.
           </p>
 
-          <a href={CONTACT_URL} className="btn-primary">Join the waitlist</a>
+          <a href="/#scan" className="btn-primary">Start free</a>
         </div>
       </section>
 
@@ -221,7 +221,7 @@ export default function AlwaystrackedPage() {
                 Pro adds Google rankings for both the article and the client page, multiple clients, white-label reports and a daily refresh. $99 a month, with the first 30 days free.
               </p>
               <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-                <a href={CONTACT_URL} className="btn-primary">Join the waitlist</a>
+                <a href="/#scan" className="btn-primary">Start free</a>
                 <a
                   href="/#pricing"
                   style={{

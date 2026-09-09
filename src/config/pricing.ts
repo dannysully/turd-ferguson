@@ -74,7 +74,7 @@ export const TIERS: Tier[] = [
       "Coverage matching",
       "13 months of AI Overview history",
     ],
-    cta: { label: "Join the waitlist", href: CONTACT_URL },
+    cta: { label: "Start free", href: "/#scan" },
   },
   {
     id: "tracked-pro",
@@ -92,7 +92,7 @@ export const TIERS: Tier[] = [
       "Unlimited clients, both markets, eight engines",
       "White-label reports, daily readings",
     ],
-    cta: { label: "Join the waitlist", href: CONTACT_URL },
+    cta: { label: "Start free", href: "/#scan" },
   },
   {
     id: "mentioned",
