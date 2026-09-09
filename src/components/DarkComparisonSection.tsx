@@ -3,30 +3,29 @@
 import { useEffect, useRef, useState } from "react";
 
 /**
- * Task 5 - the real competitive set is AI visibility dashboards, not agencies.
- * The argument: they tell you whether you are cited, we change whether you are
- * cited and then show you the sequence.
+ * The competitive point is that most tools stop at the diagnosis - not that
+ * measurement is useless. We ship a measurement tool as the free tier, so the
+ * previous framing (six lines attacking dashboards) argued against our own
+ * front door.
  *
- * Task 8 applies here - every line about the tool's output is temporal, never
- * causal. Nothing claims a placement is proven to have caused a change.
+ * Every line about the tool's output stays temporal, never causal. Nothing
+ * claims a placement is proven to have caused a change.
  */
 
 const dashboards = [
-  "Tell you whether you are cited",
-  "Report the gap, not the fix",
-  "No placements, no editorial work",
+  "Show you the gap",
+  "Stop at the diagnosis",
   "Winning the citation is still your problem",
+  "No editorial relationships to act on it",
   "Your client sees a dashboard, not a result",
-  "Priced per seat, every month, indefinitely",
 ];
 
 const alwayscited = [
-  "Change whether you are cited",
-  "Place you in the third-party articles the engines draw on",
-  "Editorial placements, schema work, link insertions",
-  "Then show what moved after each link went live",
+  "Show you the gap, free and permanently",
+  "Then name the sources the engines actually cite",
+  "Then place you in them",
+  "Editorial coverage, schema work, link insertions",
   "Your client sees a report with your logo on it",
-  "Priced per target keyword, with the work included",
 ];
 
 export default function DarkComparisonSection() {
@@ -72,7 +71,7 @@ export default function DarkComparisonSection() {
         }}
       >
         <p style={{ fontSize: "0.75rem", fontWeight: 600, color: "#6B7280", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "1.25rem" }}>
-          AI visibility dashboards
+          Most AI visibility tools
         </p>
         <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "0.875rem" }}>
           {dashboards.map((item) => (
