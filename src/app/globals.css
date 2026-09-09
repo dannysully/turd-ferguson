@@ -288,6 +288,9 @@ details summary::-webkit-details-marker {
 @media (max-width: 560px) {
   .tier-grid { grid-template-columns: 1fr !important; }
 }
+@media (max-width: 560px) {
+  .trust-routes { grid-template-columns: 1fr !important; }
+}
 @media (max-width: 768px) {
   .comparison-grid { grid-template-columns: 1fr !important; }
   .comparison-vs { padding-top: 0 !important; }
