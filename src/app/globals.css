@@ -320,6 +320,19 @@ details summary::-webkit-details-marker {
   .scan-step-active .scan-step-dot { transform: none; }
 }
 
+/* ─── /example walkthrough ─── */
+.walk { display: grid; grid-template-columns: 200px 1fr; gap: 3rem; align-items: start; }
+.walk-rail { position: sticky; top: 5rem; }
+.walk-steps { display: flex; flex-direction: column; gap: 4rem; min-width: 0; }
+.walk-step { display: grid; grid-template-columns: minmax(200px, 260px) 1fr; gap: 2rem; align-items: start; }
+.walk-screen { background: #F8F7FF; border: 1px solid #E5E7EB; border-radius: 20px; padding: 1.5rem; min-width: 0; }
+@media (max-width: 900px) {
+  .walk { grid-template-columns: 1fr; gap: 1.5rem; }
+  .walk-rail { position: static; }
+  .walk-rail ol { flex-direction: row !important; flex-wrap: wrap; gap: 0.25rem 0.5rem !important; }
+  .walk-step { grid-template-columns: 1fr; gap: 1rem; }
+}
+
 /* Purple CTA button */
 .btn-primary {
   display: inline-block;

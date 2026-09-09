@@ -1,0 +1,185 @@
+{
+  "scan_id": "fx_eyJkb21haW4iOiJub21hZGFkaWdpdGFsLmNvLnVrIiwiYnJhbmQiOiJOb21hZGEgRGlnaXRhbCJ9",
+  "platform": "google",
+  "read_at": "2026-09-09",
+  "topic": "b2b seo agency",
+  "market": "UK",
+  "brand": {
+    "name": "Nomada Digital",
+    "named_in": null,
+    "of": null,
+    "rank": null,
+    "of_brands": null,
+    "share_of_voice": null
+  },
+  "top_source": {
+    "domain": "breakingb2b.com",
+    "brand_present": false
+  },
+  "leaderboard": [],
+  "sources": [
+    {
+      "domain": "breakingb2b.com",
+      "mentions": 2,
+      "ai_search_volume": 850
+    },
+    {
+      "domain": "gripped.io",
+      "mentions": 2,
+      "ai_search_volume": 640
+    },
+    {
+      "domain": "polarisagency.com",
+      "mentions": 2,
+      "ai_search_volume": 310
+    },
+    {
+      "domain": "growth-labs.co.uk",
+      "mentions": 1,
+      "ai_search_volume": 590
+    },
+    {
+      "domain": "targetedseo.co.uk",
+      "mentions": 1,
+      "ai_search_volume": 590
+    },
+    {
+      "domain": "geekytech.co.uk",
+      "mentions": 1,
+      "ai_search_volume": 590
+    },
+    {
+      "domain": "leverdigital.co.uk",
+      "mentions": 1,
+      "ai_search_volume": 590
+    },
+    {
+      "domain": "motion-marketing.com",
+      "mentions": 1,
+      "ai_search_volume": 590
+    },
+    {
+      "domain": "redevolution.com",
+      "mentions": 1,
+      "ai_search_volume": 590
+    },
+    {
+      "domain": "reflectdigital.co.uk",
+      "mentions": 1,
+      "ai_search_volume": 590
+    },
+    {
+      "domain": "smartmonkeymarketing.co.uk",
+      "mentions": 1,
+      "ai_search_volume": 590
+    },
+    {
+      "domain": "linkquest.co.uk",
+      "mentions": 1,
+      "ai_search_volume": 260
+    },
+    {
+      "domain": "rocket-saas.io",
+      "mentions": 1,
+      "ai_search_volume": 260
+    },
+    {
+      "domain": "bulldogdigitalmedia.com",
+      "mentions": 1,
+      "ai_search_volume": 50
+    },
+    {
+      "domain": "ink-digital.co.uk",
+      "mentions": 1,
+      "ai_search_volume": 50
+    },
+    {
+      "domain": "mrs.digital",
+      "mentions": 1,
+      "ai_search_volume": 50
+    }
+  ],
+  "history": [
+    {
+      "year": 2025,
+      "month": 9,
+      "mentions": 0,
+      "ai_search_volume": 0
+    },
+    {
+      "year": 2025,
+      "month": 10,
+      "mentions": 2,
+      "ai_search_volume": 140
+    },
+    {
+      "year": 2025,
+      "month": 11,
+      "mentions": 0,
+      "ai_search_volume": 0
+    },
+    {
+      "year": 2025,
+      "month": 12,
+      "mentions": 3,
+      "ai_search_volume": 870
+    },
+    {
+      "year": 2026,
+      "month": 1,
+      "mentions": 0,
+      "ai_search_volume": 0
+    },
+    {
+      "year": 2026,
+      "month": 2,
+      "mentions": 0,
+      "ai_search_volume": 0
+    },
+    {
+      "year": 2026,
+      "month": 3,
+      "mentions": 0,
+      "ai_search_volume": 0
+    },
+    {
+      "year": 2026,
+      "month": 4,
+      "mentions": 1,
+      "ai_search_volume": 140
+    },
+    {
+      "year": 2026,
+      "month": 5,
+      "mentions": 1,
+      "ai_search_volume": 70
+    },
+    {
+      "year": 2026,
+      "month": 6,
+      "mentions": 1,
+      "ai_search_volume": 170
+    },
+    {
+      "year": 2026,
+      "month": 7,
+      "mentions": 3,
+      "ai_search_volume": 440
+    },
+    {
+      "year": 2026,
+      "month": 8,
+      "mentions": 4,
+      "ai_search_volume": 2370
+    },
+    {
+      "year": 2026,
+      "month": 9,
+      "mentions": 0,
+      "ai_search_volume": 0
+    }
+  ],
+  "gated": true,
+  "empty": false,
+  "reason": "no brand leaderboard returned for this topic and market; per-question named-in counts are not available from the aggregate endpoints"
+}

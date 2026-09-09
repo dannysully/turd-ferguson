@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { runScanAction, signUpAction, startScanAction } from "@/app/actions/checker";
 import type { Market, RunScanResponse, StartScanResponse } from "@/lib/scan";
-import ResultDashboard, { Finding } from "./ResultDashboard";
+import { C, DomainScreen, ResultScreen, RunningScreen, STEPS, TopicScreen, btn, field, label } from "./screens";
 
 /**
  * Domain -> topic and market -> running -> result, replacing itself in place.
@@ -11,12 +11,10 @@ import ResultDashboard, { Finding } from "./ResultDashboard";
  * here. The block reserves its height so the page does not shift as it fills.
  */
 
-const C = { navy: "#0B1220", purple: "#7C3AED", body: "#4B5563", soft: "#F8F7FF", border: "#E5E7EB", white: "#ffffff", muted: "#9CA3AF", red: "#B91C1C" };
 
 type Step = "domain" | "topic" | "running" | "result";
 type Err = { kind: "unreachable" | "rate_limited" | "api_down" | "invalid"; message: string } | null;
 
-const STEPS = ["Building the questions buyers ask", "Reading what the engines answered", "Finding the sources they cited"];
 const STEP_MS = 700;
 const SLOW_MS = 12000;
 
@@ -27,10 +25,6 @@ function track(event: string, props: Record<string, unknown> = {}) {
   if (Array.isArray(w.dataLayer)) w.dataLayer.push({ event, ...props });
 }
 
-const field: React.CSSProperties = { width: "100%", padding: "0.875rem 1rem", fontSize: "1rem", color: C.navy, background: C.white, border: `1.5px solid ${C.border}`, borderRadius: "12px", fontFamily: "inherit", outline: "none" };
-const label: React.CSSProperties = { display: "block", fontSize: "0.8125rem", fontWeight: 600, color: C.navy, marginBottom: "0.5rem" };
-const btn: React.CSSProperties = { border: "none", cursor: "pointer", padding: "0.875rem 2rem" };
-const quiet: React.CSSProperties = { background: "none", border: "none", color: C.body, fontSize: "0.875rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", padding: "0.875rem 0" };
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -179,77 +173,20 @@ export default function ScanChecker({ compact = false }: { compact?: boolean }) 
 
       {/* ── State 1: domain ── */}
       {step === "domain" && (
-        <form onSubmit={onDomain} noValidate>
-          <label htmlFor="scan-domain" style={label}>Your client&apos;s domain</label>
-          <div style={{ display: "flex", gap: "0.625rem", flexWrap: "wrap" }}>
-            <input id="scan-domain" name="domain" inputMode="url" autoComplete="url" placeholder="client-domain.com"
-              value={domain} onChange={(e) => setDomain(e.target.value)} style={{ ...field, flex: "1 1 220px" }}
-              aria-invalid={err?.kind === "invalid"} aria-describedby={err?.kind === "invalid" ? "scan-domain-err" : undefined} />
-            <button type="submit" className="btn-primary" style={btn} disabled={busy}>{busy ? "Checking" : "Check"}</button>
-          </div>
-          {err?.kind === "invalid" && <p id="scan-domain-err" style={{ fontSize: "0.8125rem", color: C.red, marginTop: "0.5rem" }}>{err.message}</p>}
-          {!compact && (
-            <p style={{ marginTop: "1rem", fontSize: "0.875rem" }}>
-              <a href="/example" style={{ color: C.body, textDecoration: "underline", textUnderlineOffset: 3 }}>See a full example first</a>
-            </p>
-          )}
-        </form>
+        <DomainScreen value={domain} onChange={setDomain} onSubmit={onDomain} busy={busy}
+          error={err?.kind === "invalid" ? err.message : undefined} exampleLink={!compact} />
       )}
 
       {/* ── State 2: topic and market ── */}
       {step === "topic" && start && (
-        <form onSubmit={onRun} noValidate>
-          {start.brand
-            ? h(`We read ${start.brand} from the domain. Which topic should we check them against?`)
-            : h("Which topic should we check them against?")}
-          {!start.brand && (
-            <>
-              <label htmlFor="scan-brand2" style={label}>What is the brand called?</label>
-              <input id="scan-brand2" value={brandName} onChange={(e) => setBrandName(e.target.value)} style={{ ...field, marginBottom: "0.75rem" }} />
-            </>
-          )}
-          <label htmlFor="scan-topic" style={label}>Topic</label>
-          <input id="scan-topic" value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="b2b seo agency" style={{ ...field, marginBottom: "0.75rem" }} />
-          <fieldset style={{ border: "none", padding: 0, margin: "0 0 0.75rem" }}>
-            <legend style={label}>Market</legend>
-            <div style={{ display: "flex", gap: "0.5rem" }}>
-              {(["UK", "US"] as Market[]).map((m) => (
-                <button key={m} type="button" onClick={() => setMarket(m)} aria-pressed={market === m}
-                  style={{ padding: "0.5rem 1.125rem", fontSize: "0.875rem", fontWeight: 600, fontFamily: "inherit", color: market === m ? C.white : C.navy, background: market === m ? C.purple : C.white, border: `1.5px solid ${market === m ? C.purple : C.border}`, borderRadius: "10px", cursor: "pointer" }}>
-                  {m}
-                </button>
-              ))}
-            </div>
-          </fieldset>
-          <p style={{ fontSize: "0.8125rem", color: C.body, lineHeight: 1.6, marginBottom: "1.25rem" }}>
-            Write the topic the way a buyer would say it, not the way you would pitch it. It decides every question we ask.
-          </p>
-          <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap" }}>
-            <button type="submit" className="btn-primary" style={btn} disabled={!topic.trim() || (!start.brand && !brandName.trim())}>Run the check</button>
-            <button type="button" onClick={() => { setStep("domain"); setErr(null); }} style={quiet}>Back</button>
-          </div>
-        </form>
+        <TopicScreen brand={start.brand} brandName={brandName} onBrandName={setBrandName}
+          topic={topic} onTopic={setTopic} market={market} onMarket={setMarket}
+          onSubmit={onRun} onBack={() => { setStep("domain"); setErr(null); }} headingRef={headingRef} />
       )}
 
-      {/* ── Running: three named steps, never a bare spinner ── */}
+      {/* ── Running ── */}
       {step === "running" && (
-        <div>
-          {h("Checking " + (start?.brand ?? brandName ?? domain))}
-          <ol style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-            {STEPS.map((s, i) => {
-              const state = i < progress ? "done" : i === progress ? "active" : "todo";
-              return (
-                <li key={s} className={state === "active" ? "scan-step-active" : undefined} style={{ display: "flex", alignItems: "center", gap: "0.75rem", fontSize: "0.9375rem", color: state === "todo" ? C.muted : C.navy, fontWeight: state === "active" ? 600 : 500 }}>
-                  <span className="scan-step-dot" aria-hidden="true" style={{ width: 18, height: 18, borderRadius: "50%", flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", background: state === "done" ? C.purple : state === "active" ? "rgba(124,58,237,0.15)" : C.border, border: state === "active" ? `2px solid ${C.purple}` : "none" }}>
-                    {state === "done" && <svg width="9" height="7" viewBox="0 0 9 7" fill="none"><path d="M1 3.5l2.5 2.5 5-5" stroke="#fff" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" /></svg>}
-                  </span>
-                  {s}
-                </li>
-              );
-            })}
-          </ol>
-          {slow && <p style={{ fontSize: "0.8125rem", color: C.body, marginTop: "1rem" }}>This is taking longer than usual. Still working on it.</p>}
-        </div>
+        <RunningScreen brandLabel={start?.brand ?? brandName ?? domain} progress={progress} slow={slow} headingRef={headingRef} />
       )}
 
       {/* ── State 3: result ── */}
@@ -264,35 +201,21 @@ export default function ScanChecker({ compact = false }: { compact?: boolean }) 
               {emailDone ? <p style={{ fontWeight: 600, color: C.navy }}>Thanks. We will be in touch when the first reading lands.</p> : emailForm}
             </div>
           ) : (
-            <div>
-              <div ref={undefined}><h2 ref={headingRef} tabIndex={-1} className="sr-only">Results</h2></div>
-              <div style={{ marginBottom: "1.5rem" }}><Finding r={result} /></div>
-
-              {/* Gated block: real content rendered, then blurred, with the form over it */}
-              <div style={{ position: "relative" }}>
-                <div className="scan-gated" aria-hidden="true">
-                  <ResultDashboard r={result} sourceLimit={compact ? 4 : 8} />
-                </div>
-                <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
-                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: "16px", padding: "1.5rem", boxShadow: "0 12px 40px rgba(11,18,32,0.14)", width: "100%", maxWidth: "440px" }}>
-                    {emailDone ? (
-                      <>
-                        <p style={{ fontWeight: 700, color: C.navy, marginBottom: "0.5rem" }}>Thanks. Your report is on its way.</p>
-                        <p style={{ fontSize: "0.875rem", color: C.body, lineHeight: 1.6, margin: 0 }}>The full source list and history for {result.topic}, by email within one working day.</p>
-                      </>
-                    ) : (
-                      <>
-                        <p style={{ fontWeight: 700, color: C.navy, marginBottom: "0.5rem" }}>See everything behind this.</p>
-                        <p style={{ fontSize: "0.875rem", color: C.body, lineHeight: 1.6, marginBottom: "1rem" }}>
-                          The full source list and the history for {result.topic}. Then upload the coverage you have already earned and find out which pieces are doing the work.
-                        </p>
-                        {emailForm}
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
+            <ResultScreen result={result} gated compact={compact} headingRef={headingRef}
+              gate={emailDone ? (
+                <>
+                  <p style={{ fontWeight: 700, color: C.navy, marginBottom: "0.5rem" }}>Thanks. Your report is on its way.</p>
+                  <p style={{ fontSize: "0.875rem", color: C.body, lineHeight: 1.6, margin: 0 }}>The full source list and history for {result.topic}, by email within one working day.</p>
+                </>
+              ) : (
+                <>
+                  <p style={{ fontWeight: 700, color: C.navy, marginBottom: "0.5rem" }}>See everything behind this.</p>
+                  <p style={{ fontSize: "0.875rem", color: C.body, lineHeight: 1.6, marginBottom: "1rem" }}>
+                    The full source list and the history for {result.topic}. Then upload the coverage you have already earned and find out which pieces are doing the work.
+                  </p>
+                  {emailForm}
+                </>
+              )} />
           )}
         </div>
       )}
