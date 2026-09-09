@@ -4,7 +4,7 @@ import CtaSection from "@/components/CtaSection";
 export const metadata: Metadata = {
   title: "About alwayscited | AI Citation Placements for Agencies",
   description:
-    "alwayscited places brands inside the third-party articles AI engines cite, and tracks what happens next. We work mainly through SEO agencies, white-labelled. A sub-brand of Nomada Digital.",
+    "alwayscited places brands inside the third-party articles AI engines cite, and tracks what happens next. We work mainly through agencies, white-labelled. A sub-brand of Nomada Digital.",
   alternates: { canonical: "https://alwayscited.com/about" },
   openGraph: {
     title: "About alwayscited | AI Citation Placements for Agencies",
@@ -81,10 +81,11 @@ export default function AboutPage() {
               what happens next. That is the whole product.
             </p>
             <p style={{ color: "#3D3D3A", fontSize: "1.0625rem", lineHeight: 1.75, marginBottom: "1.25rem" }}>
-              We work mainly through SEO agencies. Your clients are asking what you are doing about
-              AI search, and most agencies do not yet have a fulfillment answer. We are that answer,
-              white-labelled - our work, your brand on the report, no contact with your client at
-              any point.
+              We work mainly through agencies - the ones that earn coverage and the ones that build
+              links, because the thing being measured is the same either way. Your clients are asking
+              what you are doing about AI search, and most agencies do not yet have a fulfillment
+              answer. We are that answer, white-labelled - our work, your brand on the report, no
+              contact with your client at any point.
             </p>
             <p style={{ color: "#3D3D3A", fontSize: "1.0625rem", lineHeight: 1.75, marginBottom: "1.25rem", fontWeight: 600 }}>
               Why placements rather than a dashboard.

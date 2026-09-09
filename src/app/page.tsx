@@ -7,13 +7,13 @@ import TierName from "@/components/TierName";
 import { CONTACT_URL } from "@/config/pricing";
 
 export const metadata: Metadata = {
-  title: "White-Label AI Citation Placements for SEO Agencies | alwayscited",
+  title: "White-Label AI Citation Placements for Agencies | alwayscited",
   description:
-    "White-label AI citation placements for SEO agencies. Track the placements you have already built free, then buy placements in the third-party articles AI engines cite. Prices on the page.",
+    "White-label AI citation placements for agencies. Track the coverage and links you have already earned free, then buy placements in the third-party articles AI engines cite. Prices on the page.",
   alternates: { canonical: "https://alwayscited.com" },
   openGraph: {
-    title: "White-Label AI Citation Placements for SEO Agencies | alwayscited",
-    description: "White-label AI citation placements for SEO agencies. Free placement tracking, four tiers, prices on the page.",
+    title: "White-Label AI Citation Placements for Agencies | alwayscited",
+    description: "White-label AI citation placements for agencies. Free placement tracking, four tiers, prices on the page.",
     url: "https://alwayscited.com",
   },
 };
@@ -349,7 +349,7 @@ export default function HomePage() {
         >
           {/* Left: headline + CTAs */}
           <div style={{ maxWidth: "560px" }}>
-            <SectionLabel text="For SEO agencies · AI citation placements" />
+            <SectionLabel text="Agencies that earn coverage and build links · AI citation placements" />
 
             <h1 style={{
               fontWeight: 800,
@@ -370,7 +370,7 @@ export default function HomePage() {
               marginBottom: "2.25rem",
               maxWidth: "520px",
             }}>
-              Your clients are asking what you are doing about AI search. This is the answer - placements in the third-party articles AI engines cite, tracked in a report that carries your logo.
+              Your clients are asking what you are doing about AI search. This is the answer - coverage and placements in the third-party articles AI engines cite, tracked in a report that carries your logo.
             </p>
 
             {/* Task 2 - free tool is the primary CTA, ahead of buying anything */}
@@ -399,7 +399,7 @@ export default function HomePage() {
               {[
                 { val: "Page-1", label: "host articles only" },
                 { val: "4", label: "AI engines tracked" },
-                { val: "3 avg.", label: "AI citation sources" },
+                { val: "Aug 2025", label: "AI Overview history back to" },
               ].map(({ val, label }) => (
                 <div key={label}>
                   <p style={{ fontWeight: 700, fontSize: "1.0625rem", color: C.navy, lineHeight: 1 }}>{val}</p>
@@ -425,15 +425,33 @@ export default function HomePage() {
               fontWeight: 800, fontSize: "clamp(1.875rem, 3.5vw, 2.5rem)",
               color: C.navy, lineHeight: 1.12, letterSpacing: "-0.03em", marginBottom: "1.25rem",
             }}>
-              Upload the links you have already built. See what they actually did.
+              Start with a domain. Find out what AI already says.
             </h2>
             <p style={{ color: C.body, fontSize: "1.0625rem", lineHeight: 1.7, marginBottom: "1.25rem" }}>
-              Add the placements you have already built and we will track what happened next - where the article ranks, where your client&apos;s page ranks, and whether the AI engines started citing them. We backfill 90 days of history at signup, so you see a trend on day one instead of an empty chart.
+              Enter a client domain and their category. We build the questions their buyers ask, run them, and show you where your client sits against competitors - and which sources the engines drew on to answer. Then upload the coverage you have already earned and see which pieces are doing the work.
+            </p>
+            <p style={{ color: C.body, fontSize: "0.9375rem", lineHeight: 1.7, marginBottom: "1.25rem" }}>
+              AI Overview history goes back to August 2025, so you see a trend on day one rather than an empty chart. Where an engine has no history, we say so instead of drawing a line.
             </p>
             <p style={{ color: C.navy, fontSize: "0.9375rem", fontWeight: 600, lineHeight: 1.65, marginBottom: "1.75rem" }}>
-              Join the list and you get access first. No card, no call.
+              Free, no card, no expiry.
             </p>
-            <a href={CONTACT_URL} className="btn-primary">Join the waitlist</a>
+            <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", alignItems: "center" }}>
+              <a href={CONTACT_URL} className="btn-primary">Join the waitlist</a>
+              <a
+                href="/alwaystracked"
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: "0.375rem",
+                  color: C.navy, fontWeight: 600, fontSize: "1rem",
+                  textDecoration: "none", padding: "0.875rem 0",
+                }}
+              >
+                How it works
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M3 8h10M9 3l5 5-5 5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </a>
+            </div>
           </div>
 
           {/* Four proof points */}
@@ -448,7 +466,7 @@ export default function HomePage() {
               },
               {
                 title: "Four honest outcomes",
-                body: "Cited your placement, cited your client, appeared and cited neither, or never appeared at all. We report the difference, because they mean different things.",
+                body: "Cited your coverage, cited your client, appeared and cited neither, or never appeared at all. We report the difference, because they mean different things.",
               },
               {
                 title: "Prompts generated from your keyword",
@@ -710,8 +728,11 @@ export default function HomePage() {
               fontWeight: 800, fontSize: "clamp(1.875rem, 3.5vw, 2.75rem)",
               color: C.white, lineHeight: 1.1, letterSpacing: "-0.03em",
             }}>
-              Knowing you are not cited does not get you cited.
+              Measurement is where most tools stop.
             </h2>
+            <p style={{ color: "#9CA3AF", fontSize: "1.0625rem", lineHeight: 1.7, maxWidth: "620px", margin: "0 auto" }}>
+              Ours is where the work starts. The same scan that shows you are not cited also shows which sources are - and we can place you in them.
+            </p>
           </div>
 
           <DarkComparisonSection />
@@ -878,7 +899,7 @@ export default function HomePage() {
 
           {/* Task 3 - per-keyword framing above the table */}
           <p style={{ color: C.body, fontSize: "0.9375rem", lineHeight: 1.7, maxWidth: "560px", margin: "0 auto 3rem" }}>
-            Pricing is per target keyword. You pick the keyword, we build the prompt set around it - the longer-tail questions buyers actually ask when they are choosing a provider.
+            Pricing is per target topic. You name the topic, we build the question set buyers actually ask around it - the longer-tail questions people use when they are choosing a provider.
           </p>
 
           <SectorPricing />
@@ -959,6 +980,22 @@ export default function HomePage() {
               {
                 q: "Will the placement look natural?",
                 a: "Yes. We work with real editors at real publications, and every placement is a genuine editorial contribution rather than a link farm or an automated outreach blast. On the alwayscited plan we also place contextual links inside existing high-authority articles - agreed with the publisher, agreed with you, and always inside content that already ranks and gets read.",
+              },
+              {
+                q: "Can you show what my coverage did before I signed up?",
+                a: "For AI Overviews, yes - back to August 2025. For the other engines, no: nobody holds that data, so your first scan is the baseline. Where an engine has no history we say so rather than drawing a line.",
+              },
+              {
+                q: "Do I need links, or do mentions count?",
+                a: "Mentions count. Most citations we see come from coverage with no link in it at all. Links do a different job - they move rankings. The tracker reports which one happened.",
+              },
+              {
+                q: "Will the free tool tell me to buy placements?",
+                a: "The source list is ranked by how often the engines cite it, and nothing else. If your own coverage is already doing the work, the report says so.",
+              },
+              {
+                q: "Is this for PR or SEO?",
+                a: "Both. The thing being measured is the same either way - an off-site mention or link, and whether you are present in the sources that decide the answer.",
               },
               {
                 q: "Will you approach our clients?",
