@@ -105,7 +105,7 @@ function ListicleMockup() {
 
       {/* Article header */}
       <p style={{ fontSize: "0.65rem", color: "#9CA3AF", marginBottom: "0.375rem" }}>
-        roundup.com · page 1 for its own terms · 3,400 monthly visitors
+        roundup.com · cited by the engines for this topic · 3,400 monthly visitors
       </p>
       <p style={{ fontSize: "0.9375rem", fontWeight: 700, color: C.navy, marginBottom: "1.125rem", lineHeight: 1.3 }}>
         Best [Category] Platforms for 2026
@@ -145,185 +145,8 @@ function ListicleMockup() {
   );
 }
 
-/* ── ranking chart SVG ── */
-function RankingChart() {
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
-  const pts: [number, number][] = [
-    [48, 162], [124, 128], [200, 105], [276, 72], [352, 38], [428, 26],
-  ];
-  const polyline = pts.map(([x, y]) => `${x},${y}`).join(" ");
-  const fill = `M ${pts.map(([x, y]) => `${x},${y}`).join(" L ")} L 428,178 L 48,178 Z`;
 
-  return (
-    <div style={{
-      background: C.white,
-      border: `1px solid ${C.border}`,
-      borderRadius: "20px",
-      padding: "1.5rem",
-      boxShadow: "0 2px 16px rgba(11,18,32,0.07)",
-    }}>
-      <div style={{ marginBottom: "0.875rem" }}>
-        <p style={{ fontSize: "0.7rem", fontWeight: 600, color: C.purple, marginBottom: "0.2rem" }}>Illustrative · how a placement is tracked</p>
-        <p style={{ fontSize: "0.9375rem", fontWeight: 700, color: C.navy }}>Google ranking position</p>
-        <p style={{ fontSize: "0.7rem", color: "#9CA3AF" }}>Target keyword: &ldquo;best [your category] software&rdquo;</p>
-      </div>
 
-      <svg viewBox="0 0 476 208" fill="none" style={{ width: "100%", height: "auto", display: "block" }} aria-label="Illustrative chart showing a target page moving up the rankings over six months after a placement went live">
-        <defs>
-          <linearGradient id="rankFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#7C3AED" stopOpacity="0.18" />
-            <stop offset="100%" stopColor="#7C3AED" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-
-        {/* Grid lines */}
-        {[26, 62, 98, 134, 178].map((y) => (
-          <line key={y} x1="48" y1={y} x2="428" y2={y} stroke="#F3F4F6" strokeWidth="1" />
-        ))}
-
-        {/* Y-axis labels */}
-        {[["#1", 30], ["#4", 66], ["#8", 102], ["#12", 138], ["#15", 182]].map(([label, y]) => (
-          <text key={label as string} x="40" y={y as number} textAnchor="end" fill="#9CA3AF" fontSize="9">{label as string}</text>
-        ))}
-
-        {/* Placement secured dashed line */}
-        <line x1="124" y1="22" x2="124" y2="178" stroke="#A855F7" strokeWidth="1" strokeDasharray="4 3" />
-        <text x="128" y="17" fill="#A855F7" fontSize="8.5" fontWeight="600">Placement secured</text>
-
-        {/* Fill */}
-        <path d={fill} fill="url(#rankFill)" />
-
-        {/* Line */}
-        <polyline points={polyline} stroke="#7C3AED" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-
-        {/* Data points */}
-        {pts.map(([x, y], i) => (
-          <circle key={i} cx={x} cy={y} r="4" fill="#7C3AED" />
-        ))}
-
-        {/* X-axis labels */}
-        {months.map((m, i) => (
-          <text key={m} x={pts[i][0]} y="198" textAnchor="middle" fill="#9CA3AF" fontSize="9">{m}</text>
-        ))}
-      </svg>
-
-      <div style={{
-        display: "flex",
-        gap: "1.5rem",
-        paddingTop: "0.875rem",
-        borderTop: `1px solid ${C.border}`,
-        flexWrap: "wrap",
-      }}>
-        {[
-          { val: "#83 → #4", label: "Money keyword, US retail SaaS" },
-          { val: "0 → 14%", label: "AI visibility, full prompt set, week 1" },
-          { val: "3", label: "AI Overview citations" },
-        ].map(({ val, label }) => (
-          <div key={label}>
-            <p style={{ fontSize: "1.125rem", fontWeight: 700, color: C.navy, lineHeight: 1 }}>{val}</p>
-            <p style={{ fontSize: "0.65rem", color: "#9CA3AF", marginTop: "0.2rem" }}>{label}</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* ── AI citation card ── */
-function AICitationCard({ platform, color, letter, text }: { platform: string; color: string; letter: string; text: string }) {
-  return (
-    <div style={{
-      background: C.white,
-      border: `1px solid ${C.border}`,
-      borderRadius: "14px",
-      padding: "1rem 1.125rem",
-      boxShadow: "0 2px 12px rgba(11,18,32,0.06)",
-    }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.625rem" }}>
-        <div style={{
-          width: "24px", height: "24px", borderRadius: "7px",
-          background: color,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          flexShrink: 0,
-        }}>
-          <span style={{ color: C.white, fontSize: "0.65rem", fontWeight: 700 }}>{letter}</span>
-        </div>
-        <span style={{ fontSize: "0.8125rem", fontWeight: 600, color: C.navy }}>{platform}</span>
-      </div>
-      <p style={{ fontSize: "0.75rem", color: C.body, lineHeight: 1.6, margin: 0 }}>
-        &ldquo;{text}&rdquo;
-      </p>
-    </div>
-  );
-}
-
-/* ── layered 3D CTA visual ── */
-function LayeredCTAVisual() {
-  const outcomes = [
-    { icon: "↑", label: "Money keyword", value: "#83 → #4", sub: "US retail SaaS" },
-    { icon: "✦", label: "AI Overview citations", value: "3", sub: "commercial queries" },
-    { icon: "→", label: "AI visibility", value: "0 → 14%", sub: "full prompt set, week 1" },
-  ];
-
-  return (
-    <div style={{ position: "relative", height: "268px", width: "320px", flexShrink: 0 }}>
-      {/* Back card 2 */}
-      <div style={{
-        position: "absolute", inset: 0,
-        background: "rgba(168,85,247,0.12)",
-        border: "1px solid rgba(168,85,247,0.2)",
-        borderRadius: "20px",
-        transform: "rotate(-5deg) translateY(-10px)",
-      }} />
-      {/* Back card 1 */}
-      <div style={{
-        position: "absolute", inset: 0,
-        background: "rgba(124,58,237,0.18)",
-        border: "1px solid rgba(168,85,247,0.28)",
-        borderRadius: "20px",
-        transform: "rotate(-2.5deg) translateY(-5px)",
-      }} />
-      {/* Front card */}
-      <div style={{
-        position: "absolute", inset: 0,
-        background: "rgba(255,255,255,0.07)",
-        border: "1px solid rgba(168,85,247,0.4)",
-        borderRadius: "20px",
-        padding: "1.5rem",
-        backdropFilter: "blur(10px)",
-      }}>
-        <p style={{
-          fontSize: "0.7rem", fontWeight: 600, color: "#A855F7",
-          marginBottom: "1.25rem", letterSpacing: "0.06em", textTransform: "uppercase",
-        }}>
-          US retail SaaS, eight weeks
-        </p>
-        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-          {outcomes.map(({ icon, label, value, sub }) => (
-            <div key={label} style={{ display: "flex", alignItems: "center", gap: "0.875rem" }}>
-              <div style={{
-                width: "38px", height: "38px", borderRadius: "11px",
-                background: "rgba(124,58,237,0.2)",
-                border: "1px solid rgba(168,85,247,0.25)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: "1rem", flexShrink: 0, color: "#A855F7",
-              }}>
-                {icon}
-              </div>
-              <div>
-                <p style={{ fontSize: "0.65rem", color: "#6B7280", marginBottom: "0.1rem" }}>{label}</p>
-                <p style={{ fontSize: "1rem", fontWeight: 700, color: "#fff", lineHeight: 1 }}>
-                  {value}
-                  <span style={{ fontSize: "0.7rem", fontWeight: 400, color: "#4B5563", marginLeft: "0.375rem" }}>{sub}</span>
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 /* ══════════════════════════════════════════════════════════════ */
 
@@ -397,7 +220,7 @@ export default function HomePage() {
               borderTop: `1px solid ${C.border}`, paddingTop: "1.5rem",
             }}>
               {[
-                { val: "Page-1", label: "host articles only" },
+                { val: "Cited", label: "sources only, chosen from the scan" },
                 { val: "4", label: "AI engines tracked" },
                 { val: "Aug 2025", label: "AI Overview history back to" },
               ].map(({ val, label }) => (
@@ -425,7 +248,7 @@ export default function HomePage() {
               fontWeight: 800, fontSize: "clamp(1.875rem, 3.5vw, 2.5rem)",
               color: C.navy, lineHeight: 1.12, letterSpacing: "-0.03em", marginBottom: "1.25rem",
             }}>
-              Start with a domain. Find out what AI already says.
+              One scan. Three things most agencies have never seen.
             </h2>
             <p style={{ color: C.body, fontSize: "1.0625rem", lineHeight: 1.7, marginBottom: "1.25rem" }}>
               Enter a client domain and their category. We build the questions their buyers ask, run them, and show you where your client sits against competitors - and which sources the engines drew on to answer. Then upload the coverage you have already earned and see which pieces are doing the work.
@@ -454,27 +277,23 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Four proof points */}
+          {/* Three points */}
           <div
-            style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.25rem" }}
+            style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1.25rem" }}
             className="stack-mobile"
           >
             {[
               {
-                title: "Both keyword sets, separately",
-                body: "The article's ranking for the terms it was written to win, and your client's page ranking for the term that converts. Two different jobs, never averaged together.",
+                title: "Who the engines name",
+                body: "Every brand Google AI Overviews and ChatGPT mention when buyers ask about your client's topic, ranked by share of voice, with history back to August 2025.",
               },
               {
-                title: "Four honest outcomes",
-                body: "Cited your coverage, cited your client, appeared and cited neither, or never appeared at all. We report the difference, because they mean different things.",
+                title: "What they drew on to say it",
+                body: "The exact sources cited in those answers, ranked by how often. This is the list that decides whether your client exists in an AI answer.",
               },
               {
-                title: "Prompts generated from your keyword",
-                body: "Give us &ldquo;invoice factoring&rdquo; and we build the prompt set buyers actually use - best providers, who to choose, top companies for 2026 - then track citations across ChatGPT, Gemini and Perplexity.",
-              },
-              {
-                title: "Nothing estimated",
-                body: "If we did not measure it, the field is blank. We never fill a gap with a model.",
+                title: "Which of your coverage is in that list",
+                body: "Upload a campaign's coverage and we match it URL for URL against the cited sources. The pieces doing the work, the pieces doing nothing, and the sources you are not in yet.",
               },
             ].map(({ title, body }) => (
               <div
@@ -496,18 +315,9 @@ export default function HomePage() {
             ))}
           </div>
 
-          {/* Task 8 - temporal framing, not causal */}
-          <div style={{
-            background: C.white,
-            border: `1px solid ${C.border}`,
-            borderRadius: "16px",
-            padding: "1.5rem 1.75rem",
-            marginTop: "1.25rem",
-          }}>
-            <p style={{ fontSize: "0.9375rem", color: C.navy, lineHeight: 1.7, fontWeight: 500 }}>
-              Here is where you ranked before, here is where you rank now, and here is the date the link went live. We show you the sequence. We do not pretend it is a controlled experiment.
-            </p>
-          </div>
+          <p style={{ fontSize: "0.875rem", color: C.body, lineHeight: 1.7, marginTop: "1.5rem", maxWidth: "620px" }}>
+            If we did not measure it, the field is blank. We never fill a gap with a model, and anything illustrative on this site is labelled as such.
+          </p>
         </div>
       </section>
 
@@ -534,7 +344,7 @@ export default function HomePage() {
             color: "#9CA3AF", fontSize: "clamp(0.9375rem, 1.5vw, 1.0625rem)",
             lineHeight: 1.7, maxWidth: "580px", margin: "0 auto 3.5rem",
           }}>
-            ChatGPT, Gemini, Perplexity and Google AI Overviews do not discover brands from homepages or ad campaigns. They extract from content that already ranks - content that already earns trust. If your client is not cited inside those sources, they do not exist in AI&apos;s world.
+            ChatGPT, Gemini, Perplexity and Google AI Overviews do not discover brands from homepages or ad campaigns. They extract from third-party content they already trust. If your client is not inside those sources, they do not exist in an AI answer.
           </p>
 
           <div className="dark-trust-flow">
@@ -553,7 +363,7 @@ export default function HomePage() {
               color: C.navy, lineHeight: 1.1, letterSpacing: "-0.03em", marginBottom: "1rem",
             }}>
               One placement.{" "}
-              <span style={grad}>Three compounding outcomes.</span>
+              <span style={grad}>Three outcomes that compound.</span>
             </h2>
             <p style={{ color: C.body, fontSize: "1.0625rem", lineHeight: 1.65, maxWidth: "520px", margin: "0 auto" }}>
               Every placement we secure sits inside a real article with real traffic - read by the people buying in your category.
@@ -576,8 +386,8 @@ export default function HomePage() {
                       <path d="M9 15V3M3 9l6-6 6 6" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   ),
-                  title: "Rankings move",
-                  body: "The host article already ranks page 1 for its own terms. Your client&apos;s page is linked from it, and the tracker shows where that page sat before and where it sits now.",
+                  title: "The engines start citing your client",
+                  body: "They enter the pool the engines extract from. Once cited in a trusted source, brands tend to be cited again across engines.",
                 },
                 {
                   icon: (
@@ -585,8 +395,8 @@ export default function HomePage() {
                       <path d="M9 2l2 5.5H17l-5 3.5 1.9 5.5L9 13.2 4.1 16.5 6 11 1 7.5h6z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
                     </svg>
                   ),
-                  title: "AI starts citing you",
-                  body: "Your client enters the content pool AI models extract from. Once they are cited in trusted sources, they tend to be cited repeatedly across platforms.",
+                  title: "Rankings move",
+                  body: "The host article already ranks for its own terms. Your client&apos;s page is linked from it, and the tracker shows where that page sat before and where it sits now.",
                 },
                 {
                   icon: (
@@ -594,8 +404,8 @@ export default function HomePage() {
                       <path d="M3 9h12M9 3l6 6-6 6" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   ),
-                  title: "Real referral traffic",
-                  body: "Visitors from the article are actively researching your client&apos;s category. They arrive pre-qualified - not just browsing.",
+                  title: "Readers arrive already researching",
+                  body: "Visitors from a category roundup are choosing a provider. They arrive pre-qualified.",
                 },
               ].map(({ icon, title, body }) => (
                 <div
@@ -641,8 +451,7 @@ export default function HomePage() {
               fontWeight: 800, fontSize: "clamp(1.875rem, 3.5vw, 2.75rem)",
               color: C.navy, lineHeight: 1.1, letterSpacing: "-0.03em", marginBottom: "1rem",
             }}>
-              Three moves.{" "}
-              <span style={grad}>One compounding result.</span>
+              Scan. Place. Track.
             </h2>
           </div>
 
@@ -653,18 +462,18 @@ export default function HomePage() {
             {[
               {
                 n: "01",
-                title: "We audit your category",
-                body: "We map every article ranking for your target keywords and score them by traffic, domain authority, and AI citation frequency. You see exactly where your competitors are being cited - and where the gaps are.",
+                title: "You scan the topic, free",
+                body: "Enter the domain and the topic. In a minute you know where your client sits, who is ahead of them, and exactly which sources the engines are citing to decide it.",
               },
               {
                 n: "02",
-                title: "We secure the placement",
-                body: "We approach editors at high-authority publications with a genuine editorial contribution. No link farms. No spray-and-pray outreach. A real placement in a real article that real readers trust.",
+                title: "We place your client in those sources",
+                body: "Not a list of high-DA sites. The specific publications the scan just showed you being cited for this topic. Editorial coverage, contextual placements and link insertions, approached through editors we already work with.",
               },
               {
                 n: "03",
-                title: "You compound",
-                body: "Rankings move. AI systems start extracting your brand. Referral traffic arrives. Each placement strengthens the next - and the effect accelerates over 90-180 days.",
+                title: "You track what moved, and show the client",
+                body: "Weekly readings on the same questions. Which questions your client is newly named in, which sources now cite them, how share of voice changed against the competitors you named. In a report with your logo, not ours.",
               },
             ].map(({ n, title, body }, i) => (
               <div
@@ -748,8 +557,7 @@ export default function HomePage() {
               fontWeight: 800, fontSize: "clamp(1.875rem, 3.5vw, 2.75rem)",
               color: C.navy, lineHeight: 1.1, letterSpacing: "-0.03em", marginBottom: "1rem",
             }}>
-              Rankings that{" "}
-              <span style={grad}>compound.</span>
+              One placement, one morning.
             </h2>
             <p style={{ color: C.body, fontSize: "1.0625rem", lineHeight: 1.65, maxWidth: "500px", margin: "0 auto" }}>
               One campaign. One placement. The compounding effect measured over six months.
@@ -760,34 +568,50 @@ export default function HomePage() {
             style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2rem", marginBottom: "2.5rem" }}
             className="stack-mobile"
           >
-            <RankingChart />
-
-            {/* AI citation cards */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "1rem", justifyContent: "center" }}>
-              <p style={{ fontSize: "0.75rem", fontWeight: 600, color: C.body, marginBottom: "0.2rem" }}>
-                What an AI citation looks like once a placement lands:
+            {/* Facts only. The illustrative six-month chart and the three
+                illustrative citation cards were cut: real numbers next to
+                illustrative ones make the real ones look illustrative. */}
+            <div style={{
+              background: C.white,
+              border: `1px solid ${C.border}`,
+              borderRadius: "20px",
+              padding: "2rem",
+              boxShadow: "0 2px 16px rgba(11,18,32,0.07)",
+            }}>
+              <p style={{ fontSize: "0.75rem", fontWeight: 600, color: C.purple, marginBottom: "0.375rem", letterSpacing: "0.04em", textTransform: "uppercase" }}>
+                Vibe Retail · US retail SaaS · eight weeks
               </p>
-              <p style={{ fontSize: "0.7rem", color: "#9CA3AF", marginBottom: "0.5rem" }}>
-                Illustrative examples, not captured responses.
+              <div style={{ display: "flex", flexDirection: "column", gap: "0" }}>
+                {[
+                  { label: "Money keyword", val: "#83 to #4" },
+                  { label: "AI visibility across the full question set", val: "0% to 25%" },
+                  { label: "AI Overview citations on commercial questions", val: "3" },
+                ].map(({ label, val }) => (
+                  <div
+                    key={label}
+                    style={{
+                      display: "grid", gridTemplateColumns: "1fr auto", gap: "1.5rem",
+                      alignItems: "baseline", padding: "0.875rem 0",
+                      borderTop: `1px solid ${C.border}`,
+                    }}
+                  >
+                    <span style={{ fontSize: "0.9375rem", color: C.body }}>{label}</span>
+                    <span style={{ fontSize: "1.125rem", fontWeight: 800, color: C.navy, letterSpacing: "-0.02em" }}>{val}</span>
+                  </div>
+                ))}
+              </div>
+              <p style={{ fontSize: "0.9375rem", color: C.navy, lineHeight: 1.7, marginTop: "1.5rem", fontWeight: 500 }}>
+                The listicle went live in the morning. By that evening Google&apos;s AI Overview was citing it as the top source for the category.
               </p>
-              <AICitationCard
-                platform="Google AI Overview"
-                color="#4285F4"
-                letter="G"
-                text="Your client is cited as a recommended provider for the category…"
-              />
-              <AICitationCard
-                platform="ChatGPT"
-                color="#10A37F"
-                letter="C"
-                text="Based on multiple high-authority industry sources, your client is recognized for…"
-              />
-              <AICitationCard
-                platform="Perplexity"
-                color="#20B2AA"
-                letter="P"
-                text="According to industry roundups and reviews, top providers include your client for…"
-              />
+              <a
+                href="/case-studies/vibe-retail"
+                style={{ display: "inline-flex", alignItems: "center", gap: "0.375rem", color: C.purple, fontWeight: 600, fontSize: "0.9375rem", textDecoration: "none", marginTop: "1.25rem" }}
+              >
+                Read the full case study
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+                  <path d="M3 8h10M9 3l5 5-5 5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </a>
             </div>
           </div>
 
@@ -852,16 +676,16 @@ export default function HomePage() {
           {/* Task 9 - DA/DR figures removed; the screen is stated as criteria,
               not as a marketplace metric. */}
           <h2 style={{ fontWeight: 700, fontSize: "clamp(1.5rem, 2.5vw, 2rem)", color: C.navy, marginBottom: "0.875rem", letterSpacing: "-0.02em" }}>
-            Every placement passes the same three-criteria screen.
+            Every placement passes the same three-part screen.
           </h2>
           <p style={{ color: C.body, fontSize: "1rem", lineHeight: 1.65, maxWidth: "540px", margin: "0 auto 2rem" }}>
             A placement that fails the screen is replaced, not counted. You are buying placements that passed, not attempts.
           </p>
           <div style={{ display: "flex", gap: "2rem", justifyContent: "center", flexWrap: "wrap" }}>
             {[
-              { icon: "✓", text: "Verified organic traffic" },
-              { icon: "✓", text: "Page-1 rankings for relevant terms" },
-              { icon: "✓", text: "Niche relevance to your category" },
+              { icon: "✓", text: "Already cited by the engines for the topic" },
+              { icon: "✓", text: "Real organic traffic, verified not claimed" },
+              { icon: "✓", text: "Contextual to the topic" },
             ].map(({ icon, text }) => (
               <div key={text} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                 <div style={{
@@ -914,7 +738,7 @@ export default function HomePage() {
             gap: "1rem",
           }}>
             <p style={{ fontSize: "0.9375rem", color: C.body, lineHeight: 1.7 }}>
-              The <TierName tier="mentioned" /> plan puts you in the third-party articles AI engines draw on when someone asks who to use. The focus is recommendations and brand mentions for one target keyword. Rankings improve as a side effect.
+              The <TierName tier="mentioned" /> plan puts you in the third-party articles AI engines draw on when someone asks who to use. The focus is recommendations and brand mentions for one topic. Rankings improve as a side effect.
             </p>
             <p style={{ fontSize: "0.9375rem", color: C.body, lineHeight: 1.7 }}>
               The <TierName tier="cited" /> plan does all of that, then goes after the ranking directly - schema work on your pages and link insertions from the placements, so the same coverage that wins the AI answer also moves the keyword. This is the one most agencies buy.
@@ -966,16 +790,20 @@ export default function HomePage() {
           <div style={{ display: "flex", flexDirection: "column", gap: "0" }}>
             {[
               {
+                q: "What is the free scan based on?",
+                a: "Google AI Overview and ChatGPT mention data going back to August 2025, aggregated across the questions buyers ask about a topic. It runs no live model calls, which is why it is free and fast. Live readings across all four engines start when you open an account.",
+              },
+              {
                 q: "How is this different from a standard link building agency?",
                 a: "Most link building agencies target any available page with a high DA. We only target pages that already rank and receive real traffic - because that's what transfers authority to your page and gets extracted by AI systems. The source matters more than the metric.",
               },
               {
                 q: "How long does it take to see results?",
-                a: "Ranking movement typically appears within 60-90 days of a placement going live, and AI citations within 90-120 days as the engines refresh what they draw on. The tracker shows you the sequence as it happens rather than a projection.",
+                a: "Ranking movement typically appears within 60-90 days of a placement going live, and AI citations within 90-120 days as the engines refresh what they draw on. The tracker shows you the sequence as it happens rather than a projection - where the page sat before, where it sits now, and the date the coverage went live.",
               },
               {
                 q: "How do you screen a placement?",
-                a: "Every placement is screened on verified organic traffic, page-1 rankings for relevant terms, and niche relevance to your category. A placement that fails the screen is replaced, not counted.",
+                a: "Three things. Already cited by the engines for the topic - the scan shows which sources Google AI Overviews and ChatGPT draw on, and we place there rather than on a DA list. Real organic traffic, verified not claimed. And contextual to the topic, so the mention reads as editorial to a person and to a model. A placement that fails the screen is replaced, not counted.",
               },
               {
                 q: "Will the placement look natural?",
@@ -1011,7 +839,7 @@ export default function HomePage() {
               },
               {
                 q: "How many placements do I get per month?",
-                a: "The alwaysmentioned plan includes three. A placement that fails the three-criteria screen is replaced, not counted - you are buying placements that passed, not attempts.",
+                a: "The alwaysmentioned plan includes three. A placement that fails the three-part screen is replaced, not counted - you are buying placements that passed, not attempts.",
               },
               {
                 q: "Which industries do you work with?",
@@ -1052,11 +880,9 @@ export default function HomePage() {
         <div className="gradient-orb" style={{ position: "absolute", width: "400px", height: "400px", background: "radial-gradient(circle, rgba(124,58,237,0.12) 0%, transparent 70%)", bottom: "-100px", right: "-80px", pointerEvents: "none", animationDelay: "-15s" }} aria-hidden="true" />
 
         <div
-          style={{ ...wrap, display: "grid", gridTemplateColumns: "1fr auto", gap: "4rem", alignItems: "center", position: "relative" }}
-          className="hero-two-col"
+          style={{ ...wrap, maxWidth: "640px", textAlign: "center", position: "relative" }}
         >
-          {/* Left: CTA text */}
-          <div style={{ maxWidth: "560px" }}>
+          <div>
             <h2 style={{
               fontWeight: 800,
               fontSize: "clamp(2rem, 4vw, 3rem)",
@@ -1068,10 +894,10 @@ export default function HomePage() {
               Ready to become the brand{" "}
               <span style={grad}>AI recommends?</span>
             </h2>
-            <p style={{ color: "#9CA3AF", fontSize: "1.0625rem", lineHeight: 1.7, marginBottom: "2.5rem", maxWidth: "480px" }}>
-              We&apos;ll map your category, show where your competitors are being cited, and identify the placements most likely to move rankings, traffic, and AI visibility.
+            <p style={{ color: "#9CA3AF", fontSize: "1.0625rem", lineHeight: 1.7, marginBottom: "2.5rem" }}>
+              Start with a scan. It takes a minute, it is free, and it tells you exactly which sources decide your client&apos;s category.
             </p>
-            <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", justifyContent: "center" }}>
               <a href={CONTACT_URL} className="btn-primary">Join the waitlist</a>
               <a
                 href={CONTACT_URL}
@@ -1091,36 +917,9 @@ export default function HomePage() {
               </a>
             </div>
           </div>
-
-          {/* Right: layered visual */}
-          <div className="hide-below-900" aria-hidden="true">
-            <LayeredCTAVisual />
-          </div>
         </div>
       </section>
 
-      {/* ═══ FEATURE STRIP ═══════════════════════════════════════ */}
-      <section style={{ background: C.white, borderTop: `1px solid ${C.border}`, padding: "2.5rem 1.5rem" }}>
-        <div style={{ ...wrap }}>
-          <div style={{
-            display: "flex", gap: "2.5rem", flexWrap: "wrap",
-            alignItems: "center", justifyContent: "center",
-          }}>
-            {[
-              { icon: "✦", text: "Page-1 host articles only" },
-              { icon: "✦", text: "Real editorial publications" },
-              { icon: "✦", text: "Built to be quoted by AI, not just crawled" },
-              { icon: "✦", text: "White-label reporting" },
-              { icon: "✦", text: "Full metrics report on delivery" },
-            ].map(({ icon, text }) => (
-              <div key={text} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                <span style={{ color: C.purple, fontSize: "0.625rem" }}>{icon}</span>
-                <span style={{ fontSize: "0.8125rem", fontWeight: 500, color: C.body, whiteSpace: "nowrap" }}>{text}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
     </>
   );
 }

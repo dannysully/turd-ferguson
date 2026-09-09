@@ -123,7 +123,7 @@ export default function DarkTrustFlow() {
         }}
       >
         <p style={{ fontSize: "0.9375rem", fontWeight: 700, color: "#fff", marginBottom: "0.25rem" }}>
-          The pool the models extract from
+          The pool the engines extract from
         </p>
         <p style={{ fontSize: "0.75rem", color: "#9CA3AF", lineHeight: 1.55 }}>
           Google AI Overviews · ChatGPT · Gemini · Perplexity
