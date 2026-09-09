@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import DarkTrustFlow from "@/components/DarkTrustFlow";
 import DarkComparisonSection from "@/components/DarkComparisonSection";
 import SectorPricing from "@/components/SectorPricing";
+import HeroSection from "@/components/scan/HeroSection";
 import ScanChecker from "@/components/scan/ScanChecker";
 import TierName from "@/components/TierName";
 import { CONTACT_URL } from "@/config/pricing";
@@ -63,45 +64,7 @@ function SectionLabel({ text, dark = false }: { text: string; dark?: boolean }) 
 export default function HomePage() {
   return (
     <>
-      {/* ═══ HERO ═══════════════════════════════════════════════ */}
-      <section id="scan" style={{ padding: "5.5rem 1.5rem 4rem", position: "relative", overflow: "hidden" }}>
-        {/* Ambient glow */}
-        <div
-          className="gradient-orb"
-          style={{
-            position: "absolute", width: "700px", height: "700px",
-            background: "radial-gradient(circle, rgba(168,85,247,0.07) 0%, transparent 70%)",
-            top: "-250px", right: "-150px", pointerEvents: "none",
-          }}
-          aria-hidden="true"
-        />
-
-        <div style={{ ...wrap, maxWidth: "760px", position: "relative" }}>
-          <h1 style={{
-            fontWeight: 800,
-            fontSize: "clamp(2.25rem, 4.5vw, 3.375rem)",
-            color: C.navy,
-            lineHeight: 1.08,
-            letterSpacing: "-0.03em",
-            marginBottom: "1.375rem",
-          }}>
-            Be the brand <span style={grad}>AI recommends.</span>
-          </h1>
-
-          <p style={{
-            fontSize: "clamp(1rem, 1.5vw, 1.125rem)",
-            color: C.body,
-            lineHeight: 1.7,
-            marginBottom: "2rem",
-            maxWidth: "540px",
-          }}>
-            Start by finding out whether your client already is. Enter their domain.
-          </p>
-
-          <ScanChecker />
-
-        </div>
-      </section>
+      <HeroSection />
 
       {/* ═══ DARK INSIGHT - why it works ════════════════════════ */}
       <section id="why-it-works" style={{ background: C.navy, padding: "6rem 1.5rem", position: "relative", overflow: "hidden" }}>

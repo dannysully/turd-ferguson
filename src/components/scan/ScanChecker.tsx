@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { runScanAction, signUpAction, startScanAction } from "@/app/actions/checker";
+import { runScanAction, signUpAction, startScanAction, submitDomainForm } from "@/app/actions/checker";
 import type { Market, RunScanResponse, StartScanResponse } from "@/lib/scan";
 import { C, DomainScreen, ResultScreen, RunningScreen, STEPS, TopicScreen, btn, field, label } from "./screens";
 
@@ -28,13 +28,19 @@ function track(event: string, props: Record<string, unknown> = {}) {
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-export default function ScanChecker({ compact = false }: { compact?: boolean }) {
-  const [step, setStep] = useState<Step>("domain");
-  const [err, setErr] = useState<Err>(null);
-  const [domain, setDomain] = useState("");
-  const [start, setStart] = useState<StartScanResponse | null>(null);
-  const [brandName, setBrandName] = useState("");
-  const [topic, setTopic] = useState("");
+export default function ScanChecker({
+  compact = false, initialDomain = "", initialStart = null, initialError = null,
+}: {
+  compact?: boolean;
+  /** Server-rendered state 2 for the no-JS path (/scan?domain=...). */
+  initialDomain?: string; initialStart?: StartScanResponse | null; initialError?: Err;
+}) {
+  const [step, setStep] = useState<Step>(initialStart ? "topic" : "domain");
+  const [err, setErr] = useState<Err>(initialError);
+  const [domain, setDomain] = useState(initialDomain);
+  const [start, setStart] = useState<StartScanResponse | null>(initialStart);
+  const [brandName, setBrandName] = useState(initialStart?.brand ?? "");
+  const [topic, setTopic] = useState(initialStart?.suggested_topic ?? "");
   const [market, setMarket] = useState<Market>("UK");
   const [result, setResult] = useState<RunScanResponse | null>(null);
   const [progress, setProgress] = useState(0);
@@ -173,7 +179,7 @@ export default function ScanChecker({ compact = false }: { compact?: boolean }) 
 
       {/* ── State 1: domain ── */}
       {step === "domain" && (
-        <DomainScreen value={domain} onChange={setDomain} onSubmit={onDomain} busy={busy}
+        <DomainScreen value={domain} onChange={setDomain} onSubmit={onDomain} action={submitDomainForm} busy={busy}
           error={err?.kind === "invalid" ? err.message : undefined} exampleLink={!compact} />
       )}
 

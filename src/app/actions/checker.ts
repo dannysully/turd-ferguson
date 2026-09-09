@@ -1,5 +1,6 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { Resend } from "resend";
 import { runScan, signUp, startScan, ScanError } from "@/lib/scan";
 import type { Market, RunScanResponse, StartScanResponse } from "@/lib/scan";
@@ -80,4 +81,14 @@ export async function signUpAction(input: {
     }
   }
   return { ok: true, data: { ok: true } };
+}
+
+/**
+ * No-JS path. The domain form posts here when JavaScript is off; we send the
+ * visitor to /scan, which runs startScan on the server and renders state 2.
+ * With JS the form's onSubmit prevents default and this never fires.
+ */
+export async function submitDomainForm(formData: FormData) {
+  const domain = (formData.get("domain") ?? "").toString().trim();
+  redirect(`/scan?${new URLSearchParams({ domain })}#scan`);
 }
