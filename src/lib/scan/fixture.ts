@@ -37,6 +37,7 @@ function raiseSentinel(domain: string) {
 }
 
 export const fixtureAdapter: ScanAdapter = {
+  source: "fixture",
   async startScan({ domain }): Promise<StartScanResponse> {
     const host = normalizeDomain(domain);
     raiseSentinel(host);

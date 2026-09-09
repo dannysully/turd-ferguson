@@ -27,6 +27,7 @@ async function post<T>(path: string, body: unknown): Promise<T> {
 }
 
 export const liveAdapter: ScanAdapter = {
+  source: "live",
   startScan: (input) => post<StartScanResponse>("/api/scan/start", input),
   runScan: (input) => post<RunScanResponse>("/api/scan/run", input),
   signUp: (input) => post<SignUpResponse>("/api/signup", input),

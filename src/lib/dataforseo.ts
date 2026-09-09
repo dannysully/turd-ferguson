@@ -52,6 +52,7 @@ function authHeader(): string {
 /** Strip scheme, www and any path, leaving a bare host for comparison. */
 export function normalizeDomain(raw: string): string {
   return raw
+    .trim()
     .replace(/^https?:\/\//i, "")
     .replace(/^www\./i, "")
     .split("/")[0]

@@ -75,7 +75,11 @@ export class ScanError extends Error {
   }
 }
 
+export type ScanSource = "fixture" | "live";
+
 export interface ScanAdapter {
+  /** Where results come from. Drives the live-data / illustrative pill. */
+  readonly source: ScanSource;
   startScan(input: { domain: string; turnstile?: string }): Promise<StartScanResponse>;
   runScan(input: { scan_id: string; topic: string; market: Market }): Promise<RunScanResponse>;
   signUp(input: { scan_id: string; email: string }): Promise<SignUpResponse>;

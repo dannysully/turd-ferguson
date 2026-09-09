@@ -9,6 +9,7 @@ import { fixtureAdapter } from "./fixture";
 import { liveAdapter } from "./live";
 
 export * from "./contract";
+export { ScanError } from "./contract";
 export { normalizeDomain } from "./mapper";
 
 export function getScanAdapter(): ScanAdapter {

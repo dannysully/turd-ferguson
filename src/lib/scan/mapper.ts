@@ -37,6 +37,7 @@ function firstResult<T>(raw: RawEnvelope<T>): T | null {
 /** Strip scheme, www and path, leaving a bare host for display and matching. */
 export function normalizeDomain(raw: string): string {
   return raw
+    .trim()
     .replace(/^https?:\/\//i, "")
     .replace(/^www\./i, "")
     .split("/")[0]
