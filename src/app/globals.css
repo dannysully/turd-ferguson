@@ -100,6 +100,37 @@ details summary::-webkit-details-marker {
   }
 }
 
+/* ─── Brand mark: six-point asterisk ─── */
+/* Intermittent rotation, as on nomadadigital.co.uk: one full turn in the first
+   10% of an 8s cycle (0.8s), then still for the remaining 7.2s. */
+.brand-mark__ast {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: brandMarkSpin 8s linear infinite;
+}
+@keyframes brandMarkSpin {
+  0%   { transform: rotate(0deg); }
+  10%  { transform: rotate(360deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Hovering the lockup takes it to a continuous spin until the pointer leaves. */
+.brand-lockup:hover .brand-mark__ast {
+  animation: brandMarkSpinFast 0.8s linear infinite;
+}
+@keyframes brandMarkSpinFast {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-mark__ast,
+  .brand-lockup:hover .brand-mark__ast {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
 /* ─── Tier names ─── */
 .tier-name { white-space: nowrap; font-weight: 700; }
 .tier-name__accent { color: var(--brand-purple); }

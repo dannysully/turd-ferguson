@@ -1,18 +1,11 @@
 import Link from "next/link";
 
+import BrandMark from "./BrandMark";
+
 function Logo() {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-      <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-        <defs>
-          <linearGradient id="footerMarkGrad" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#7C3AED" />
-            <stop offset="100%" stopColor="#A855F7" />
-          </linearGradient>
-        </defs>
-        <rect width="32" height="32" rx="8" fill="url(#footerMarkGrad)" />
-        <path d="M16 7 L17.6 13.4 L24 15 L17.6 16.6 L16 23 L14.4 16.6 L8 15 L14.4 13.4 Z" fill="white" />
-      </svg>
+    <div className="brand-lockup" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+      <BrandMark id="ftr" size={28} />
       <span style={{ fontWeight: 700, fontSize: "1rem", color: "#ffffff", letterSpacing: "-0.02em" }}>
         always<span style={{ color: "#A855F7" }}>cited</span>
       </span>
