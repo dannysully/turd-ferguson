@@ -16,7 +16,7 @@ export const maxDuration = 300;
 export async function POST(req: Request, ctx: { params: Promise<{ token: string }> }) {
   const { token } = await ctx.params;
 
-  let body: { topic?: string; market?: string };
+  let body: { topic?: string; market?: string; topic_variants?: string[] };
   try {
     body = await req.json();
   } catch {
@@ -48,10 +48,27 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
 
   const market = isMarket(body.market) ? body.market : scan.market;
 
+  // The variants the agency confirmed are the trusted set from here, capped so
+  // an edited payload cannot widen the question spread without limit.
+  const variants = Array.isArray(body.topic_variants)
+    ? body.topic_variants
+        .filter((v): v is string => typeof v === "string")
+        .map((v) => v.trim().toLowerCase())
+        .filter((v) => v.length >= 2 && v.length <= 80)
+        .slice(0, 5)
+    : undefined;
+
   // The confirmed topic is the trusted value from here on.
   const { error } = await db
     .from("scans")
-    .update({ topic, market, status: "queued", step: null, error: null })
+    .update({
+      topic,
+      market,
+      status: "queued",
+      step: null,
+      error: null,
+      ...(variants ? { topic_variants: variants } : {}),
+    })
     .eq("id", scan.id);
 
   if (error) {

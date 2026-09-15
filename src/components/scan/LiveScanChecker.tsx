@@ -116,18 +116,27 @@ function toResult(t: Teaser, domain: string, full: FullPayload | null): RunScanR
   };
 }
 
-export default function LiveScanChecker({ compact = false }: { compact?: boolean }) {
+export default function LiveScanChecker({
+  compact = false,
+  initialDomain = "",
+}: {
+  compact?: boolean;
+  initialDomain?: string;
+}) {
   const [phase, setPhase] = useState<Phase>("domain");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>("");
 
-  const [domain, setDomain] = useState("");
+  const [domain, setDomain] = useState(initialDomain);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 
   const [token, setToken] = useState<string | null>(null);
   const [brandName, setBrandName] = useState("");
   const [topic, setTopic] = useState("");
   const [topicUnknown, setTopicUnknown] = useState(false);
+  const [variants, setVariants] = useState<string[]>([]);
+  const [chosen, setChosen] = useState<Set<string>>(new Set());
+  const [positioning, setPositioning] = useState("");
   const [market, setMarket] = useState<Market>("UK");
 
   const [progress, setProgress] = useState(0);
@@ -186,6 +195,12 @@ export default function LiveScanChecker({ compact = false }: { compact?: boolean
 
       setTopic(data.suggested_topic ?? "");
       setTopicUnknown(!data.suggested_topic);
+      const read: string[] = data.topic_variants ?? [];
+      setVariants(read);
+      // All of them start selected: the site said these narrow the category, so
+      // the default is to measure them and let the agency remove what is wrong.
+      setChosen(new Set(read));
+      setPositioning(data.positioning ?? "");
       setPhase("topic");
     } catch {
       setError("We could not reach the checker. Please try again.");
@@ -205,7 +220,7 @@ export default function LiveScanChecker({ compact = false }: { compact?: boolean
       const res = await fetch(`/api/scan/${token}/confirm`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ topic, market }),
+        body: JSON.stringify({ topic, market, topic_variants: [...chosen] }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -353,6 +368,11 @@ export default function LiveScanChecker({ compact = false }: { compact?: boolean
               Tell us how a buyer would describe what they sell.
             </p>
           )}
+          {positioning && (
+            <p style={{ fontSize: "0.8125rem", color: C.muted, margin: "0 0 0.875rem", lineHeight: 1.6 }}>
+              From the site: {positioning}
+            </p>
+          )}
           <TopicScreen
             brand={brandName || domain}
             topic={topic}
@@ -366,6 +386,51 @@ export default function LiveScanChecker({ compact = false }: { compact?: boolean
             }}
             headingRef={headingRef}
           />
+          {variants.length > 0 && (
+            <div style={{ marginTop: "1rem" }}>
+              <p style={{ fontSize: "0.8125rem", fontWeight: 600, color: C.navy, margin: "0 0 0.5rem" }}>
+                We will spread the questions across these too
+              </p>
+              <p style={{ fontSize: "0.8125rem", color: C.body, margin: "0 0 0.625rem", lineHeight: 1.6 }}>
+                Read from the site, so the check measures the category you actually compete in rather
+                than the widest phrase. Tap one to drop it.
+              </p>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem" }}>
+                {variants.map((v) => {
+                  const on = chosen.has(v);
+                  return (
+                    <button
+                      key={v}
+                      type="button"
+                      aria-pressed={on}
+                      onClick={() =>
+                        setChosen((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(v)) next.delete(v);
+                          else next.add(v);
+                          return next;
+                        })
+                      }
+                      style={{
+                        fontFamily: "inherit",
+                        fontSize: "0.8125rem",
+                        fontWeight: 500,
+                        padding: "0.375rem 0.75rem",
+                        borderRadius: 999,
+                        cursor: "pointer",
+                        border: `1px solid ${on ? C.purple : C.border}`,
+                        background: on ? "rgba(124,58,237,0.08)" : C.white,
+                        color: on ? C.purple : C.muted,
+                        textDecoration: on ? "none" : "line-through",
+                      }}
+                    >
+                      {v}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           {error && <p style={{ fontSize: "0.8125rem", color: C.red, marginTop: "0.75rem" }}>{error}</p>}
         </>
       )}

@@ -85,7 +85,7 @@ export async function POST(req: Request) {
   const cacheSince = new Date(Date.now() - settings.domain_cache_days * 86_400_000).toISOString();
   const { data: cached } = await db
     .from("scans")
-    .select("public_token, brand_name, topic, market, status, engines")
+    .select("public_token, brand_name, topic, topic_variants, market, status, engines")
     .eq("domain", domain)
     .eq("market", market)
     .eq("status", "complete")
@@ -99,6 +99,7 @@ export async function POST(req: Request) {
       token: cached.public_token,
       brand_name: cached.brand_name,
       suggested_topic: cached.topic,
+      topic_variants: cached.topic_variants ?? [],
       market: cached.market,
       // The stored scan's own engine set, not today's: the result on screen
       // must describe the run that produced it.
@@ -128,6 +129,7 @@ export async function POST(req: Request) {
       brand_name: read.brand_name,
       positioning: read.positioning,
       topic: read.confidence === "high" ? read.suggested_topic : null,
+      topic_variants: read.topic_variants ?? [],
       market,
       status: "pending_topic",
       ip_hash: ipHash,
@@ -164,6 +166,10 @@ export async function POST(req: Request) {
     // A low-confidence guess is withheld: the field opens empty rather than
     // pre-filled with something wrong.
     suggested_topic: read.confidence === "high" ? read.suggested_topic : null,
+    // Shown at step 2 so the agency can see how the site narrowed the category,
+    // and correct it before fourteen questions are built on top of it.
+    topic_variants: read.topic_variants ?? [],
+    positioning: read.positioning,
     confidence: read.confidence,
     market,
     cached: false,

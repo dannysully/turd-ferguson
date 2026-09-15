@@ -63,6 +63,10 @@ create table scans (
   brand_name        text,
   positioning       text,
   topic             text,
+  -- How buyers phrase this category for this kind of supplier, read from the
+  -- site. The question set is spread across these, so it measures the category
+  -- the brand competes in rather than the widest possible phrase.
+  topic_variants    text[] not null default '{}',
   market            text check (market in ('UK','US')),
   status            scan_status not null default 'pending_topic',
   step              text,                 -- 'questions' | 'reading' | 'sources'

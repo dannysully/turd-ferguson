@@ -23,6 +23,7 @@ export type ScanRow = {
   brand_name: string | null;
   positioning: string | null;
   topic: string | null;
+  topic_variants: string[] | null;
   market: Market | null;
   engines: string[] | null;
   gated_engines: string[] | null;
@@ -228,7 +229,7 @@ export async function runScan(scanId: string): Promise<void> {
   try {
     const { data: scan, error } = await db
       .from("scans")
-      .select("id, domain, brand_name, positioning, topic, market, engines, gated_engines")
+      .select("id, domain, brand_name, positioning, topic, topic_variants, market, engines, gated_engines")
       .eq("id", scanId)
       .single<ScanRow>();
     if (error || !scan) throw new Error(`scan ${scanId} not found`);
@@ -247,6 +248,7 @@ export async function runScan(scanId: string): Promise<void> {
     // --- Step 1: "Building the questions buyers ask" ---
     const generated = await generateQuestions({
       topic: scan.topic,
+      topicVariants: scan.topic_variants ?? [],
       market,
       brand,
       positioning: scan.positioning,
@@ -334,7 +336,7 @@ export async function runGatedScan(scanId: string): Promise<void> {
   try {
     const { data: scan, error } = await db
       .from("scans")
-      .select("id, domain, brand_name, positioning, topic, market, engines, gated_engines")
+      .select("id, domain, brand_name, positioning, topic, topic_variants, market, engines, gated_engines")
       .eq("id", scanId)
       .single<ScanRow>();
     if (error || !scan) throw new Error(`scan ${scanId} not found`);

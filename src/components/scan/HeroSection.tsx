@@ -1,11 +1,16 @@
 import LiveScanChecker from "./LiveScanChecker";
-import ScanChecker from "./ScanChecker";
-import type { StartScanResponse } from "@/lib/scan";
+import RequestScanForm from "./RequestScanForm";
 
 /**
  * The live funnel needs a database and a language model key. Where they are
- * absent - a preview build, a fresh clone - the fixture-backed checker renders
- * instead, so the page is never broken, just not yet wired to real data.
+ * absent the form captures the domain and an address instead, and reports
+ * nothing.
+ *
+ * It used to fall back to the fixture-backed checker. That checker has canned
+ * data for four test domains and returns an empty result for everything else,
+ * so a real visitor was shown a confident sentence about their own brand that
+ * had never been measured. Capturing the request and saying so is the honest
+ * version of the same page.
  */
 function liveScanConfigured(): boolean {
   return Boolean(
@@ -17,10 +22,7 @@ const C = { navy: "#0B1220", purple: "#7C3AED", purpleLight: "#A855F7", body: "#
 const grad: React.CSSProperties = { background: `linear-gradient(135deg, ${C.purple} 0%, ${C.purpleLight} 100%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" };
 
 /** The hero: H1, one line, the checker. Rendered on / and, pre-advanced, on /scan. */
-export default function HeroSection(p: {
-  initialDomain?: string; initialStart?: StartScanResponse | null;
-  initialError?: { kind: "unreachable" | "rate_limited" | "api_down" | "invalid"; message: string } | null;
-}) {
+export default function HeroSection({ initialDomain = "" }: { initialDomain?: string }) {
   return (
     <section id="scan" style={{ padding: "5.5rem 1.5rem 4rem", position: "relative", overflow: "hidden" }}>
       <div className="gradient-orb" style={{ position: "absolute", width: "700px", height: "700px", background: "radial-gradient(circle, rgba(168,85,247,0.07) 0%, transparent 70%)", top: "-250px", right: "-150px", pointerEvents: "none" }} aria-hidden="true" />
@@ -32,9 +34,9 @@ export default function HeroSection(p: {
           Start by finding out whether your client already is. Enter their domain.
         </p>
         {liveScanConfigured() ? (
-          <LiveScanChecker />
+          <LiveScanChecker initialDomain={initialDomain} />
         ) : (
-          <ScanChecker initialDomain={p.initialDomain} initialStart={p.initialStart} initialError={p.initialError} />
+          <RequestScanForm initialDomain={initialDomain} />
         )}
       </div>
     </section>

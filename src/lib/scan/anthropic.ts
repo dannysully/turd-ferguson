@@ -36,10 +36,17 @@ export function describeAnthropicError(err: unknown): string {
 
 // ---------------------------------------------------------------- brand read
 
+export const TOPIC_VARIANT_COUNT = 5;
+
 const BrandRead = z.object({
   brand_name: z.string().describe("The company's own name, as it writes it"),
   positioning: z.string().describe("One paragraph on what it sells and who to"),
   suggested_topic: z.string().describe("The buyer's category phrase, two to four words"),
+  topic_variants: z
+    .array(z.string())
+    .describe(
+      `Up to ${TOPIC_VARIANT_COUNT} ways buyers phrase this category, narrowed by what makes this brand different`,
+    ),
   confidence: z.enum(["high", "low"]),
 });
 export type BrandRead = z.infer<typeof BrandRead>;
@@ -60,6 +67,22 @@ export async function readBrand(siteText: string): Promise<BrandRead> {
       "",
       'Good: "b2b seo agency", "commercial epoxy flooring", "invoice finance".',
       'Bad: "growth partner", "digital transformation experts", "the Acme method".',
+      "",
+      `Then give up to ${TOPIC_VARIANT_COUNT} topic variants. suggested_topic is the`,
+      "broad category; the variants are how buyers phrase it when they want the",
+      "particular kind of supplier this company is. Read the site for what",
+      "narrows it: who they serve, how they deliver, the stage or size of client,",
+      "the model they use.",
+      "",
+      "A fractional CFO firm that embeds operators into venture-backed startups",
+      "should not return five rewordings of 'fractional cfo'. It should return",
+      "phrases such as 'embedded fractional cfo', 'outsourced cfo for startups',",
+      "'fractional cfo for vc backed companies', 'startup finance team',",
+      "'part time cfo services'. Each variant is a real search a different buyer",
+      "would type, and at least three should carry the narrowing the site gives you.",
+      "",
+      "Every variant is lower case, two to six words, no brand names, and must",
+      "stand on its own as a search someone would actually run.",
       "",
       "Set confidence to low when the site does not make the category clear.",
     ].join("\n"),
@@ -86,11 +109,17 @@ export type GeneratedQuestion = z.infer<typeof QuestionSet>["questions"][number]
 
 export async function generateQuestions(input: {
   topic: string;
+  topicVariants?: string[];
   market: Market;
   brand: string;
   positioning: string | null;
 }): Promise<GeneratedQuestion[]> {
   const marketName = input.market === "UK" ? "the United Kingdom" : "the United States";
+
+  // The variants are what stop fourteen questions being fourteen rewordings of
+  // one phrase. Without them the set collapses onto the broad category and the
+  // result says nothing about how this brand is actually positioned.
+  const variants = (input.topicVariants ?? []).filter((v) => v.trim()).slice(0, TOPIC_VARIANT_COUNT);
 
   const res = await anthropic().messages.parse({
     model: MODEL,
@@ -100,18 +129,34 @@ export async function generateQuestions(input: {
       `You write the ${QUESTION_COUNT} commercial questions a buyer in ${marketName}`,
       "would actually type when they are close to choosing a supplier.",
       "",
-      "The mix is fixed:",
+      "You are given a broad topic and, usually, several narrower variants read",
+      "from the company's own site. SPREAD THE QUESTIONS ACROSS THE VARIANTS.",
+      "Roughly a fifth on the broad topic and the rest distributed over the",
+      "narrower ones, so the set measures the category the brand actually",
+      "competes in, not just the widest possible phrase.",
+      "",
+      "A firm embedding finance operators into venture-backed startups is not",
+      "well measured by fourteen versions of 'best fractional cfo'. It is well",
+      "measured by questions about embedded finance teams, outsourced CFOs for",
+      "startups, and CFOs for VC-backed companies, because those are the",
+      "searches its buyers run.",
+      "",
+      "The mix across the whole set is fixed:",
       "- 3 category: the term as the market says it, one plain, one with the year,",
       "  one about cost or pricing.",
-      "- 5 positioning: the category re-framed the way this brand argues for itself.",
+      "- 5 positioning: the category re-framed the way this brand argues for",
+      "  itself, using its variants.",
       "- 3 sector: the category plus the brand's strongest declared sector.",
       "- 2 outcome: the category plus the result the buyer wants.",
       "- 1 comparison: an 'X vs Y' or 'alternatives to' question.",
       "",
       "Never write a definition question. Nothing starting 'what is', 'what are',",
       "'how does ... work', or 'why is ... important'. The engine answers those",
-      "inside its own response, the click never happens, and they inflate the score",
-      "while meaning nothing.",
+      "inside its own response, the click never happens, and they inflate the",
+      "score while meaning nothing.",
+      "",
+      "No two questions may be the same question with a synonym swapped. If two",
+      "would return the same answer, replace one.",
       "",
       "Write them lower case, as typed into a search box, no question marks.",
       "Use the spelling and vocabulary of the market, not American English for a",
@@ -122,7 +167,10 @@ export async function generateQuestions(input: {
       {
         role: "user",
         content: [
-          `Topic: ${input.topic}`,
+          `Broad topic: ${input.topic}`,
+          variants.length
+            ? `Narrower variants to spread across: ${variants.join("; ")}`
+            : "Narrower variants: none were read from the site, so work from the positioning below.",
           `Market: ${marketName}`,
           `Brand (do not name it in the questions): ${input.brand}`,
           `How the brand positions itself: ${input.positioning ?? "not stated"}`,
