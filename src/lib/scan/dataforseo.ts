@@ -1,10 +1,20 @@
 import "server-only";
 
 import { MARKETS, type Market } from "./domain";
-import { parseOverview, type OverviewRead } from "./overview";
+import { type Engine, type EngineRead, PARSERS } from "./engines";
 
 const BASE = "https://api.dataforseo.com";
 
+/** ISO country codes for the markets we support, for the LLM Responses engines. */
+const MARKET_ISO: Record<Market, string> = { UK: "GB", US: "US" };
+
+/** The model each LLM Responses engine is asked. Sonnet, not Opus: same answer, less spend. */
+const RESPONSE_MODELS = {
+  perplexity: "sonar",
+  claude: "claude-sonnet-5",
+} as const;
+
+export type EngineResult = EngineRead & { cost: number };
 
 function auth(): string {
   const login = process.env.DATAFORSEO_LOGIN;
@@ -18,10 +28,7 @@ function auth(): string {
 async function post(path: string, body: unknown, timeoutMs: number): Promise<Record<string, unknown>> {
   const res = await fetch(`${BASE}${path}`, {
     method: "POST",
-    headers: {
-      authorization: `Basic ${auth()}`,
-      "content-type": "application/json",
-    },
+    headers: { authorization: `Basic ${auth()}`, "content-type": "application/json" },
     body: JSON.stringify(body),
     signal: AbortSignal.timeout(timeoutMs),
   });
@@ -43,8 +50,7 @@ type Task = {
 };
 
 function firstTask(body: Record<string, unknown>): Task {
-  const tasks = (body.tasks as Task[] | undefined) ?? [];
-  const task = tasks[0];
+  const task = ((body.tasks as Task[] | undefined) ?? [])[0];
   if (!task) throw new Error("DataForSEO returned no task");
   if (task.status_code !== 20000) {
     throw new Error(`DataForSEO task ${task.status_code}: ${task.status_message ?? "unknown"}`);
@@ -53,31 +59,100 @@ function firstTask(body: Record<string, unknown>): Task {
 }
 
 /**
- * One AI Overview read for one question.
+ * Per-engine request shape. The two families differ: the scrapers take a
+ * keyword and a location code, the LLM Responses endpoints take a prompt and,
+ * where supported, a country ISO code.
  *
- * Brand matching uses the concatenated element `text`, not `markdown`: markdown
- * carries inline link URLs, and a brand whose name appears only inside a URL
- * has not been named by the Overview.
+ * The scrapers document execution times of up to 120 seconds, so their timeout
+ * is generous; the whole run is bounded separately by the pipeline.
  */
-export async function readOverview(question: string, market: Market, timeoutMs = 60_000): Promise<OverviewRead> {
-  const body = await post(
-    "/v3/serp/google/organic/live/advanced",
-    [
-      {
-        keyword: question,
-        location_code: MARKETS[market].location_code,
-        language_code: "en",
-        device: "desktop",
-        depth: 20,
-        load_async_ai_overview: true,
-      },
-    ],
-    timeoutMs,
-  );
+function request(engine: Engine, question: string, market: Market): { path: string; body: unknown; timeoutMs: number } {
+  switch (engine) {
+    case "google_aio":
+      return {
+        path: "/v3/serp/google/organic/live/advanced",
+        timeoutMs: 60_000,
+        body: [
+          {
+            keyword: question,
+            location_code: MARKETS[market].location_code,
+            language_code: "en",
+            device: "desktop",
+            depth: 20,
+            load_async_ai_overview: true,
+          },
+        ],
+      };
 
-  const task = firstTask(body);
+    case "chatgpt":
+      return {
+        path: "/v3/ai_optimization/chat_gpt/llm_scraper/live/advanced",
+        timeoutMs: 130_000,
+        body: [
+          {
+            keyword: question,
+            location_code: MARKETS[market].location_code,
+            language_code: "en",
+            // Without this the model answers from memory and cites nothing,
+            // which is not the question we are asking.
+            force_web_search: true,
+          },
+        ],
+      };
+
+    case "gemini":
+      return {
+        path: "/v3/ai_optimization/gemini/llm_scraper/live/advanced",
+        timeoutMs: 130_000,
+        body: [
+          {
+            keyword: question,
+            location_code: MARKETS[market].location_code,
+            language_code: "en",
+          },
+        ],
+      };
+
+    case "perplexity":
+      return {
+        path: "/v3/ai_optimization/perplexity/llm_responses/live",
+        timeoutMs: 130_000,
+        body: [
+          {
+            user_prompt: question,
+            model_name: RESPONSE_MODELS.perplexity,
+            // Capped deliberately: these endpoints bill per token, so an
+            // unbounded answer is an unbounded bill.
+            max_output_tokens: 1200,
+            temperature: 0.2,
+            web_search_country_iso_code: MARKET_ISO[market],
+          },
+        ],
+      };
+
+    case "claude":
+      return {
+        path: "/v3/ai_optimization/claude/llm_responses/live",
+        timeoutMs: 130_000,
+        body: [
+          {
+            user_prompt: question,
+            model_name: RESPONSE_MODELS.claude,
+            max_output_tokens: 1200,
+            web_search: true,
+          },
+        ],
+      };
+  }
+}
+
+/** Ask one engine one question. Cost is whatever DataForSEO billed for the task. */
+export async function readEngine(engine: Engine, question: string, market: Market): Promise<EngineResult> {
+  const { path, body, timeoutMs } = request(engine, question, market);
+  const raw = await post(path, body, timeoutMs);
+  const task = firstTask(raw);
   const cost = typeof task.cost === "number" ? task.cost : 0;
-  return { ...parseOverview(task.result?.[0]), cost };
+  return { ...PARSERS[engine](task.result?.[0]), cost };
 }
 
 /** One call for the whole question set. Missing volumes stay null, never zero. */
@@ -91,13 +166,7 @@ export async function readSearchVolumes(
 
   const body = await post(
     "/v3/keywords_data/google_ads/search_volume/live",
-    [
-      {
-        keywords: questions,
-        location_code: MARKETS[market].location_code,
-        language_code: "en",
-      },
-    ],
+    [{ keywords: questions, location_code: MARKETS[market].location_code, language_code: "en" }],
     timeoutMs,
   );
 

@@ -8,10 +8,16 @@
  * The rotation lives in globals.css (.brand-mark__ast) so it can be disabled
  * under prefers-reduced-motion and sped up on hover of a .brand-lockup parent.
  *
+ * Sizing follows the Nomada lockup, where the asterisk's ink is about 1.15x
+ * the wordmark's ascender height - an accent beside the word, not a badge in
+ * front of it. The ink fills 86% of this box, so a `size` roughly equal to the
+ * wordmark's font-size lands on that ratio. Going much larger is what makes it
+ * read as a logo tile.
+ *
  * `id` must be unique per rendered instance: SVG gradient ids are global to the
  * document, so two marks sharing one id would collide.
  */
-export default function BrandMark({ id, size = 32 }: { id: string; size?: number }) {
+export default function BrandMark({ id, size = 18 }: { id: string; size?: number }) {
   const gradientId = `brandMarkGrad-${id}`;
 
   return (

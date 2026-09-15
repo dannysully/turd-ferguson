@@ -29,6 +29,9 @@ type ScanRow = {
   status: string;
   step: string | null;
   error: string | null;
+  engines: string[] | null;
+  engines_answered: string[] | null;
+  gated_status: string | null;
   dfs_calls: number;
   dfs_cost: number | string | null;
   anthropic_calls: number;
@@ -88,7 +91,7 @@ export default async function AdminScansPage() {
     db
       .from("scans")
       .select(
-        "public_token, domain, topic, market, status, step, error, dfs_calls, dfs_cost, anthropic_calls, unlocked_at, created_at, completed_at",
+        "public_token, domain, topic, market, status, step, error, engines, engines_answered, gated_status, dfs_calls, dfs_cost, anthropic_calls, unlocked_at, created_at, completed_at",
       )
       .order("created_at", { ascending: false })
       .limit(50),
@@ -108,6 +111,9 @@ export default async function AdminScansPage() {
   const setting = (key: string) => (settings ?? []).find((s) => s.key === key)?.value;
   const enabled = setting("scans_enabled") !== false;
   const cap = Number(setting("daily_scan_cap") ?? 200);
+  const costCap = Number(setting("daily_cost_cap_usd") ?? 60);
+  const freeEngines = (setting("scan_engines_free") as string[] | undefined) ?? [];
+  const gatedEngines = (setting("scan_engines_gated") as string[] | undefined) ?? [];
 
   const th: React.CSSProperties = {
     textAlign: "left",
@@ -135,6 +141,10 @@ export default async function AdminScansPage() {
       <p style={{ color: C.body, marginTop: "0.375rem" }}>
         Last 24 hours. Cost is what DataForSEO reported per task, so it reconciles against their dashboard.
       </p>
+      <p style={{ color: C.muted, marginTop: "0.375rem", fontSize: "0.875rem" }}>
+        Free scan reads {freeEngines.join(", ") || "nothing"}. An email additionally runs{" "}
+        {gatedEngines.join(", ") || "nothing"} over the same questions.
+      </p>
 
       {!enabled && (
         <p
@@ -161,6 +171,7 @@ export default async function AdminScansPage() {
         }}
       >
         <Tile label="Scans today" value={`${total} / ${cap}`} />
+        <Tile label="Spend today" value={`${money(dfsCost)} / $${costCap}`} tone={dfsCost > costCap * 0.8 ? C.red : undefined} />
         <Tile label="Unlocked" value={String(unlocked)} tone={C.purple} />
         <Tile label="Failed" value={String(failed)} tone={failed ? C.red : C.green} />
         <Tile label="DataForSEO calls" value={String(dfsCalls)} />
@@ -180,6 +191,7 @@ export default async function AdminScansPage() {
               <th style={th}>Domain</th>
               <th style={th}>Topic</th>
               <th style={th}>Market</th>
+              <th style={th}>Engines</th>
               <th style={th}>Status</th>
               <th style={th}>Took</th>
               <th style={th}>DFS</th>
@@ -191,7 +203,7 @@ export default async function AdminScansPage() {
           <tbody>
             {scans.length === 0 && (
               <tr>
-                <td style={td} colSpan={10}>
+                <td style={td} colSpan={11}>
                   No scans yet.
                 </td>
               </tr>
@@ -201,7 +213,14 @@ export default async function AdminScansPage() {
                 <td style={td}>{when(r.created_at)}</td>
                 <td style={{ ...td, color: C.navy, fontWeight: 600 }}>{r.domain}</td>
                 <td style={td}>{r.topic ?? "-"}</td>
-                <td style={td}>{r.market ?? "-"}</td>
+                <td style={td}>
+                  {(r.engines_answered ?? []).length}/{(r.engines ?? []).length}
+                  {r.gated_status && r.gated_status !== "none" ? (
+                    <span style={{ display: "block", color: C.muted, fontSize: "0.75rem" }}>
+                      gated {r.gated_status}
+                    </span>
+                  ) : null}
+                </td>
                 <td style={{ ...td, color: r.status === "failed" ? C.red : r.status === "complete" ? C.green : C.body }}>
                   {r.status}
                   {r.step ? ` · ${r.step}` : ""}

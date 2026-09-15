@@ -1,0 +1,254 @@
+/**
+ * The engines a scan reads, and how to parse each one's answer.
+ *
+ * Pure: no credentials, no network. dataforseo.ts owns the HTTP and imports
+ * these parsers, which keeps the parsing testable against recorded responses.
+ *
+ * Two different DataForSEO families are in play. ChatGPT and Gemini have an
+ * LLM Scraper, which reads the consumer product a buyer actually uses, so that
+ * is what we call. Perplexity and Claude only expose LLM Responses, which asks
+ * the model directly; that is a slightly different question and the UI says so.
+ */
+
+import { normalizeDomain } from "./domain";
+
+export const ENGINES = ["google_aio", "chatgpt", "gemini", "perplexity", "claude"] as const;
+export type Engine = (typeof ENGINES)[number];
+
+export function isEngine(v: unknown): v is Engine {
+  return typeof v === "string" && (ENGINES as readonly string[]).includes(v);
+}
+
+/**
+ * Client-safe. This module is imported by the result screen, so it must carry
+ * nothing commercially sensitive: what each call costs us lives in
+ * engine-costs.ts, which is server-only.
+ */
+export type EngineSpec = {
+  key: Engine;
+  /** Shown in the UI. */
+  label: string;
+  /** "scraper" reads the consumer product; "model" asks the model directly. */
+  kind: "scraper" | "model";
+};
+
+export const ENGINE_SPECS: Record<Engine, EngineSpec> = {
+  google_aio: { key: "google_aio", label: "Google AI Overviews", kind: "scraper" },
+  chatgpt: { key: "chatgpt", label: "ChatGPT", kind: "scraper" },
+  gemini: { key: "gemini", label: "Gemini", kind: "scraper" },
+  perplexity: { key: "perplexity", label: "Perplexity", kind: "model" },
+  claude: { key: "claude", label: "Claude", kind: "model" },
+};
+
+/**
+ * The split that decides what an email is worth.
+ *
+ * The free scan reads the three surfaces a buyer actually sees, at about $0.19
+ * for fourteen questions. Perplexity and Claude are what the email buys: they
+ * cost roughly $0.74 more per scan, which is worth paying for an address but
+ * not for an anonymous visitor.
+ */
+export const FREE_ENGINES: Engine[] = ["google_aio", "chatgpt", "gemini"];
+export const GATED_ENGINES: Engine[] = ["perplexity", "claude"];
+
+export type Citation = {
+  source_domain: string;
+  url: string | null;
+  title: string | null;
+  position: number;
+};
+
+/** One engine's answer to one question, normalised across all five shapes. */
+export type EngineRead = {
+  /** Did this engine produce an answer at all? A false here is a measured absence. */
+  answered: boolean;
+  /** The engine's own prose, with link URLs stripped. Brand matching runs on this. */
+  prose: string;
+  citations: Citation[];
+  raw: unknown;
+};
+
+const EMPTY: EngineRead = { answered: false, prose: "", citations: [], raw: null };
+
+/**
+ * Markdown to prose. Link labels survive, URLs do not, so a brand whose name
+ * appears only inside a URL is not counted as named.
+ */
+export function stripMarkdownLinks(md: string): string {
+  return md
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, " ")
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/<https?:\/\/[^>]*>/g, " ")
+    .replace(/https?:\/\/\S+/g, " ")
+    .replace(/[*_`#>]/g, "")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function collectCitations(
+  refs: Array<{ domain?: string | null; url?: string | null; title?: string | null; source_name?: string | null }>,
+): Citation[] {
+  const seen = new Set<string>();
+  const out: Citation[] = [];
+  for (const r of refs) {
+    const domain = normalizeDomain(r.domain ?? r.url ?? "");
+    if (!domain) continue;
+    const key = `${domain}|${r.url ?? ""}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({
+      source_domain: domain,
+      url: r.url ?? null,
+      title: r.title ?? r.source_name ?? null,
+      position: out.length + 1,
+    });
+  }
+  return out;
+}
+
+// ─────────────────────────────── google_aio ───────────────────────────────
+type AioRef = { source?: string; domain?: string; url?: string; title?: string };
+type AioElement = { text?: string; references?: AioRef[] };
+type AioItem = { type: string; markdown?: string; items?: AioElement[]; references?: AioRef[] };
+
+export function parseGoogleAio(result: Record<string, unknown> | undefined | null): EngineRead {
+  if (!result) return EMPTY;
+
+  const items = (result.items as AioItem[] | undefined) ?? [];
+  const aio = items.find((i) => i.type === "ai_overview");
+  if (!aio) {
+    const claimed = ((result.item_types as string[] | undefined) ?? []).includes("ai_overview");
+    return { ...EMPTY, raw: { claimed_but_absent: claimed } };
+  }
+
+  // Element text is the Overview's own prose. The markdown field carries inline
+  // link URLs, so it is never used for brand matching.
+  const prose = (aio.items ?? [])
+    .map((el) => el.text ?? "")
+    .filter(Boolean)
+    .join("\n\n");
+
+  const refs = aio.references?.length ? aio.references : (aio.items ?? []).flatMap((el) => el.references ?? []);
+  const citations = collectCitations(refs);
+
+  return { answered: true, prose, citations, raw: { reference_count: citations.length } };
+}
+
+// ──────────────────────── chatgpt / gemini scrapers ────────────────────────
+type ScraperSource = { domain?: string; url?: string; title?: string; source_name?: string };
+type ScraperItem = {
+  type?: string;
+  markdown?: string;
+  /** Gemini returns unformatted text; ChatGPT does not. */
+  original_text?: string;
+  sources?: ScraperSource[] | null;
+  items?: Array<{ title?: string; url?: string; domain?: string }> | null;
+};
+
+function parseScraper(result: Record<string, unknown> | undefined | null): EngineRead {
+  if (!result) return EMPTY;
+
+  const items = (result.items as ScraperItem[] | undefined) ?? [];
+  if (!items.length) return EMPTY;
+
+  const prose = items
+    .map((i) => {
+      if (i.original_text) return i.original_text;
+      if (i.markdown) return stripMarkdownLinks(i.markdown);
+      return "";
+    })
+    .filter(Boolean)
+    .join("\n\n");
+
+  // Local business panels name suppliers without citing a page; those names are
+  // part of the answer and must count towards being named.
+  const panelNames = items
+    .flatMap((i) => i.items ?? [])
+    .map((b) => b?.title)
+    .filter((t): t is string => Boolean(t));
+
+  const topLevel = (result.sources as ScraperSource[] | undefined) ?? [];
+  const perItem = items.flatMap((i) => i.sources ?? []);
+  const citations = collectCitations(topLevel.length ? topLevel : perItem);
+
+  const fullProse = panelNames.length ? `${panelNames.join("\n")}\n\n${prose}` : prose;
+  if (!fullProse.trim()) return { ...EMPTY, raw: { empty_answer: true } };
+
+  return { answered: true, prose: fullProse, citations, raw: { reference_count: citations.length } };
+}
+
+export const parseChatGpt = parseScraper;
+export const parseGemini = parseScraper;
+
+// ─────────────────── perplexity / claude llm responses ───────────────────
+type ResponseAnnotation = { title?: string; url?: string };
+type ResponseSection = { type?: string; text?: string; annotations?: ResponseAnnotation[] | null };
+type ResponseItem = { type?: string; sections?: ResponseSection[] };
+
+function parseLlmResponse(result: Record<string, unknown> | undefined | null): EngineRead {
+  if (!result) return EMPTY;
+
+  const items = (result.items as ResponseItem[] | undefined) ?? [];
+  const sections = items.flatMap((i) => i.sections ?? []);
+  if (!sections.length) return EMPTY;
+
+  // These come back as many small sections; joined without blank lines so
+  // sentences split across sections still read as sentences.
+  const prose = sections
+    .map((s) => s.text ?? "")
+    .join("")
+    .trim();
+
+  const annotations = sections.flatMap((s) => s.annotations ?? []);
+  const citations = collectCitations(annotations);
+
+  if (!prose) return { ...EMPTY, raw: { empty_answer: true } };
+
+  return {
+    answered: true,
+    prose,
+    citations,
+    raw: {
+      reference_count: citations.length,
+      web_search: result.web_search ?? null,
+      money_spent: result.money_spent ?? null,
+    },
+  };
+}
+
+export const parsePerplexity = parseLlmResponse;
+export const parseClaude = parseLlmResponse;
+
+export const PARSERS: Record<Engine, (r: Record<string, unknown> | undefined | null) => EngineRead> = {
+  google_aio: parseGoogleAio,
+  chatgpt: parseChatGpt,
+  gemini: parseGemini,
+  perplexity: parsePerplexity,
+  claude: parseClaude,
+};
+
+/**
+ * Does the answer name the brand?
+ *
+ * Word-boundary matched, case insensitive, with company suffixes folded away.
+ * Runs against prose only, never URLs.
+ */
+export function namesBrand(prose: string, brand: string): boolean {
+  if (!prose || !brand) return false;
+
+  const stripped = brand
+    .toLowerCase()
+    .replace(/\b(ltd|limited|inc|llc|plc|gmbh|co|company)\b\.?/g, " ")
+    .replace(/[.,]/g, " ")
+    .replace(/^the\s+/, "")
+    .trim();
+  if (stripped.length < 2) return false;
+
+  const pattern = stripped
+    .split(/[\s-]+/)
+    .map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .join("[\\s\\-]*");
+
+  return new RegExp(`(^|[^a-z0-9])${pattern}($|[^a-z0-9])`, "i").test(prose.toLowerCase());
+}

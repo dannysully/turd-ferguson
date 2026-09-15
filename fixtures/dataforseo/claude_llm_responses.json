@@ -1,0 +1,53 @@
+{
+  "model_name": "claude-sonnet-5",
+  "input_tokens": 11665,
+  "output_tokens": 1314,
+  "web_search": true,
+  "money_spent": 0.04647,
+  "items": [
+    {
+      "type": "message",
+      "sections": [
+        {
+          "type": "text",
+          "text": "There isn't a single definitive \"best\" B2B SEO agency in the UK. Here is an overview:\n\n**POLARIS** - ",
+          "annotations": null
+        },
+        {
+          "type": "text",
+          "text": "POLARIS is a London-based specialist digital marketing agency founded in 2009.",
+          "annotations": [
+            {
+              "title": "The 10 Best B2B SEO Agencies",
+              "url": "https://www.polarisagency.com/marketing-insights/b2b-seo-finding-the-right-seo-agency/",
+              "start_index": null,
+              "end_index": null,
+              "text": null
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "text": "\n\n**Gripped** - ",
+          "annotations": null
+        },
+        {
+          "type": "text",
+          "text": "Gripped is one of the most substantiated B2B SaaS and tech SEO agencies in the UK.",
+          "annotations": [
+            {
+              "title": "The 10 Best B2B SEO Agencies",
+              "url": "https://www.polarisagency.com/marketing-insights/b2b-seo-finding-the-right-seo-agency/",
+              "start_index": null,
+              "end_index": null,
+              "text": null
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "fan_out_queries": [
+    "best b2b seo agency uk"
+  ]
+}

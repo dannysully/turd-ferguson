@@ -1,0 +1,51 @@
+{
+  "keyword": "best b2b seo agency uk",
+  "location_code": 2826,
+  "language_code": "en",
+  "model": "3.5 Flash-Lite",
+  "sources": [
+    {
+      "type": "gemini_source",
+      "title": "Best SEO Agencies for 2026",
+      "domain": "www.rebootonline.com",
+      "url": "https://www.rebootonline.com/seo/best-seo-agencies/",
+      "source_name": "Reboot Online"
+    },
+    {
+      "type": "gemini_source",
+      "title": "Top SEO Agencies in UK (2026)",
+      "domain": "digitalagencynetwork.com",
+      "url": "https://digitalagencynetwork.com/agencies/uk/seo/",
+      "source_name": "Digital Agency Network"
+    }
+  ],
+  "item_types": [
+    "gemini_text"
+  ],
+  "items": [
+    {
+      "type": "gemini_text",
+      "rank_group": 1,
+      "rank_absolute": 1,
+      "markdown": "The UK is home to several top-tier agencies.[www.rebootonline.com](https://www.rebootonline.com/seo/best-seo-agencies/)",
+      "original_text": "The UK is home to several top-tier agencies specializing in B2B search engine optimization and organic growth.",
+      "sources": null
+    },
+    {
+      "type": "gemini_text",
+      "rank_group": 2,
+      "rank_absolute": 2,
+      "markdown": "* **Blue Array**\n* **The SEO Works**\n* **Hallam**",
+      "original_text": "Blue Array\nBest for: Dedicated, specialist SEO consultancy.\nThe SEO Works\nBest for: SMEs and mid-market B2B companies.\nHallam\nBest for: Integrated digital growth.",
+      "sources": [
+        {
+          "type": "gemini_source",
+          "title": "Best SEO Agencies for 2026",
+          "domain": "www.rebootonline.com",
+          "url": "https://www.rebootonline.com/seo/best-seo-agencies/",
+          "source_name": "Reboot Online"
+        }
+      ]
+    }
+  ]
+}

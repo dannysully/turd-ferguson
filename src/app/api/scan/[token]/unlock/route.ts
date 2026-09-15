@@ -1,8 +1,14 @@
+import { after } from "next/server";
+
+import { runGatedScan } from "@/lib/scan/pipeline";
+import { getSettings } from "@/lib/scan/settings";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 30;
+// The response goes out as soon as the free result is assembled; the gated
+// engines then run in after(), so this covers that second pass too.
+export const maxDuration = 300;
 
 /** Throwaway-inbox domains. Kept short and obvious rather than exhaustive. */
 const DISPOSABLE = new Set([
@@ -42,7 +48,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
 
   const { data: scan } = await db
     .from("scans")
-    .select("id, domain, brand_name, topic, market, status, account_id")
+    .select("id, domain, brand_name, topic, market, status, account_id, gated_engines, gated_status")
     .eq("public_token", token)
     .maybeSingle();
 
@@ -118,43 +124,83 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
       // Already-registered users error here; that is fine and not worth failing on.
     });
 
+  // 4b. Start the engines the email just bought. This runs once per scan: a
+  // second unlock of the same scan must not re-spend on Perplexity and Claude.
+  let gatedStarted = false;
+  const gatedEngines = ((scan.gated_engines ?? []) as string[]).filter(Boolean);
+  if (gatedEngines.length && scan.gated_status === "none") {
+    // The spend cap covers gated runs as well, or a burst of unlocks could
+    // outspend the day's budget after the count cap has already been passed.
+    const settings = await getSettings();
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { data: spendRows } = await db.from("scans").select("dfs_cost").gte("created_at", since);
+    const spentToday = (spendRows ?? []).reduce((a, r) => a + Number(r.dfs_cost ?? 0), 0);
+
+    if (spentToday < settings.daily_cost_cap_usd) {
+      const { error: claimErr } = await db
+        .from("scans")
+        .update({ gated_status: "queued" })
+        .eq("id", scan.id)
+        .eq("gated_status", "none");
+      if (!claimErr) {
+        gatedStarted = true;
+        after(async () => {
+          await runGatedScan(scan.id);
+        });
+      }
+    }
+  }
+
   // 5. The full payload, which has not been sent before this point.
-  const [{ data: brands }, { data: sources }, { data: questions }] = await Promise.all([
-    db
-      .from("scan_brands")
-      .select("brand, mentions, is_subject")
-      .eq("scan_id", scan.id)
-      .order("mentions", { ascending: false }),
+  const [{ data: brands }, { data: sources }, { data: questions }, { data: answers }] = await Promise.all([
+    db.from("scan_brands").select("engine, brand, mentions, is_subject").eq("scan_id", scan.id),
     db
       .from("scan_citations")
-      .select("source_domain, url, title, question_id, scan_questions(search_volume)")
+      .select("source_domain, url, title, question_id, engine, scan_questions(search_volume)")
       .eq("scan_id", scan.id),
     db
       .from("scan_questions")
-      .select("idx, question, kind, search_volume, aio_shown, brand_named")
+      .select("id, idx, question, kind, search_volume")
       .eq("scan_id", scan.id)
       .order("idx", { ascending: true }),
+    db.from("scan_answers").select("question_id, engine, answered, brand_named").eq("scan_id", scan.id),
   ]);
 
-  // Fold citations into one row per source: distinct questions, summed volume.
+  // Leaderboard: per engine, and summed across engines for the overall view.
+  type BrandRow = { engine: string; brand: string; mentions: number; is_subject: boolean };
+  const brandRows = (brands ?? []) as BrandRow[];
+  const overall = new Map<string, { brand: string; mentions: number; is_subject: boolean; engines: string[] }>();
+  for (const b of brandRows) {
+    const row = overall.get(b.brand) ?? { brand: b.brand, mentions: 0, is_subject: b.is_subject, engines: [] };
+    row.mentions += b.mentions;
+    row.is_subject = row.is_subject || b.is_subject;
+    if (!row.engines.includes(b.engine)) row.engines.push(b.engine);
+    overall.set(b.brand, row);
+  }
+  const leaderboard = [...overall.values()].sort((a, b) => b.mentions - a.mentions);
+
+  // Sources: one row per source, counting distinct (question, engine) pairs, so
+  // a source cited twice inside one answer is not counted twice.
   type SourceRow = {
     source: string;
     mentions: number;
+    engines: string[];
     ai_search_volume: number | null;
     urls: string[];
-    questions: Set<string>;
   };
   const bySource = new Map<string, SourceRow>();
+  const counted = new Set<string>();
   for (const c of sources ?? []) {
     const row: SourceRow = bySource.get(c.source_domain) ?? {
       source: c.source_domain,
       mentions: 0,
+      engines: [],
       ai_search_volume: null,
       urls: [],
-      questions: new Set<string>(),
     };
-    if (!row.questions.has(c.question_id)) {
-      row.questions.add(c.question_id);
+    const key = `${c.source_domain}|${c.question_id}|${c.engine}`;
+    if (!counted.has(key)) {
+      counted.add(key);
       row.mentions += 1;
       // An embedded to-one select arrives as an array in some client versions.
       const embedded = c.scan_questions as unknown;
@@ -162,21 +208,43 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
       const v = (q as { search_volume?: number | null } | null)?.search_volume;
       if (typeof v === "number") row.ai_search_volume = (row.ai_search_volume ?? 0) + v;
     }
+    if (!row.engines.includes(c.engine)) row.engines.push(c.engine);
     if (c.url && !row.urls.includes(c.url)) row.urls.push(c.url);
     bySource.set(c.source_domain, row);
   }
+  const fullSources = [...bySource.values()].sort(
+    (a, b) => b.mentions - a.mentions || (b.ai_search_volume ?? 0) - (a.ai_search_volume ?? 0),
+  );
 
-  const fullSources = [...bySource.values()]
-    // The question set was only needed to count distinct questions per source.
-    .map((r) => ({ source: r.source, mentions: r.mentions, ai_search_volume: r.ai_search_volume, urls: r.urls }))
-    .sort((a, b) => b.mentions - a.mentions || (b.ai_search_volume ?? 0) - (a.ai_search_volume ?? 0));
+  // Per question, what each engine did. "did not answer" and "answered without
+  // naming them" stay separate states all the way to the screen.
+  const answerRows = (answers ?? []) as Array<{
+    question_id: string;
+    engine: string;
+    answered: boolean;
+    brand_named: boolean;
+  }>;
+  const questionDetail = (questions ?? []).map((q) => ({
+    idx: q.idx,
+    question: q.question,
+    kind: q.kind,
+    search_volume: q.search_volume,
+    engines: answerRows
+      .filter((a) => a.question_id === q.id)
+      .map((a) => ({ engine: a.engine, answered: a.answered, brand_named: a.brand_named })),
+  }));
 
   return Response.json(
     {
       unlocked: true,
-      brands: brands ?? [],
+      // Which engines are still to come, so the screen can say so rather than
+      // showing a silent gap where Perplexity and Claude will appear.
+      gated_engines: gatedEngines,
+      gated_status: gatedStarted ? "queued" : (scan.gated_status ?? "none"),
+      brands: leaderboard,
+      brands_by_engine: brandRows,
       sources: fullSources,
-      questions: questions ?? [],
+      questions: questionDetail,
     },
     { headers: { "cache-control": "no-store" } },
   );

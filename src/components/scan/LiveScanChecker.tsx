@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import type { Market, RunScanResponse } from "@/lib/scan";
+import type { EngineBreakdown, Market, RunScanResponse } from "@/lib/scan";
+import { ENGINE_SPECS, isEngine } from "@/lib/scan/engines";
 
 import { C, DomainScreen, ResultScreen, RunningScreen, TopicScreen, btn, field, label } from "./screens";
 import Turnstile from "./Turnstile";
@@ -17,6 +18,8 @@ import Turnstile from "./Turnstile";
 
 type Phase = "domain" | "topic" | "running" | "result";
 
+type ByEngine = { engine: string; asked: number; answered: number; named: number };
+
 type Teaser = {
   brand: string | null;
   topic: string | null;
@@ -26,7 +29,9 @@ type Teaser = {
   read_at: string | null;
   named: number;
   of: number;
-  aio_shown: number;
+  engines: string[] | null;
+  engines_answered: string[] | null;
+  by_engine: ByEngine[] | null;
   rank: number | null;
   brand_count: number;
   top_sources: { source: string; mentions: number; ai_search_volume: number | null; is_own_domain: boolean }[] | null;
@@ -36,7 +41,28 @@ type Teaser = {
 type FullPayload = {
   brands: { brand: string; mentions: number; is_subject: boolean }[];
   sources: { source: string; mentions: number; ai_search_volume: number | null; urls: string[] }[];
+  gated_engines?: string[];
+  gated_status?: string;
 };
+
+function engineLabels(keys: string[]): string {
+  const names = keys.filter(isEngine).map((k) => ENGINE_SPECS[k].label);
+  if (names.length <= 1) return names[0] ?? "";
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+}
+
+function toBreakdown(rows: ByEngine[] | null): EngineBreakdown[] {
+  return (rows ?? [])
+    .filter((r) => isEngine(r.engine))
+    .map((r) => ({
+      engine: r.engine,
+      label: ENGINE_SPECS[r.engine as keyof typeof ENGINE_SPECS].label,
+      kind: ENGINE_SPECS[r.engine as keyof typeof ENGINE_SPECS].kind,
+      asked: r.asked,
+      answered: r.answered,
+      named: r.named,
+    }));
+}
 
 const STEP_INDEX: Record<string, number> = { questions: 0, reading: 1, sources: 2 };
 const POLL_MS = 2500;
@@ -70,6 +96,7 @@ function toResult(t: Teaser, domain: string, full: FullPayload | null): RunScanR
       share_of_voice:
         subject && totalMentions > 0 ? Math.round((subject.mentions / totalMentions) * 100) : null,
     },
+    engines: toBreakdown(t.by_engine),
     top_source: top ? { domain: top.source, brand_present: top.is_own_domain } : null,
     leaderboard:
       full?.brands.map((b) => ({ brand: b.brand, mentions: b.mentions, ai_search_volume: null })) ?? [],
@@ -80,10 +107,11 @@ function toResult(t: Teaser, domain: string, full: FullPayload | null): RunScanR
     })),
     history: [],
     gated: !full,
-    empty: t.of > 0 && t.aio_shown === 0,
+    // Every engine answering nothing is a real finding, not an error.
+    empty: t.of > 0 && (t.by_engine ?? []).every((e) => e.answered === 0),
     reason:
-      t.of > 0 && t.aio_shown === 0
-        ? "None of the questions returned a Google AI Overview. This topic does not trigger them yet."
+      t.of > 0 && (t.by_engine ?? []).every((e) => e.answered === 0)
+        ? "None of the engines produced an answer for these questions yet."
         : null,
   };
 }
@@ -107,6 +135,8 @@ export default function LiveScanChecker({ compact = false }: { compact?: boolean
 
   const [teaser, setTeaser] = useState<Teaser | null>(null);
   const [full, setFull] = useState<FullPayload | null>(null);
+  const [gatedEngines, setGatedEngines] = useState<string[]>([]);
+  const [gatedStatus, setGatedStatus] = useState<string>("none");
 
   const [email, setEmail] = useState("");
   const [emailErr, setEmailErr] = useState("");
@@ -144,6 +174,7 @@ export default function LiveScanChecker({ compact = false }: { compact?: boolean
 
       setToken(data.token);
       setBrandName(data.brand_name ?? "");
+      setGatedEngines(data.gated_engines ?? []);
 
       // A cached complete scan skips straight to the result.
       if (data.status === "complete") {
@@ -232,6 +263,37 @@ export default function LiveScanChecker({ compact = false }: { compact?: boolean
     };
   }, [phase, token, loadTeaser]);
 
+  // ---- after unlock: the engines the email bought are still running ----
+  useEffect(() => {
+    if (!token || !full) return;
+    if (gatedStatus !== "queued" && gatedStatus !== "running") return;
+    let stop = false;
+
+    async function poll() {
+      if (stop) return;
+      try {
+        const res = await fetch(`/api/scan/${token}/status`, { cache: "no-store" });
+        const data = await res.json();
+        setGatedStatus(data.gated_status ?? "none");
+
+        if (data.gated_status === "complete") {
+          // Re-read the teaser so the per-engine breakdown now includes them.
+          setTeaser(await loadTeaser(token!));
+          return;
+        }
+        if (data.gated_status === "failed") return;
+      } catch {
+        // A dropped poll is not a failure. Try again on the next tick.
+      }
+      if (!stop) setTimeout(poll, POLL_MS);
+    }
+
+    poll();
+    return () => {
+      stop = true;
+    };
+  }, [token, full, gatedStatus, loadTeaser]);
+
   // ---- step 05 ----
   async function onEmail(e: React.FormEvent) {
     e.preventDefault();
@@ -251,6 +313,8 @@ export default function LiveScanChecker({ compact = false }: { compact?: boolean
         return;
       }
       setFull({ brands: data.brands ?? [], sources: data.sources ?? [] });
+      setGatedEngines(data.gated_engines ?? gatedEngines);
+      setGatedStatus(data.gated_status ?? "none");
       track("scan_unlocked", {});
     } catch {
       setEmailErr("We could not reach the checker. Please try again.");
@@ -310,6 +374,27 @@ export default function LiveScanChecker({ compact = false }: { compact?: boolean
         <RunningScreen brandLabel={brandName || domain} progress={progress} slow={slow} headingRef={headingRef} />
       )}
 
+      {phase === "result" && result && full && gatedEngines.length > 0 && (
+        <p
+          style={{
+            fontSize: "0.8125rem",
+            color: gatedStatus === "failed" ? C.red : C.body,
+            background: gatedStatus === "failed" ? "transparent" : "rgba(124,58,237,0.06)",
+            border: `1px solid ${gatedStatus === "failed" ? C.border : "rgba(124,58,237,0.2)"}`,
+            borderRadius: 12,
+            padding: "0.75rem 1rem",
+            margin: "0 0 1rem",
+            lineHeight: 1.6,
+          }}
+        >
+          {gatedStatus === "queued" || gatedStatus === "running"
+            ? `Now running the same questions through ${engineLabels(gatedEngines)}. This takes another minute or two, and the results appear here.`
+            : gatedStatus === "complete"
+              ? `${engineLabels(gatedEngines)} are included below.`
+              : `We could not reach ${engineLabels(gatedEngines)} this time. Everything above is unaffected.`}
+        </p>
+      )}
+
       {phase === "result" && result && (
         <ResultScreen
           result={result}
@@ -319,11 +404,23 @@ export default function LiveScanChecker({ compact = false }: { compact?: boolean
           gate={
             <form onSubmit={onEmail} noValidate>
               <p style={{ fontSize: "0.9375rem", fontWeight: 700, color: C.navy, margin: "0 0 0.5rem" }}>
-                See the full leaderboard and every source
+                {gatedEngines.length
+                  ? `Add ${engineLabels(gatedEngines)}, and see every source`
+                  : "See the full leaderboard and every source"}
               </p>
               <p style={{ fontSize: "0.875rem", color: C.body, margin: "0 0 1rem", lineHeight: 1.6 }}>
-                {result.brand.of_brands ?? "All"} brands the engines mention, and all{" "}
-                {teaser?.total_sources ?? 0} sources they cite for {result.topic}.
+                {gatedEngines.length ? (
+                  <>
+                    We will run the same {result.brand.of ?? 14} questions through{" "}
+                    {engineLabels(gatedEngines)} as well, then show you the full leaderboard and all{" "}
+                    {teaser?.total_sources ?? 0} sources cited for {result.topic}.
+                  </>
+                ) : (
+                  <>
+                    {result.brand.of_brands ?? "All"} brands the engines mention, and all{" "}
+                    {teaser?.total_sources ?? 0} sources they cite for {result.topic}.
+                  </>
+                )}
               </p>
               <label htmlFor="scan-email" style={label}>
                 Work email

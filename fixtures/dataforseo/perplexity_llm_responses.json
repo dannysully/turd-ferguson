@@ -1,0 +1,35 @@
+{
+  "model_name": "sonar",
+  "input_tokens": 14,
+  "output_tokens": 418,
+  "web_search": true,
+  "money_spent": 0.005432,
+  "items": [
+    {
+      "type": "message",
+      "sections": [
+        {
+          "type": "text",
+          "text": "If you want the best B2B SEO agency in the UK, the strongest shortlists point to Angelfish Marketing, Web Choice UK, Directive Consulting, Gripped, The SEO Works, and Polaris Agency as serious contenders.",
+          "annotations": [
+            {
+              "title": "The 9 Best B2B SEO Agencies in the UK (2026) - Angelfish Marketing",
+              "url": "https://www.angelfish-marketing.com/the-9-best-b2b-seo-agencies-in-the-uk-2026",
+              "start_index": null,
+              "end_index": null,
+              "text": null
+            },
+            {
+              "title": "The Best B2B SEO Agencies in the UK (2026 Guide)",
+              "url": "https://seo-giant.co.uk/the-best-b2b-seo-agencies-in-the-uk-2026-guide/",
+              "start_index": null,
+              "end_index": null,
+              "text": null
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "fan_out_queries": null
+}

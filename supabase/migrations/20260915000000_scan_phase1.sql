@@ -13,7 +13,18 @@ insert into app_settings (key, value) values
   ('scans_enabled',      'true'::jsonb),
   ('daily_scan_cap',     '200'::jsonb),
   ('ip_scans_per_day',   '3'::jsonb),
-  ('domain_cache_days',  '30'::jsonb);
+  ('domain_cache_days',  '30'::jsonb),
+  -- What an anonymous visitor gets. Measured DataForSEO cost for fourteen
+  -- questions: google_aio $0.077, chatgpt $0.056, gemini $0.056. About $0.19.
+  ('scan_engines_free',  '["google_aio","chatgpt","gemini"]'::jsonb),
+  -- What the email buys, run once after the address is captured: perplexity
+  -- $0.084 and claude $0.659, about $0.74 more. Worth it for an address, not
+  -- for an anonymous visitor. Editing either row takes effect on the next
+  -- request, no deploy.
+  ('scan_engines_gated', '["perplexity","claude"]'::jsonb),
+  -- Second safety net behind daily_scan_cap, covering free and gated spend
+  -- together. Trips before the count cap if unlocks run hot.
+  ('daily_cost_cap_usd', '60'::jsonb);
 
 -- ---------- accounts ----------
 create table accounts (
@@ -40,6 +51,11 @@ create table client_domains (
 -- ---------- scans ----------
 create type scan_status as enum ('pending_topic','queued','running','complete','failed');
 
+-- The surfaces a scan reads. google_aio, chatgpt and gemini are scraped from
+-- the consumer product a buyer actually uses; perplexity and claude are the
+-- models asked directly, which is a slightly different question.
+create type scan_engine as enum ('google_aio','chatgpt','gemini','perplexity','claude');
+
 create table scans (
   id                uuid primary key default gen_random_uuid(),
   public_token      text not null unique default encode(gen_random_bytes(16),'hex'),
@@ -56,6 +72,16 @@ create table scans (
   unlocked_at       timestamptz,
   ip_hash           text,
   is_tracking_run   boolean not null default false,
+  -- Frozen at start so a settings change mid-scan cannot leave a result
+  -- claiming engines it never read.
+  engines           scan_engine[] not null default '{google_aio}',
+  gated_engines     scan_engine[] not null default '{}',
+  engines_answered  scan_engine[],
+  -- The second, email-gated pass over the same questions.
+  gated_status      text not null default 'none'
+                      check (gated_status in ('none','queued','running','complete','failed')),
+  gated_error       text,
+  gated_completed_at timestamptz,
   dfs_calls         int not null default 0,
   dfs_cost          numeric(10,4) not null default 0,
   anthropic_calls   int not null default 0,
@@ -75,16 +101,30 @@ create table scan_questions (
   question        text not null,
   kind            text not null,          -- category | positioning | sector | outcome | comparison
   search_volume   int,
-  aio_shown       boolean,
-  brand_named     boolean,
-  raw             jsonb,                  -- trimmed DataForSEO item
   unique (scan_id, idx)
 );
+
+-- One row per question per engine. Whether an engine answered at all is a
+-- measured fact and is stored as one: "did not answer" and "answered without
+-- naming them" are different findings and must stay distinguishable.
+create table scan_answers (
+  id              uuid primary key default gen_random_uuid(),
+  scan_id         uuid not null references scans(id) on delete cascade,
+  question_id     uuid not null references scan_questions(id) on delete cascade,
+  engine          scan_engine not null,
+  answered        boolean not null default false,
+  brand_named     boolean not null default false,
+  error           text,
+  cost            numeric(10,5) not null default 0,
+  unique (question_id, engine)
+);
+create index on scan_answers (scan_id, engine);
 
 create table scan_citations (
   id              uuid primary key default gen_random_uuid(),
   scan_id         uuid not null references scans(id) on delete cascade,
   question_id     uuid not null references scan_questions(id) on delete cascade,
+  engine          scan_engine not null,
   source_domain   text not null,
   url             text,
   title           text,
@@ -92,14 +132,18 @@ create table scan_citations (
 );
 create index on scan_citations (scan_id, source_domain);
 
+-- Leaderboard per engine. The overall leaderboard is the sum across engines,
+-- computed on read, so "who does ChatGPT recommend" stays answerable.
 create table scan_brands (
   id              uuid primary key default gen_random_uuid(),
   scan_id         uuid not null references scans(id) on delete cascade,
+  engine          scan_engine not null,
   brand           text not null,
   mentions        int not null default 0,
   is_subject      boolean not null default false,
-  unique (scan_id, brand)
+  unique (scan_id, engine, brand)
 );
+create index on scan_brands (scan_id, brand);
 
 -- ---------- leads ----------
 create table leads (
@@ -117,14 +161,16 @@ alter table accounts       enable row level security;
 alter table client_domains enable row level security;
 alter table scans          enable row level security;
 alter table scan_questions enable row level security;
+alter table scan_answers   enable row level security;
 alter table scan_citations enable row level security;
 alter table scan_brands    enable row level security;
 alter table leads          enable row level security;
 -- No policies. Server-side service role only, plus the RPC below.
 
 -- ---------- the one public read path ----------
--- Teaser only. Exposes the COUNT of sources but never the list: that gap is
--- what the email gate trades on.
+-- Teaser only. Exposes per-engine COUNTS and the top four sources, never the
+-- brand list and never the full source list: that gap is what the email gate
+-- trades on.
 create or replace function public.scan_teaser(p_token text)
 returns jsonb
 language sql
@@ -138,26 +184,45 @@ as $$
     'status',       s.status,
     'step',         s.step,
     'read_at',      s.completed_at,
-    'named',        (select count(*) from scan_questions q
-                       where q.scan_id = s.id and q.brand_named),
+    'engines',          to_jsonb(s.engines),
+    'engines_answered', to_jsonb(coalesce(s.engines_answered, '{}'::scan_engine[])),
     'of',           (select count(*) from scan_questions q where q.scan_id = s.id),
-    'aio_shown',    (select count(*) from scan_questions q
-                       where q.scan_id = s.id and q.aio_shown),
-    'rank',         (select count(*) + 1 from scan_brands b2
-                       where b2.scan_id = s.id
-                         and b2.mentions > coalesce((select mentions from scan_brands b3
-                              where b3.scan_id = s.id and b3.is_subject), 0)),
-    'brand_count',  (select count(*) from scan_brands b4 where b4.scan_id = s.id),
-    -- One row per (source, question) before aggregating, so a source cited
-    -- twice inside the same answer counts once and two questions that happen
-    -- to share a search volume both contribute.
+
+    -- Named anywhere: distinct questions where at least one engine named them.
+    'named',        (select count(distinct a.question_id) from scan_answers a
+                       where a.scan_id = s.id and a.brand_named),
+
+    -- Per engine: how many questions it answered, and of those how many named
+    -- the brand. An engine that answered nothing shows as answered 0, which is
+    -- a measured absence rather than a zero score.
+    'by_engine',    (select jsonb_agg(t order by t.engine) from (
+                        select a.engine::text as engine,
+                               count(*) filter (where a.answered) as answered,
+                               count(*) filter (where a.brand_named) as named,
+                               count(*) as asked
+                        from scan_answers a
+                        where a.scan_id = s.id
+                        group by a.engine) t),
+
+    -- Rank across the combined leaderboard, summing mentions over engines.
+    'rank',         (select count(*) + 1 from (
+                        select brand, sum(mentions) as m, bool_or(is_subject) as subj
+                        from scan_brands where scan_id = s.id group by brand) agg
+                       where agg.m > coalesce((select sum(mentions) from scan_brands b3
+                              where b3.scan_id = s.id and b3.is_subject), 0)
+                         and not agg.subj),
+    'brand_count',  (select count(distinct brand) from scan_brands where scan_id = s.id),
+
+    -- One row per (source, question, engine) before aggregating, so a source
+    -- cited twice inside one answer counts once for that answer.
     'top_sources',  (select jsonb_agg(t) from (
                         select source_domain as source,
                                count(*) as mentions,
+                               count(distinct engine) as engines,
                                sum(search_volume) as ai_search_volume,
                                bool_or(is_own) as is_own_domain
                         from (
-                          select distinct c.source_domain, c.question_id,
+                          select distinct c.source_domain, c.question_id, c.engine,
                                  q.search_volume, (c.source_domain = s.domain) as is_own
                           from scan_citations c
                           join scan_questions q on q.id = c.question_id

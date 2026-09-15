@@ -40,8 +40,23 @@ export type HistoryPoint = {
   ai_search_volume: number;
 };
 
+/** One engine's coverage of the question set. */
+export type EngineBreakdown = {
+  engine: string;
+  label: string;
+  /** "scraper" read the consumer product; "model" asked the model directly. */
+  kind: "scraper" | "model";
+  /** Questions this engine was asked. */
+  asked: number;
+  /** Of those, how many it actually answered. Zero is a measured absence. */
+  answered: number;
+  /** Of the answers, how many named the brand. */
+  named: number;
+};
+
 export type RunScanResponse = {
   scan_id: string;
+  /** Kept for the fixture path. Live results use `engines` instead. */
   platform: "google";
   /** ISO date the figures were read. Every figure carries this. */
   read_at: string;
@@ -55,6 +70,8 @@ export type RunScanResponse = {
     of_brands: number | null;
     share_of_voice: number | null;
   };
+  /** Empty on the fixture path; one row per engine the scan actually ran. */
+  engines: EngineBreakdown[];
   top_source: { domain: string; brand_present: boolean } | null;
   leaderboard: LeaderboardEntry[];
   sources: SourceEntry[];

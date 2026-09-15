@@ -114,6 +114,8 @@ export function buildRunResult(input: {
   return {
     scan_id: input.scan_id,
     platform: "google",
+    // Fixture path: the per-engine breakdown only exists on live results.
+    engines: [],
     read_at: input.read_at,
     topic: input.topic,
     market: input.market,

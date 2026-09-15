@@ -3,6 +3,7 @@ import { after } from "next/server";
 import { readBrand } from "@/lib/scan/anthropic";
 import { readSite, UnreachableDomain } from "@/lib/scan/crawl";
 import { isMarket, isPlausibleDomain, normalizeDomain } from "@/lib/scan/domain";
+import { estimateScanCost } from "@/lib/scan/engine-costs";
 import { clientIp, hashIp } from "@/lib/scan/ip";
 import { getSettings } from "@/lib/scan/settings";
 import { verifyTurnstile } from "@/lib/scan/turnstile";
@@ -58,6 +59,18 @@ export async function POST(req: Request) {
     return fail(503, "capped", "We have hit today's scan limit. We will be back shortly.");
   }
 
+  // Spend is capped as well as volume: adding engines changes the cost of a
+  // scan by an order of magnitude, so a count alone is no longer a safe limit.
+  const { data: spendRows } = await db
+    .from("scans")
+    .select("dfs_cost")
+    .eq("is_tracking_run", false)
+    .gte("created_at", since);
+  const spentToday = (spendRows ?? []).reduce((a, r) => a + Number(r.dfs_cost ?? 0), 0);
+  if (spentToday >= settings.daily_cost_cap_usd) {
+    return fail(503, "capped", "We have hit today's scan limit. We will be back shortly.");
+  }
+
   const { count: ipCount } = await db
     .from("scans")
     .select("id", { count: "exact", head: true })
@@ -72,7 +85,7 @@ export async function POST(req: Request) {
   const cacheSince = new Date(Date.now() - settings.domain_cache_days * 86_400_000).toISOString();
   const { data: cached } = await db
     .from("scans")
-    .select("public_token, brand_name, topic, market, status")
+    .select("public_token, brand_name, topic, market, status, engines")
     .eq("domain", domain)
     .eq("market", market)
     .eq("status", "complete")
@@ -87,6 +100,9 @@ export async function POST(req: Request) {
       brand_name: cached.brand_name,
       suggested_topic: cached.topic,
       market: cached.market,
+      // The stored scan's own engine set, not today's: the result on screen
+      // must describe the run that produced it.
+      engines: cached.engines ?? [],
       cached: true,
       status: "complete",
     });
@@ -115,6 +131,10 @@ export async function POST(req: Request) {
       market,
       status: "pending_topic",
       ip_hash: ipHash,
+      // Both sets are frozen onto the row at start, so a settings change
+      // mid-scan cannot leave a result claiming engines it never read.
+      engines: settings.scan_engines_free,
+      gated_engines: settings.scan_engines_gated,
       anthropic_calls: 1,
     })
     .select("public_token")
@@ -125,11 +145,21 @@ export async function POST(req: Request) {
   }
 
   after(() => {
-    console.log(`[scan] started ${domain} (${market})`);
+    // Our cost basis stays server side: it is in the log and the admin page,
+    // never in a response a visitor can read.
+    const free = estimateScanCost(settings.scan_engines_free, 14).toFixed(3);
+    const gated = estimateScanCost(settings.scan_engines_gated, 14).toFixed(3);
+    console.log(
+      `[scan] started ${domain} (${market}) free=${settings.scan_engines_free.join(",")} ($${free}) ` +
+        `gated=${settings.scan_engines_gated.join(",")} ($${gated} on unlock)`,
+    );
   });
 
   return Response.json({
     token: scan.public_token,
+    engines: settings.scan_engines_free,
+    // Named so the gate can say what the email actually buys.
+    gated_engines: settings.scan_engines_gated,
     brand_name: read.brand_name,
     // A low-confidence guess is withheld: the field opens empty rather than
     // pre-filled with something wrong.

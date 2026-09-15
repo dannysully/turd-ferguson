@@ -42,7 +42,10 @@ which is below the 90 second target for a full run.
 
 ## 4. Verify before announcing it
 
-- A scan of a domain you control reaches the free result with nobody involved.
+- A scan of a domain you control reaches the free result with nobody involved,
+  and the result names Google AI Overviews, ChatGPT and Gemini separately.
+- Giving an email starts the second pass, and Perplexity and Claude appear in
+  the same breakdown a minute or two later without reloading.
 - In the network tab, the response to `GET /api/scan/<token>` contains counts
   and four sources. The leaderboard and the full source list appear only in the
   response to `unlock`.
@@ -53,16 +56,58 @@ which is below the 90 second target for a full run.
 - `/admin/scans` asks for a password, and the cost it reports reconciles
   against the DataForSEO dashboard.
 
-## What a scan costs
+## Engines, and what the email buys
 
-A Google AI Overview read was measured at **$0.0055** per question against the
-live API. At fourteen questions plus one search-volume call that is roughly
-**$0.08 of DataForSEO per scan**, before the three language model calls. The
-daily cap ships at 200, which is about $16 a day at the ceiling.
+A scan runs in two passes over the **same fourteen questions**, so the engines
+are comparable with each other.
 
-Watch the real figure in `/admin/scans` for the first week and move
-`daily_scan_cap` once you have it. It is a row in `app_settings`, so it changes
-without a deploy.
+The free pass, before any email:
+
+| Engine | Endpoint | Per call | Per scan |
+|---|---|---|---|
+| Google AI Overviews | SERP advanced, `load_async_ai_overview` | $0.0055 | $0.077 |
+| ChatGPT | LLM Scraper | $0.0040 | $0.056 |
+| Gemini | LLM Scraper | $0.0040 | $0.056 |
+| **Free scan total** | | | **$0.19** |
+
+The email-gated pass, run once when an address is given:
+
+| Engine | Endpoint | Per call | Per scan |
+|---|---|---|---|
+| Perplexity | LLM Responses, `sonar` | $0.0060 | $0.084 |
+| Claude | LLM Responses, `claude-sonnet-5` | $0.0471 | $0.659 |
+| **Unlock total** | | | **$0.74** |
+
+Every figure above was measured against the live API on 15 September 2026, not
+taken from a price list.
+
+Claude is the reason for the split: web search pushes it past eleven thousand
+input tokens a call, so it costs about eight times the others. Putting it behind
+the email means an anonymous visitor costs 19 cents and a captured address costs
+93 cents, which is the right way round.
+
+ChatGPT and Gemini are read through the **LLM Scraper**, which returns what a
+buyer actually sees in the consumer product. Perplexity and Claude have no
+scraper, so they are asked directly through **LLM Responses**. That is a
+slightly different question and the result screen labels those two as asked
+directly rather than pretending the two are the same measurement.
+
+## The cost controls
+
+Two caps now run together, both rows in `app_settings`:
+
+- `daily_scan_cap`, 200, counts scans started in a rolling day.
+- `daily_cost_cap_usd`, 60, sums what DataForSEO actually billed. It covers
+  both passes, so a burst of unlocks cannot outspend the day after the count cap
+  has been passed.
+
+`scan_engines_free` and `scan_engines_gated` decide which engines each pass
+reads. Removing Claude from the gated row halves the unlock cost and takes
+effect on the next request, no deploy. An unrecognised engine name in either row
+is ignored rather than sent to an endpoint that does not exist.
+
+Watch the real figures in `/admin/scans` for the first week before moving either
+cap.
 
 ## Not built yet
 

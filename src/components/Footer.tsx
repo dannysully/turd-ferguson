@@ -4,8 +4,8 @@ import BrandMark from "./BrandMark";
 
 function Logo() {
   return (
-    <div className="brand-lockup" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-      <BrandMark id="ftr" size={28} />
+    <div className="brand-lockup" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+      <BrandMark id="ftr" size={17} />
       <span style={{ fontWeight: 700, fontSize: "1rem", color: "#ffffff", letterSpacing: "-0.02em" }}>
         always<span style={{ color: "#A855F7" }}>cited</span>
       </span>

@@ -1,0 +1,56 @@
+{
+  "keyword": "best b2b seo agency uk",
+  "location_code": 2826,
+  "language_code": "en",
+  "sources": [
+    {
+      "type": "chat_gpt_source",
+      "title": "The 9 Best B2B SEO Agencies in the UK (2026) | Angelfish Marketing",
+      "domain": "www.angelfish-marketing.com",
+      "url": "https://www.angelfish-marketing.com/the-9-best-b2b-seo-agencies-in-the-uk-2026?utm_source=chatgpt.com",
+      "source_name": "Angelfish Marketing"
+    },
+    {
+      "type": "chat_gpt_source",
+      "title": "B2B SaaS SEO Agencies Reviewed & Ranked | SaaS Hackers",
+      "domain": "www.saas-hackers.com",
+      "url": "https://www.saas-hackers.com/top/b2b-saas-seo-agencies?utm_source=chatgpt.com",
+      "source_name": "SaaS Hackers"
+    }
+  ],
+  "item_types": [
+    "chat_gpt_local_businesses",
+    "chat_gpt_text"
+  ],
+  "items": [
+    {
+      "type": "chat_gpt_local_businesses",
+      "rank_group": 1,
+      "rank_absolute": 1,
+      "markdown": "- **Pearl Lemon** - Kemp House, London\n",
+      "items": [
+        {
+          "type": "chat_gpt_local_businesses_element",
+          "title": "Pearl Lemon",
+          "url": "https://pearllemon.com/",
+          "domain": "pearllemon.com"
+        }
+      ]
+    },
+    {
+      "type": "chat_gpt_text",
+      "rank_group": 1,
+      "rank_absolute": 2,
+      "markdown": "1. **[Angelfish Marketing](https://www.angelfish-marketing.com/?utm_source=chatgpt.com)** - Best overall for UK B2B\n2. **POLARIS** - Best dedicated B2B SEO specialist\n3. **Gripped** - Best for B2B SaaS / tech [SaaS Hackers](https://www.saas-hackers.com/top/b2b-saas-seo-agencies?utm_source=chatgpt.com)",
+      "sources": [
+        {
+          "type": "chat_gpt_source",
+          "title": "The 9 Best B2B SEO Agencies in the UK (2026) | Angelfish Marketing",
+          "domain": "www.angelfish-marketing.com",
+          "url": "https://www.angelfish-marketing.com/the-9-best-b2b-seo-agencies-in-the-uk-2026?utm_source=chatgpt.com",
+          "source_name": "Angelfish Marketing"
+        }
+      ]
+    }
+  ]
+}

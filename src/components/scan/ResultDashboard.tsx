@@ -60,7 +60,10 @@ export function Finding({ r }: { r: RunScanResponse }) {
     <div>
       {b.named_in !== null && b.of !== null ? (
         <p style={{ fontSize: "clamp(1.125rem, 2vw, 1.375rem)", fontWeight: 700, color: C.navy, lineHeight: 1.4, marginBottom: "0.75rem" }}>
-          {b.name} is named in {b.named_in} of {b.of} Google AI Overview answers to the questions buyers ask about {r.topic} in {marketName}.
+          {b.name} is named in {b.named_in} of {b.of}{" "}
+          {r.engines.length > 0
+            ? `questions buyers ask about ${r.topic} in ${marketName}, across ${r.engines.length} ${r.engines.length === 1 ? "engine" : "engines"}.`
+            : `Google AI Overview answers to the questions buyers ask about ${r.topic} in ${marketName}.`}
         </p>
       ) : r.top_source && !r.top_source.brand_present ? (
         <p style={{ fontSize: "clamp(1.125rem, 2vw, 1.375rem)", fontWeight: 700, color: C.navy, lineHeight: 1.4, marginBottom: "0.75rem" }}>
@@ -92,6 +95,46 @@ export function Finding({ r }: { r: RunScanResponse }) {
 function ordinal(n: number) {
   const s = ["th", "st", "nd", "rd"], v = n % 100;
   return s[(v - 20) % 10] || s[v] || s[0];
+}
+
+
+/* ── Per-engine breakdown ── */
+export function Engines({ r }: { r: RunScanResponse }) {
+  if (r.engines.length === 0) return null;
+
+  return (
+    <div style={card}>
+      <SectionHead title="Where they were named, engine by engine" readAt={r.read_at} />
+      <div style={{ display: "flex", flexDirection: "column", gap: "0.625rem" }}>
+        {r.engines.map((e) => {
+          // An engine that answered nothing is a measured absence. It gets a
+          // sentence, never a 0 out of 14 that reads like a score.
+          const silent = e.answered === 0;
+          const pct = silent ? 0 : Math.round((e.named / e.answered) * 100);
+          return (
+            <div key={e.engine}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "0.75rem", marginBottom: "0.3125rem" }}>
+                <span style={{ fontSize: "0.875rem", fontWeight: 600, color: C.navy }}>
+                  {e.label}
+                  {e.kind === "model" && (
+                    <span title="Asked the model directly, rather than reading the consumer product" style={{ fontSize: "0.6875rem", fontWeight: 600, color: C.muted, marginLeft: "0.4375rem" }}>
+                      asked directly
+                    </span>
+                  )}
+                </span>
+                <span style={{ fontSize: "0.8125rem", color: silent ? C.muted : C.body, fontVariantNumeric: "tabular-nums" }}>
+                  {silent ? "no answer returned" : `named in ${e.named} of ${e.answered}`}
+                </span>
+              </div>
+              <div style={{ height: 6, borderRadius: 3, background: C.border, overflow: "hidden" }} aria-hidden="true">
+                <div style={{ width: `${pct}%`, height: "100%", borderRadius: 3, background: `linear-gradient(90deg, ${C.purple}, #A855F7)` }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 /* ── Leaderboard ── */
@@ -207,6 +250,7 @@ export function History({ r }: { r: RunScanResponse }) {
 export default function ResultDashboard({ r, sourceLimit }: { r: RunScanResponse; sourceLimit?: number }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+      <Engines r={r} />
       <Leaderboard r={r} />
       <Sources r={r} limit={sourceLimit} />
     </div>

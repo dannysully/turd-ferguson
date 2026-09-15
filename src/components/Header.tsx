@@ -15,8 +15,8 @@ const navLinks = [
 
 function Logo() {
   return (
-    <Link href="/" className="brand-lockup" style={{ display: "flex", alignItems: "center", gap: "8px", textDecoration: "none" }}>
-      <BrandMark id="hdr" size={32} />
+    <Link href="/" className="brand-lockup" style={{ display: "flex", alignItems: "center", gap: "6px", textDecoration: "none" }}>
+      <BrandMark id="hdr" size={18} />
       <span style={{ fontWeight: 700, fontSize: "1.0625rem", color: "#0B1220", letterSpacing: "-0.02em" }}>
         always<span style={{ background: "linear-gradient(135deg,#7C3AED,#A855F7)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>cited</span>
       </span>
