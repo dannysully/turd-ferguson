@@ -33,9 +33,9 @@ export function DomainScreen(p: {
   const id = p.id ?? "scan-domain";
   return (
     <form action={p.action} onSubmit={p.onSubmit ?? ((e) => e.preventDefault())} noValidate>
-      <label htmlFor={id} style={label}>Your client&apos;s domain</label>
+      <label htmlFor={id} style={label}>Domain</label>
       <div style={{ display: "flex", gap: "0.625rem", flexWrap: "wrap" }}>
-        <input id={id} name="domain" inputMode="url" autoComplete="url" placeholder="client-domain.com"
+        <input id={id} name="domain" inputMode="url" autoComplete="url" placeholder="example.com"
           value={p.value} onChange={(e) => p.onChange?.(e.target.value)} style={{ ...field, flex: "1 1 220px" }}
           aria-invalid={Boolean(p.error)} aria-describedby={p.error ? `${id}-err` : undefined} {...ro(p.readOnly)} />
         <button type="submit" className="btn-primary" style={btn} disabled={p.busy || p.readOnly} tabIndex={p.readOnly ? -1 : undefined}>
@@ -65,7 +65,7 @@ export function TopicScreen(p: {
   return (
     <form onSubmit={p.onSubmit ?? ((e) => e.preventDefault())} noValidate>
       <h2 ref={p.headingRef} tabIndex={-1} style={{ fontSize: "1rem", fontWeight: 700, color: C.navy, margin: "0 0 1rem", outline: "none", lineHeight: 1.45 }}>
-        {p.brand ? <>We read <span style={{ color: C.purple }}>{p.brand}</span> from the domain. Which topic should we check them against?</> : "Which topic should we check them against?"}
+        {p.brand ? <>We read <span style={{ color: C.purple }}>{p.brand}</span> from the domain.</> : "Tell us what to check."}
       </h2>
       {!p.brand && (
         <>
@@ -73,7 +73,10 @@ export function TopicScreen(p: {
           <input id={`${id}-brand`} value={p.brandName ?? ""} onChange={(e) => p.onBrandName?.(e.target.value)} style={{ ...field, marginBottom: "0.75rem" }} {...ro(p.readOnly)} />
         </>
       )}
-      <label htmlFor={`${id}-topic`} style={label}>Topic</label>
+      <label htmlFor={`${id}-topic`} style={label}>
+        What keyword are you targeting?{" "}
+        <span style={{ fontWeight: 400, color: C.muted }}>This informs the questions we check.</span>
+      </label>
       <input id={`${id}-topic`} value={p.topic} onChange={(e) => p.onTopic?.(e.target.value)} placeholder="b2b seo agency" style={{ ...field, marginBottom: "0.75rem" }} {...ro(p.readOnly)} />
       <fieldset style={{ border: "none", padding: 0, margin: "0 0 0.75rem" }}>
         <legend style={label}>Market</legend>
@@ -87,7 +90,7 @@ export function TopicScreen(p: {
         </div>
       </fieldset>
       <p style={{ fontSize: "0.8125rem", color: C.body, lineHeight: 1.6, marginBottom: "1.25rem" }}>
-        Write the topic the way a buyer would say it, not the way you would pitch it. It decides every question we ask.
+        Write it the way a buyer would say it, not the way you would pitch it. It decides every question we ask.
       </p>
       <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap" }}>
         <button type="submit" className="btn-primary" style={btn} disabled={!canRun || p.readOnly} tabIndex={p.readOnly ? -1 : undefined}>Run the check</button>

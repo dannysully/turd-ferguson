@@ -59,14 +59,14 @@ export default async function ExamplePage() {
 
   const frozenGate = (
     <>
-      <p style={{ fontWeight: 700, color: C.navy, marginBottom: "0.5rem" }}>See everything behind this.</p>
+      <p style={{ fontWeight: 700, color: C.navy, marginBottom: "0.5rem" }}>Unlock the full report, plus Perplexity and Claude.</p>
       <p style={{ fontSize: "0.875rem", color: C.body, lineHeight: 1.6, marginBottom: "1rem" }}>
-        The full leaderboard and every source the engines cite for {r.topic}. Then upload the coverage you have already earned and find out which pieces are doing the work.
+        The free check reads Google AI Overviews, ChatGPT and Gemini. An email runs the same questions through Perplexity and Claude as well, then opens the full leaderboard and every source the engines cite for {r.topic}.
       </p>
       <label htmlFor="ex-email" style={label}>Your email</label>
       <div style={{ display: "flex", gap: "0.625rem", flexWrap: "wrap" }}>
         <input id="ex-email" type="email" placeholder="you@agency.com" readOnly tabIndex={-1} style={{ ...field, flex: "1 1 200px" }} />
-        <button type="button" className="btn-primary" style={btn} disabled tabIndex={-1}>Show me</button>
+        <button type="button" className="btn-primary" style={btn} disabled tabIndex={-1}>Send me the full report</button>
       </div>
     </>
   );
@@ -106,7 +106,7 @@ export default async function ExamplePage() {
             <ResultScreen result={r} gated compact gate={frozenGate} />
           </Step>
 
-          <Step id="step-5" n={5} lead="Give an email and the rest opens." body="The full leaderboard, and every source the engines cite for the topic ranked by how often. The scan is saved as your first client.">
+          <Step id="step-5" n={5} lead="Give an email and the rest opens." body="The same questions run through Perplexity and Claude as well, then the full leaderboard and every source the engines cite for the topic, ranked by how often. The scan is saved as your first client.">
             <ResultScreen result={r} gated={false} />
           </Step>
 

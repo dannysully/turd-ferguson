@@ -470,8 +470,8 @@ export default function LiveScanChecker({
             <form onSubmit={onEmail} noValidate>
               <p style={{ fontSize: "0.9375rem", fontWeight: 700, color: C.navy, margin: "0 0 0.5rem" }}>
                 {gatedEngines.length
-                  ? `Add ${engineLabels(gatedEngines)}, and see every source`
-                  : "See the full leaderboard and every source"}
+                  ? `Unlock the full report, plus ${engineLabels(gatedEngines)}`
+                  : "Unlock the full report"}
               </p>
               <p style={{ fontSize: "0.875rem", color: C.body, margin: "0 0 1rem", lineHeight: 1.6 }}>
                 {gatedEngines.length ? (
@@ -508,7 +508,7 @@ export default function LiveScanChecker({
                 style={{ ...btn, width: "100%", marginTop: "0.875rem" }}
                 disabled={busy}
               >
-                {busy ? "Unlocking" : "Show me the rest"}
+                {busy ? "Unlocking" : "Send me the full report"}
               </button>
               <p style={{ fontSize: "0.75rem", color: C.muted, marginTop: "0.75rem", lineHeight: 1.5 }}>
                 One scan, no charge. Ongoing tracking is a paid plan.

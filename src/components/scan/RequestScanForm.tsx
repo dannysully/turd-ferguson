@@ -4,122 +4,145 @@ import { useState } from "react";
 
 import { requestScan } from "@/app/actions/waitlist";
 
-import { C, btn, field, label } from "./screens";
+import { C, DomainScreen, TopicScreen, btn, field, label } from "./screens";
 
 /**
  * What the domain field does while the live scan is switched off.
  *
- * No score, no leaderboard, no empty-state verdict: nothing is measured, so
- * nothing is reported. The alternative, a fixture-backed dashboard, told real
- * visitors things about their brand that were never checked.
+ * It mirrors the live flow's shape so the switch-over changes nothing the
+ * visitor has to relearn: domain, then the keyword, then a step that asks for
+ * an address. What it never does is report a result. Nothing is measured here,
+ * so nothing is claimed.
  */
-export default function RequestScanForm({
-  compact = false,
-  initialDomain = "",
-}: {
-  compact?: boolean;
-  initialDomain?: string;
-}) {
+type Step = "domain" | "topic" | "email" | "done";
+
+export default function RequestScanForm({ initialDomain = "" }: { initialDomain?: string }) {
+  const [step, setStep] = useState<Step>("domain");
   const [domain, setDomain] = useState(initialDomain);
   const [topic, setTopic] = useState("");
+  const [market, setMarket] = useState<"UK" | "US">("UK");
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [done, setDone] = useState(false);
 
-  async function onSubmit(e: React.FormEvent) {
+  const DOMAIN = /^(https?:\/\/)?([a-z0-9-]+\.)+[a-z]{2,}(\/.*)?$/i;
+
+  function onDomain(e: React.FormEvent) {
+    e.preventDefault();
+    if (!DOMAIN.test(domain.trim())) {
+      setError("Enter a domain, like example.com");
+      return;
+    }
+    setError("");
+    setStep("topic");
+  }
+
+  function onTopic(e: React.FormEvent) {
+    e.preventDefault();
+    if (topic.trim().length < 2) {
+      setError("Tell us the keyword in a few words.");
+      return;
+    }
+    setError("");
+    setStep("email");
+  }
+
+  async function onEmail(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setBusy(true);
     try {
       const res = await requestScan({ domain, email, topic });
-      if (res.ok) setDone(true);
+      if (res.ok) setStep("done");
       else setError(res.message);
     } finally {
       setBusy(false);
     }
   }
 
-  if (done) {
+  if (step === "done") {
     return (
-      <div
-        style={{
-          background: C.soft,
-          border: `1px solid ${C.border}`,
-          borderRadius: 16,
-          padding: "1.5rem",
-        }}
-      >
+      <div style={{ background: C.soft, border: `1px solid ${C.border}`, borderRadius: 16, padding: "1.5rem" }}>
         <p style={{ fontSize: "1rem", fontWeight: 700, color: C.navy, margin: "0 0 0.5rem" }}>
-          Got it. We will run {domain} and send it over.
+          Got it. We will run {domain} for {topic} and send it over.
         </p>
         <p style={{ fontSize: "0.9375rem", color: C.body, margin: 0, lineHeight: 1.65 }}>
           You will get the questions we asked, which engines named them, and every source those
-          engines cited. If anything is urgent, reply to the email and it reaches a person.
+          engines cited. Reply to that email and it reaches a person.
         </p>
       </div>
     );
   }
 
   return (
-    <form onSubmit={onSubmit} noValidate>
-      <label htmlFor="rq-domain" style={label}>
-        Your client&apos;s domain
-      </label>
-      <input
-        id="rq-domain"
-        name="domain"
-        inputMode="url"
-        autoComplete="url"
-        placeholder="client-domain.com"
-        value={domain}
-        onChange={(e) => setDomain(e.target.value)}
-        style={field}
-        required
-      />
+    <div>
+      {step === "domain" && (
+        <DomainScreen value={domain} onChange={setDomain} onSubmit={onDomain} error={error} exampleLink />
+      )}
 
-      <label htmlFor="rq-topic" style={{ ...label, marginTop: "0.875rem" }}>
-        What should we check them for?
-      </label>
-      <input
-        id="rq-topic"
-        name="topic"
-        placeholder="fractional cfo"
-        value={topic}
-        onChange={(e) => setTopic(e.target.value)}
-        style={field}
-      />
+      {step === "topic" && (
+        <>
+          <TopicScreen
+            brand={null}
+            brandName={domain}
+            onBrandName={setDomain}
+            topic={topic}
+            onTopic={setTopic}
+            market={market}
+            onMarket={setMarket}
+            onSubmit={onTopic}
+            onBack={() => {
+              setStep("domain");
+              setError("");
+            }}
+          />
+          {error && <p style={{ fontSize: "0.8125rem", color: C.red, marginTop: "0.75rem" }}>{error}</p>}
+        </>
+      )}
 
-      <label htmlFor="rq-email" style={{ ...label, marginTop: "0.875rem" }}>
-        Where should the report go?
-      </label>
-      <input
-        id="rq-email"
-        name="email"
-        type="email"
-        autoComplete="email"
-        placeholder="you@agency.com"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        style={field}
-        required
-      />
+      {step === "email" && (
+        <form onSubmit={onEmail} noValidate>
+          <h2 style={{ fontSize: "1rem", fontWeight: 700, color: C.navy, margin: "0 0 0.5rem", lineHeight: 1.45 }}>
+            Automatic checks switch on shortly.
+          </h2>
+          <p style={{ fontSize: "0.9375rem", color: C.body, margin: "0 0 1.125rem", lineHeight: 1.65 }}>
+            Until they do, a person runs {domain} for {topic} against Google AI Overviews, ChatGPT and
+            Gemini and sends you the same report, usually within a working day. One check, no charge.
+          </p>
 
-      {error && <p style={{ fontSize: "0.8125rem", color: C.red, marginTop: "0.5rem" }}>{error}</p>}
+          <label htmlFor="rq-email" style={label}>
+            Where should it go?
+          </label>
+          <input
+            id="rq-email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            placeholder="you@agency.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            style={field}
+            required
+          />
+          {error && <p style={{ fontSize: "0.8125rem", color: C.red, marginTop: "0.5rem" }}>{error}</p>}
 
-      <button
-        type="submit"
-        className="btn-primary"
-        style={{ ...btn, marginTop: "1rem", width: compact ? "100%" : undefined }}
-        disabled={busy}
-      >
-        {busy ? "Sending" : "Request the check"}
-      </button>
-
-      <p style={{ fontSize: "0.8125rem", color: C.muted, marginTop: "0.875rem", lineHeight: 1.6 }}>
-        Automatic checks are switched on shortly. Until then a person runs it and sends the same
-        report, usually within a working day. One check, no charge.
-      </p>
-    </form>
+          <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap", marginTop: "1rem" }}>
+            <button type="submit" className="btn-primary" style={btn} disabled={busy}>
+              {busy ? "Sending" : "Send me the report"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setStep("topic");
+                setError("");
+              }}
+              style={{ background: "none", border: "none", color: C.body, fontSize: "0.875rem", cursor: "pointer", fontFamily: "inherit" }}
+            >
+              Back
+            </button>
+          </div>
+        </form>
+      )}
+    </div>
   );
 }
