@@ -1,5 +1,17 @@
+import LiveScanChecker from "./LiveScanChecker";
 import ScanChecker from "./ScanChecker";
 import type { StartScanResponse } from "@/lib/scan";
+
+/**
+ * The live funnel needs a database and a language model key. Where they are
+ * absent - a preview build, a fresh clone - the fixture-backed checker renders
+ * instead, so the page is never broken, just not yet wired to real data.
+ */
+function liveScanConfigured(): boolean {
+  return Boolean(
+    process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY && process.env.ANTHROPIC_API_KEY,
+  );
+}
 
 const C = { navy: "#0B1220", purple: "#7C3AED", purpleLight: "#A855F7", body: "#4B5563" };
 const grad: React.CSSProperties = { background: `linear-gradient(135deg, ${C.purple} 0%, ${C.purpleLight} 100%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" };
@@ -19,7 +31,11 @@ export default function HeroSection(p: {
         <p style={{ fontSize: "clamp(1rem, 1.5vw, 1.125rem)", color: C.body, lineHeight: 1.7, marginBottom: "2rem", maxWidth: "540px" }}>
           Start by finding out whether your client already is. Enter their domain.
         </p>
-        <ScanChecker initialDomain={p.initialDomain} initialStart={p.initialStart} initialError={p.initialError} />
+        {liveScanConfigured() ? (
+          <LiveScanChecker />
+        ) : (
+          <ScanChecker initialDomain={p.initialDomain} initialStart={p.initialStart} initialError={p.initialError} />
+        )}
       </div>
     </section>
   );

@@ -144,7 +144,7 @@ export function Sources({ r, limit }: { r: RunScanResponse; limit?: number }) {
                   <td style={{ padding: "0.625rem 0", color: C.muted, fontVariantNumeric: "tabular-nums" }}>{i + 1}</td>
                   <td style={{ padding: "0.625rem 0.75rem", color: C.navy, fontWeight: s.domain.includes(brandDomain.split(" ")[0]) ? 700 : 500 }}>{s.domain}</td>
                   <td style={{ padding: "0.625rem 0.75rem", textAlign: "right", color: C.navy, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{s.mentions}</td>
-                  <td style={{ padding: "0.625rem 0 0.625rem 0.75rem", textAlign: "right", color: C.body, fontVariantNumeric: "tabular-nums" }}>{s.ai_search_volume.toLocaleString("en-US")}</td>
+                  <td style={{ padding: "0.625rem 0 0.625rem 0.75rem", textAlign: "right", color: C.body, fontVariantNumeric: "tabular-nums" }}>{s.ai_search_volume === null ? <span title="not measured">-</span> : s.ai_search_volume.toLocaleString("en-US")}</td>
                 </tr>
               ))}
             </tbody>

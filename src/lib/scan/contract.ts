@@ -21,13 +21,16 @@ export type StartScanResponse = {
 export type LeaderboardEntry = {
   brand: string;
   mentions: number;
-  ai_search_volume: number;
+  /** Null where search volume was not measured. Never coerce this to zero:
+      "not measured" and "no volume" are different findings. */
+  ai_search_volume: number | null;
 };
 
 export type SourceEntry = {
   domain: string;
   mentions: number;
-  ai_search_volume: number;
+  /** Null where search volume was not measured. See LeaderboardEntry. */
+  ai_search_volume: number | null;
 };
 
 export type HistoryPoint = {
