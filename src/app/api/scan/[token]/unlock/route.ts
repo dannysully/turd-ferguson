@@ -120,8 +120,12 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://alwayscited.com";
   void db.auth.admin
     .inviteUserByEmail(email, { redirectTo: `${siteUrl}/scan/${token}` })
-    .catch(() => {
-      // Already-registered users error here; that is fine and not worth failing on.
+    .catch((err) => {
+      // An already-registered address errors here and that is expected. Other
+      // failures are logged rather than swallowed: on a project using the newer
+      // sb_secret_ API keys this is the one call whose service-role handling is
+      // worth watching, and a silent catch would hide magic links never sending.
+      console.warn("[scan] magic link not sent", err instanceof Error ? err.message : err);
     });
 
   // 4b. Start the engines the email just bought. This runs once per scan: a

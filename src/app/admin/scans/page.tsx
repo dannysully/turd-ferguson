@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { scanReadiness } from "@/lib/scan/readiness";
 import { supabaseAdmin, supabaseConfigured } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -68,6 +69,49 @@ function Tile({ label, value, tone }: { label: string; value: string; tone?: str
   );
 }
 
+function Readiness() {
+  const { ready, missingRequired, missingRecommended } = scanReadiness();
+  if (ready && missingRecommended.length === 0) return null;
+
+  const rows = [
+    ...missingRequired.map((r) => ({ ...r, blocking: true })),
+    ...missingRecommended.map((r) => ({ ...r, blocking: false })),
+  ];
+
+  return (
+    <div
+      style={{
+        marginTop: "1.25rem",
+        padding: "1rem 1.25rem",
+        background: missingRequired.length ? "rgba(245,158,11,0.10)" : C.soft,
+        border: `1px solid ${missingRequired.length ? "rgba(245,158,11,0.35)" : C.border}`,
+        borderRadius: 14,
+      }}
+    >
+      <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 700, color: C.navy }}>
+        {missingRequired.length
+          ? "The live checker is switched off until these are set"
+          : "Running live. These are still worth setting"}
+      </p>
+      {missingRequired.length > 0 && (
+        <p style={{ margin: "0.375rem 0 0", fontSize: "0.8125rem", color: C.body, lineHeight: 1.6 }}>
+          Visitors see the request form instead, which captures the domain and an address and reports
+          nothing. Nothing is fabricated while these are missing.
+        </p>
+      )}
+      <ul style={{ margin: "0.75rem 0 0", padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: "0.375rem" }}>
+        {rows.map((r) => (
+          <li key={r.key} style={{ fontSize: "0.8125rem", color: C.body }}>
+            <code style={{ fontWeight: 700, color: r.blocking ? "#92400E" : C.navy }}>{r.key}</code>
+            <span style={{ color: C.muted }}> &mdash; {r.why}</span>
+            {!r.blocking && <span style={{ color: C.muted }}> (optional)</span>}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export default async function AdminScansPage() {
   if (!supabaseConfigured()) {
     return (
@@ -76,6 +120,7 @@ export default async function AdminScansPage() {
         <p style={{ color: C.body }}>
           The database is not configured. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY, then reload.
         </p>
+        <Readiness />
       </main>
     );
   }
@@ -145,6 +190,8 @@ export default async function AdminScansPage() {
         Free scan reads {freeEngines.join(", ") || "nothing"}. An email additionally runs{" "}
         {gatedEngines.join(", ") || "nothing"} over the same questions.
       </p>
+
+      <Readiness />
 
       {!enabled && (
         <p

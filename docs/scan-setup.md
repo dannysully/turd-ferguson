@@ -4,16 +4,29 @@ Phase 1 is built and deployed, but it stays dormant until the environment is
 configured. Until then the homepage falls back to the fixture-backed checker,
 so nothing is broken in the meantime.
 
-## 1. Create the Supabase project
+## 1. The Supabase project
 
-Create a **new** project called `alwayscited`. Do not extend
-`nomada-dashboards`: that project's row-level security is built around
-`is_agency()` and `my_client()`, and anonymous public writes do not belong in
-the same schema as client data.
+Done. Project `alwayscited`, ref `bhvjmlrekrwlrabpysja`, London (eu-west-2),
+separate from `nomada-dashboards` as intended. The migration
+`supabase/migrations/20260915000000_scan_phase1.sql` ran unedited: nine tables,
+row-level security on every one, no policies anywhere, and `scan_teaser`
+installed as the single public read path.
 
-Run `supabase/migrations/20260915000000_scan_phase1.sql` in the SQL editor. It
-creates the tables, enables row-level security with no anonymous policies at
-all, and installs `scan_teaser`, the single public read path.
+`SUPABASE_URL` is `https://bhvjmlrekrwlrabpysja.supabase.co`.
+
+### A note on the key format
+
+The project uses Supabase's newer API keys, so the secret is `sb_secret_...`
+rather than a legacy `service_role` JWT. Use the new one.
+`@supabase/supabase-js` 2.116 detects the new format and sends it in the
+`apikey` header only, never as a bearer token, which is what the new keys
+require. There is no need for the legacy keys tab.
+
+One thing to watch on the first unlock: the magic-link invite is the only call
+that goes through the auth admin API rather than PostgREST. It is fire and
+forget, so a failure cannot break an unlock, but it now logs a warning rather
+than swallowing the error. If magic links never arrive, that log line is where
+to look.
 
 ## 2. Set the environment variables in Vercel
 

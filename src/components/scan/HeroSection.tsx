@@ -1,22 +1,7 @@
+import { scanReady } from "@/lib/scan/readiness";
+
 import LiveScanChecker from "./LiveScanChecker";
 import RequestScanForm from "./RequestScanForm";
-
-/**
- * The live funnel needs a database and a language model key. Where they are
- * absent the form captures the domain and an address instead, and reports
- * nothing.
- *
- * It used to fall back to the fixture-backed checker. That checker has canned
- * data for four test domains and returns an empty result for everything else,
- * so a real visitor was shown a confident sentence about their own brand that
- * had never been measured. Capturing the request and saying so is the honest
- * version of the same page.
- */
-function liveScanConfigured(): boolean {
-  return Boolean(
-    process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY && process.env.ANTHROPIC_API_KEY,
-  );
-}
 
 const C = { navy: "#0B1220", purple: "#7C3AED", purpleLight: "#A855F7", body: "#4B5563" };
 const grad: React.CSSProperties = { background: `linear-gradient(135deg, ${C.purple} 0%, ${C.purpleLight} 100%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" };
@@ -33,7 +18,7 @@ export default function HeroSection({ initialDomain = "" }: { initialDomain?: st
         <p style={{ fontSize: "clamp(1rem, 1.5vw, 1.125rem)", color: C.body, lineHeight: 1.7, marginBottom: "2rem", maxWidth: "540px" }}>
           Start by finding out whether your client already is. Enter their domain.
         </p>
-        {liveScanConfigured() ? (
+        {scanReady() ? (
           <LiveScanChecker initialDomain={initialDomain} />
         ) : (
           <RequestScanForm initialDomain={initialDomain} />
