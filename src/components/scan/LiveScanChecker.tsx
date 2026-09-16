@@ -66,7 +66,12 @@ function toBreakdown(rows: ByEngine[] | null): EngineBreakdown[] {
 
 const STEP_INDEX: Record<string, number> = { questions: 0, reading: 1, sources: 2 };
 const POLL_MS = 2500;
-const SLOW_MS = 45_000;
+/**
+ * When to admit this is running long. It has to sit above a normal finish or
+ * it cries wolf on every scan - at 45s it fired about a minute before the
+ * average run completed, which taught people the message means nothing.
+ */
+const SLOW_MS = 150_000;
 
 function track(event: string, props: Record<string, unknown> = {}) {
   if (typeof window === "undefined") return;
@@ -343,7 +348,7 @@ export default function LiveScanChecker({
   return (
     <div style={{ minHeight: compact ? undefined : "320px" }}>
       <p aria-live="polite" className="sr-only">
-        {phase === "running" ? "Checking, this takes about a minute." : ""}
+        {phase === "running" ? "Checking. This usually takes about a minute." : ""}
       </p>
 
       {phase === "domain" && (
@@ -471,7 +476,7 @@ export default function LiveScanChecker({
               <p style={{ fontSize: "0.9375rem", fontWeight: 700, color: C.navy, margin: "0 0 0.5rem" }}>
                 {gatedEngines.length
                   ? `Unlock the full report, plus ${engineLabels(gatedEngines)}`
-                  : "Unlock the full report"}
+                  : "See who is winning, and where to get placed"}
               </p>
               <p style={{ fontSize: "0.875rem", color: C.body, margin: "0 0 1rem", lineHeight: 1.6 }}>
                 {gatedEngines.length ? (
@@ -482,8 +487,11 @@ export default function LiveScanChecker({
                   </>
                 ) : (
                   <>
-                    {result.brand.of_brands ?? "All"} brands the engines mention, and all{" "}
-                    {teaser?.total_sources ?? 0} sources they cite for {result.topic}.
+                    The full leaderboard -{" "}
+                    {result.brand.of_brands ? `all ${result.brand.of_brands} brands` : "every brand"} these
+                    engines name for {result.topic}, ranked - and all {teaser?.total_sources ?? 0} sources
+                    they cite. The source list is the useful half: those are the pages already being read
+                    back to your buyers, and the ones worth being on.
                   </>
                 )}
               </p>
@@ -511,7 +519,7 @@ export default function LiveScanChecker({
                 {busy ? "Unlocking" : "Send me the full report"}
               </button>
               <p style={{ fontSize: "0.75rem", color: C.muted, marginTop: "0.75rem", lineHeight: 1.5 }}>
-                One scan, no charge. Ongoing tracking is a paid plan.
+                One scan, no charge. Claude and ongoing tracking come with a plan.
               </p>
             </form>
           }
