@@ -43,13 +43,22 @@ export const ENGINE_SPECS: Record<Engine, EngineSpec> = {
 /**
  * The split that decides what an email is worth.
  *
- * The free scan reads the three surfaces a buyer actually sees, at about $0.19
- * for fourteen questions. Perplexity and Claude are what the email buys: they
- * cost roughly $0.74 more per scan, which is worth paying for an address but
- * not for an anonymous visitor.
+ * The free scan reads the four surfaces a buyer actually uses, at about $0.27
+ * for fourteen questions. Perplexity moved here because a check that leaves it
+ * out is not a credible read of the category, and a visitor who can see that
+ * gap has been shown an incomplete answer, not a teaser.
+ *
+ * Nothing is gated by engine now. The email buys the full leaderboard and the
+ * complete source list, which is the part with the commercial value in it:
+ * knowing you are ninth matters less than knowing which twelve pages the
+ * engines read to decide that. Claude stays out of the free scan entirely - at
+ * $0.66 a run it is a subscription feature, not a lead magnet.
+ *
+ * These are defaults. app_settings.scan_engines_free and scan_engines_gated
+ * override them at runtime, so the split can be changed without a deploy.
  */
-export const FREE_ENGINES: Engine[] = ["google_aio", "chatgpt", "gemini"];
-export const GATED_ENGINES: Engine[] = ["perplexity", "claude"];
+export const FREE_ENGINES: Engine[] = ["google_aio", "chatgpt", "gemini", "perplexity"];
+export const GATED_ENGINES: Engine[] = [];
 
 export type Citation = {
   source_domain: string;
