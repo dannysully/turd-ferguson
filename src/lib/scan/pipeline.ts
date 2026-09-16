@@ -14,8 +14,15 @@ const RUN_TIMEOUT_MS = 5 * 60 * 1000;
  * How many engine reads run at once. Each read is one billed call and some
  * engines document execution times up to 120 seconds, so this is the knob that
  * decides whether a five-engine scan finishes inside the run timeout.
+ *
+ * Sized to the free pass: fourteen questions across four engines is 56 reads,
+ * so 28 clears them in two passes of the pool rather than the six it took at
+ * ten, which is most of the two minutes a scan used to sit there. DataForSEO
+ * allows 2000 calls a minute, so the burst is not the constraint; the tail is.
+ * Past about this point the slowest single read sets the finish time and more
+ * concurrency buys nothing.
  */
-const CONCURRENCY = 10;
+const CONCURRENCY = 28;
 
 export type ScanRow = {
   id: string;
@@ -81,9 +88,12 @@ async function readAndStore(input: {
   engines: Engine[];
   questions: StoredQuestion[];
   checkDeadline: () => void;
+  /** Called once the reads are in and the citation work begins, so the screen
+   *  can move off "reading" rather than sitting on it for the whole run. */
+  onSources?: () => Promise<void>;
 }): Promise<{ dfsCalls: number; dfsCost: number; anthropicCalls: number; answered: Engine[] }> {
   const db = supabaseAdmin();
-  const { scanId, brand, market, engines, questions, checkDeadline } = input;
+  const { scanId, brand, market, engines, questions, checkDeadline, onSources } = input;
 
   let dfsCalls = 0;
   let dfsCost = 0;
@@ -136,6 +146,10 @@ async function readAndStore(input: {
     return { ...base, answered: false, brandNamed: false, error: "no answer", cost: 0 };
   });
 
+  // Every read is in. What follows - storing citations and extracting the
+  // leaderboard - is the third step the screen names, so say so.
+  await onSources?.();
+
   const answered = [...new Set(answers.filter((a) => a.answered).map((a) => a.engine))];
 
   // Every engine failing means we measured nothing at all.
@@ -175,20 +189,29 @@ async function readAndStore(input: {
   // One brand extraction per engine, so the leaderboard reads per engine as
   // well as overall. Engines that answered nothing are skipped rather than
   // recorded as a zero.
-  const brandRows: { scan_id: string; engine: Engine; brand: string; mentions: number; is_subject: boolean }[] = [];
   const subjectKey = brand.trim().toLowerCase();
 
-  for (const engine of engines) {
-    const prose = answers
-      .filter((a) => a.engine === engine && a.answered)
-      .map((a) => a.prose)
-      .filter(Boolean)
-      .join("\n\n---\n\n");
-    if (!prose.trim()) continue;
+  // One extraction per engine, run together. Serially this was four Anthropic
+  // round trips bolted onto the end of every scan, all of them independent.
+  const extractions = await Promise.all(
+    engines.map(async (engine) => {
+      const prose = answers
+        .filter((a) => a.engine === engine && a.answered)
+        .map((a) => a.prose)
+        .filter(Boolean)
+        .join("\n\n---\n\n");
+      if (!prose.trim()) return null;
+      const extracted = await extractBrands(prose);
+      return { engine, extracted };
+    }),
+  );
+  anthropicCalls += extractions.filter(Boolean).length;
+  checkDeadline();
 
-    const extracted = await extractBrands(prose);
-    anthropicCalls += 1;
-    checkDeadline();
+  const brandRows: { scan_id: string; engine: Engine; brand: string; mentions: number; is_subject: boolean }[] = [];
+  for (const row of extractions) {
+    if (!row) continue;
+    const { engine, extracted } = row;
 
     for (const b of extracted) {
       if (b.brand.trim().toLowerCase() === subjectKey) continue;
@@ -266,7 +289,21 @@ export async function runScan(scanId: string): Promise<void> {
 
     // --- Step 2: "Reading what the engines answered" ---
     await db.from("scans").update({ step: "reading" }).eq("id", scanId);
-    const read = await readAndStore({ scanId, brand, market, engines, questions: ordered, checkDeadline });
+    // --- Step 3: "Finding the sources they cited" ---
+    // readAndStore raises this itself, the moment the reads are in and the
+    // citation work starts. Setting it here would be a lie: the reads are the
+    // long part and the screen would show the last step for the whole of it.
+    const read = await readAndStore({
+      scanId,
+      brand,
+      market,
+      engines,
+      questions: ordered,
+      checkDeadline,
+      onSources: async () => {
+        await db.from("scans").update({ step: "sources" }).eq("id", scanId);
+      },
+    });
     spend = {
       dfsCalls: spend.dfsCalls + read.dfsCalls,
       dfsCost: spend.dfsCost + read.dfsCost,
@@ -289,7 +326,6 @@ export async function runScan(scanId: string): Promise<void> {
     }
     checkDeadline();
 
-    // --- Step 3: "Finding the sources they cited" is done inside readAndStore ---
     await db
       .from("scans")
       .update({
