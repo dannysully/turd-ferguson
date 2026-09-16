@@ -15,13 +15,15 @@ insert into app_settings (key, value) values
   ('ip_scans_per_day',   '3'::jsonb),
   ('domain_cache_days',  '30'::jsonb),
   -- What an anonymous visitor gets. Measured DataForSEO cost for fourteen
-  -- questions: google_aio $0.077, chatgpt $0.056, gemini $0.056. About $0.19.
-  ('scan_engines_free',  '["google_aio","chatgpt","gemini"]'::jsonb),
-  -- What the email buys, run once after the address is captured: perplexity
-  -- $0.084 and claude $0.659, about $0.74 more. Worth it for an address, not
-  -- for an anonymous visitor. Editing either row takes effect on the next
-  -- request, no deploy.
-  ('scan_engines_gated', '["perplexity","claude"]'::jsonb),
+  -- questions: google_aio $0.077, chatgpt $0.056, gemini $0.056, perplexity
+  -- $0.084. About $0.27.
+  ('scan_engines_free',  '["google_aio","chatgpt","gemini","perplexity"]'::jsonb),
+  -- Empty on purpose: the email no longer buys extra engines, it buys the full
+  -- leaderboard and the whole source list. Claude is left out of the scan
+  -- altogether at $0.659 a run - that is a subscription feature, not a lead
+  -- magnet. Putting '["claude"]' back here restores the second pass with no
+  -- deploy; editing either row takes effect on the next request.
+  ('scan_engines_gated', '[]'::jsonb),
   -- Second safety net behind daily_scan_cap, covering free and gated spend
   -- together. Trips before the count cap if unlocks run hot.
   ('daily_cost_cap_usd', '60'::jsonb);
