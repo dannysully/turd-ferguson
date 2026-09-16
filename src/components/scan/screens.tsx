@@ -1,5 +1,7 @@
 "use client";
 
+import { TIER_PLAIN } from "@/components/TierName";
+import { CONTACT_URL } from "@/config/pricing";
 import type { HistoryPoint, Market, RunScanResponse, SourceEntry } from "@/lib/scan";
 import type { CoveragePiece, Tracking } from "@/lib/scan/illustrative";
 import ResultDashboard, { Finding, fmtDate } from "./ResultDashboard";
@@ -101,6 +103,27 @@ export function TopicScreen(p: {
 }
 
 /* ── 3. Running: three named steps, never a bare spinner ── */
+/**
+ * The in-progress marker: the Nomada six-point asterisk, turning.
+ *
+ * A step that is working has to look like it is working. The done state is a
+ * filled tick and the waiting state is a flat dot, so motion is what separates
+ * "running" from "stuck" - which is the whole complaint this answers. The spin
+ * lives in globals.css so prefers-reduced-motion can stop it without taking
+ * the mark away: colour and weight still mark the active row.
+ */
+function StepAsterisk() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 32 32" fill="none" aria-hidden="true" style={{ display: "block", flexShrink: 0 }}>
+      <g className="scan-step-ast" stroke={C.purple} strokeWidth="4.5" strokeLinecap="round">
+        <line x1="16" y1="4.5" x2="16" y2="27.5" />
+        <line x1="6.041" y1="10.25" x2="25.959" y2="21.75" />
+        <line x1="25.959" y1="10.25" x2="6.041" y2="21.75" />
+      </g>
+    </svg>
+  );
+}
+
 export function RunningScreen(p: { brandLabel: string; progress: number; slow?: boolean; headingRef?: React.Ref<HTMLHeadingElement> }) {
   return (
     <div>
@@ -110,20 +133,78 @@ export function RunningScreen(p: { brandLabel: string; progress: number; slow?: 
           const state = i < p.progress ? "done" : i === p.progress ? "active" : "todo";
           return (
             <li key={s} className={state === "active" ? "scan-step-active" : undefined} style={{ display: "flex", alignItems: "center", gap: "0.75rem", fontSize: "0.9375rem", color: state === "todo" ? C.muted : C.navy, fontWeight: state === "active" ? 600 : 500 }}>
-              <span className="scan-step-dot" aria-hidden="true" style={{ width: 18, height: 18, borderRadius: "50%", flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", background: state === "done" ? C.purple : state === "active" ? "rgba(124,58,237,0.15)" : C.border, border: state === "active" ? `2px solid ${C.purple}` : "none" }}>
-                {state === "done" && <svg width="9" height="7" viewBox="0 0 9 7" fill="none"><path d="M1 3.5l2.5 2.5 5-5" stroke="#fff" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" /></svg>}
-              </span>
+              {state === "active" ? (
+                <StepAsterisk />
+              ) : (
+                <span className="scan-step-dot" aria-hidden="true" style={{ width: 18, height: 18, borderRadius: "50%", flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", background: state === "done" ? C.purple : C.border }}>
+                  {state === "done" && <svg width="9" height="7" viewBox="0 0 9 7" fill="none"><path d="M1 3.5l2.5 2.5 5-5" stroke="#fff" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+                </span>
+              )}
               {s}
             </li>
           );
         })}
       </ol>
-      {p.slow && <p style={{ fontSize: "0.8125rem", color: C.body, marginTop: "1rem" }}>This is taking longer than usual. Still working on it.</p>}
+      <p style={{ fontSize: "0.8125rem", color: C.muted, marginTop: "1rem" }}>
+        {p.slow
+          ? "This is taking longer than usual. Still working on it."
+          : "This usually takes about a minute. We are asking every engine every question, so it is worth the wait."}
+      </p>
     </div>
   );
 }
 
 /* ── 4 and 5. Result: finding ungated; the rest blurred behind the gate or open ── */
+/**
+ * What to do about the result, once they can see all of it.
+ *
+ * One action, not a price list. The scan answers "where do I stand"; the
+ * question it leaves is "so what do I do", and that is a conversation, not a
+ * checkout - nobody buys a placement programme off a results page. The offer
+ * is therefore the walkthrough, made concrete by naming a source from their
+ * own result, and the self-serve tier sits underneath as a plain sentence for
+ * the people who only want the numbers.
+ */
+function NextStepCta(p: { result: RunScanResponse }) {
+  const top = p.result.sources.find((s) => s.domain)?.domain;
+  return (
+    <div
+      style={{
+        marginTop: "1.5rem",
+        background: "rgba(124,58,237,0.05)",
+        border: "1px solid rgba(124,58,237,0.2)",
+        borderRadius: "16px",
+        padding: "1.5rem",
+      }}
+    >
+      <p style={{ fontSize: "1.0625rem", fontWeight: 700, color: C.navy, margin: "0 0 0.5rem", letterSpacing: "-0.01em" }}>
+        Now the useful bit: where your first placement goes
+      </p>
+      <p style={{ fontSize: "0.9375rem", color: C.body, margin: "0 0 1.25rem", lineHeight: 1.6 }}>
+        The sources above are the pages these engines already trust on {p.result.topic}
+        {top ? <> - {top} among them</> : null}. Book twenty minutes and we will take this
+        result apart with you: which source we would go after first, what it takes to get
+        placed there, and how you would know it worked. Take the plan away and run it
+        yourself, or hand it to us.
+      </p>
+      <a
+        href={CONTACT_URL}
+        className="btn-primary"
+        style={{ ...btn, display: "inline-block", textDecoration: "none", fontWeight: 600 }}
+      >
+        Book a 20-minute walkthrough
+      </a>
+      <p style={{ fontSize: "0.8125rem", color: C.muted, margin: "1rem 0 0", lineHeight: 1.6 }}>
+        Only want to watch the numbers move?{" "}
+        <a href="/alwaystracked" style={{ color: C.purple, fontWeight: 600 }}>
+          {TIER_PLAIN.tracked}
+        </a>{" "}
+        tracks this every week from $99 a month.
+      </p>
+    </div>
+  );
+}
+
 export function ResultScreen(p: { result: RunScanResponse; gated: boolean; compact?: boolean; gate?: React.ReactNode; headingRef?: React.Ref<HTMLHeadingElement> }) {
   const r = p.result;
   return (
@@ -140,7 +221,10 @@ export function ResultScreen(p: { result: RunScanResponse; gated: boolean; compa
           </div>
         </div>
       ) : (
-        <ResultDashboard r={r} />
+        <>
+          <ResultDashboard r={r} />
+          <NextStepCta result={r} />
+        </>
       )}
     </div>
   );
