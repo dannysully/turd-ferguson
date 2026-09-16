@@ -346,9 +346,26 @@ details summary::-webkit-details-marker {
 .scan-gated { filter: blur(6px); pointer-events: none; user-select: none; }
 .scan-step-dot { transition: background 0.25s ease, transform 0.25s ease; }
 .scan-step-active .scan-step-dot { transform: scale(1.15); }
+
+/* The step that is running turns continuously, unlike the brand mark's
+   intermittent 8s cycle: this one is a progress signal, so it must not have
+   long still stretches that read as a stall. */
+.scan-step-ast {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: scanStepSpin 1.6s linear infinite;
+}
+@keyframes scanStepSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .scan-step-dot { transition: none; }
   .scan-step-active .scan-step-dot { transform: none; }
+  /* Still the asterisk, still purple, just not turning: the active row stays
+     identifiable by mark, colour and weight without any motion. */
+  .scan-step-ast { animation: none !important; transform: none !important; }
 }
 
 /* ─── /example walkthrough ─── */
