@@ -1,7 +1,12 @@
-import { after } from "next/server";
-
-import { runGatedScan } from "@/lib/scan/pipeline";
+import {
+  SCAN_UNLOCK_COLUMNS,
+  buildUnlockPayload,
+  completeUnlock,
+  resolveAccount,
+  type UnlockableScan,
+} from "@/lib/scan/unlock";
 import { getSettings } from "@/lib/scan/settings";
+import { sendVerificationEmail } from "@/lib/scan/verify-email";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -48,7 +53,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
 
   const { data: scan } = await db
     .from("scans")
-    .select("id, domain, brand_name, topic, market, status, account_id, gated_engines, gated_status")
+    .select(SCAN_UNLOCK_COLUMNS)
     .eq("public_token", token)
     .maybeSingle();
 
@@ -57,198 +62,83 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
     return Response.json({ error: "not_ready", status: scan.status }, { status: 409 });
   }
 
-  // 2. Find or create the account, then make it real with a magic link.
-  let accountId = scan.account_id as string | null;
-  if (!accountId) {
-    const { data: existing } = await db
-      .from("accounts")
-      .select("id")
-      .ilike("email", email)
-      .maybeSingle();
+  const accountId = await resolveAccount(email, (scan.account_id as string | null) ?? null);
+  if (!accountId) return Response.json({ error: "account_failed" }, { status: 500 });
 
-    if (existing) {
-      accountId = existing.id;
-    } else {
-      const { data: created, error: aErr } = await db
-        .from("accounts")
-        .insert({ email, agency_domain: email.split("@")[1] })
-        .select("id")
-        .single();
-      if (aErr || !created) {
-        return Response.json({ error: "account_failed" }, { status: 500 });
-      }
-      accountId = created.id;
-    }
+  // A settings blip must not become a funnel outage. Failing to read the flag
+  // falls back to the behaviour that still captures the lead and still shows
+  // the report, rather than the one that shows nothing.
+  let mustVerify = false;
+  try {
+    mustVerify = (await getSettings()).require_email_verification;
+  } catch (err) {
+    console.warn("[scan] could not read app_settings, unlocking without verification", err instanceof Error ? err.message : err);
   }
 
-  await db.from("leads").insert({
-    email,
-    scan_id: scan.id,
-    account_id: accountId,
-    marketing_ok: body.marketing_ok === true,
-  });
-
-  // 3. The scan becomes the account's first client domain.
-  const { data: clientDomain } = await db
-    .from("client_domains")
-    .upsert(
-      {
-        account_id: accountId,
-        domain: scan.domain,
-        brand_name: scan.brand_name,
-        topic: scan.topic,
-        market: scan.market,
-      },
-      { onConflict: "account_id,domain,topic,market" },
-    )
-    .select("id")
+  // The lead is recorded either way. What changes is whether it counts as
+  // proven on the spot or has to be confirmed first.
+  const { data: lead, error: lErr } = await db
+    .from("leads")
+    .insert({
+      email,
+      scan_id: scan.id,
+      account_id: accountId,
+      marketing_ok: body.marketing_ok === true,
+      verified_at: mustVerify ? null : new Date().toISOString(),
+    })
+    .select("id, verify_token")
     .single();
 
-  // 4. Attach and stamp.
-  await db
-    .from("scans")
-    .update({
-      account_id: accountId,
-      client_domain_id: clientDomain?.id ?? null,
-      unlocked_at: new Date().toISOString(),
-    })
-    .eq("id", scan.id);
+  if (lErr || !lead) return Response.json({ error: "lead_failed" }, { status: 500 });
+
+  // ---- verification first ----
+  if (mustVerify) {
+    const brand = (scan.brand_name as string | null) ?? (scan.domain as string);
+    const sent = await sendVerificationEmail({
+      email,
+      brand,
+      verifyToken: lead.verify_token as string,
+      leadId: lead.id as string,
+    });
+
+    if (!sent) {
+      return Response.json(
+        {
+          error: "email_failed",
+          message: "We could not send that just now. Try again in a moment.",
+          lead_id: lead.id,
+        },
+        { status: 502 },
+      );
+    }
+
+    return Response.json(
+      { verification_sent: true, email, lead_id: lead.id },
+      { headers: { "cache-control": "no-store" } },
+    );
+  }
+
+  // ---- unlock straight away ----
+  const { gatedStarted, gatedEngines } = await completeUnlock(scan as unknown as UnlockableScan, accountId);
 
   // The magic link establishes the session for the return visit. It is sent,
   // not waited on: making someone leave the page to see what they were just
   // promised loses them.
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://alwayscited.com";
+  const site = process.env.NEXT_PUBLIC_SITE_URL ?? "https://alwayscited.com";
   void db.auth.admin
-    .inviteUserByEmail(email, { redirectTo: `${siteUrl}/scan/${token}` })
+    .inviteUserByEmail(email, { redirectTo: `${site}/scan/${token}` })
     .catch((err) => {
-      // An already-registered address errors here and that is expected. Other
-      // failures are logged rather than swallowed: on a project using the newer
-      // sb_secret_ API keys this is the one call whose service-role handling is
-      // worth watching, and a silent catch would hide magic links never sending.
       console.warn("[scan] magic link not sent", err instanceof Error ? err.message : err);
     });
 
-  // 4b. Start the engines the email just bought. This runs once per scan: a
-  // second unlock of the same scan must not re-spend on Perplexity and Claude.
-  let gatedStarted = false;
-  const gatedEngines = ((scan.gated_engines ?? []) as string[]).filter(Boolean);
-  if (gatedEngines.length && scan.gated_status === "none") {
-    // The spend cap covers gated runs as well, or a burst of unlocks could
-    // outspend the day's budget after the count cap has already been passed.
-    const settings = await getSettings();
-    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const { data: spendRows } = await db.from("scans").select("dfs_cost").gte("created_at", since);
-    const spentToday = (spendRows ?? []).reduce((a, r) => a + Number(r.dfs_cost ?? 0), 0);
-
-    if (spentToday < settings.daily_cost_cap_usd) {
-      const { error: claimErr } = await db
-        .from("scans")
-        .update({ gated_status: "queued" })
-        .eq("id", scan.id)
-        .eq("gated_status", "none");
-      if (!claimErr) {
-        gatedStarted = true;
-        after(async () => {
-          await runGatedScan(scan.id);
-        });
-      }
-    }
-  }
-
-  // 5. The full payload, which has not been sent before this point.
-  const [{ data: brands }, { data: sources }, { data: questions }, { data: answers }] = await Promise.all([
-    db.from("scan_brands").select("engine, brand, mentions, is_subject").eq("scan_id", scan.id),
-    db
-      .from("scan_citations")
-      .select("source_domain, url, title, question_id, engine, scan_questions(search_volume)")
-      .eq("scan_id", scan.id),
-    db
-      .from("scan_questions")
-      .select("id, idx, question, kind, search_volume")
-      .eq("scan_id", scan.id)
-      .order("idx", { ascending: true }),
-    db.from("scan_answers").select("question_id, engine, answered, brand_named").eq("scan_id", scan.id),
-  ]);
-
-  // Leaderboard: per engine, and summed across engines for the overall view.
-  type BrandRow = { engine: string; brand: string; mentions: number; is_subject: boolean };
-  const brandRows = (brands ?? []) as BrandRow[];
-  const overall = new Map<string, { brand: string; mentions: number; is_subject: boolean; engines: string[] }>();
-  for (const b of brandRows) {
-    const row = overall.get(b.brand) ?? { brand: b.brand, mentions: 0, is_subject: b.is_subject, engines: [] };
-    row.mentions += b.mentions;
-    row.is_subject = row.is_subject || b.is_subject;
-    if (!row.engines.includes(b.engine)) row.engines.push(b.engine);
-    overall.set(b.brand, row);
-  }
-  const leaderboard = [...overall.values()].sort((a, b) => b.mentions - a.mentions);
-
-  // Sources: one row per source, counting distinct (question, engine) pairs, so
-  // a source cited twice inside one answer is not counted twice.
-  type SourceRow = {
-    source: string;
-    mentions: number;
-    engines: string[];
-    ai_search_volume: number | null;
-    urls: string[];
-  };
-  const bySource = new Map<string, SourceRow>();
-  const counted = new Set<string>();
-  for (const c of sources ?? []) {
-    const row: SourceRow = bySource.get(c.source_domain) ?? {
-      source: c.source_domain,
-      mentions: 0,
-      engines: [],
-      ai_search_volume: null,
-      urls: [],
-    };
-    const key = `${c.source_domain}|${c.question_id}|${c.engine}`;
-    if (!counted.has(key)) {
-      counted.add(key);
-      row.mentions += 1;
-      // An embedded to-one select arrives as an array in some client versions.
-      const embedded = c.scan_questions as unknown;
-      const q = Array.isArray(embedded) ? embedded[0] : embedded;
-      const v = (q as { search_volume?: number | null } | null)?.search_volume;
-      if (typeof v === "number") row.ai_search_volume = (row.ai_search_volume ?? 0) + v;
-    }
-    if (!row.engines.includes(c.engine)) row.engines.push(c.engine);
-    if (c.url && !row.urls.includes(c.url)) row.urls.push(c.url);
-    bySource.set(c.source_domain, row);
-  }
-  const fullSources = [...bySource.values()].sort(
-    (a, b) => b.mentions - a.mentions || (b.ai_search_volume ?? 0) - (a.ai_search_volume ?? 0),
-  );
-
-  // Per question, what each engine did. "did not answer" and "answered without
-  // naming them" stay separate states all the way to the screen.
-  const answerRows = (answers ?? []) as Array<{
-    question_id: string;
-    engine: string;
-    answered: boolean;
-    brand_named: boolean;
-  }>;
-  const questionDetail = (questions ?? []).map((q) => ({
-    idx: q.idx,
-    question: q.question,
-    kind: q.kind,
-    search_volume: q.search_volume,
-    engines: answerRows
-      .filter((a) => a.question_id === q.id)
-      .map((a) => ({ engine: a.engine, answered: a.answered, brand_named: a.brand_named })),
-  }));
+  const payload = await buildUnlockPayload(scan.id as string);
 
   return Response.json(
     {
       unlocked: true,
-      // Which engines are still to come, so the screen can say so rather than
-      // showing a silent gap where Perplexity and Claude will appear.
       gated_engines: gatedEngines,
       gated_status: gatedStarted ? "queued" : (scan.gated_status ?? "none"),
-      brands: leaderboard,
-      brands_by_engine: brandRows,
-      sources: fullSources,
-      questions: questionDetail,
+      ...payload,
     },
     { headers: { "cache-control": "no-store" } },
   );

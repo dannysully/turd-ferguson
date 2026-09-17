@@ -15,6 +15,14 @@ export type Settings = {
   scan_engines_gated: Engine[];
   /** Spend ceiling for a rolling day, checked before any paid call. */
   daily_cost_cap_usd: number;
+  /**
+   * Whether an address must be proven before the result opens. Off until DMARC
+   * is published: with it on, an email that does not arrive costs the lead and
+   * the report both, where today it costs neither.
+   */
+  require_email_verification: boolean;
+  /** How long an unclaimed scan keeps the prose the engines returned. */
+  response_retention_days: number;
 };
 
 const FALLBACK: Settings = {
@@ -25,6 +33,8 @@ const FALLBACK: Settings = {
   scan_engines_free: [...FREE_ENGINES],
   scan_engines_gated: [...GATED_ENGINES],
   daily_cost_cap_usd: 60,
+  require_email_verification: false,
+  response_retention_days: 7,
 };
 
 /**

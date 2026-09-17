@@ -166,6 +166,9 @@ async function readAndStore(input: {
       brand_named: a.brandNamed,
       error: a.error,
       cost: a.cost,
+      // Captured on every run, including runs nobody ever claims, because the
+      // free pass happens before an email exists. The purge sweep reclaims it.
+      response_text: a.prose || null,
     })),
   );
   if (aErr) throw new Error(`could not store the answers: ${aErr.message}`);

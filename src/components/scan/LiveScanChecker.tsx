@@ -124,21 +124,81 @@ function toResult(t: Teaser, domain: string, full: FullPayload | null): RunScanR
   };
 }
 
+/**
+ * What stands in for the report while an address is being proven.
+ *
+ * It names the address, because the commonest failure is a typo nobody can see
+ * once the form has gone, and it offers a resend, because with verification in
+ * front of the result a message that does not arrive is the whole visit lost.
+ */
+function VerifyPending(p: {
+  email: string;
+  note: string;
+  busy: boolean;
+  onResend: () => void;
+}) {
+  return (
+    <div>
+      <p style={{ fontSize: "0.9375rem", fontWeight: 700, color: C.navy, margin: "0 0 0.5rem" }}>
+        Check your inbox
+      </p>
+      <p style={{ fontSize: "0.875rem", color: C.body, margin: "0 0 1rem", lineHeight: 1.6 }}>
+        The full report is one click away. We have sent a link to{" "}
+        <strong style={{ color: C.navy }}>{p.email}</strong> - opening it unlocks the leaderboard and
+        every source, on this device or any other.
+      </p>
+      <p style={{ fontSize: "0.8125rem", color: C.body, margin: "0 0 0.75rem", lineHeight: 1.6 }}>
+        Nothing yet? It can take a minute, and it is worth a look in spam.
+      </p>
+      <button
+        type="button"
+        onClick={p.onResend}
+        disabled={p.busy}
+        style={{
+          fontSize: "0.875rem",
+          fontWeight: 600,
+          color: C.purple,
+          background: "transparent",
+          border: `1px solid ${C.border}`,
+          borderRadius: 8,
+          padding: "0.5rem 0.9rem",
+          cursor: p.busy ? "default" : "pointer",
+          opacity: p.busy ? 0.6 : 1,
+        }}
+      >
+        {p.busy ? "Sending" : "Send it again"}
+      </button>
+      {p.note ? (
+        <p aria-live="polite" style={{ fontSize: "0.8125rem", color: C.body, margin: "0.75rem 0 0" }}>
+          {p.note}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 export default function LiveScanChecker({
   compact = false,
   initialDomain = "",
+  initialToken = "",
 }: {
   compact?: boolean;
   initialDomain?: string;
+  /**
+   * Resume an existing scan rather than starting one. This is what /scan/[token]
+   * passes: the link in the email comes back to a finished result, not to an
+   * empty domain field.
+   */
+  initialToken?: string;
 }) {
-  const [phase, setPhase] = useState<Phase>("domain");
+  const [phase, setPhase] = useState<Phase>(initialToken ? "result" : "domain");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>("");
 
   const [domain, setDomain] = useState(initialDomain);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 
-  const [token, setToken] = useState<string | null>(null);
+  const [token, setToken] = useState<string | null>(initialToken || null);
   const [brandName, setBrandName] = useState("");
   const [topic, setTopic] = useState("");
   const [topicUnknown, setTopicUnknown] = useState(false);
@@ -157,6 +217,9 @@ export default function LiveScanChecker({
 
   const [email, setEmail] = useState("");
   const [emailErr, setEmailErr] = useState("");
+  /** Set once an address has been given but not yet proven. */
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
+  const [resendNote, setResendNote] = useState("");
 
   const headingRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
@@ -168,6 +231,41 @@ export default function LiveScanChecker({
     if (!res.ok) throw new Error("could not load the result");
     return (await res.json()) as Teaser;
   }, []);
+
+  // ---- resuming a scan from its link ----
+  // The teaser always loads. The full payload only exists if this scan has been
+  // unlocked, and a 403 there is the ordinary case, not a failure: it means the
+  // visitor gets the gate, which is correct.
+  useEffect(() => {
+    if (!initialToken) return;
+    let stop = false;
+
+    (async () => {
+      try {
+        const t = await loadTeaser(initialToken);
+        if (stop) return;
+        setTeaser(t);
+      } catch {
+        if (!stop) setError("We could not find that result.");
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/scan/${initialToken}/full`, { cache: "no-store" });
+        if (!res.ok || stop) return;
+        const data = await res.json();
+        setFull({ brands: data.brands ?? [], sources: data.sources ?? [] });
+        setGatedEngines(data.gated_engines ?? []);
+        setGatedStatus(data.gated_status ?? "none");
+      } catch {
+        // No full payload is the gated state, which renders fine.
+      }
+    })();
+
+    return () => {
+      stop = true;
+    };
+  }, [initialToken, loadTeaser]);
 
   // ---- step 01 ----
   async function onDomain(e: React.FormEvent) {
@@ -335,12 +433,39 @@ export default function LiveScanChecker({
         setEmailErr(data.message ?? "We could not unlock that just now.");
         return;
       }
+      // Verification on: the address is recorded but nothing opens until the
+      // link in the email is clicked.
+      if (data.verification_sent) {
+        setPendingEmail(data.email ?? email);
+        track("scan_verification_sent", {});
+        return;
+      }
+
       setFull({ brands: data.brands ?? [], sources: data.sources ?? [] });
       setGatedEngines(data.gated_engines ?? gatedEngines);
       setGatedStatus(data.gated_status ?? "none");
       track("scan_unlocked", {});
     } catch {
       setEmailErr("We could not reach the checker. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onResend() {
+    if (!token) return;
+    setBusy(true);
+    setResendNote("");
+    try {
+      const res = await fetch(`/api/scan/${token}/resend`, { method: "POST" });
+      const data = await res.json();
+      setResendNote(
+        res.ok
+          ? (data.message ?? "Sent. It should land in a moment.")
+          : (data.message ?? "That did not go through. Try again shortly."),
+      );
+    } catch {
+      setResendNote("We could not reach the checker. Try again shortly.");
     } finally {
       setBusy(false);
     }
@@ -475,6 +600,9 @@ export default function LiveScanChecker({
           compact={compact}
           headingRef={headingRef}
           gate={
+            pendingEmail ? (
+              <VerifyPending email={pendingEmail} note={resendNote} busy={busy} onResend={onResend} />
+            ) : (
             <form onSubmit={onEmail} noValidate>
               <p style={{ fontSize: "0.9375rem", fontWeight: 700, color: C.navy, margin: "0 0 0.5rem" }}>
                 {gatedEngines.length
@@ -525,6 +653,7 @@ export default function LiveScanChecker({
                 One scan, no charge. Claude and ongoing tracking come with a plan.
               </p>
             </form>
+            )
           }
         />
       )}
