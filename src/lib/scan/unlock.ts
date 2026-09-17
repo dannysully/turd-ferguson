@@ -4,6 +4,7 @@ import { after } from "next/server";
 
 import { runGatedScan } from "@/lib/scan/pipeline";
 import { getSettings } from "@/lib/scan/settings";
+import { sendReportReadyEmail } from "@/lib/scan/verify-email";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 /**
@@ -17,6 +18,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 
 export type UnlockableScan = {
   id: string;
+  public_token: string;
   domain: string;
   brand_name: string | null;
   topic: string | null;
@@ -53,6 +55,7 @@ export async function resolveAccount(email: string, existingId: string | null): 
 export async function completeUnlock(
   scan: UnlockableScan,
   accountId: string | null,
+  email: string,
 ): Promise<{ gatedStarted: boolean; gatedEngines: string[] }> {
   const db = supabaseAdmin();
 
@@ -79,6 +82,36 @@ export async function completeUnlock(
       unlocked_at: new Date().toISOString(),
     })
     .eq("id", scan.id);
+
+  // Tell them it is ready and give them a way back to it. Closing the tab used
+  // to lose the report entirely: it is assembled once, for the tab that asked.
+  //
+  // after() rather than a floating promise - the response is already on its way
+  // out, and a bare promise gets killed with the function.
+  after(async () => {
+    const [{ data: qs }, { data: rows }] = await Promise.all([
+      db.from("scan_questions").select("id").eq("scan_id", scan.id),
+      db.from("scan_answers").select("question_id, answered, brand_named").eq("scan_id", scan.id),
+    ]);
+
+    const answers = (rows ?? []) as Array<{ question_id: string; answered: boolean; brand_named: boolean }>;
+    const questions = (qs ?? []) as Array<{ id: string }>;
+
+    // "Answered by someone, named by nobody" - the same figure the screen
+    // leads on. A question no engine answered is not a miss, it is a silence.
+    const missed = questions.filter((q) => {
+      const forQuestion = answers.filter((a) => a.question_id === q.id);
+      return forQuestion.some((a) => a.answered) && !forQuestion.some((a) => a.brand_named);
+    }).length;
+
+    await sendReportReadyEmail({
+      email,
+      brand: scan.brand_name ?? scan.domain,
+      publicToken: scan.public_token,
+      missed,
+      total: questions.length,
+    });
+  });
 
   let gatedStarted = false;
   const gatedEngines = ((scan.gated_engines ?? []) as string[]).filter(Boolean);
@@ -124,7 +157,12 @@ export type UnlockPayload = {
     question: string;
     kind: string;
     search_volume: number | null;
-    engines: Array<{ engine: string; answered: boolean; brand_named: boolean }>;
+    engines: Array<{
+      engine: string;
+      answered: boolean;
+      brand_named: boolean;
+      response_text: string | null;
+    }>;
   }>;
 };
 
@@ -143,7 +181,10 @@ export async function buildUnlockPayload(scanId: string): Promise<UnlockPayload>
       .select("id, idx, question, kind, search_volume")
       .eq("scan_id", scanId)
       .order("idx", { ascending: true }),
-    db.from("scan_answers").select("question_id, engine, answered, brand_named").eq("scan_id", scanId),
+    db
+      .from("scan_answers")
+      .select("question_id, engine, answered, brand_named, response_text")
+      .eq("scan_id", scanId),
   ]);
 
   type BrandRow = { engine: string; brand: string; mentions: number; is_subject: boolean };
@@ -197,6 +238,7 @@ export async function buildUnlockPayload(scanId: string): Promise<UnlockPayload>
     engine: string;
     answered: boolean;
     brand_named: boolean;
+    response_text: string | null;
   }>;
   const questionDetail = (questions ?? []).map((q) => ({
     idx: q.idx as number,
@@ -205,7 +247,15 @@ export async function buildUnlockPayload(scanId: string): Promise<UnlockPayload>
     search_volume: (q.search_volume ?? null) as number | null,
     engines: answerRows
       .filter((a) => a.question_id === q.id)
-      .map((a) => ({ engine: a.engine, answered: a.answered, brand_named: a.brand_named })),
+      .map((a) => ({
+        engine: a.engine,
+        answered: a.answered,
+        brand_named: a.brand_named,
+        // Null for scans that ran before the prose was stored, and for any the
+        // purge has already reclaimed. The screen says so rather than showing a
+        // blank and letting it read as "the engine said nothing".
+        response_text: (a.response_text ?? null) as string | null,
+      })),
   }));
 
   return {

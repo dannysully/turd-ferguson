@@ -60,7 +60,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ vtoken: string
     (lead.account_id as string | null) ?? (scan.account_id as string | null) ?? null,
   );
 
-  await completeUnlock(scan as unknown as UnlockableScan, accountId);
+  await completeUnlock(scan as unknown as UnlockableScan, accountId, lead.email as string);
 
   // The session for the return visit. Sent, not waited on.
   void db.auth.admin

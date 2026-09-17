@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import type { EngineBreakdown, Market, RunScanResponse, ScanQuestion } from "@/lib/scan";
+import type { EngineAnswer, EngineBreakdown, Market, RunScanResponse, ScanQuestion } from "@/lib/scan";
 import { ENGINE_SPECS, isEngine } from "@/lib/scan/engines";
 
 import { C, DomainScreen, ResultScreen, RunningScreen, TopicScreen, btn, field, label } from "./screens";
@@ -43,6 +43,8 @@ type Teaser = {
 type FullPayload = {
   brands: { brand: string; mentions: number; is_subject: boolean }[];
   sources: { source: string; mentions: number; ai_search_volume: number | null; urls: string[] }[];
+  /** Per-question engine detail, including what each one actually said. */
+  questions?: { idx: number; engines: EngineAnswer[] }[];
   gated_engines?: string[];
   gated_status?: string;
 };
@@ -113,7 +115,10 @@ function toResult(t: Teaser, domain: string, full: FullPayload | null): RunScanR
       ai_search_volume: s.ai_search_volume,
     })),
     history: [],
-    questions: t.questions ?? [],
+    questions: (t.questions ?? []).map((q) => {
+      const detail = full?.questions?.find((d) => d.idx === q.idx);
+      return detail ? { ...q, answers: detail.engines } : q;
+    }),
     gated: !full,
     // Every engine answering nothing is a real finding, not an error.
     empty: t.of > 0 && (t.by_engine ?? []).every((e) => e.answered === 0),
@@ -254,7 +259,7 @@ export default function LiveScanChecker({
         const res = await fetch(`/api/scan/${initialToken}/full`, { cache: "no-store" });
         if (!res.ok || stop) return;
         const data = await res.json();
-        setFull({ brands: data.brands ?? [], sources: data.sources ?? [] });
+        setFull({ brands: data.brands ?? [], sources: data.sources ?? [], questions: data.questions ?? [] });
         setGatedEngines(data.gated_engines ?? []);
         setGatedStatus(data.gated_status ?? "none");
       } catch {
@@ -441,7 +446,7 @@ export default function LiveScanChecker({
         return;
       }
 
-      setFull({ brands: data.brands ?? [], sources: data.sources ?? [] });
+      setFull({ brands: data.brands ?? [], sources: data.sources ?? [], questions: data.questions ?? [] });
       setGatedEngines(data.gated_engines ?? gatedEngines);
       setGatedStatus(data.gated_status ?? "none");
       track("scan_unlocked", {});

@@ -119,7 +119,11 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
   }
 
   // ---- unlock straight away ----
-  const { gatedStarted, gatedEngines } = await completeUnlock(scan as unknown as UnlockableScan, accountId);
+  const { gatedStarted, gatedEngines } = await completeUnlock(
+    scan as unknown as UnlockableScan,
+    accountId,
+    email,
+  );
 
   // The magic link establishes the session for the return visit. It is sent,
   // not waited on: making someone leave the page to see what they were just

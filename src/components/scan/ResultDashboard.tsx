@@ -1,4 +1,9 @@
-import type { RunScanResponse, ScanSource } from "@/lib/scan";
+"use client";
+
+import { useState } from "react";
+
+import type { RunScanResponse, ScanQuestion, ScanSource } from "@/lib/scan";
+import { ENGINE_SPECS, isEngine } from "@/lib/scan/engines";
 
 /** Both long lists stop here. Past twenty rows nobody is reading, they are scrolling. */
 const LIST_LIMIT = 20;
@@ -151,6 +156,110 @@ export function Engines({ r }: { r: RunScanResponse }) {
  *
  * Tallies only. What each engine actually said is a different screen.
  */
+function engineLabel(key: string): string {
+  return isEngine(key) ? ENGINE_SPECS[key].label : key;
+}
+
+const toggle: React.CSSProperties = {
+  font: "inherit",
+  fontSize: "0.7rem",
+  color: C.purple,
+  background: "none",
+  border: "none",
+  padding: 0,
+  cursor: "pointer",
+  textDecoration: "underline",
+};
+
+/**
+ * One question, with the engines' own words folded away underneath it.
+ *
+ * The transcript is the sharpest thing in the report - a buyer's question, and
+ * four engines answering it without the client's name in the answer - so it
+ * sits behind the email with the rest of the detail. It is simply absent on the
+ * free result rather than blurred, because a toggle that opens nothing is worse
+ * than no toggle.
+ */
+function PromptRow({ q, first, brand }: { q: ScanQuestion; first: boolean; brand: string }) {
+  const [open, setOpen] = useState(false);
+
+  const silent = q.answered === 0;
+  const hit = q.named > 0;
+
+  // Only rows with something to show get a control. Scans that ran before the
+  // prose was stored, and any the purge has reclaimed, have none.
+  const transcript = (q.answers ?? []).filter((a) => a.response_text?.trim());
+  const hasTranscript = transcript.length > 0;
+
+  return (
+    <li style={{ padding: "0.625rem 0", borderTop: first ? "none" : `1px solid ${C.border}` }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "0.75rem", alignItems: "baseline" }}>
+        <div style={{ minWidth: 0 }}>
+          <p style={{ fontSize: "0.9375rem", color: C.navy, margin: "0 0 0.2rem", lineHeight: 1.5 }}>{q.question}</p>
+          <p style={{ fontSize: "0.7rem", color: C.muted, margin: 0 }}>
+            {q.kind}
+            {q.search_volume !== null && q.search_volume > 0 && (
+              <> · {q.search_volume.toLocaleString("en-US")} searches a month</>
+            )}
+            {hasTranscript && (
+              <>
+                {" · "}
+                <button type="button" onClick={() => setOpen(!open)} style={toggle} aria-expanded={open}>
+                  {open ? "hide what they said" : "read what they said"}
+                </button>
+              </>
+            )}
+          </p>
+        </div>
+        <span
+          style={{
+            fontSize: "0.7rem",
+            fontWeight: 600,
+            whiteSpace: "nowrap",
+            padding: "0.2rem 0.5rem",
+            borderRadius: 999,
+            color: silent ? C.muted : hit ? "#15803D" : "#B45309",
+            background: silent ? "#F3F4F6" : hit ? "rgba(34,197,94,0.12)" : "rgba(245,158,11,0.12)",
+          }}
+        >
+          {silent ? "no answer" : hit ? `named by ${q.named} of ${q.answered}` : "not named"}
+        </span>
+      </div>
+
+      {open && (
+        <div style={{ marginTop: "0.75rem", display: "flex", flexDirection: "column", gap: "0.625rem" }}>
+          {transcript.map((a) => (
+            <div
+              key={a.engine}
+              style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: "0.75rem 0.875rem", background: C.soft }}
+            >
+              <p style={{ fontSize: "0.75rem", fontWeight: 700, color: C.navy, margin: "0 0 0.375rem" }}>
+                {engineLabel(a.engine)}
+                <span style={{ fontWeight: 500, color: a.brand_named ? "#15803D" : "#B45309", marginLeft: "0.5rem" }}>
+                  {a.brand_named ? `names ${brand}` : `does not name ${brand}`}
+                </span>
+              </p>
+              <p
+                style={{
+                  fontSize: "0.8125rem",
+                  color: C.body,
+                  lineHeight: 1.6,
+                  margin: 0,
+                  whiteSpace: "pre-wrap",
+                  maxHeight: "260px",
+                  overflowY: "auto",
+                }}
+              >
+                {a.response_text}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+    </li>
+  );
+}
+
 export function Prompts({ r }: { r: RunScanResponse }) {
   const qs = r.questions ?? [];
   if (qs.length === 0) return null;
@@ -173,46 +282,9 @@ export function Prompts({ r }: { r: RunScanResponse }) {
         )}
       </p>
       <ol style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column" }}>
-        {qs.map((q, i) => {
-          const silent = q.answered === 0;
-          const hit = q.named > 0;
-          return (
-            <li
-              key={q.idx}
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr auto",
-                gap: "0.75rem",
-                alignItems: "baseline",
-                padding: "0.625rem 0",
-                borderTop: i ? `1px solid ${C.border}` : "none",
-              }}
-            >
-              <div style={{ minWidth: 0 }}>
-                <p style={{ fontSize: "0.9375rem", color: C.navy, margin: "0 0 0.2rem", lineHeight: 1.5 }}>{q.question}</p>
-                <p style={{ fontSize: "0.7rem", color: C.muted, margin: 0 }}>
-                  {q.kind}
-                  {q.search_volume !== null && q.search_volume > 0 && (
-                    <> · {q.search_volume.toLocaleString("en-US")} searches a month</>
-                  )}
-                </p>
-              </div>
-              <span
-                style={{
-                  fontSize: "0.7rem",
-                  fontWeight: 600,
-                  whiteSpace: "nowrap",
-                  padding: "0.2rem 0.5rem",
-                  borderRadius: 999,
-                  color: silent ? C.muted : hit ? "#15803D" : "#B45309",
-                  background: silent ? "#F3F4F6" : hit ? "rgba(34,197,94,0.12)" : "rgba(245,158,11,0.12)",
-                }}
-              >
-                {silent ? "no answer" : hit ? `named by ${q.named} of ${q.answered}` : "not named"}
-              </span>
-            </li>
-          );
-        })}
+        {qs.map((q, i) => (
+          <PromptRow key={q.idx} q={q} first={i === 0} brand={r.brand.name} />
+        ))}
       </ol>
     </div>
   );

@@ -66,6 +66,20 @@ export type ScanQuestion = {
   answered: number;
   /** Of those, how many named the brand. */
   named: number;
+  /**
+   * What each engine actually said, present only once the scan is unlocked.
+   * The tallies above are free; the words are what the email buys.
+   */
+  answers?: EngineAnswer[];
+};
+
+/** One engine's response to one question, verbatim. */
+export type EngineAnswer = {
+  engine: string;
+  answered: boolean;
+  brand_named: boolean;
+  /** Null when the engine said nothing, or when the purge has reclaimed it. */
+  response_text: string | null;
 };
 
 export type RunScanResponse = {

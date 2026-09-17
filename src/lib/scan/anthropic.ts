@@ -107,6 +107,36 @@ const QuestionSet = z.object({
 });
 export type GeneratedQuestion = z.infer<typeof QuestionSet>["questions"][number];
 
+/**
+ * The year a buyer would actually type.
+ *
+ * Read at call time rather than baked in as a constant: a hardcoded year is
+ * wrong from the first of January and nobody notices until a client does.
+ */
+function currentYear(): number {
+  return new Date().getFullYear();
+}
+
+/**
+ * Rewrites a year that has already passed to the current one.
+ *
+ * The question set is asked to carry the year, and the model left to itself
+ * reaches for whatever year its training data ended in - which is how "best
+ * electrolyte hydration sachets uk 2025" reached a real report in September
+ * 2026. Naming the year in the prompt helps; this is the part that cannot
+ * drift, because it does not depend on the model reading the instruction.
+ *
+ * Deliberately narrow. Only 2015 up to last year are touched, so capacities
+ * and model numbers ("best 2000w inverter", "1200 series") are left alone, and
+ * a forward-looking year is somebody's real search rather than a mistake.
+ */
+export function freshenYears(text: string, year = currentYear()): string {
+  return text.replace(/\b20\d{2}\b/g, (match) => {
+    const n = Number(match);
+    return n >= 2015 && n < year ? String(year) : match;
+  });
+}
+
 export async function generateQuestions(input: {
   topic: string;
   topicVariants?: string[];
@@ -115,6 +145,7 @@ export async function generateQuestions(input: {
   positioning: string | null;
 }): Promise<GeneratedQuestion[]> {
   const marketName = input.market === "UK" ? "the United Kingdom" : "the United States";
+  const year = currentYear();
 
   // The variants are what stop fourteen questions being fourteen rewordings of
   // one phrase. Without them the set collapses onto the broad category and the
@@ -142,8 +173,10 @@ export async function generateQuestions(input: {
       "searches its buyers run.",
       "",
       "The mix across the whole set is fixed:",
-      "- 3 category: the term as the market says it, one plain, one with the year,",
-      "  one about cost or pricing.",
+      `- 3 category: the term as the market says it, one plain, one carrying the`,
+      `  year, one about cost or pricing. The current year is ${year}. If a question`,
+      `  carries a year it must be ${year} - never an earlier one, however familiar`,
+      `  an earlier one looks.`,
       "- 5 positioning: the category re-framed the way this brand argues for",
       "  itself, using its variants.",
       "- 3 sector: the category plus the brand's strongest declared sector.",
@@ -181,7 +214,12 @@ export async function generateQuestions(input: {
 
   const out = res.parsed_output;
   if (!out?.questions?.length) throw new Error("could not build the question set");
-  return out.questions.slice(0, QUESTION_COUNT);
+
+  // Belt and braces: the instruction above is advisory, this is not.
+  return out.questions.slice(0, QUESTION_COUNT).map((q) => ({
+    ...q,
+    question: freshenYears(q.question, year),
+  }));
 }
 
 // ----------------------------------------------------------- brand extraction
