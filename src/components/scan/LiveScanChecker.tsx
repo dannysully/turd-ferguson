@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import type { EngineBreakdown, Market, RunScanResponse } from "@/lib/scan";
+import type { EngineBreakdown, Market, RunScanResponse, ScanQuestion } from "@/lib/scan";
 import { ENGINE_SPECS, isEngine } from "@/lib/scan/engines";
 
 import { C, DomainScreen, ResultScreen, RunningScreen, TopicScreen, btn, field, label } from "./screens";
@@ -36,6 +36,8 @@ type Teaser = {
   brand_count: number;
   top_sources: { source: string; mentions: number; ai_search_volume: number | null; is_own_domain: boolean }[] | null;
   total_sources: number;
+  /** The questions asked, with tallies. Free - see Prompts in ResultDashboard. */
+  questions: ScanQuestion[] | null;
 };
 
 type FullPayload = {
@@ -111,6 +113,7 @@ function toResult(t: Teaser, domain: string, full: FullPayload | null): RunScanR
       ai_search_volume: s.ai_search_volume,
     })),
     history: [],
+    questions: t.questions ?? [],
     gated: !full,
     // Every engine answering nothing is a real finding, not an error.
     empty: t.of > 0 && (t.by_engine ?? []).every((e) => e.answered === 0),
