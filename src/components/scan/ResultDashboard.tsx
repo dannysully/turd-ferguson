@@ -1,5 +1,8 @@
 import type { RunScanResponse, ScanSource } from "@/lib/scan";
 
+/** Both long lists stop here. Past twenty rows nobody is reading, they are scrolling. */
+const LIST_LIMIT = 20;
+
 /**
  * The results view, shared by the homepage checker (blurred behind the gate)
  * and the /example page (ungated). Renders only what the result contains.
@@ -137,6 +140,84 @@ export function Engines({ r }: { r: RunScanResponse }) {
   );
 }
 
+/* ── The questions themselves ── */
+/**
+ * Free, and on purpose.
+ *
+ * The weakest thing a checker like this can do is assert a number and ask to be
+ * believed. Printing the actual questions turns the claim into evidence, and it
+ * does the selling too: a row reading "not named" against a question a buyer
+ * really asks is a sharper argument than any leaderboard position.
+ *
+ * Tallies only. What each engine actually said is a different screen.
+ */
+export function Prompts({ r }: { r: RunScanResponse }) {
+  const qs = r.questions ?? [];
+  if (qs.length === 0) return null;
+
+  const missed = qs.filter((q) => q.answered > 0 && q.named === 0).length;
+
+  return (
+    <div style={card}>
+      <SectionHead title={`The ${qs.length} questions we put to the engines`} readAt={r.read_at} />
+      <p style={{ fontSize: "0.875rem", color: C.body, margin: "0 0 1rem", lineHeight: 1.6 }}>
+        Written from {r.topic} and what your site says you sell, then spread across the
+        phrasings a buyer would actually use. Every engine was asked every one.
+        {missed > 0 && (
+          <>
+            {" "}
+            <strong style={{ color: C.navy }}>
+              {missed} came back without {r.brand.name} in the answer.
+            </strong>
+          </>
+        )}
+      </p>
+      <ol style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column" }}>
+        {qs.map((q, i) => {
+          const silent = q.answered === 0;
+          const hit = q.named > 0;
+          return (
+            <li
+              key={q.idx}
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr auto",
+                gap: "0.75rem",
+                alignItems: "baseline",
+                padding: "0.625rem 0",
+                borderTop: i ? `1px solid ${C.border}` : "none",
+              }}
+            >
+              <div style={{ minWidth: 0 }}>
+                <p style={{ fontSize: "0.9375rem", color: C.navy, margin: "0 0 0.2rem", lineHeight: 1.5 }}>{q.question}</p>
+                <p style={{ fontSize: "0.7rem", color: C.muted, margin: 0 }}>
+                  {q.kind}
+                  {q.search_volume !== null && q.search_volume > 0 && (
+                    <> · {q.search_volume.toLocaleString("en-US")} searches a month</>
+                  )}
+                </p>
+              </div>
+              <span
+                style={{
+                  fontSize: "0.7rem",
+                  fontWeight: 600,
+                  whiteSpace: "nowrap",
+                  padding: "0.2rem 0.5rem",
+                  borderRadius: 999,
+                  color: silent ? C.muted : hit ? "#15803D" : "#B45309",
+                  background: silent ? "#F3F4F6" : hit ? "rgba(34,197,94,0.12)" : "rgba(245,158,11,0.12)",
+                }}
+              >
+                {silent ? "no answer" : hit ? `named by ${q.named} of ${q.answered}` : "not named"}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+}
+
 /* ── Leaderboard ── */
 export function Leaderboard({ r }: { r: RunScanResponse }) {
   const marketName = r.market === "UK" ? "the UK" : "the US";
@@ -149,7 +230,7 @@ export function Leaderboard({ r }: { r: RunScanResponse }) {
         </p>
       ) : (
         <ol style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-          {r.leaderboard.map((e, i) => (
+          {r.leaderboard.slice(0, LIST_LIMIT).map((e, i) => (
             <li key={e.brand} style={{ display: "grid", gridTemplateColumns: "2rem 1fr auto", gap: "0.75rem", alignItems: "baseline", padding: "0.5rem 0", borderTop: i ? `1px solid ${C.border}` : "none" }}>
               <span style={{ fontSize: "0.8125rem", color: C.muted, fontVariantNumeric: "tabular-nums" }}>{i + 1}</span>
               <span style={{ fontSize: "0.9375rem", fontWeight: e.brand.toLowerCase() === r.brand.name.toLowerCase() ? 700 : 500, color: C.navy }}>{e.brand}</span>
@@ -158,13 +239,23 @@ export function Leaderboard({ r }: { r: RunScanResponse }) {
           ))}
         </ol>
       )}
+      {r.leaderboard.length > LIST_LIMIT && (
+        <p style={{ fontSize: "0.75rem", color: C.muted, marginTop: "0.75rem", marginBottom: 0 }}>
+          Top {LIST_LIMIT} of {r.leaderboard.length} brands.
+        </p>
+      )}
     </div>
   );
 }
 
 /* ── Sources ── */
 export function Sources({ r, limit }: { r: RunScanResponse; limit?: number }) {
-  const rows = limit ? r.sources.slice(0, limit) : r.sources;
+  // Unlimited used to mean every row, which on a real scan is well over a
+  // hundred domains - a wall nobody reads. The cap is the default now, and the
+  // count of what is behind it is the argument for the subscription.
+  const cap = limit ?? LIST_LIMIT;
+  const rows = r.sources.slice(0, cap);
+  const hidden = r.sources.length - rows.length;
   const brandDomain = r.brand.name.toLowerCase();
   return (
     <div style={card}>
@@ -194,8 +285,15 @@ export function Sources({ r, limit }: { r: RunScanResponse; limit?: number }) {
           </table>
         </div>
       )}
-      {limit && r.sources.length > limit && (
-        <p style={{ fontSize: "0.75rem", color: C.muted, marginTop: "0.75rem", marginBottom: 0 }}>and {r.sources.length - limit} more</p>
+      {hidden > 0 && (
+        <p style={{ fontSize: "0.8125rem", color: C.body, marginTop: "0.875rem", marginBottom: 0, lineHeight: 1.6 }}>
+          The {cap} most-cited of <strong style={{ color: C.navy }}>{r.sources.length} sources</strong> the engines
+          drew on.{" "}
+          <a href="/alwaystracked" style={{ color: C.purple, fontWeight: 600 }}>
+            alwaystracked
+          </a>{" "}
+          opens all {r.sources.length}, and watches them week by week.
+        </p>
       )}
     </div>
   );
