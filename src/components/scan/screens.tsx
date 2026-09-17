@@ -4,7 +4,7 @@ import { TIER_PLAIN } from "@/components/TierName";
 import { CONTACT_URL } from "@/config/pricing";
 import type { HistoryPoint, Market, RunScanResponse, SourceEntry } from "@/lib/scan";
 import type { CoveragePiece, Tracking } from "@/lib/scan/illustrative";
-import ResultDashboard, { Finding, fmtDate } from "./ResultDashboard";
+import ResultDashboard, { Finding, Prompts, fmtDate } from "./ResultDashboard";
 
 /**
  * The checker's screens as stateless components. ScanChecker composes them
@@ -211,6 +211,9 @@ export function ResultScreen(p: { result: RunScanResponse; gated: boolean; compa
     <div>
       <h2 ref={p.headingRef} tabIndex={-1} className="sr-only">Results</h2>
       <div style={{ marginBottom: "1.5rem" }}><Finding r={r} /></div>
+      {/* Outside the gate on purpose: the questions are the evidence, and an
+          unconvinced visitor needs them before they will trade an address. */}
+      <div style={{ marginBottom: "1.5rem" }}><Prompts r={r} /></div>
       {p.gated ? (
         <div style={{ position: "relative" }}>
           <div className="scan-gated" aria-hidden="true"><ResultDashboard r={r} sourceLimit={p.compact ? 4 : 8} /></div>
