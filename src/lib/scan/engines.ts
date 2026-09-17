@@ -74,8 +74,13 @@ export type EngineRead = {
   /** The engine's own prose, with link URLs stripped. Brand matching runs on this. */
   prose: string;
   citations: Citation[];
+  /** Google only: the organic results from the same response as the Overview. */
+  organic?: OrganicHit[];
   raw: unknown;
 };
+
+/** One of Google's organic results. rank is the position among organic results. */
+export type OrganicHit = { domain: string; url: string | null; rank: number };
 
 const EMPTY: EngineRead = { answered: false, prose: "", citations: [], raw: null };
 
@@ -120,15 +125,34 @@ function collectCitations(
 type AioRef = { source?: string; domain?: string; url?: string; title?: string };
 type AioElement = { text?: string; references?: AioRef[] };
 type AioItem = { type: string; markdown?: string; items?: AioElement[]; references?: AioRef[] };
+type OrganicItem = { type?: string; rank_group?: number; rank_absolute?: number; domain?: string; url?: string };
+
+/**
+ * The organic results, from the same response as the Overview. The request is
+ * a full SERP at depth 20, so these were always coming back; keeping them is
+ * what gives the report a Google rank for every question at no extra cost.
+ */
+function collectOrganic(items: OrganicItem[]): OrganicHit[] {
+  const out: OrganicHit[] = [];
+  for (const i of items) {
+    if (i.type !== "organic") continue;
+    const domain = normalizeDomain(i.domain ?? i.url ?? "");
+    const rank = typeof i.rank_group === "number" ? i.rank_group : i.rank_absolute;
+    if (!domain || typeof rank !== "number") continue;
+    out.push({ domain, url: i.url ?? null, rank });
+  }
+  return out;
+}
 
 export function parseGoogleAio(result: Record<string, unknown> | undefined | null): EngineRead {
   if (!result) return EMPTY;
 
   const items = (result.items as AioItem[] | undefined) ?? [];
+  const organic = collectOrganic(items as unknown as OrganicItem[]);
   const aio = items.find((i) => i.type === "ai_overview");
   if (!aio) {
     const claimed = ((result.item_types as string[] | undefined) ?? []).includes("ai_overview");
-    return { ...EMPTY, raw: { claimed_but_absent: claimed } };
+    return { ...EMPTY, organic, raw: { claimed_but_absent: claimed } };
   }
 
   // Element text is the Overview's own prose. The markdown field carries inline
@@ -141,7 +165,7 @@ export function parseGoogleAio(result: Record<string, unknown> | undefined | nul
   const refs = aio.references?.length ? aio.references : (aio.items ?? []).flatMap((el) => el.references ?? []);
   const citations = collectCitations(refs);
 
-  return { answered: true, prose, citations, raw: { reference_count: citations.length } };
+  return { answered: true, prose, citations, organic, raw: { reference_count: citations.length } };
 }
 
 // ──────────────────────── chatgpt / gemini scrapers ────────────────────────

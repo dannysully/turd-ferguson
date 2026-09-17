@@ -155,7 +155,15 @@ export async function readEngine(engine: Engine, question: string, market: Marke
   return { ...PARSERS[engine](task.result?.[0]), cost };
 }
 
-/** One call for the whole question set. Missing volumes stay null, never zero. */
+/**
+ * One call for the whole question set. Missing volumes stay null, never zero.
+ *
+ * This is DataForSEO's AI search volume: how often a phrase is estimated to be
+ * put to AI tools each month, modelled from People Also Ask data. Nobody has
+ * the engines' own logs, so an estimate is the best there is. It replaced
+ * Google Ads volume, which has nothing to say about fourteen long-tail
+ * questions and left the figure empty on every scan.
+ */
 export async function readSearchVolumes(
   questions: string[],
   market: Market,
@@ -165,17 +173,19 @@ export async function readSearchVolumes(
   if (!questions.length) return { volumes, cost: 0 };
 
   const body = await post(
-    "/v3/keywords_data/google_ads/search_volume/live",
+    "/v3/ai_optimization/ai_keyword_data/keywords_search_volume/live",
     [{ keywords: questions, location_code: MARKETS[market].location_code, language_code: "en" }],
     timeoutMs,
   );
 
   const task = firstTask(body);
-  for (const row of task.result ?? []) {
-    const keyword = row.keyword as string | undefined;
-    if (!keyword) continue;
-    const v = row.search_volume;
-    volumes.set(keyword, typeof v === "number" ? v : null);
+  // The API lowercases every keyword. The questions already are, so they match.
+  type VolumeItem = { keyword?: string; ai_search_volume?: number | null };
+  const first = task.result?.[0] as { items?: VolumeItem[] } | undefined;
+  for (const row of first?.items ?? []) {
+    if (!row.keyword) continue;
+    const v = row.ai_search_volume;
+    volumes.set(row.keyword, typeof v === "number" ? v : null);
   }
   return { volumes, cost: typeof task.cost === "number" ? task.cost : 0 };
 }

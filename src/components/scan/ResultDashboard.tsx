@@ -199,7 +199,7 @@ function PromptRow({ q, first, brand }: { q: ScanQuestion; first: boolean; brand
           <p style={{ fontSize: "0.7rem", color: C.muted, margin: 0 }}>
             {q.kind}
             {q.search_volume !== null && q.search_volume > 0 && (
-              <> · {q.search_volume.toLocaleString("en-US")} searches a month</>
+              <> · {q.search_volume.toLocaleString("en-US")} AI searches a month</>
             )}
             {hasTranscript && (
               <>

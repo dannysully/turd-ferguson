@@ -151,12 +151,17 @@ export type UnlockPayload = {
     engines: string[];
     ai_search_volume: number | null;
     urls: string[];
+    /** own | competitor | review | placement | other. Null until classified. */
+    kind: string | null;
+    note: string | null;
   }>;
   questions: Array<{
     idx: number;
     question: string;
     kind: string;
     search_volume: number | null;
+    /** The subject's Google organic position for this question. Null: not in the top twenty. */
+    google_rank: number | null;
     engines: Array<{
       engine: string;
       answered: boolean;
@@ -170,7 +175,7 @@ export type UnlockPayload = {
 export async function buildUnlockPayload(scanId: string): Promise<UnlockPayload> {
   const db = supabaseAdmin();
 
-  const [{ data: brands }, { data: sources }, { data: questions }, { data: answers }] = await Promise.all([
+  const [{ data: brands }, { data: sources }, { data: questions }, { data: answers }, { data: kinds }] = await Promise.all([
     db.from("scan_brands").select("engine, brand, mentions, is_subject").eq("scan_id", scanId),
     db
       .from("scan_citations")
@@ -178,13 +183,14 @@ export async function buildUnlockPayload(scanId: string): Promise<UnlockPayload>
       .eq("scan_id", scanId),
     db
       .from("scan_questions")
-      .select("id, idx, question, kind, search_volume")
+      .select("id, idx, question, kind, search_volume, google_rank")
       .eq("scan_id", scanId)
       .order("idx", { ascending: true }),
     db
       .from("scan_answers")
       .select("question_id, engine, answered, brand_named, response_text")
       .eq("scan_id", scanId),
+    db.from("scan_sources").select("domain, kind, note").eq("scan_id", scanId),
   ]);
 
   type BrandRow = { engine: string; brand: string; mentions: number; is_subject: boolean };
@@ -205,7 +211,12 @@ export async function buildUnlockPayload(scanId: string): Promise<UnlockPayload>
     engines: string[];
     ai_search_volume: number | null;
     urls: string[];
+    kind: string | null;
+    note: string | null;
   };
+  const kindOf = new Map(
+    ((kinds ?? []) as Array<{ domain: string; kind: string; note: string | null }>).map((k) => [k.domain, k]),
+  );
   const bySource = new Map<string, SourceRow>();
   const counted = new Set<string>();
   for (const c of sources ?? []) {
@@ -215,6 +226,8 @@ export async function buildUnlockPayload(scanId: string): Promise<UnlockPayload>
       engines: [],
       ai_search_volume: null,
       urls: [],
+      kind: kindOf.get(c.source_domain)?.kind ?? null,
+      note: kindOf.get(c.source_domain)?.note ?? null,
     };
     const key = `${c.source_domain}|${c.question_id}|${c.engine}`;
     if (!counted.has(key)) {
@@ -245,6 +258,7 @@ export async function buildUnlockPayload(scanId: string): Promise<UnlockPayload>
     question: q.question as string,
     kind: q.kind as string,
     search_volume: (q.search_volume ?? null) as number | null,
+    google_rank: (q.google_rank ?? null) as number | null,
     engines: answerRows
       .filter((a) => a.question_id === q.id)
       .map((a) => ({

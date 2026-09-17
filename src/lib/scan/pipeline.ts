@@ -4,8 +4,9 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 
 import { describeAnthropicError, extractBrands, generateQuestions, QUESTION_COUNT } from "./anthropic";
 import { readEngine, readSearchVolumes } from "./dataforseo";
-import type { Market } from "./domain";
-import { type Engine, isEngine, namesBrand } from "./engines";
+import { type Market, normalizeDomain } from "./domain";
+import { type Engine, isEngine, namesBrand, type OrganicHit } from "./engines";
+import { classifySources } from "./sources";
 
 /** Whole-run ceiling. Past this the scan is marked failed rather than left hanging. */
 const RUN_TIMEOUT_MS = 5 * 60 * 1000;
@@ -67,9 +68,19 @@ type Answer = {
   brandNamed: boolean;
   prose: string;
   citations: { source_domain: string; url: string | null; title: string | null; position: number }[];
+  /** Google only. null is a measurement: not in the top twenty. undefined: not measured. */
+  googleRank?: number | null;
   error: string | null;
   cost: number;
 };
+
+/** Where the subject sits in Google's organic results, or null if outside the top twenty. */
+function rankOf(organic: OrganicHit[] | undefined, subject: string): number | null | undefined {
+  if (!organic?.length) return undefined;
+  const want = normalizeDomain(subject);
+  const hit = organic.find((o) => o.domain === want || o.domain.endsWith(`.${want}`));
+  return hit ? hit.rank : null;
+}
 
 
 type StoredQuestion = { id: string; idx: number; question: string };
@@ -83,6 +94,8 @@ type StoredQuestion = { id: string; idx: number; question: string };
  */
 async function readAndStore(input: {
   scanId: string;
+  /** The subject's domain, for its Google rank. */
+  domain: string;
   brand: string;
   market: Market;
   engines: Engine[];
@@ -93,7 +106,7 @@ async function readAndStore(input: {
   onSources?: () => Promise<void>;
 }): Promise<{ dfsCalls: number; dfsCost: number; anthropicCalls: number; answered: Engine[] }> {
   const db = supabaseAdmin();
-  const { scanId, brand, market, engines, questions, checkDeadline, onSources } = input;
+  const { scanId, domain, brand, market, engines, questions, checkDeadline, onSources } = input;
 
   let dfsCalls = 0;
   let dfsCost = 0;
@@ -129,6 +142,7 @@ async function readAndStore(input: {
           brandNamed: read.answered && namesBrand(read.prose, brand),
           prose: read.prose,
           citations: read.citations,
+          googleRank: engine === "google_aio" ? rankOf(read.organic, domain) : undefined,
           error: null,
           cost: read.cost,
         };
@@ -172,6 +186,13 @@ async function readAndStore(input: {
     })),
   );
   if (aErr) throw new Error(`could not store the answers: ${aErr.message}`);
+
+  // The Google read is a full SERP, so the subject's organic position came back
+  // with every Overview. Keeping it is free. Only a measured value is written.
+  for (const a of answers) {
+    if (a.engine !== "google_aio" || a.googleRank === undefined) continue;
+    await db.from("scan_questions").update({ google_rank: a.googleRank }).eq("id", a.questionId);
+  }
 
   const citations = answers.flatMap((a) =>
     a.citations.map((c) => ({
@@ -298,6 +319,7 @@ export async function runScan(scanId: string): Promise<void> {
     // long part and the screen would show the last step for the whole of it.
     const read = await readAndStore({
       scanId,
+      domain: scan.domain,
       brand,
       market,
       engines,
@@ -328,6 +350,15 @@ export async function runScan(scanId: string): Promise<void> {
       // Search volume is a column, not a reason to fail the scan.
     }
     checkDeadline();
+
+    // What kind of site each source is: competitor, review site, somewhere an
+    // article could be placed. One call, and never a reason to fail the scan.
+    try {
+      const kinds = await classifySources(scanId);
+      spend.anthropicCalls += kinds.anthropicCalls;
+    } catch (err) {
+      console.warn(`[scan] source kinds skipped for ${scanId}:`, err instanceof Error ? err.message : err);
+    }
 
     await db
       .from("scans")
@@ -398,12 +429,21 @@ export async function runGatedScan(scanId: string): Promise<void> {
 
     const read = await readAndStore({
       scanId,
+      domain: scan.domain,
       brand: scan.brand_name ?? scan.domain,
       market: scan.market,
       engines,
       questions: questionRows,
       checkDeadline,
     });
+
+    // The second pass cites sources the first did not. Label the new ones.
+    let kindCalls = 0;
+    try {
+      kindCalls = (await classifySources(scanId)).anthropicCalls;
+    } catch (err) {
+      console.warn(`[scan] source kinds skipped for ${scanId}:`, err instanceof Error ? err.message : err);
+    }
 
     // Spend from both passes accumulates on the same row, so the admin page and
     // the daily cost cap see the true cost of this scan.
@@ -421,7 +461,7 @@ export async function runGatedScan(scanId: string): Promise<void> {
         engines_answered: [...new Set([...(current?.engines_answered ?? []), ...read.answered])],
         dfs_calls: (current?.dfs_calls ?? 0) + read.dfsCalls,
         dfs_cost: Number(current?.dfs_cost ?? 0) + read.dfsCost,
-        anthropic_calls: (current?.anthropic_calls ?? 0) + read.anthropicCalls,
+        anthropic_calls: (current?.anthropic_calls ?? 0) + read.anthropicCalls + kindCalls,
       })
       .eq("id", scanId);
   } catch (err) {

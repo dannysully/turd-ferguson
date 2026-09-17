@@ -262,3 +262,75 @@ export async function extractBrands(overviewProse: string): Promise<{ brand: str
 
   return res.parsed_output?.brands ?? [];
 }
+
+// ------------------------------------------------------------ source kinds
+
+const SourceJudgement = z.object({
+  sources: z.array(
+    z.object({
+      domain: z.string(),
+      kind: z.enum(["competitor", "placement", "other"]),
+      note: z.string().describe("At most twelve words. Plain English for a business reader."),
+    }),
+  ),
+});
+
+/**
+ * Sorts cited domains into competitors, places an article could be placed,
+ * and everything else. The subject's own domain and the review sites never
+ * reach here: sources.ts settles those without a call.
+ */
+export async function classifySourceDomains(input: {
+  topic: string;
+  brand: string;
+  competitors: string[];
+  domains: string[];
+}): Promise<z.infer<typeof SourceJudgement>["sources"]> {
+  if (!input.domains.length) return [];
+
+  const res = await anthropic().messages.parse({
+    model: MODEL,
+    max_tokens: 6000,
+    output_config: { effort: EFFORT, format: zodOutputFormat(SourceJudgement) },
+    system: [
+      "You are given website domains that AI search engines cited when answering",
+      `buyers' questions about ${input.topic || "a product category"}. Sort each one.`,
+      "",
+      "competitor: the domain belongs to a company that sells this to the same",
+      "buyers. A domain that is plainly one of the named competitors is a",
+      "competitor. So is a seller in this category you recognise even when it is",
+      "not named.",
+      "",
+      "placement: a publication, magazine, newspaper, trade title, blog, industry",
+      "body, comparison or listicle site, or any editorial site where an article",
+      "about this category could be published, or a brand written into an",
+      "existing one. When a domain could be either, prefer placement.",
+      "",
+      "other: anything else. A community or social site, an encyclopaedia, a",
+      "government or academic site, a marketplace, a search engine's own",
+      "property, a tool or product unrelated to the category.",
+      "",
+      "The note is one short line a business reader takes in at a glance: what",
+      "the site is and, for a placement, who reads it. Twelve words at most. No",
+      "marketing language. Examples: 'UK trade title for finance teams',",
+      "'Sells the same thing to the same buyers', 'Comparison site ranking",
+      "suppliers in this category'.",
+      "",
+      "Return every domain you were given, spelled exactly as given, once each.",
+    ].join("\n"),
+    messages: [
+      {
+        role: "user",
+        content: [
+          `Subject brand: ${input.brand}`,
+          `Named competitors: ${input.competitors.length ? input.competitors.join(", ") : "none identified"}`,
+          "",
+          "Domains:",
+          ...input.domains.map((d) => `- ${d}`),
+        ].join("\n"),
+      },
+    ],
+  });
+
+  return res.parsed_output?.sources ?? [];
+}
