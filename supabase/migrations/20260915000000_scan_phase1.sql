@@ -238,7 +238,19 @@ as $$
                         order by count(*) desc, sum(search_volume) desc nulls last
                         limit 4) t),
     'total_sources',(select count(distinct source_domain)
-                       from scan_citations where scan_id = s.id)
+                       from scan_citations where scan_id = s.id),
+
+    -- The questions themselves, with tallies but not the answers. Free on
+    -- purpose: a number with no visible working is an assertion, and the list
+    -- of questions a brand is missing from sells harder than its rank does.
+    'questions',    (select jsonb_agg(t order by t.idx) from (
+                        select q.idx, q.question, q.kind, q.search_volume,
+                               count(*) filter (where a.answered)    as answered,
+                               count(*) filter (where a.brand_named) as named
+                        from scan_questions q
+                        left join scan_answers a on a.question_id = q.id
+                        where q.scan_id = s.id
+                        group by q.idx, q.question, q.kind, q.search_volume) t)
   )
   from scans s where s.public_token = p_token;
 $$;
