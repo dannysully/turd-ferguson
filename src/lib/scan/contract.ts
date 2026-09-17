@@ -54,6 +54,20 @@ export type EngineBreakdown = {
   named: number;
 };
 
+/** One question put to every engine, and what came back at the tally level. */
+export type ScanQuestion = {
+  idx: number;
+  question: string;
+  /** category | positioning | sector | outcome | comparison */
+  kind: string;
+  /** Monthly searches for the phrase, null when we could not measure it. */
+  search_volume: number | null;
+  /** How many engines produced an answer at all. */
+  answered: number;
+  /** Of those, how many named the brand. */
+  named: number;
+};
+
 export type RunScanResponse = {
   scan_id: string;
   /** Kept for the fixture path. Live results use `engines` instead. */
@@ -76,6 +90,14 @@ export type RunScanResponse = {
   leaderboard: LeaderboardEntry[];
   sources: SourceEntry[];
   history: HistoryPoint[];
+  /**
+   * The questions actually put to the engines, with how many answered and how
+   * many named the brand. Free, and deliberately so: the strongest evidence a
+   * scan is real is the list of things it asked.
+   *
+   * Optional because the fixture and /example paths do not have it.
+   */
+  questions?: ScanQuestion[];
   gated: boolean;
   empty: boolean;
   /** Why a field is blank or the result is empty. Null when nothing is missing. */
