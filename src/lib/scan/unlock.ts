@@ -208,7 +208,7 @@ export async function buildUnlockPayload(scanId: string): Promise<UnlockPayload>
       .from("scan_answers")
       .select("question_id, engine, answered, brand_named, response_text")
       .eq("scan_id", scanId),
-    db.from("scan_sources").select("domain, kind, note").eq("scan_id", scanId),
+    db.from("scan_sources").select("domain, kind, note, on_topic").eq("scan_id", scanId),
   ]);
 
   type BrandRow = { engine: string; brand: string; mentions: number; is_subject: boolean };
@@ -233,7 +233,14 @@ export async function buildUnlockPayload(scanId: string): Promise<UnlockPayload>
     note: string | null;
   };
   const kindOf = new Map(
-    ((kinds ?? []) as Array<{ domain: string; kind: string; note: string | null }>).map((k) => [k.domain, k]),
+    (
+      (kinds ?? []) as Array<{
+        domain: string;
+        kind: string;
+        note: string | null;
+        on_topic: boolean | null;
+      }>
+    ).map((k) => [k.domain, k]),
   );
   const bySource = new Map<string, SourceRow>();
   const counted = new Set<string>();
@@ -315,6 +322,12 @@ export async function buildUnlockPayload(scanId: string): Promise<UnlockPayload>
    * properties, gov.uk, marketplaces, financial data portals. On the first
    * real scan it put google.com on the opportunity list. A list is judged by
    * its worst row, not its best.
+   *
+   * on_topic false is excluded too, and it is a different test from kind. A
+   * national newspaper is a placement whatever it was cited for; it is only an
+   * opportunity when the pages cited are about this category. Null means the
+   * row predates the column, and is allowed through so existing scans keep
+   * working - only an explicit false removes a row.
    */
   const PLACEABLE = new Set(["placement", "review"]);
   const namedAt = new Map<string, boolean>();
@@ -343,8 +356,10 @@ export async function buildUnlockPayload(scanId: string): Promise<UnlockPayload>
   const oppBy = new Map<string, Opportunity>();
   const seenAnswer = new Set<string>();
   for (const c of sources ?? []) {
-    const k = kindOf.get(c.source_domain)?.kind ?? null;
+    const classified = kindOf.get(c.source_domain);
+    const k = classified?.kind ?? null;
     if (!k || !PLACEABLE.has(k)) continue;
+    if (classified?.on_topic === false) continue;
     const answerKey = `${c.source_domain}|${c.question_id}|${c.engine}`;
     if (seenAnswer.has(answerKey)) continue;
     seenAnswer.add(answerKey);

@@ -270,6 +270,11 @@ const SourceJudgement = z.object({
     z.object({
       domain: z.string(),
       kind: z.enum(["competitor", "placement", "other"]),
+      on_topic: z
+        .boolean()
+        .describe(
+          "True when the cited pages are about this category. False when the site was cited for something unrelated.",
+        ),
       note: z.string().describe("At most twelve words. Plain English for a business reader."),
     }),
   ),
@@ -284,7 +289,8 @@ export async function classifySourceDomains(input: {
   topic: string;
   brand: string;
   competitors: string[];
-  domains: string[];
+  /** One entry per domain, carrying the pages the engines actually cited. */
+  domains: { domain: string; pages: { url: string | null; title: string | null }[] }[];
 }): Promise<z.infer<typeof SourceJudgement>["sources"]> {
   if (!input.domains.length) return [];
 
@@ -304,11 +310,20 @@ export async function classifySourceDomains(input: {
       "placement: a publication, magazine, newspaper, trade title, blog, industry",
       "body, comparison or listicle site, or any editorial site where an article",
       "about this category could be published, or a brand written into an",
-      "existing one. When a domain could be either, prefer placement.",
+      "existing one.",
       "",
       "other: anything else. A community or social site, an encyclopaedia, a",
       "government or academic site, a marketplace, a search engine's own",
       "property, a tool or product unrelated to the category.",
+      "",
+      "Then judge on_topic SEPARATELY from kind, using the page titles and URLs",
+      "under each domain. kind is what the site is; on_topic is whether these",
+      "particular pages are about this category. A national newspaper is a",
+      "placement, but a page about horse racing owners or an unrelated company",
+      "filing is not on topic, and neither is a fashion title cited for a shoe",
+      "trends piece. Set on_topic false whenever the cited pages are about",
+      "something else, however good the publication. Being unsure is not a",
+      "reason to say true.",
       "",
       "The note is one short line a business reader takes in at a glance: what",
       "the site is and, for a placement, who reads it. Twelve words at most. No",
@@ -325,8 +340,11 @@ export async function classifySourceDomains(input: {
           `Subject brand: ${input.brand}`,
           `Named competitors: ${input.competitors.length ? input.competitors.join(", ") : "none identified"}`,
           "",
-          "Domains:",
-          ...input.domains.map((d) => `- ${d}`),
+          "Domains, each with the pages the engines cited:",
+          ...input.domains.flatMap((d) => [
+            `- ${d.domain}`,
+            ...d.pages.slice(0, 3).map((p) => `    ${p.title ?? "(no title)"}  ${p.url ?? ""}`),
+          ]),
         ].join("\n"),
       },
     ],
