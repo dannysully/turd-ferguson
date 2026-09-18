@@ -41,6 +41,10 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# claude session channel - never pushed, read off the connected folder
+/docs/inbox.md
+/docs/worklog.md
+
 # local data pulls — live client and staff names, and this repo is public
 /roadmap-raw.json
 /roadmap-mapped.json
