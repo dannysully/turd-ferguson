@@ -3,6 +3,7 @@ import "server-only";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 import { describeAnthropicError, extractBrands, generateQuestions, QUESTION_COUNT } from "./anthropic";
+import { brandKey, pickDisplayName } from "./brand-name";
 import { readEngine, readSearchVolumes } from "./dataforseo";
 import { type Market, normalizeDomain } from "./domain";
 import { type Engine, isEngine, namesBrand, type OrganicHit } from "./engines";
@@ -213,7 +214,7 @@ async function readAndStore(input: {
   // One brand extraction per engine, so the leaderboard reads per engine as
   // well as overall. Engines that answered nothing are skipped rather than
   // recorded as a zero.
-  const subjectKey = brand.trim().toLowerCase();
+  const subjectKey = brandKey(brand);
 
   // One extraction per engine, run together. Serially this was four Anthropic
   // round trips bolted onto the end of every scan, all of them independent.
@@ -232,21 +233,54 @@ async function readAndStore(input: {
   anthropicCalls += extractions.filter(Boolean).length;
   checkDeadline();
 
+  // One spelling per brand, chosen across the whole scan rather than per
+  // engine. Deciding per engine would leave ChatGPT's "London Ski Co." and
+  // Gemini's "London Ski Co" as two rows again, because the leaderboard
+  // groups on the stored text.
+  const variants = new Map<string, Map<string, number>>();
+  for (const row of extractions) {
+    if (!row) continue;
+    for (const b of row.extracted) {
+      const name = b.brand.trim();
+      const key = brandKey(name);
+      if (!key || key === subjectKey) continue;
+      const seen = variants.get(key) ?? new Map<string, number>();
+      seen.set(name, (seen.get(name) ?? 0) + b.mentions);
+      variants.set(key, seen);
+    }
+  }
+  const displayFor = new Map([...variants].map(([key, seen]) => [key, pickDisplayName(seen)]));
+
   const brandRows: { scan_id: string; engine: Engine; brand: string; mentions: number; is_subject: boolean }[] = [];
   for (const row of extractions) {
     if (!row) continue;
     const { engine, extracted } = row;
 
+    // Merge within the engine too: one engine can spell it both ways in one
+    // answer set, and (scan_id, engine, brand) is unique.
+    const perEngine = new Map<string, number>();
     for (const b of extracted) {
-      if (b.brand.trim().toLowerCase() === subjectKey) continue;
-      brandRows.push({ scan_id: scanId, engine, brand: b.brand.trim(), mentions: b.mentions, is_subject: false });
+      const key = brandKey(b.brand);
+      if (!key || key === subjectKey) continue;
+      perEngine.set(key, (perEngine.get(key) ?? 0) + b.mentions);
+    }
+    for (const [key, mentions] of perEngine) {
+      brandRows.push({
+        scan_id: scanId,
+        engine,
+        brand: displayFor.get(key) ?? key,
+        mentions,
+        is_subject: false,
+      });
     }
 
     // The subject gets a row for every engine that answered, at zero when it
     // was never named. A measured zero is the strongest finding on the page.
     const namedCount = answers.filter((a) => a.engine === engine && a.brandNamed).length;
-    const claimed = extracted.find((b) => b.brand.trim().toLowerCase() === subjectKey)?.mentions;
-    brandRows.push({ scan_id: scanId, engine, brand, mentions: claimed ?? namedCount, is_subject: true });
+    const claimed = extracted
+      .filter((b) => brandKey(b.brand) === subjectKey)
+      .reduce((n, b) => n + b.mentions, 0);
+    brandRows.push({ scan_id: scanId, engine, brand, mentions: claimed || namedCount, is_subject: true });
   }
 
   if (brandRows.length) {
