@@ -533,3 +533,29 @@ details summary::-webkit-details-marker {
     grid-template-columns: 1fr;
   }
 }
+
+/* FAQ disclosure. The marker is removed because the hint column already says
+   there is more behind the row. */
+.faq-row:last-of-type {
+  border-bottom: 0 !important;
+}
+.faq-summary {
+  list-style: none;
+}
+.faq-summary::-webkit-details-marker {
+  display: none;
+}
+.faq-row[open] .faq-summary span:first-child {
+  color: var(--accent);
+}
+
+@media (max-width: 860px) {
+  /* The answer is indented to column 6 on the board; at phone width it runs
+     full bleed under the question instead. */
+  .faq-row > .board-head > p {
+    grid-column: 1 / -1 !important;
+  }
+  .closing-scan {
+    padding: 24px !important;
+  }
+}
