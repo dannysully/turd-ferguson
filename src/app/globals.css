@@ -13,7 +13,7 @@
   --brand-purple: #7C3AED;
 
   /* Font */
-  --font-sans: var(--font-manrope), "Manrope", Inter, system-ui, -apple-system, sans-serif;
+  --font-sans: "Hanken Grotesk Variable", "Hanken Grotesk", system-ui, -apple-system, sans-serif;
 }
 
 *, *::before, *::after {
@@ -23,7 +23,7 @@
 body {
   background: #ffffff;
   color: #0B1220;
-  font-family: var(--font-manrope), "Manrope", Inter, system-ui, sans-serif;
+  font-family: "Hanken Grotesk Variable", "Hanken Grotesk", system-ui, sans-serif;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
