@@ -184,6 +184,7 @@ export type UnlockPayload = {
     kind: string;
     note: string | null;
     absent_answers: number;
+    absent_questions: number;
     questions: string[];
   }>;
 };
@@ -308,8 +309,14 @@ export async function buildUnlockPayload(scanId: string): Promise<UnlockPayload>
    * own site, and a competitor will not run your brand. Unclassified domains
    * are excluded too - a page the classifier never reached is not a page we
    * can vouch for putting a client on.
+   *
+   * "other" is excluded as well, and that exclusion is load-bearing. It is
+   * where the classifier puts everything it cannot place: the engine's own
+   * properties, gov.uk, marketplaces, financial data portals. On the first
+   * real scan it put google.com on the opportunity list. A list is judged by
+   * its worst row, not its best.
    */
-  const PLACEABLE = new Set(["placement", "review", "other"]);
+  const PLACEABLE = new Set(["placement", "review"]);
   const namedAt = new Map<string, boolean>();
   for (const a of answerRows) namedAt.set(`${a.question_id}|${a.engine}`, a.brand_named);
 
@@ -322,7 +329,15 @@ export async function buildUnlockPayload(scanId: string): Promise<UnlockPayload>
     note: string | null;
     /** Answers (question x engine) this page fed where the brand was absent. */
     absent_answers: number;
-    /** The questions behind that count, deduplicated, for the report. */
+    /**
+     * Distinct questions behind that count. Always <= absent_answers, because
+     * one question answered by four engines is four answers. Both are shown:
+     * the answer count is the reach, the question count is what a placement
+     * would actually be about, and a screen that prints "7" beside a list of
+     * four questions without saying which is which looks broken.
+     */
+    absent_questions: number;
+    /** The questions themselves, deduplicated, for the report. */
     questions: string[];
   };
   const oppBy = new Map<string, Opportunity>();
@@ -339,6 +354,7 @@ export async function buildUnlockPayload(scanId: string): Promise<UnlockPayload>
       kind: k,
       note: kindOf.get(c.source_domain)?.note ?? null,
       absent_answers: 0,
+      absent_questions: 0,
       questions: [],
     };
     row.absent_answers += 1;
@@ -346,6 +362,7 @@ export async function buildUnlockPayload(scanId: string): Promise<UnlockPayload>
     if (qt && !row.questions.includes(qt)) row.questions.push(qt);
     oppBy.set(c.source_domain, row);
   }
+  for (const row of oppBy.values()) row.absent_questions = row.questions.length;
   const opportunities = [...oppBy.values()].sort(
     (a, b) => b.absent_answers - a.absent_answers || a.domain.localeCompare(b.domain),
   );
