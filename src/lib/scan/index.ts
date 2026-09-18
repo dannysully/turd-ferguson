@@ -1,23 +1,15 @@
 /**
- * Scan adapter. Switched by SCAN_SOURCE - "fixture" or "live". Nothing else
- * in the site imports the implementations directly, so the swap is one env
- * var and no code.
+ * Shared scan types, and the domain helper the UI needs alongside them.
+ *
+ * There was an adapter switch here, SCAN_SOURCE=fixture|live. The live half
+ * posted to a product API at SCAN_API_BASE that was never built; the fixture
+ * half backed a second checker on the homepage that returned an empty result
+ * for every domain except our own. Both are gone.
+ *
+ * The real funnel is src/app/api/scan/*, driven by pipeline.ts. The fixture
+ * data now belongs to /example alone, which imports it directly.
  */
-
-import type { ScanAdapter } from "./contract";
-import { fixtureAdapter } from "./fixture";
-import { liveAdapter } from "./live";
 
 export * from "./contract";
 export { ScanError } from "./contract";
 export { normalizeDomain } from "./mapper";
-
-export function getScanAdapter(): ScanAdapter {
-  const source = (process.env.SCAN_SOURCE ?? "fixture").toLowerCase();
-  if (source === "live") return liveAdapter;
-  return fixtureAdapter;
-}
-
-export const startScan: ScanAdapter["startScan"] = (i) => getScanAdapter().startScan(i);
-export const runScan: ScanAdapter["runScan"] = (i) => getScanAdapter().runScan(i);
-export const signUp: ScanAdapter["signUp"] = (i) => getScanAdapter().signUp(i);

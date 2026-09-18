@@ -7,9 +7,12 @@ import type { CoveragePiece, Tracking } from "@/lib/scan/illustrative";
 import ResultDashboard, { Finding, Prompts, fmtDate } from "./ResultDashboard";
 
 /**
- * The checker's screens as stateless components. ScanChecker composes them
- * with live state; the /example walkthrough renders each one frozen at a
- * step with fixed data. Same markup either way, which is the point.
+ * The checker's screens as stateless components. The /example walkthrough
+ * renders each one frozen at a step with fixed data.
+ *
+ * These were shared with ScanChecker, which composed them with live state.
+ * That checker is gone; the live funnel is LiveScanChecker, which renders its
+ * own screens against the real pipeline. Only /example still uses these.
  *
  * readOnly renders the screen non-interactive but styled exactly as live.
  */

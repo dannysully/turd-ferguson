@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { fixtureAdapter } from "@/lib/scan/fixture";
 import { buildIllustrativeResult, illustrativeCoverage, illustrativeTracking } from "@/lib/scan/illustrative";
 import { CoverageScreen, CoverageUploadScreen, DomainScreen, ResultScreen, RunningScreen, TopicScreen, TrackingScreen, C, field, btn, label } from "@/components/scan/screens";
-import ScanChecker from "@/components/scan/ScanChecker";
 import StepRail from "@/components/scan/StepRail";
 import TrackExampleView from "@/components/scan/TrackExampleView";
 
@@ -129,8 +128,13 @@ export default async function ExamplePage() {
       <section style={{ padding: "4rem 1.5rem 5rem", background: C.soft }}>
         <div style={{ ...wrap, maxWidth: "760px" }}>
           <h2 style={{ fontWeight: 700, fontSize: "clamp(1.5rem, 3vw, 2rem)", color: C.navy, lineHeight: 1.15, letterSpacing: "-0.02em", margin: "0 0 0.75rem" }}>Run this on one of your clients.</h2>
-          <p style={{ fontSize: "1rem", color: C.body, lineHeight: 1.7, marginBottom: "1.5rem" }}>Real data, on their domain. Enter it.</p>
-          <ScanChecker compact />
+          <p style={{ fontSize: "1rem", color: C.body, lineHeight: 1.7, marginBottom: "1.5rem" }}>Real data, on their domain.</p>
+          <a
+            href="/scan"
+            style={{ display: "inline-block", background: C.purple, color: "#ffffff", padding: "0.875rem 2rem", borderRadius: "12px", fontWeight: 600, fontSize: "1rem", textDecoration: "none" }}
+          >
+            Scan a client&apos;s domain
+          </a>
         </div>
       </section>
     </>

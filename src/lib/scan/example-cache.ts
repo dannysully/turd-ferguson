@@ -1,7 +1,7 @@
 /**
  * The example page's result, with a last-good fallback.
  *
- * refreshExample runs the adapter. On success the result is stored and
+ * refreshExample runs the fixture adapter. On success the result is stored and
  * served. On failure the previous good result is served with its ORIGINAL
  * read_at - never today's date on stale data - and an alert fires. The page
  * never renders blank.
@@ -14,7 +14,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { RunScanResponse, ScanAdapter } from "./contract";
-import { getScanAdapter } from "./index";
+import { fixtureAdapter } from "./fixture";
 
 const LAST_GOOD = join(process.cwd(), "fixtures", "dataforseo", "example-last-good.json");
 
@@ -58,7 +58,7 @@ async function defaultAlert(message: string) {
 }
 
 export async function refreshExample(opts: { adapter?: ScanAdapter; onAlert?: (msg: string) => void | Promise<void> } = {}): Promise<RefreshOutcome> {
-  const adapter = opts.adapter ?? getScanAdapter();
+  const adapter = opts.adapter ?? fixtureAdapter;
   const alert = opts.onAlert ?? defaultAlert;
   const last = readLastGood();
   try {
@@ -69,10 +69,14 @@ export async function refreshExample(opts: { adapter?: ScanAdapter; onAlert?: (m
     const message = e instanceof Error ? e.message : String(e);
     await alert(message);
     if (last) return { ok: false, refreshed: false, result: last, error: message };
-    /* No last-good yet and the run failed: fall back to the fixture seed rather than a blank page */
-    const { fixtureAdapter } = await import("./fixture");
-    const seed = await runOnce(fixtureAdapter);
-    return { ok: false, refreshed: false, result: seed, error: message };
+    /* No last-good yet. An injected adapter can still be seeded from the
+       fixture rather than rendering a blank page; if the fixture itself is
+       what failed, there is nothing left to fall back to. */
+    if (adapter !== fixtureAdapter) {
+      const seed = await runOnce(fixtureAdapter);
+      return { ok: false, refreshed: false, result: seed, error: message };
+    }
+    throw e;
   }
 }
 

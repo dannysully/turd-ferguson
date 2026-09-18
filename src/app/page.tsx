@@ -3,7 +3,6 @@ import DarkTrustFlow from "@/components/DarkTrustFlow";
 import DarkComparisonSection from "@/components/DarkComparisonSection";
 import SectorPricing from "@/components/SectorPricing";
 import HeroSection from "@/components/scan/HeroSection";
-import ScanChecker from "@/components/scan/ScanChecker";
 import TierName from "@/components/TierName";
 import { CONTACT_URL } from "@/config/pricing";
 
@@ -384,12 +383,23 @@ export default function HomePage() {
             <p style={{ color: "#9CA3AF", fontSize: "1.0625rem", lineHeight: 1.7, marginBottom: "2.5rem" }}>
               Start with a scan. It takes a minute, it is free, and it tells you exactly which sources decide your client&apos;s category.
             </p>
-            <div style={{ display: "flex", justifyContent: "center", marginBottom: "1.5rem" }}>
-              <div style={{ background: C.white, borderRadius: "20px", padding: "1.75rem", textAlign: "left" }}>
-                <ScanChecker compact />
-              </div>
-            </div>
             <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", justifyContent: "center" }}>
+              <a
+                href="#scan"
+                style={{
+                  display: "inline-block",
+                  background: C.white,
+                  color: C.navy,
+                  padding: "0.875rem 2rem",
+                  borderRadius: "12px",
+                  fontWeight: 600,
+                  fontSize: "1rem",
+                  textDecoration: "none",
+                  border: "1.5px solid transparent",
+                }}
+              >
+                Scan a client&apos;s domain
+              </a>
               <a
                 href={CONTACT_URL}
                 style={{
