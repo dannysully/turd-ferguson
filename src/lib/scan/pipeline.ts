@@ -2,7 +2,13 @@ import "server-only";
 
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
-import { describeAnthropicError, extractBrands, generateQuestions, QUESTION_COUNT } from "./anthropic";
+import {
+  classifyBrands,
+  describeAnthropicError,
+  extractBrands,
+  generateQuestions,
+  QUESTION_COUNT,
+} from "./anthropic";
 import { brandKey, pickDisplayName } from "./brand-name";
 import { readEngine, readSearchVolumes } from "./dataforseo";
 import { type Market, normalizeDomain } from "./domain";
@@ -98,6 +104,10 @@ async function readAndStore(input: {
   /** The subject's domain, for its Google rank. */
   domain: string;
   brand: string;
+  /** The category, and what the subject sells. Both steer who counts as a
+   *  competitor, so the leaderboard is judged against the right category. */
+  topic: string;
+  positioning: string | null;
   market: Market;
   engines: Engine[];
   questions: StoredQuestion[];
@@ -107,7 +117,8 @@ async function readAndStore(input: {
   onSources?: () => Promise<void>;
 }): Promise<{ dfsCalls: number; dfsCost: number; anthropicCalls: number; answered: Engine[] }> {
   const db = supabaseAdmin();
-  const { scanId, domain, brand, market, engines, questions, checkDeadline, onSources } = input;
+  const { scanId, domain, brand, topic, positioning, market, engines, questions, checkDeadline, onSources } =
+    input;
 
   let dfsCalls = 0;
   let dfsCost = 0;
@@ -226,7 +237,7 @@ async function readAndStore(input: {
         .filter(Boolean)
         .join("\n\n---\n\n");
       if (!prose.trim()) return null;
-      const extracted = await extractBrands(prose);
+      const extracted = await extractBrands(prose, { topic, brand });
       return { engine, extracted };
     }),
   );
@@ -251,6 +262,49 @@ async function readAndStore(input: {
   }
   const displayFor = new Map([...variants].map(([key, seen]) => [key, pickDisplayName(seen)]));
 
+  /**
+   * Which of those names are actually competitors.
+   *
+   * Extraction is broad on purpose - it reads prose and returns the companies
+   * named in it. That is the wrong list for a leaderboard: on an analytics
+   * consultant's scan it returned Shopify, Meta, Upwork, WordPress, LinkedIn,
+   * Screaming Frog and Tealium, and the report read "13th of 124 brands",
+   * which counted proper nouns rather than suppliers.
+   *
+   * Judged once for the whole scan, not per engine, so a name cannot be a
+   * competitor on ChatGPT and not on Gemini, and so nothing is paid for twice.
+   *
+   * A name that is not judged a supplier does not enter, and neither does a
+   * name that was never judged at all - the same rule sources.ts applies when
+   * it keeps an unassessed domain out of the opportunity list. Ranking a shop
+   * platform as a competitor to a consultancy is a claim the report cannot
+   * stand behind, and an empty list is a visible failure where a wrong one is
+   * not.
+   */
+  const suppliers = new Set<string>();
+  if (displayFor.size) {
+    const judged = await classifyBrands({ topic, brand, positioning, names: [...displayFor.values()] });
+    anthropicCalls += judged.calls;
+    // Keyed through brandKey, not on the returned string. The prompt asks for
+    // the name back exactly as given, but a model that returns "Screaming
+    // frog" for "Screaming Frog" would miss the lookup and silently drop a
+    // real competitor - the one direction this filter must not fail in.
+    // brandKey folds exactly the differences that are punctuation and case,
+    // and displayFor's key is already brandKey of its own display name.
+    const verdict = new Map(judged.brands.map((j) => [brandKey(j.name), j]));
+    for (const key of displayFor.keys()) {
+      if (verdict.get(key)?.supplier) suppliers.add(key);
+    }
+    // classifyBrands swallows a bad batch so the others still land, so the
+    // count is the only way this shows up. Logged even when nothing failed:
+    // a leaderboard that suddenly halves is worth being able to see.
+    console.info(
+      `[scan] ${scanId} leaderboard: ${suppliers.size} of ${displayFor.size} names kept as suppliers` +
+        (judged.failedBatches ? `, ${judged.failedBatches} batch(es) failed to classify` : ""),
+    );
+  }
+  checkDeadline();
+
   const brandRows: { scan_id: string; engine: Engine; brand: string; mentions: number; is_subject: boolean }[] = [];
   for (const row of extractions) {
     if (!row) continue;
@@ -262,6 +316,7 @@ async function readAndStore(input: {
     for (const b of extracted) {
       const key = brandKey(b.brand);
       if (!key || key === subjectKey) continue;
+      if (!suppliers.has(key)) continue;
       perEngine.set(key, (perEngine.get(key) ?? 0) + b.mentions);
     }
     for (const [key, mentions] of perEngine) {
@@ -355,6 +410,8 @@ export async function runScan(scanId: string): Promise<void> {
       scanId,
       domain: scan.domain,
       brand,
+      topic: scan.topic,
+      positioning: scan.positioning,
       market,
       engines,
       questions: ordered,
@@ -465,6 +522,8 @@ export async function runGatedScan(scanId: string): Promise<void> {
       scanId,
       domain: scan.domain,
       brand: scan.brand_name ?? scan.domain,
+      topic: scan.topic ?? "",
+      positioning: scan.positioning,
       market: scan.market,
       engines,
       questions: questionRows,

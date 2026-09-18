@@ -238,16 +238,21 @@ const BrandList = z.object({
  * and generic nouns are excluded deliberately: the leaderboard is who the
  * engines recommend, which is a different list from who they cite.
  */
-export async function extractBrands(overviewProse: string): Promise<{ brand: string; mentions: number }[]> {
-  if (!overviewProse.trim()) return [];
+export async function extractBrands(
+  prose: string,
+  context: { topic: string; brand: string } = { topic: "", brand: "" },
+): Promise<{ brand: string; mentions: number }[]> {
+  if (!prose.trim()) return [];
 
   const res = await anthropic().messages.parse({
     model: MODEL,
     max_tokens: 8000,
     output_config: { effort: EFFORT, format: zodOutputFormat(BrandList) },
     system: [
-      "You are given the text of several Google AI Overview answers.",
-      "List every company or brand named as a supplier, with how many times it appears.",
+      "You are given what an AI search engine answered to several buyers'",
+      `questions about ${context.topic || "a product category"}.`,
+      "List every company or brand named as a supplier, with how many times it",
+      "appears.",
       "",
       "Exclude: publications, newspapers, magazines, blogs, directories, review",
       "sites, industry bodies, and generic nouns. Those are sources, not suppliers.",
@@ -257,7 +262,144 @@ export async function extractBrands(overviewProse: string): Promise<{ brand: str
       "no Ltd, Limited, Inc or trailing punctuation. Merge obvious variants.",
       "Return an empty list if no companies are named.",
     ].join("\n"),
-    messages: [{ role: "user", content: overviewProse.slice(0, 120_000) }],
+    messages: [
+      {
+        role: "user",
+        content: [context.brand ? `Subject brand: ${context.brand}` : "", prose.slice(0, 120_000)]
+          .filter(Boolean)
+          .join("\n\n"),
+      },
+    ],
+  });
+
+  return res.parsed_output?.brands ?? [];
+}
+
+// -------------------------------------------------------- brand judgement
+
+const BrandJudgement = z.object({
+  brands: z.array(
+    z.object({
+      name: z.string(),
+      supplier: z
+        .boolean()
+        .describe(
+          "True only when a buyer in this category could choose this company INSTEAD OF the subject brand.",
+        ),
+      note: z.string().describe("At most twelve words. Why it is, or is not, an alternative supplier."),
+    }),
+  ),
+});
+
+/**
+ * Names per request. These are short strings with no page context, so the
+ * batch can be larger than the source one and still sit well inside the
+ * ceiling. The discipline is the same: the ceiling scales with the batch,
+ * never with the scan.
+ */
+const BRAND_BATCH = 50;
+
+/**
+ * Decides which extracted names are actually alternative suppliers.
+ *
+ * extractBrands is deliberately broad - it reads prose and pulls out the
+ * companies named in it. That is the right job for a reader, and the wrong
+ * list for a leaderboard: on an analytics consultant's scan it returned
+ * Shopify, Meta, Upwork, WordPress, LinkedIn, Screaming Frog and Tealium,
+ * and the report then read "13th of 124 brands" - a count of proper nouns.
+ *
+ * This pass runs once over the deduplicated names for the whole scan rather
+ * than per engine, so a name cannot be a competitor on ChatGPT and not on
+ * Gemini, and so the same name is never paid for twice.
+ */
+export async function classifyBrands(input: {
+  topic: string;
+  brand: string;
+  positioning: string | null;
+  names: string[];
+}): Promise<{ brands: z.infer<typeof BrandJudgement>["brands"]; calls: number; failedBatches: number }> {
+  if (!input.names.length) return { brands: [], calls: 0, failedBatches: 0 };
+
+  const batches: string[][] = [];
+  for (let i = 0; i < input.names.length; i += BRAND_BATCH) {
+    batches.push(input.names.slice(i, i + BRAND_BATCH));
+  }
+
+  const brands: z.infer<typeof BrandJudgement>["brands"] = [];
+  let calls = 0;
+  let failedBatches = 0;
+  for (const batch of batches) {
+    try {
+      brands.push(...(await judgeBrandBatch(input, batch)));
+    } catch (err) {
+      // One bad batch must not cost the others their judgement. Counted and
+      // returned, not just logged: the caller decides what an unjudged name
+      // means, and a silent swallow here is how a half-built leaderboard
+      // shipped last time.
+      failedBatches += 1;
+      console.warn("[scan] a brand batch failed to classify:", err instanceof Error ? err.message : err);
+    }
+    calls += 1;
+  }
+  return { brands, calls, failedBatches };
+}
+
+async function judgeBrandBatch(
+  input: { topic: string; brand: string; positioning: string | null },
+  names: string[],
+): Promise<z.infer<typeof BrandJudgement>["brands"]> {
+  const res = await anthropic().messages.parse({
+    model: MODEL,
+    // Headroom per row, so the ceiling is a function of the batch.
+    max_tokens: Math.min(8000, 600 + names.length * 60),
+    output_config: { effort: EFFORT, format: zodOutputFormat(BrandJudgement) },
+    system: [
+      "You are given company and brand names that AI search engines mentioned",
+      `while answering buyers' questions about ${input.topic || "a product category"}.`,
+      "",
+      "For each name decide one thing: is it a plausible ALTERNATIVE SUPPLIER -",
+      "a company a buyer could choose INSTEAD OF the subject brand, competing",
+      "for the same budget?",
+      "",
+      "supplier true: it sells this category to these buyers. A rival much",
+      "larger or much smaller than the subject still counts.",
+      "",
+      "supplier false: everything else, however often it is named. In particular",
+      "these, which are the usual mistakes:",
+      "- platforms and tools the work is done ON or WITH: a CMS, a store",
+      "  builder, an ad platform, an analytics product, a crawler, a tag",
+      "  manager. A consultant who reports on a platform does not compete",
+      "  with it.",
+      "- marketplaces, freelancer sites and job boards",
+      "- social networks, search engines and the AI engines themselves",
+      "- the buyer's own clients, customers or employers",
+      "- publications, directories, review sites and industry bodies",
+      "- generic nouns, product categories and job titles that are not companies",
+      "",
+      "The test is substitution, not adjacency. Being named in the same answer",
+      "is not evidence. Being unsure is not a reason to say true.",
+      "",
+      "The note is one short line for a business reader: twelve words at most,",
+      "no marketing language. Examples: 'Sells the same service to the same",
+      "buyers', 'Ecommerce platform, not a consultancy', 'Freelancer",
+      "marketplace, not a supplier in this category'.",
+      "",
+      "Return every name you were given, spelled exactly as given, once each.",
+    ].join("\n"),
+    messages: [
+      {
+        role: "user",
+        content: [
+          `Subject brand: ${input.brand}`,
+          input.positioning ? `What the subject sells: ${input.positioning}` : "",
+          "",
+          "Names:",
+          ...names.map((n) => `- ${n}`),
+        ]
+          .filter(Boolean)
+          .join("\n"),
+      },
+    ],
   });
 
   return res.parsed_output?.brands ?? [];
