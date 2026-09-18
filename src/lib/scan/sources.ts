@@ -149,8 +149,10 @@ export async function classifySources(scanId: string): Promise<{ anthropicCalls:
       competitors,
       domains: unknown.map((d) => ({ domain: d, pages: pagesBy.get(d) ?? [] })),
     });
-    anthropicCalls = 1;
-    const byDomain = new Map(judged.map((j) => [j.domain, j]));
+    // One call per batch, not one per scan. The cost cap reads this, so an
+    // undercount here would let a large scan spend more than the cap allows.
+    anthropicCalls = judged.calls;
+    const byDomain = new Map(judged.sources.map((j) => [j.domain, j]));
     for (const d of unknown) {
       const j = byDomain.get(d);
       // A domain the model dropped is "other" with no note, never a crash.

@@ -285,18 +285,64 @@ const SourceJudgement = z.object({
  * and everything else. The subject's own domain and the review sites never
  * reach here: sources.ts settles those without a call.
  */
+/**
+ * Domains per request.
+ *
+ * This used to be one call for every source on the scan, which held until a
+ * scan arrived with 223 of them: roughly 8,900 tokens of output against a
+ * 6,000 ceiling. The response truncated mid-JSON, the schema parse threw, and
+ * because classification is deliberately never fatal the scan completed with
+ * no source kinds at all - a silently half-built report rather than an error.
+ *
+ * Batching makes the ceiling a function of the batch rather than the scan, so
+ * a 400-source scan costs more calls instead of losing its classification.
+ */
+const CLASSIFY_BATCH = 50;
+
+/** Query strings are most of the length of a cited URL and none of the meaning. */
+function trimUrl(url: string | null): string {
+  if (!url) return "";
+  const cut = url.split("?")[0].split("#")[0];
+  return cut.length > 120 ? `${cut.slice(0, 120)}...` : cut;
+}
+
 export async function classifySourceDomains(input: {
   topic: string;
   brand: string;
   competitors: string[];
   /** One entry per domain, carrying the pages the engines actually cited. */
   domains: { domain: string; pages: { url: string | null; title: string | null }[] }[];
-}): Promise<z.infer<typeof SourceJudgement>["sources"]> {
-  if (!input.domains.length) return [];
+}): Promise<{ sources: z.infer<typeof SourceJudgement>["sources"]; calls: number }> {
+  if (!input.domains.length) return { sources: [], calls: 0 };
 
+  const batches: (typeof input.domains)[] = [];
+  for (let i = 0; i < input.domains.length; i += CLASSIFY_BATCH) {
+    batches.push(input.domains.slice(i, i + CLASSIFY_BATCH));
+  }
+
+  const sources: z.infer<typeof SourceJudgement>["sources"] = [];
+  let calls = 0;
+  for (const batch of batches) {
+    try {
+      sources.push(...(await classifyBatch(input, batch)));
+    } catch (err) {
+      // One bad batch must not cost the other four their classification.
+      console.warn("[scan] a source batch failed to classify:", err instanceof Error ? err.message : err);
+    }
+    calls += 1;
+  }
+  return { sources, calls };
+}
+
+async function classifyBatch(
+  input: { topic: string; brand: string; competitors: string[] },
+  domains: { domain: string; pages: { url: string | null; title: string | null }[] }[],
+): Promise<z.infer<typeof SourceJudgement>["sources"]> {
   const res = await anthropic().messages.parse({
     model: MODEL,
-    max_tokens: 6000,
+    // Headroom per row, so the ceiling scales with the batch rather than
+    // being a number somebody picked once.
+    max_tokens: Math.min(8000, 600 + domains.length * 90),
     output_config: { effort: EFFORT, format: zodOutputFormat(SourceJudgement) },
     system: [
       "You are given website domains that AI search engines cited when answering",
@@ -341,9 +387,9 @@ export async function classifySourceDomains(input: {
           `Named competitors: ${input.competitors.length ? input.competitors.join(", ") : "none identified"}`,
           "",
           "Domains, each with the pages the engines cited:",
-          ...input.domains.flatMap((d) => [
+          ...domains.flatMap((d) => [
             `- ${d.domain}`,
-            ...d.pages.slice(0, 3).map((p) => `    ${p.title ?? "(no title)"}  ${p.url ?? ""}`),
+            ...d.pages.slice(0, 3).map((p) => `    ${p.title ?? "(no title)"}  ${trimUrl(p.url)}`),
           ]),
         ].join("\n"),
       },
