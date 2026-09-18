@@ -198,9 +198,6 @@ function PromptRow({ q, first, brand }: { q: ScanQuestion; first: boolean; brand
           <p style={{ fontSize: "0.9375rem", color: C.navy, margin: "0 0 0.2rem", lineHeight: 1.5 }}>{q.question}</p>
           <p style={{ fontSize: "0.7rem", color: C.muted, margin: 0 }}>
             {q.kind}
-            {q.search_volume !== null && q.search_volume > 0 && (
-              <> · {q.search_volume.toLocaleString("en-US")} AI searches a month</>
-            )}
             {hasTranscript && (
               <>
                 {" · "}
@@ -339,7 +336,7 @@ export function Sources({ r, limit }: { r: RunScanResponse; limit?: number }) {
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem", minWidth: "420px" }}>
             <thead>
               <tr>
-                {["#", "Source", "Mentions", "AI search volume"].map((h, i) => (
+                {["#", "Source", "Mentions"].map((h, i) => (
                   <th key={h} style={{ textAlign: i < 2 ? "left" : "right", fontSize: "0.75rem", fontWeight: 600, letterSpacing: "0.002em", color: C.muted, padding: "0 0 0.625rem", paddingLeft: i === 0 ? 0 : "0.75rem" }}>{h}</th>
                 ))}
               </tr>
@@ -349,8 +346,7 @@ export function Sources({ r, limit }: { r: RunScanResponse; limit?: number }) {
                 <tr key={s.domain} style={{ borderTop: `1px solid ${C.border}` }}>
                   <td style={{ padding: "0.625rem 0", color: C.muted, fontVariantNumeric: "tabular-nums" }}>{i + 1}</td>
                   <td style={{ padding: "0.625rem 0.75rem", color: C.navy, fontWeight: s.domain.includes(brandDomain.split(" ")[0]) ? 700 : 500 }}>{s.domain}</td>
-                  <td style={{ padding: "0.625rem 0.75rem", textAlign: "right", color: C.navy, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{s.mentions}</td>
-                  <td style={{ padding: "0.625rem 0 0.625rem 0.75rem", textAlign: "right", color: C.body, fontVariantNumeric: "tabular-nums" }}>{s.ai_search_volume === null ? <span title="not measured">-</span> : s.ai_search_volume.toLocaleString("en-US")}</td>
+                  <td style={{ padding: "0.625rem 0 0.625rem 0.75rem", textAlign: "right", color: C.navy, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{s.mentions}</td>
                 </tr>
               ))}
             </tbody>
