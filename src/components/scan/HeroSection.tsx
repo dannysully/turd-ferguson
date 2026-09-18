@@ -1,28 +1,73 @@
 import { scanReady } from "@/lib/scan/readiness";
+import { T } from "@/config/tokens";
 
 import LiveScanChecker from "./LiveScanChecker";
 import RequestScanForm from "./RequestScanForm";
 
-const C = { navy: "#0B1220", purple: "#7C3AED", purpleLight: "#A855F7", body: "#4B5563" };
-const grad: React.CSSProperties = { background: `linear-gradient(135deg, ${C.purple} 0%, ${C.purpleLight} 100%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" };
+/**
+ * The hero, rebuilt from Main.dc.html. Centred - and it is the only centred
+ * block on the site, every other page is left-aligned.
+ *
+ * The domain field is the single call to action. There is no button pair
+ * here by design: the scan is the offer, and anything beside it competes
+ * with it.
+ */
 
-/** The hero: H1, one line, the checker. Rendered on / and, pre-advanced, on /scan. */
+const pill: React.CSSProperties = {
+  display: "inline-block",
+  background: T.surface,
+  border: `1px solid ${T.line}`,
+  borderRadius: "999px",
+  padding: "2px 11px",
+  fontSize: "14px",
+  fontWeight: 600,
+  color: T.ink,
+};
+
 export default function HeroSection({ initialDomain = "" }: { initialDomain?: string }) {
   return (
-    <section id="scan" style={{ padding: "5.5rem 1.5rem 4rem", position: "relative", overflow: "hidden" }}>
-      <div className="gradient-orb" style={{ position: "absolute", width: "700px", height: "700px", background: "radial-gradient(circle, rgba(168,85,247,0.07) 0%, transparent 70%)", top: "-250px", right: "-150px", pointerEvents: "none" }} aria-hidden="true" />
-      <div style={{ maxWidth: "760px", margin: "0 auto", padding: "0 1.5rem", position: "relative" }}>
-        <h1 style={{ fontWeight: 700, fontSize: "clamp(2.25rem, 4.5vw, 3.375rem)", color: C.navy, lineHeight: 1.08, letterSpacing: "-0.03em", marginBottom: "1.375rem" }}>
-          Be the brand <span style={grad}>AI recommends.</span>
+    <section id="scan" style={{ background: T.bg }}>
+      <div
+        style={{
+          maxWidth: "940px",
+          width: "100%",
+          margin: "0 auto",
+          padding: "50px 24px 0",
+          boxSizing: "border-box",
+          textAlign: "center",
+        }}
+      >
+        <h1
+          style={{
+            margin: 0,
+            fontSize: "clamp(32px, 4.6vw, 46px)",
+            fontWeight: 700,
+            letterSpacing: "-0.032em",
+            lineHeight: 1.1,
+          }}
+        >
+          <span style={{ color: T.ink }}>Every AI tool shows you the gap.</span>
+          <br />
+          <span style={{ color: T.accent }}>We close it.</span>
         </h1>
-        <p style={{ fontSize: "clamp(1rem, 1.5vw, 1.125rem)", color: C.body, lineHeight: 1.7, marginBottom: "2rem", maxWidth: "540px" }}>
-          Start by finding out whether your client already is. Enter their domain.
+
+        <p
+          style={{
+            margin: "16px auto 0",
+            fontSize: "16px",
+            lineHeight: 1.7,
+            color: T.soft,
+            maxWidth: "62ch",
+          }}
+        >
+          We run the questions your buyers actually ask, find the <span style={pill}>sources</span> the answers are
+          built from, then get you <span style={pill}>named inside them</span>. Built white-label for agencies, and
+          it works the same if you are the brand.
         </p>
-        {scanReady() ? (
-          <LiveScanChecker initialDomain={initialDomain} />
-        ) : (
-          <RequestScanForm initialDomain={initialDomain} />
-        )}
+
+        <div style={{ margin: "26px auto 0", maxWidth: "400px", textAlign: "left" }}>
+          {scanReady() ? <LiveScanChecker initialDomain={initialDomain} /> : <RequestScanForm initialDomain={initialDomain} />}
+        </div>
       </div>
     </section>
   );

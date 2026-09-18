@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import DarkTrustFlow from "@/components/DarkTrustFlow";
 import DarkComparisonSection from "@/components/DarkComparisonSection";
 import SectorPricing from "@/components/SectorPricing";
 import HeroSection from "@/components/scan/HeroSection";
+import AnswerExplorer from "@/components/home/AnswerExplorer";
+import TwoWays from "@/components/home/TwoWays";
 import TierName from "@/components/TierName";
 import { CONTACT_URL } from "@/config/pricing";
 
@@ -65,35 +66,10 @@ export default function HomePage() {
     <>
       <HeroSection />
 
-      {/* ═══ DARK INSIGHT - why it works ════════════════════════ */}
-      <section id="why-it-works" style={{ background: C.navy, padding: "6rem 1.5rem", position: "relative", overflow: "hidden" }}>
-        <div className="gradient-orb" style={{ position: "absolute", width: "500px", height: "500px", background: "radial-gradient(circle, rgba(124,58,237,0.12) 0%, transparent 70%)", top: "-150px", left: "-100px", pointerEvents: "none" }} aria-hidden="true" />
-
-        <div style={{ ...wrap, textAlign: "center", position: "relative" }}>
-          <SectionLabel text="The problem" dark />
-
-          <h2 style={{
-            fontWeight: 700,
-            fontSize: "clamp(2rem, 4vw, 3rem)",
-            color: C.white,
-            lineHeight: 1.1,
-            letterSpacing: "-0.03em",
-            marginBottom: "1.25rem",
-          }}>
-            Your clients are{" "}
-            <span style={grad}>invisible to AI.</span>
-          </h2>
-
-          <p style={{
-            color: "#9CA3AF", fontSize: "clamp(0.9375rem, 1.5vw, 1.0625rem)",
-            lineHeight: 1.7, maxWidth: "580px", margin: "0 auto 3.5rem",
-          }}>
-            ChatGPT, Gemini, Perplexity and Google AI Overviews do not discover brands from homepages or ad campaigns. They extract from third-party content they already trust. If your client is not inside those sources, they do not exist in an AI answer.
-          </p>
-
-          <DarkTrustFlow />
-        </div>
-      </section>
+      {/* The product, shown rather than described. Supersedes the dark
+          "why it works" block, which described the same thing in prose. */}
+      <AnswerExplorer />
+      <TwoWays />
 
       {/* ═══ DARK COMPARISON ══════════════════════════════════════ */}
       <section style={{ background: C.navy, padding: "6rem 1.5rem", position: "relative", overflow: "hidden" }}>

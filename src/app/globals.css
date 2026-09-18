@@ -12,6 +12,21 @@
   /* Brand purple - the accent half of the logo lockup */
   --brand-purple: #7C3AED;
 
+  /* The canvas tokens. Exact, not re-derived - see src/config/tokens.ts.
+     The rebuilt homepage boards use these; older sections still use the
+     navy/soft palette above until they are rebuilt. */
+  --bg: #f6f6f7;
+  --surface: #ffffff;
+  --chip: #f4f4f6;
+  --hair: #f2f2f4;
+  --line: #ececee;
+  --wash: #f4f0fe;
+  --ink: #0f1115;
+  --soft: #6f7480;
+  --faint: #9ca3af;
+  --accent: #7C3AED;
+  --accent-hover: #6D28D9;
+
   /* Font */
   --font-sans: "Hanken Grotesk Variable", "Hanken Grotesk", system-ui, -apple-system, sans-serif;
 }
@@ -398,4 +413,49 @@ details summary::-webkit-details-marker {
   opacity: 0.9;
   transform: translateY(-1px);
   text-decoration: none;
+}
+
+/* ── Rebuilt homepage boards ─────────────────────────────────────── */
+
+/* The product panel: questions beside the answer on desktop, stacked on a
+   phone. The artboard is 1280 wide and shows them side by side; below that
+   the right-hand column has no room to be readable. */
+.answer-explorer {
+  display: grid;
+  grid-template-columns: 1.15fr 1.45fr;
+}
+.answer-explorer__list {
+  border-right: 1px solid var(--line);
+}
+@media (max-width: 860px) {
+  .answer-explorer {
+    grid-template-columns: 1fr;
+  }
+  .answer-explorer__list {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+}
+
+/* Section heading and its description share a line on the 12-column grid,
+   heading span 4-5, description span 7-8. On a phone they stack. */
+@media (max-width: 860px) {
+  .board-head {
+    display: block !important;
+  }
+  .board-head > * + * {
+    margin-top: 8px;
+  }
+}
+
+/* Two cards side by side, stacked on a phone. */
+.two-up {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+@media (max-width: 860px) {
+  .two-up {
+    grid-template-columns: 1fr;
+  }
 }
