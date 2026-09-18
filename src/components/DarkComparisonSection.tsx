@@ -70,7 +70,7 @@ export default function DarkComparisonSection() {
           padding: "1.75rem",
         }}
       >
-        <p style={{ fontSize: "0.75rem", fontWeight: 600, color: "#6B7280", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "1.25rem" }}>
+        <p style={{ fontSize: "0.8125rem", fontWeight: 600, color: "#6B7280", letterSpacing: "0.002em", marginBottom: "1.25rem" }}>
           Most AI visibility tools
         </p>
         <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "0.875rem" }}>
@@ -119,8 +119,8 @@ export default function DarkComparisonSection() {
           padding: "1.75rem",
         }}
       >
-        <p style={{ fontSize: "0.75rem", fontWeight: 600, color: "#A855F7", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "1.25rem" }}>
-          alwayscited
+        <p style={{ fontSize: "0.8125rem", fontWeight: 700, color: "#FFFFFF", letterSpacing: "0.002em", marginBottom: "1.25rem" }}>
+          always<span style={{ color: "#A855F7" }}>cited</span>
         </p>
         <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "0.875rem" }}>
           {alwayscited.map((item) => (

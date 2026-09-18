@@ -113,8 +113,8 @@ export default async function ExamplePage() {
           <Step id="step-6" n={6} lead="Upload a campaign's coverage and we match it against what the engines cited." body="Drop a CSV or paste URLs. We resolve redirects and match every piece against the cited sources. Three of our 22 pieces are doing the work, and every one of them has no link in it. Eleven launch pieces earned nothing.">
             <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
               <CoverageUploadScreen file={illustrativeCoverage.file} />
-              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", color: C.muted, fontSize: "0.75rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-                <span style={{ flex: 1, height: 1, background: C.border }} />after matching<span style={{ flex: 1, height: 1, background: C.border }} />
+              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", color: C.muted, fontSize: "0.8125rem", fontWeight: 600, letterSpacing: "0.002em" }}>
+                <span style={{ flex: 1, height: 1, background: C.border }} />After matching<span style={{ flex: 1, height: 1, background: C.border }} />
               </div>
               <CoverageScreen pieces={illustrativeCoverage.pieces} owners={r.sources.slice(0, 5)} readAt={r.read_at} />
             </div>

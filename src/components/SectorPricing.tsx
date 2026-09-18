@@ -100,8 +100,7 @@ export default function SectorPricing() {
                     color: C.white,
                     fontSize: "0.65rem",
                     fontWeight: 700,
-                    letterSpacing: "0.04em",
-                    textTransform: "uppercase",
+                    letterSpacing: "0.002em",
                     padding: "0.25rem 0.625rem",
                     borderRadius: "999px",
                   }}

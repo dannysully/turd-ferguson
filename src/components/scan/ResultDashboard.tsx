@@ -340,7 +340,7 @@ export function Sources({ r, limit }: { r: RunScanResponse; limit?: number }) {
             <thead>
               <tr>
                 {["#", "Source", "Mentions", "AI search volume"].map((h, i) => (
-                  <th key={h} style={{ textAlign: i < 2 ? "left" : "right", fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: C.muted, padding: "0 0 0.625rem", paddingLeft: i === 0 ? 0 : "0.75rem" }}>{h}</th>
+                  <th key={h} style={{ textAlign: i < 2 ? "left" : "right", fontSize: "0.75rem", fontWeight: 600, letterSpacing: "0.002em", color: C.muted, padding: "0 0 0.625rem", paddingLeft: i === 0 ? 0 : "0.75rem" }}>{h}</th>
                 ))}
               </tr>
             </thead>

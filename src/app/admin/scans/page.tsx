@@ -59,7 +59,7 @@ function seconds(row: ScanRow): string {
 function Tile({ label, value, tone }: { label: string; value: string; tone?: string }) {
   return (
     <div style={{ background: C.soft, border: `1px solid ${C.border}`, borderRadius: 16, padding: "1.125rem 1.25rem" }}>
-      <p style={{ margin: 0, fontSize: "0.6875rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: C.muted }}>
+      <p style={{ margin: 0, fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.002em", color: C.muted }}>
         {label}
       </p>
       <p style={{ margin: "0.375rem 0 0", fontSize: "1.5rem", fontWeight: 800, color: tone ?? C.navy, letterSpacing: "-0.02em" }}>
@@ -163,9 +163,8 @@ export default async function AdminScansPage() {
   const th: React.CSSProperties = {
     textAlign: "left",
     padding: "0.5rem 0.625rem",
-    fontSize: "0.6875rem",
-    textTransform: "uppercase",
-    letterSpacing: "0.06em",
+    fontSize: "0.75rem",
+    letterSpacing: "0.002em",
     color: C.muted,
     borderBottom: `1px solid ${C.border}`,
     whiteSpace: "nowrap",

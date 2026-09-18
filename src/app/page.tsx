@@ -174,7 +174,7 @@ export default function HomePage() {
               padding: "2rem",
               boxShadow: "0 2px 16px rgba(11,18,32,0.07)",
             }}>
-              <p style={{ fontSize: "0.75rem", fontWeight: 600, color: C.purple, marginBottom: "0.375rem", letterSpacing: "0.04em", textTransform: "uppercase" }}>
+              <p style={{ fontSize: "0.8125rem", fontWeight: 600, color: C.purple, marginBottom: "0.375rem", letterSpacing: "0.002em" }}>
                 Vibe Retail · US retail SaaS · eight weeks
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: "0" }}>

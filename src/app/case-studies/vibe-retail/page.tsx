@@ -112,9 +112,8 @@ export default function CaseStudyPage() {
             style={{
               color: "#D85A30",
               fontSize: "0.875rem",
-              fontWeight: 500,
-              textTransform: "uppercase",
-              letterSpacing: "0.08em",
+              fontWeight: 600,
+              letterSpacing: "0.002em",
               marginBottom: "1.25rem",
             }}
           >

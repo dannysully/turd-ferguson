@@ -382,7 +382,7 @@ export function TrackingScreen(p: { brand: string; topic: string; market: Market
           const x = v as Tracking["before"];
           return (
             <div key={String(lbl)} style={card}>
-              <p style={{ fontSize: "0.7rem", fontWeight: 600, color: C.muted, letterSpacing: "0.08em", textTransform: "uppercase", margin: "0 0 0.5rem" }}>{String(lbl)}</p>
+              <p style={{ fontSize: "0.75rem", fontWeight: 600, color: C.muted, letterSpacing: "0.002em", margin: "0 0 0.5rem" }}>{String(lbl)}</p>
               <p style={{ fontSize: "1.5rem", fontWeight: 800, color: C.navy, letterSpacing: "-0.02em", lineHeight: 1.1, margin: "0 0 0.25rem", fontVariantNumeric: "tabular-nums" }}>Named in {x.namedIn} of {x.of}</p>
               <p style={{ fontSize: "0.8125rem", color: C.body, margin: 0 }}>{ord(x.rank)} of {x.ofBrands} brands</p>
               <p style={{ fontSize: "0.7rem", color: C.muted, margin: "0.5rem 0 0" }}>read {fmtDate(x.readAt)}</p>
