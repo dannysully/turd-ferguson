@@ -122,10 +122,15 @@ export default function SectorPricing() {
                 color: C.navy,
                 letterSpacing: "-0.02em",
                 lineHeight: 1.1,
-                marginBottom: "1.25rem",
+                marginBottom: tier.priceBasis ? "0.375rem" : "1.25rem",
               }}>
                 {priceFor(tier, sector)}
               </p>
+              {tier.priceBasis && (
+                <p style={{ fontSize: "0.75rem", color: C.body, lineHeight: 1.5, marginBottom: "1.25rem" }}>
+                  {tier.priceBasis}
+                </p>
+              )}
               <ul style={{ listStyle: "none", padding: 0, margin: "0 0 1.5rem", display: "flex", flexDirection: "column", gap: "0.5rem", flex: 1 }}>
                 {tier.includes.map((item) => (
                   <li key={item} style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem" }}>

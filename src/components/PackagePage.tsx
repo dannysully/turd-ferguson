@@ -89,6 +89,11 @@ export default function PackagePage({
               {tier.basePrice === null ? "Book a partner call" : "Get started"}
             </a>
           </div>
+          {tier.priceBasis && (
+            <p style={{ fontSize: "0.875rem", color: C.body, lineHeight: 1.6, margin: "0.75rem 0 0", maxWidth: "48ch" }}>
+              {tier.priceBasis}
+            </p>
+          )}
         </div>
       </section>
 

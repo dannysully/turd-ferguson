@@ -33,6 +33,14 @@ export type Tier = {
   /** Base monthly price in USD. null = not a numeric price. */
   basePrice: number | null;
   priceLabel: string;
+  /**
+   * What the headline price actually buys, shown under it.
+   *
+   * A bare "$99/mo" is not quotable: an agency puts it in front of a client,
+   * then finds the price moves with prompt count and check frequency. The
+   * basis travels with the number so that cannot happen.
+   */
+  priceBasis?: string;
   positioning: string;
   /** The package page this tier links to. */
   href: string;
@@ -53,7 +61,8 @@ export const TIERS: Tier[] = [
     key: "tracked",
     plainName: TIER_PLAIN.tracked,
     basePrice: 99,
-    priceLabel: "$99/mo",
+    priceLabel: "from $99/mo",
+    priceBasis: "20 questions, checked weekly. More questions or a tighter cadence moves the price.",
     positioning: "Know what your coverage did",
     sectorPriced: false,
     href: "/alwaystracked",
@@ -150,7 +159,9 @@ export function formatUsd(amount: number): string {
  */
 export function priceFor(tier: Tier, sector: Sector | null): string {
   if (tier.basePrice === null) return tier.priceLabel;
-  if (!sector || !tier.sectorPriced) return `${formatUsd(tier.basePrice)}/mo`;
+  // A tier whose label says more than the number - "from $99/mo" - keeps its
+  // label. Rebuilding the string from basePrice silently dropped the "from".
+  if (!sector || !tier.sectorPriced) return tier.priceLabel;
   const sectorPrice =
     tier.id === "mentioned" ? sector.prices.mentioned : sector.prices.cited;
   return `${formatUsd(sectorPrice)}/mo`;
