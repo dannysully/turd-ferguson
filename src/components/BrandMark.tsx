@@ -1,9 +1,15 @@
+import { T } from "@/config/tokens";
+
 /**
  * The alwayscited brand mark: a six-point asterisk in brand purple.
  *
  * Geometry is the Nomada Digital asterisk - three round-capped lines crossing
  * at the centre, 60 degrees apart, stroke width 0.39 of the arm length -
- * recoloured from Nomada blue to the alwayscited purple gradient.
+ * recoloured from Nomada blue to the alwayscited accent.
+ *
+ * Solid, not a gradient. The boards draw this mark with a single accent
+ * stroke, and the design rules allow one gradient per page at most - spending
+ * it on the logo, on every page, is not where it earns anything.
  *
  * The rotation lives in globals.css (.brand-mark__ast) so it can be disabled
  * under prefers-reduced-motion and sped up on hover of a .brand-lockup parent.
@@ -14,12 +20,10 @@
  * wordmark's font-size lands on that ratio. Going much larger is what makes it
  * read as a logo tile.
  *
- * `id` must be unique per rendered instance: SVG gradient ids are global to the
- * document, so two marks sharing one id would collide.
+ * `id` is still accepted so call sites do not all have to change, but nothing
+ * reads it now that the gradient is gone.
  */
-export default function BrandMark({ id, size = 18 }: { id: string; size?: number }) {
-  const gradientId = `brandMarkGrad-${id}`;
-
+export default function BrandMark({ size = 18 }: { id: string; size?: number }) {
   return (
     <svg
       width={size}
@@ -30,15 +34,7 @@ export default function BrandMark({ id, size = 18 }: { id: string; size?: number
       className="brand-mark"
       style={{ display: "block", flexShrink: 0 }}
     >
-      <defs>
-        {/* userSpaceOnUse so all three arms share one continuous gradient
-            rather than each line restarting it across its own bounding box. */}
-        <linearGradient id={gradientId} gradientUnits="userSpaceOnUse" x1="6" y1="4.5" x2="26" y2="27.5">
-          <stop offset="0%" stopColor="#7C3AED" />
-          <stop offset="100%" stopColor="#A855F7" />
-        </linearGradient>
-      </defs>
-      <g className="brand-mark__ast" stroke={`url(#${gradientId})`} strokeWidth="4.5" strokeLinecap="round">
+      <g className="brand-mark__ast" stroke={T.accent} strokeWidth="4.5" strokeLinecap="round">
         <line x1="16" y1="4.5" x2="16" y2="27.5" />
         <line x1="6.041" y1="10.25" x2="25.959" y2="21.75" />
         <line x1="25.959" y1="10.25" x2="6.041" y2="21.75" />

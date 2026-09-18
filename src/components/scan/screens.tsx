@@ -4,6 +4,8 @@ import { TIER_PLAIN } from "@/components/TierName";
 import { CONTACT_URL } from "@/config/pricing";
 import type { HistoryPoint, Market, RunScanResponse, SourceEntry } from "@/lib/scan";
 import type { CoveragePiece, Tracking } from "@/lib/scan/illustrative";
+import { T } from "@/config/tokens";
+
 import ResultDashboard, { Finding, Prompts, fmtDate } from "./ResultDashboard";
 
 /**
@@ -18,10 +20,21 @@ import ResultDashboard, { Finding, Prompts, fmtDate } from "./ResultDashboard";
  * readOnly renders the screen non-interactive but styled exactly as live.
  */
 
-export const C = { navy: "#0B1220", purple: "#7C3AED", body: "#4B5563", soft: "#F8F7FF", border: "#E5E7EB", white: "#ffffff", muted: "#9CA3AF", red: "#B91C1C" };
+/**
+ * The checker's palette, mapped onto the canvas tokens.
+ *
+ * The key names are kept - navy, body, soft, border, muted - because dozens
+ * of call sites use them, but the values are the tokens now: navy is ink
+ * #0f1115, soft is the page ground #f6f6f7, border is the hairline #ececee.
+ * Renaming the keys is part of the scan flow rework, which redesigns these
+ * screens properly; this is the colour half, which the homepage needed
+ * because the hero renders these screens.
+ */
+export const C = { navy: T.ink, purple: T.accent, body: T.soft, soft: T.bg, border: T.line, white: T.surface, muted: T.faint, red: T.badFg };
 
 export const field: React.CSSProperties = { width: "100%", padding: "0.875rem 1rem", fontSize: "1rem", color: C.navy, background: C.white, border: `1.5px solid ${C.border}`, borderRadius: "12px", fontFamily: "inherit", outline: "none" };
-export const label: React.CSSProperties = { display: "block", fontSize: "0.8125rem", fontWeight: 600, color: C.navy, marginBottom: "0.5rem" };
+/* A micro-label, per the boards: 12px/600 on soft, sentence case. */
+export const label: React.CSSProperties = { display: "block", fontSize: "12px", fontWeight: 600, letterSpacing: "0.002em", color: T.soft, marginBottom: "7px" };
 export const btn: React.CSSProperties = { border: "none", cursor: "pointer", padding: "0.875rem 2rem" };
 const quiet: React.CSSProperties = { background: "none", border: "none", color: C.body, fontSize: "0.875rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", padding: "0.875rem 0" };
 
