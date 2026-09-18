@@ -4,6 +4,59 @@
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 <!-- END:nextjs-agent-rules -->
 
+# How to work in this repo
+
+Owned by Claude: decide, build, ship, check it worked live, fix what did not.
+Do not ask permission for anything reversible - copy, layout, components,
+refactors, dependency bumps, new pages, deleting what is not working. Pick the
+option you would defend and say in one line what you picked.
+
+The site has almost no traffic. A rough thing in production for ten minutes
+costs nothing; a decision waiting on a round trip costs an hour. Ship.
+
+## Shipping
+
+- **`claude/build-alwayscited-site-6CpGg` deploys to production on every push.**
+  There is no preview gate and no test suite. `npx tsc --noEmit` and
+  `npm run build` are the bar, then open the page and look.
+- **`git add src supabase`, never `-A`.** A push containing
+  `.github/workflows/` is rejected outright - the PAT has no `workflow` scope.
+- **Batch.** Four or five changes, one push. Not one push per change.
+- **Schema changes are SQL pasted into Supabase by Danny, before the code.**
+  Additive only, so a deploy landing first is harmless.
+
+## Gotchas that have cost real time
+
+- **The domain cache.** `app_settings.domain_cache_days` returns a completed
+  scan for the same `(domain, market)` as-is, instantly, and looks identical to
+  a fresh one. **If the read date has not changed, it did not re-run.** Pipeline
+  fixes only apply at scan time. Force a run with a different domain, a
+  different market, or by dropping and restoring the setting.
+- **Token ceilings scale with the scan.** One classification call per scan held
+  until one had 223 sources and truncated mid-JSON. Classification is wrapped in
+  "never fatal", so it failed silently and shipped a half-built report. Anything
+  looping over sources or questions gets batched.
+- **Silent-failure paths hide regressions.** The try/catch that stops a scan
+  dying also hides that it broke. Check them after any nearby change.
+- **Brand names and source kinds are judged by different code** that can
+  disagree. The source classifier knows a tool domain; the brand extractor does
+  not, and will rank Shopify as a competitor to an analytics consultant.
+
+## Not to be done, whatever the instruction
+
+- Handle, enter or store a credential.
+- Run DDL against production.
+- Write `.github/workflows/` - it runs arbitrary code with the repo's secrets.
+- Commit a secret. **This repository is public.**
+- Bulk-delete live rows, or contact a lead or client.
+- Publish a claim that cannot be stood behind. "Ship it rough" covers layout,
+  copy and bugs. It does not cover a number about a client's result, a claim
+  about a competitor, or a statement about what an engine does - those carry
+  `[VERIFY]` until there is a dated source. The cost of a wrong one is not a
+  scruffy page.
+- Say something is verified that was only reasoned about. Verified means a
+  checksum, a build log, a page actually read, or a test that ran.
+
 # Copy conventions
 
 ## The brand never takes a capital
