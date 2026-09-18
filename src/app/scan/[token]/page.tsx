@@ -59,7 +59,7 @@ export default async function ScanTokenPage({ params }: { params: Promise<{ toke
       <div style={{ maxWidth: "760px", margin: "0 auto", padding: "0 1.5rem", position: "relative" }}>
         <h1
           style={{
-            fontWeight: 800,
+            fontWeight: 700,
             fontSize: "clamp(2rem, 4vw, 2.75rem)",
             color: C.navy,
             lineHeight: 1.1,

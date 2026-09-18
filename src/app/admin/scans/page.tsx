@@ -62,7 +62,7 @@ function Tile({ label, value, tone }: { label: string; value: string; tone?: str
       <p style={{ margin: 0, fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.002em", color: C.muted }}>
         {label}
       </p>
-      <p style={{ margin: "0.375rem 0 0", fontSize: "1.5rem", fontWeight: 800, color: tone ?? C.navy, letterSpacing: "-0.02em" }}>
+      <p style={{ margin: "0.375rem 0 0", fontSize: "1.5rem", fontWeight: 700, color: tone ?? C.navy, letterSpacing: "-0.02em" }}>
         {value}
       </p>
     </div>
@@ -179,7 +179,7 @@ export default async function AdminScansPage() {
 
   return (
     <main style={{ maxWidth: 1180, margin: "0 auto", padding: "2.5rem 1.5rem 4rem" }}>
-      <h1 style={{ fontSize: "1.75rem", fontWeight: 800, color: C.navy, letterSpacing: "-0.03em", margin: 0 }}>
+      <h1 style={{ fontSize: "1.75rem", fontWeight: 700, color: C.navy, letterSpacing: "-0.03em", margin: 0 }}>
         Scan operations
       </h1>
       <p style={{ color: C.body, marginTop: "0.375rem" }}>

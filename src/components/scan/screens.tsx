@@ -292,7 +292,7 @@ export function CoverageScreen(p: { pieces: CoveragePiece[]; owners: SourceEntry
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.75rem" }} className="stack-mobile">
         {[[p.pieces.length, "pieces uploaded"], [cited.length, "cited by the engines"], [notCited.length, "not cited"]].map(([n, l]) => (
           <div key={String(l)} style={card}>
-            <p style={{ fontSize: "1.75rem", fontWeight: 800, color: C.navy, letterSpacing: "-0.03em", lineHeight: 1, margin: "0 0 0.25rem", fontVariantNumeric: "tabular-nums" }}>{n}</p>
+            <p style={{ fontSize: "1.75rem", fontWeight: 700, color: C.navy, letterSpacing: "-0.03em", lineHeight: 1, margin: "0 0 0.25rem", fontVariantNumeric: "tabular-nums" }}>{n}</p>
             <p style={{ fontSize: "0.75rem", color: C.body, margin: 0 }}>{l}</p>
           </div>
         ))}
@@ -383,7 +383,7 @@ export function TrackingScreen(p: { brand: string; topic: string; market: Market
           return (
             <div key={String(lbl)} style={card}>
               <p style={{ fontSize: "0.75rem", fontWeight: 600, color: C.muted, letterSpacing: "0.002em", margin: "0 0 0.5rem" }}>{String(lbl)}</p>
-              <p style={{ fontSize: "1.5rem", fontWeight: 800, color: C.navy, letterSpacing: "-0.02em", lineHeight: 1.1, margin: "0 0 0.25rem", fontVariantNumeric: "tabular-nums" }}>Named in {x.namedIn} of {x.of}</p>
+              <p style={{ fontSize: "1.5rem", fontWeight: 700, color: C.navy, letterSpacing: "-0.02em", lineHeight: 1.1, margin: "0 0 0.25rem", fontVariantNumeric: "tabular-nums" }}>Named in {x.namedIn} of {x.of}</p>
               <p style={{ fontSize: "0.8125rem", color: C.body, margin: 0 }}>{ord(x.rank)} of {x.ofBrands} brands</p>
               <p style={{ fontSize: "0.7rem", color: C.muted, margin: "0.5rem 0 0" }}>read {fmtDate(x.readAt)}</p>
             </div>

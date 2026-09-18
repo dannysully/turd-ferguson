@@ -117,7 +117,7 @@ export default function SectorPricing() {
               </p>
 
               <p style={{
-                fontWeight: 800,
+                fontWeight: 700,
                 fontSize: tier.basePrice === null ? "1.25rem" : "1.75rem",
                 color: C.navy,
                 letterSpacing: "-0.02em",

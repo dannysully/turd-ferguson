@@ -12,7 +12,7 @@ export default function HeroSection({ initialDomain = "" }: { initialDomain?: st
     <section id="scan" style={{ padding: "5.5rem 1.5rem 4rem", position: "relative", overflow: "hidden" }}>
       <div className="gradient-orb" style={{ position: "absolute", width: "700px", height: "700px", background: "radial-gradient(circle, rgba(168,85,247,0.07) 0%, transparent 70%)", top: "-250px", right: "-150px", pointerEvents: "none" }} aria-hidden="true" />
       <div style={{ maxWidth: "760px", margin: "0 auto", padding: "0 1.5rem", position: "relative" }}>
-        <h1 style={{ fontWeight: 800, fontSize: "clamp(2.25rem, 4.5vw, 3.375rem)", color: C.navy, lineHeight: 1.08, letterSpacing: "-0.03em", marginBottom: "1.375rem" }}>
+        <h1 style={{ fontWeight: 700, fontSize: "clamp(2.25rem, 4.5vw, 3.375rem)", color: C.navy, lineHeight: 1.08, letterSpacing: "-0.03em", marginBottom: "1.375rem" }}>
           Be the brand <span style={grad}>AI recommends.</span>
         </h1>
         <p style={{ fontSize: "clamp(1rem, 1.5vw, 1.125rem)", color: C.body, lineHeight: 1.7, marginBottom: "2rem", maxWidth: "540px" }}>

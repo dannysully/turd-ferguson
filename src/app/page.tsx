@@ -74,7 +74,7 @@ export default function HomePage() {
           <SectionLabel text="The problem" dark />
 
           <h2 style={{
-            fontWeight: 800,
+            fontWeight: 700,
             fontSize: "clamp(2rem, 4vw, 3rem)",
             color: C.white,
             lineHeight: 1.1,
@@ -104,7 +104,7 @@ export default function HomePage() {
           <div style={{ textAlign: "center", marginBottom: "3rem" }}>
             <SectionLabel text="The alternative" dark />
             <h2 style={{
-              fontWeight: 800, fontSize: "clamp(1.875rem, 3.5vw, 2.75rem)",
+              fontWeight: 700, fontSize: "clamp(1.875rem, 3.5vw, 2.75rem)",
               color: C.white, lineHeight: 1.1, letterSpacing: "-0.03em",
             }}>
               Measurement is where most tools stop.
@@ -123,7 +123,7 @@ export default function HomePage() {
         <div style={{ ...wrap, textAlign: "center" }}>
           <SectionLabel text="Pricing" />
           <h2 style={{
-            fontWeight: 800, fontSize: "clamp(1.875rem, 3.5vw, 2.5rem)",
+            fontWeight: 700, fontSize: "clamp(1.875rem, 3.5vw, 2.5rem)",
             color: C.navy, lineHeight: 1.1, letterSpacing: "-0.03em", marginBottom: "1rem",
           }}>
             The packages.
@@ -150,7 +150,7 @@ export default function HomePage() {
           <div style={{ textAlign: "center", marginBottom: "3.5rem" }}>
             <SectionLabel text="Results" />
             <h2 style={{
-              fontWeight: 800, fontSize: "clamp(1.875rem, 3.5vw, 2.75rem)",
+              fontWeight: 700, fontSize: "clamp(1.875rem, 3.5vw, 2.75rem)",
               color: C.navy, lineHeight: 1.1, letterSpacing: "-0.03em", marginBottom: "1rem",
             }}>
               One placement, one morning.
@@ -192,7 +192,7 @@ export default function HomePage() {
                     }}
                   >
                     <span style={{ fontSize: "0.9375rem", color: C.body }}>{label}</span>
-                    <span style={{ fontSize: "1.125rem", fontWeight: 800, color: C.navy, letterSpacing: "-0.02em" }}>{val}</span>
+                    <span style={{ fontSize: "1.125rem", fontWeight: 700, color: C.navy, letterSpacing: "-0.02em" }}>{val}</span>
                   </div>
                 ))}
               </div>
@@ -279,7 +279,7 @@ export default function HomePage() {
             <div className="gradient-orb" style={{ position: "absolute", width: "420px", height: "420px", background: "radial-gradient(circle, rgba(168,85,247,0.14) 0%, transparent 70%)", top: "-150px", right: "-110px", pointerEvents: "none" }} aria-hidden="true" />
             <div style={{ position: "relative" }}>
               <h2 style={{
-                fontWeight: 800,
+                fontWeight: 700,
                 fontSize: "clamp(1.5rem, 3vw, 2rem)",
                 color: C.white,
                 lineHeight: 1.15,
@@ -301,7 +301,7 @@ export default function HomePage() {
         <div style={{ ...wrap, maxWidth: "680px" }}>
           <div style={{ textAlign: "center", marginBottom: "3rem" }}>
             <SectionLabel text="FAQ" />
-            <h2 style={{ fontWeight: 800, fontSize: "clamp(1.75rem, 3vw, 2.375rem)", color: C.navy, letterSpacing: "-0.02em" }}>
+            <h2 style={{ fontWeight: 700, fontSize: "clamp(1.75rem, 3vw, 2.375rem)", color: C.navy, letterSpacing: "-0.02em" }}>
               Common questions
             </h2>
           </div>
@@ -371,7 +371,7 @@ export default function HomePage() {
         >
           <div>
             <h2 style={{
-              fontWeight: 800,
+              fontWeight: 700,
               fontSize: "clamp(2rem, 4vw, 3rem)",
               color: C.white,
               lineHeight: 1.1,

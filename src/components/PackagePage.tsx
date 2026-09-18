@@ -63,7 +63,7 @@ export default function PackagePage({
             <TierName tier={tier.key} />
           </p>
           <h1 style={{
-            fontWeight: 800,
+            fontWeight: 700,
             fontSize: "clamp(2rem, 4vw, 3rem)",
             color: C.navy,
             lineHeight: 1.1,
@@ -82,7 +82,7 @@ export default function PackagePage({
             {standfirst}
           </p>
           <div style={{ display: "flex", gap: "1.25rem", alignItems: "center", flexWrap: "wrap" }}>
-            <span style={{ fontSize: "2rem", fontWeight: 800, color: C.navy, letterSpacing: "-0.03em" }}>
+            <span style={{ fontSize: "2rem", fontWeight: 700, color: C.navy, letterSpacing: "-0.03em" }}>
               {tier.priceLabel}
             </span>
             <a href={CONTACT_URL} className="btn-primary">
@@ -96,7 +96,7 @@ export default function PackagePage({
       <section style={{ padding: "4rem 1.5rem", background: C.soft }}>
         <div style={{ ...wrap, maxWidth: "780px" }}>
           <h2 style={{
-            fontWeight: 800, fontSize: "clamp(1.5rem, 3vw, 2rem)",
+            fontWeight: 700, fontSize: "clamp(1.5rem, 3vw, 2rem)",
             color: C.navy, lineHeight: 1.15, letterSpacing: "-0.02em", marginBottom: "1.75rem",
           }}>
             What is included
@@ -161,7 +161,7 @@ export default function PackagePage({
         <div className="gradient-orb" style={{ position: "absolute", width: "440px", height: "440px", background: "radial-gradient(circle, rgba(168,85,247,0.14) 0%, transparent 70%)", top: "-150px", left: "-100px", pointerEvents: "none" }} aria-hidden="true" />
         <div style={{ ...wrap, maxWidth: "620px", textAlign: "center", position: "relative" }}>
           <h2 style={{
-            fontWeight: 800, fontSize: "clamp(1.5rem, 3vw, 2rem)",
+            fontWeight: 700, fontSize: "clamp(1.5rem, 3vw, 2rem)",
             color: C.white, lineHeight: 1.15, letterSpacing: "-0.02em", marginBottom: "1rem",
           }}>
             Start with a scan

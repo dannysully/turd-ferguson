@@ -41,7 +41,7 @@ function Step({ id, n, lead, body, children }: { id: string; n: number; lead: st
     <section id={id} className="walk-step" aria-labelledby={`${id}-h`} style={{ scrollMarginTop: "5rem" }}>
       <div className="walk-annot">
         <p style={{ fontFamily: "monospace", fontSize: "0.75rem", fontWeight: 700, color: C.purple, letterSpacing: "0.08em", margin: "0 0 0.5rem" }}>0{n}</p>
-        <h2 id={`${id}-h`} style={{ fontWeight: 800, fontSize: "clamp(1.125rem, 2vw, 1.375rem)", color: C.navy, lineHeight: 1.3, letterSpacing: "-0.02em", margin: "0 0 0.625rem" }}>{lead}</h2>
+        <h2 id={`${id}-h`} style={{ fontWeight: 700, fontSize: "clamp(1.125rem, 2vw, 1.375rem)", color: C.navy, lineHeight: 1.3, letterSpacing: "-0.02em", margin: "0 0 0.625rem" }}>{lead}</h2>
         <p style={{ fontSize: "0.9375rem", color: C.body, lineHeight: 1.7, margin: "0 0 0.875rem" }}>{body}</p>
         <IllustrativePill />
       </div>
@@ -78,7 +78,7 @@ export default async function ExamplePage() {
       <section style={{ padding: "4.5rem 1.5rem 3rem", background: C.soft }}>
         <div style={wrap}>
           <div style={{ marginBottom: "1.25rem" }}><IllustrativePill /></div>
-          <h1 style={{ fontWeight: 800, fontSize: "clamp(2rem, 4vw, 2.75rem)", color: C.navy, lineHeight: 1.1, letterSpacing: "-0.03em", marginBottom: "1rem", maxWidth: "760px" }}>
+          <h1 style={{ fontWeight: 700, fontSize: "clamp(2rem, 4vw, 2.75rem)", color: C.navy, lineHeight: 1.1, letterSpacing: "-0.03em", marginBottom: "1rem", maxWidth: "760px" }}>
             See exactly what happens. <span style={grad}>We ran it on our own agency.</span>
           </h1>
           <p style={{ fontSize: "1.0625rem", color: C.body, lineHeight: 1.7, maxWidth: "640px", margin: 0 }}>
@@ -128,7 +128,7 @@ export default async function ExamplePage() {
 
       <section style={{ padding: "4rem 1.5rem 5rem", background: C.soft }}>
         <div style={{ ...wrap, maxWidth: "760px" }}>
-          <h2 style={{ fontWeight: 800, fontSize: "clamp(1.5rem, 3vw, 2rem)", color: C.navy, lineHeight: 1.15, letterSpacing: "-0.02em", margin: "0 0 0.75rem" }}>Run this on one of your clients.</h2>
+          <h2 style={{ fontWeight: 700, fontSize: "clamp(1.5rem, 3vw, 2rem)", color: C.navy, lineHeight: 1.15, letterSpacing: "-0.02em", margin: "0 0 0.75rem" }}>Run this on one of your clients.</h2>
           <p style={{ fontSize: "1rem", color: C.body, lineHeight: 1.7, marginBottom: "1.5rem" }}>Real data, on their domain. Enter it.</p>
           <ScanChecker compact />
         </div>
