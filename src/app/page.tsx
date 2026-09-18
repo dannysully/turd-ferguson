@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import HeroSection from "@/components/scan/HeroSection";
 import AnswerExplorer from "@/components/home/AnswerExplorer";
 import TwoWays from "@/components/home/TwoWays";
+import ScanFacts from "@/components/home/ScanFacts";
 import TierJourney from "@/components/home/TierJourney";
 import Packages from "@/components/home/Packages";
 import HomeFaq from "@/components/home/HomeFaq";
@@ -28,6 +29,10 @@ export default function HomePage() {
 
       {/* The product, shown rather than described. Supersedes the dark
           "why it works" block, which described the same thing in prose. */}
+      {/* Phone board only: a compact stand-in for the panel below, which is
+          a two-column layout a phone cannot do much with. */}
+      <ScanFacts />
+
       <AnswerExplorer />
       <TwoWays />
 

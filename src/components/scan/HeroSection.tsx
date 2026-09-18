@@ -1,5 +1,5 @@
 import { scanReady } from "@/lib/scan/readiness";
-import { T } from "@/config/tokens";
+import { MICRO, T } from "@/config/tokens";
 
 import LiveScanChecker from "./LiveScanChecker";
 import RequestScanForm from "./RequestScanForm";
@@ -39,10 +39,16 @@ export default function HeroSection({ initialDomain = "" }: { initialDomain?: st
           textAlign: "center",
         }}
       >
+        {/* Phone board only: the desktop board has no label above the h1. */}
+        <div className="phone-only" style={{ ...MICRO, marginBottom: "10px" }}>
+          AI search visibility, white-labelled
+        </div>
+
         <h1
           style={{
             margin: 0,
-            fontSize: "clamp(32px, 4.6vw, 46px)",
+            /* 25px is the phone board's h1, 46px the desktop board's. */
+            fontSize: "clamp(25px, 4.6vw, 46px)",
             fontWeight: 700,
             letterSpacing: "-0.032em",
             lineHeight: 1.1,
@@ -53,7 +59,12 @@ export default function HeroSection({ initialDomain = "" }: { initialDomain?: st
           <span style={{ color: T.accent }}>We close it.</span>
         </h1>
 
+        {/* The two boards write this line differently - the phone one is
+            shorter and drops the inline pills, which do not survive being
+            wrapped across three lines at 390px. Both are real text; CSS
+            shows one. */}
         <p
+          className="desktop-only"
           style={{
             margin: "16px auto 0",
             fontSize: "16px",
@@ -65,6 +76,11 @@ export default function HeroSection({ initialDomain = "" }: { initialDomain?: st
           We run the questions your buyers actually ask, find the <span style={pill}>sources</span> the answers are
           built from, then get you <span style={pill}>named inside them</span>. Built white-label for agencies, and
           it works the same if you are the brand.
+        </p>
+
+        <p className="phone-only" style={{ margin: "12px 0 0", fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
+          Free scan, then editorial placements in the pages the engines actually cite. White-label for agencies, and
+          the same if you are the brand.
         </p>
 
         <div style={{ margin: "26px auto 0", maxWidth: "400px", textAlign: "left" }}>

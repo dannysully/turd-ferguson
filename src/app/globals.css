@@ -573,3 +573,23 @@ details summary::-webkit-details-marker {
     row-gap: 24px;
   }
 }
+
+/* The phone board writes some copy differently from the desktop boards.
+   Both are real text and CSS picks one, so there is no JavaScript in the
+   decision and no layout shift. display:none keeps the hidden one away from
+   screen readers too, which is the point - it is the same message twice. */
+.phone-only {
+  display: none;
+}
+@media (max-width: 860px) {
+  .phone-only {
+    display: block;
+  }
+  .desktop-only {
+    display: none;
+  }
+  /* The phone board centres nothing: the hero reads left-aligned at 390px. */
+  #scan > div {
+    text-align: left !important;
+  }
+}
