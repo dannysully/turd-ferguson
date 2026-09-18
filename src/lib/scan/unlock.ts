@@ -169,6 +169,23 @@ export type UnlockPayload = {
       response_text: string | null;
     }>;
   }>;
+  /**
+   * Pages that fed answers the brand was absent from and that a client could
+   * realistically be placed into, most valuable first. This is the gated
+   * finding - the reason an email address is worth giving up.
+   *
+   * absent_answers counts question x engine pairs, each one recorded, so the
+   * figure reads back to rows rather than being an estimate. There is no
+   * "which competitors are on this page" field because the schema cannot
+   * support one honestly.
+   */
+  opportunities: Array<{
+    domain: string;
+    kind: string;
+    note: string | null;
+    absent_answers: number;
+    questions: string[];
+  }>;
 };
 
 /** Everything the gate was holding back, assembled once. */
@@ -272,10 +289,72 @@ export async function buildUnlockPayload(scanId: string): Promise<UnlockPayload>
       })),
   }));
 
+  /**
+   * The placement opportunities: pages that fed answers the brand was NOT
+   * named in, and that we could realistically be placed into.
+   *
+   * What this counts is exact rather than inferred. An "answer" is one
+   * question on one engine, and a page qualifies for that answer only if it
+   * was actually cited as a source for it and the brand was absent from it.
+   * Both facts are recorded, so every number here can be read back to a row.
+   *
+   * What it deliberately does NOT claim: which competitors appear on the page.
+   * scan_brands is aggregated per scan and per engine, not per question, so
+   * there is no honest way to say "Competitor A is in this listicle" - only
+   * which brands the scan saw overall. The design asked for a "who is in it"
+   * column; it is not derivable and is left out rather than approximated.
+   *
+   * own and competitor domains are excluded: you cannot be placed into your
+   * own site, and a competitor will not run your brand. Unclassified domains
+   * are excluded too - a page the classifier never reached is not a page we
+   * can vouch for putting a client on.
+   */
+  const PLACEABLE = new Set(["placement", "review", "other"]);
+  const namedAt = new Map<string, boolean>();
+  for (const a of answerRows) namedAt.set(`${a.question_id}|${a.engine}`, a.brand_named);
+
+  const questionText = new Map<string, string>();
+  for (const q of questions ?? []) questionText.set(q.id as string, q.question as string);
+
+  type Opportunity = {
+    domain: string;
+    kind: string;
+    note: string | null;
+    /** Answers (question x engine) this page fed where the brand was absent. */
+    absent_answers: number;
+    /** The questions behind that count, deduplicated, for the report. */
+    questions: string[];
+  };
+  const oppBy = new Map<string, Opportunity>();
+  const seenAnswer = new Set<string>();
+  for (const c of sources ?? []) {
+    const k = kindOf.get(c.source_domain)?.kind ?? null;
+    if (!k || !PLACEABLE.has(k)) continue;
+    const answerKey = `${c.source_domain}|${c.question_id}|${c.engine}`;
+    if (seenAnswer.has(answerKey)) continue;
+    seenAnswer.add(answerKey);
+    if (namedAt.get(`${c.question_id}|${c.engine}`) !== false) continue;
+    const row: Opportunity = oppBy.get(c.source_domain) ?? {
+      domain: c.source_domain,
+      kind: k,
+      note: kindOf.get(c.source_domain)?.note ?? null,
+      absent_answers: 0,
+      questions: [],
+    };
+    row.absent_answers += 1;
+    const qt = questionText.get(c.question_id);
+    if (qt && !row.questions.includes(qt)) row.questions.push(qt);
+    oppBy.set(c.source_domain, row);
+  }
+  const opportunities = [...oppBy.values()].sort(
+    (a, b) => b.absent_answers - a.absent_answers || a.domain.localeCompare(b.domain),
+  );
+
   return {
     brands: leaderboard,
     brands_by_engine: brandRows,
     sources: fullSources,
     questions: questionDetail,
+    opportunities,
   };
 }
