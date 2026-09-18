@@ -2,7 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import type { EngineAnswer, EngineBreakdown, Market, RunScanResponse, ScanQuestion } from "@/lib/scan";
+import type {
+  EngineAnswer,
+  EngineBreakdown,
+  Market,
+  RunScanResponse,
+  ScanOpportunity,
+  ScanQuestion,
+} from "@/lib/scan";
 import { ENGINE_SPECS, isEngine } from "@/lib/scan/engines";
 
 import { C, DomainScreen, ResultScreen, RunningScreen, TopicScreen, btn, field, label } from "./screens";
@@ -45,6 +52,8 @@ type FullPayload = {
   sources: { source: string; mentions: number; ai_search_volume: number | null; urls: string[]; kind?: string | null; note?: string | null }[];
   /** Per-question engine detail, including what each one actually said. */
   questions?: { idx: number; engines: EngineAnswer[] }[];
+  /** The gated finding: pages feeding answers the brand is absent from. */
+  opportunities?: ScanOpportunity[];
   gated_engines?: string[];
   gated_status?: string;
 };
@@ -121,6 +130,7 @@ function toResult(t: Teaser, domain: string, full: FullPayload | null): RunScanR
       const detail = full?.questions?.find((d) => d.idx === q.idx);
       return detail ? { ...q, answers: detail.engines } : q;
     }),
+    opportunities: full?.opportunities ?? undefined,
     gated: !full,
     // Every engine answering nothing is a real finding, not an error.
     empty: t.of > 0 && (t.by_engine ?? []).every((e) => e.answered === 0),
@@ -221,6 +231,13 @@ export default function LiveScanChecker({
   const [full, setFull] = useState<FullPayload | null>(null);
   const [gatedEngines, setGatedEngines] = useState<string[]>([]);
   const [gatedStatus, setGatedStatus] = useState<string>("none");
+  /**
+   * How many placement opportunities are waiting behind the gate. The count is
+   * fetched on its own, from a route that returns counts and nothing else, so
+   * a locked screen can say what it is holding without the domains ever
+   * reaching it.
+   */
+  const [oppCount, setOppCount] = useState<number | null>(null);
 
   const [email, setEmail] = useState("");
   const [emailErr, setEmailErr] = useState("");
@@ -390,6 +407,26 @@ export default function LiveScanChecker({
       clearTimeout(slowTimer);
     };
   }, [phase, token, loadTeaser]);
+
+  // ---- what the gate is holding: the count, never the rows ----
+  useEffect(() => {
+    if (!token || phase !== "result" || full || oppCount !== null) return;
+    let stop = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/scan/${token}/opportunities`, { cache: "no-store" });
+        if (!res.ok) return;
+        const data = (await res.json()) as { count?: number; ready?: boolean };
+        if (!stop && data.ready) setOppCount(data.count ?? 0);
+      } catch {
+        // The gate reads fine without a number. Falling back to the generic
+        // copy is better than blocking the screen on a count.
+      }
+    })();
+    return () => {
+      stop = true;
+    };
+  }, [token, phase, full, oppCount]);
 
   // ---- after unlock: the engines the email bought are still running ----
   useEffect(() => {
@@ -611,13 +648,29 @@ export default function LiveScanChecker({
               <VerifyPending email={pendingEmail} note={resendNote} busy={busy} onResend={onResend} />
             ) : (
             <form onSubmit={onEmail} noValidate>
+              {/* The count leads when we have it: a gate that names what is
+                  behind it is worth crossing, and a blurred table with no
+                  number is just a blurred table. What it must not say is that
+                  these pages cite a competitor - the derivation does not
+                  establish that, however well it would sell. */}
               <p style={{ fontSize: "0.9375rem", fontWeight: 700, color: C.navy, margin: "0 0 0.5rem" }}>
-                {gatedEngines.length
-                  ? `Unlock the full report, plus ${engineLabels(gatedEngines)}`
-                  : "See who is winning, and where to get placed"}
+                {oppCount
+                  ? `${oppCount} ${oppCount === 1 ? "page" : "pages"} you could be placed into`
+                  : gatedEngines.length
+                    ? `Unlock the full report, plus ${engineLabels(gatedEngines)}`
+                    : "See who is winning, and where to get placed"}
               </p>
               <p style={{ fontSize: "0.875rem", color: C.body, margin: "0 0 1rem", lineHeight: 1.6 }}>
-                {gatedEngines.length ? (
+                {oppCount ? (
+                  <>
+                    {oppCount === 1 ? "One page is" : `${oppCount} pages are`} already feeding the answers
+                    you are missing from, and {oppCount === 1 ? "it is" : "they are"} somewhere an article
+                    can run. Ranked by how many answers a placement would put you into, with the questions
+                    behind each one - plus the full leaderboard and all {teaser?.total_sources ?? 0} sources
+                    cited for {result.topic}
+                    {gatedEngines.length ? <>, and the same questions put through {engineLabels(gatedEngines)}</> : null}.
+                  </>
+                ) : gatedEngines.length ? (
                   <>
                     We will run the same {result.brand.of ?? 14} questions through{" "}
                     {engineLabels(gatedEngines)} as well, then show you the full leaderboard and all{" "}

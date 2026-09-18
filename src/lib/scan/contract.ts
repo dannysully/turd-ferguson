@@ -42,6 +42,28 @@ export type SourceEntry = {
   note: string | null;
 };
 
+/**
+ * One page a client could realistically be placed into: it fed answers the
+ * brand was absent from, and it is somewhere an article can run.
+ *
+ * There is no "which competitors are on this page" field. scan_brands is
+ * aggregated per scan and per engine, never per question, so that claim is
+ * not derivable from what the scan records. The design asks for the column;
+ * it is left out rather than guessed, because a named competitor on a named
+ * page is exactly the kind of claim that has to be stood behind.
+ */
+export type ScanOpportunity = {
+  domain: string;
+  /** placement | review. Nothing else reaches this list. */
+  kind: string;
+  note: string | null;
+  /** Answers (question x engine) this page fed where the brand was absent. */
+  absent_answers: number;
+  /** Distinct questions behind that count. Always <= absent_answers. */
+  absent_questions: number;
+  questions: string[];
+};
+
 export type HistoryPoint = {
   year: number;
   month: number;
@@ -128,6 +150,12 @@ export type RunScanResponse = {
    * Optional because the fixture and /example paths do not have it.
    */
   questions?: ScanQuestion[];
+  /**
+   * The placement opportunities. Present only once the scan is unlocked -
+   * this is the finding the email address buys, so it is absent from a locked
+   * payload rather than hidden in one.
+   */
+  opportunities?: ScanOpportunity[];
   gated: boolean;
   empty: boolean;
   /** Why a field is blank or the result is empty. Null when nothing is missing. */

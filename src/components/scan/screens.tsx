@@ -11,8 +11,9 @@ import ResultDashboard, { Finding, Prompts, fmtDate } from "./ResultDashboard";
  * renders each one frozen at a step with fixed data.
  *
  * These were shared with ScanChecker, which composed them with live state.
- * That checker is gone; the live funnel is LiveScanChecker, which renders its
- * own screens against the real pipeline. Only /example still uses these.
+ * That checker is gone, but these are not /example's alone: LiveScanChecker
+ * and RequestScanForm render them too, which is the point - the walkthrough
+ * and the live funnel are the same markup.
  *
  * readOnly renders the screen non-interactive but styled exactly as live.
  */

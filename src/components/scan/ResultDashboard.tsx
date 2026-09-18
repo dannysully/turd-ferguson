@@ -417,6 +417,84 @@ export function Sources({ r, limit }: { r: RunScanResponse; limit?: number }) {
   );
 }
 
+/* ── Placements: the gated finding ── */
+
+/**
+ * The placement opportunities, once the gate is open.
+ *
+ * The heading is deliberately not the one on the artboard. That reads "Where
+ * your competitors are cited and you are not", and the gate copy beside it
+ * says these pages "already cite a competitor" - but the derivation behind
+ * this table establishes no such thing. It finds pages cited for questions
+ * where no engine named the brand, and which are somewhere an article can
+ * run. Whether a competitor appears on any given page is not recorded per
+ * page, so the claim is not ours to make. What is written here is what the
+ * rows actually prove.
+ *
+ * Both counts are shown for the same reason unlock.ts derives both: one
+ * question answered by four engines is four answers, and a row that printed
+ * "7" beside four questions would look broken.
+ */
+export function Placements({ r }: { r: RunScanResponse }) {
+  const rows = r.opportunities ?? [];
+  if (!rows.length) return null;
+  return (
+    <div style={card}>
+      <SectionHead title="Pages feeding the answers you are missing from" readAt={r.read_at} />
+      <p style={{ fontSize: "0.9375rem", color: C.body, margin: "0 0 0.875rem", lineHeight: 1.6 }}>
+        Sources the engines cited for questions where none of them named you, and where an article can
+        realistically run. Ranked by how many answers a placement would put you into.
+      </p>
+      <div style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem", minWidth: "460px" }}>
+          <thead>
+            <tr>
+              {["#", "Page", "Kind", "Questions", "Answers"].map((h, i) => (
+                <th
+                  key={h}
+                  style={{
+                    textAlign: i < 3 ? "left" : "right",
+                    fontSize: "0.75rem", fontWeight: 600, letterSpacing: "0.002em",
+                    color: C.muted, padding: "0 0 0.625rem",
+                    paddingLeft: i === 0 ? 0 : "0.75rem",
+                  }}
+                >
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((o, i) => (
+              <tr key={o.domain} style={{ borderTop: `1px solid ${C.border}` }}>
+                <td style={{ padding: "0.625rem 0", color: C.muted, fontVariantNumeric: "tabular-nums", verticalAlign: "top" }}>{i + 1}</td>
+                <td style={{ padding: "0.625rem 0.75rem", verticalAlign: "top" }}>
+                  <span style={{ color: C.navy, fontWeight: 600 }}>{o.domain}</span>
+                  {o.questions.length > 0 && (
+                    <span style={{ display: "block", fontSize: "0.75rem", color: C.body, marginTop: "0.25rem", lineHeight: 1.5 }}>
+                      {o.questions.slice(0, 2).join(" · ")}
+                      {o.questions.length > 2 ? ` · +${o.questions.length - 2} more` : ""}
+                    </span>
+                  )}
+                </td>
+                <td style={{ padding: "0.625rem 0.75rem", verticalAlign: "top" }}>
+                  <KindPill kind={o.kind} note={o.note} />
+                </td>
+                <td style={{ padding: "0.625rem 0.75rem", textAlign: "right", color: C.navy, fontVariantNumeric: "tabular-nums", verticalAlign: "top" }}>
+                  {o.absent_questions}
+                </td>
+                <td style={{ padding: "0.625rem 0 0.625rem 0.75rem", textAlign: "right", color: C.navy, fontWeight: 600, fontVariantNumeric: "tabular-nums", verticalAlign: "top" }}>
+                  {o.absent_answers}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 /* ── History: mentions by month. Not rendered - retrospective data is out of scope. ── */
 export function History({ r }: { r: RunScanResponse }) {
   const pts = r.history;
@@ -468,6 +546,7 @@ export default function ResultDashboard({ r, sourceLimit }: { r: RunScanResponse
     <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
       <Engines r={r} />
       <Leaderboard r={r} />
+      <Placements r={r} />
       <Sources r={r} limit={sourceLimit} />
     </div>
   );
