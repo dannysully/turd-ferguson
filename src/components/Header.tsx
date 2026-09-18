@@ -4,21 +4,39 @@ import Link from "next/link";
 import { useState } from "react";
 
 import BrandMark from "./BrandMark";
+import TierName from "./TierName";
+import { T } from "@/config/tokens";
+
+/**
+ * The topbar, from the boards.
+ *
+ * The board's nav is Packages, Compare, White label, Blog. Compare has a
+ * board (Compare.dc.html) but no page on the site yet, so it is not linked -
+ * a nav item that 404s is worse than one that is missing. Packages and white
+ * label point at the homepage sections that now hold that content, and the
+ * rest go to pages that exist.
+ */
 
 const navLinks = [
-  { href: "/#scan", label: "Free scan" },
-  { href: "/example", label: "Example" },
-  { href: "/#pricing", label: "Packages" },
-  { href: "/#proof", label: "Proof" },
-  { href: "/#faq", label: "FAQ" },
+  { href: "/#packages", label: "Packages" },
+  { href: "/#white-label", label: "White label" },
+  { href: "/how-it-works", label: "How it works" },
+  { href: "/blog", label: "Blog" },
 ];
+
+const linkStyle: React.CSSProperties = {
+  fontSize: "14px",
+  fontWeight: 500,
+  color: T.soft,
+  textDecoration: "none",
+};
 
 function Logo() {
   return (
-    <Link href="/" className="brand-lockup" style={{ display: "flex", alignItems: "center", gap: "6px", textDecoration: "none" }}>
-      <BrandMark id="hdr" size={18} />
-      <span style={{ fontWeight: 700, fontSize: "1.0625rem", color: "#0B1220", letterSpacing: "-0.02em" }}>
-        always<span style={{ background: "linear-gradient(135deg,#7C3AED,#A855F7)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>cited</span>
+    <Link href="/" style={{ display: "flex", alignItems: "center", gap: "3px", textDecoration: "none" }}>
+      <BrandMark id="hdr" size={15} />
+      <span style={{ fontSize: "15px", fontWeight: 700, letterSpacing: "-0.022em", color: T.ink }}>
+        <TierName tier="cited" />
       </span>
     </Link>
   );
@@ -28,40 +46,82 @@ export default function Header() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header style={{ position: "sticky", top: 0, zIndex: 50, background: "rgba(255,255,255,0.96)", backdropFilter: "blur(8px)", borderBottom: "1px solid #E5E7EB" }}>
-      <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "0 1.5rem", height: "64px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+    <header style={{ background: T.bg, borderBottom: `1px solid ${T.line}` }}>
+      <div
+        style={{
+          maxWidth: "1180px",
+          margin: "0 auto",
+          padding: "14px 24px",
+          display: "flex",
+          alignItems: "center",
+          gap: "16px",
+        }}
+      >
         <Logo />
+        <div style={{ flexGrow: 1 }} />
 
-        {/* Desktop nav */}
-        <nav className="nav-links" style={{ display: "flex", alignItems: "center", gap: "2rem" }} aria-label="Main navigation">
+        <nav className="nav-links" style={{ display: "flex", alignItems: "center", gap: "20px" }} aria-label="Main navigation">
           {navLinks.map((link) => (
-            <a key={link.href} href={link.href} className="nav-link">{link.label}</a>
+            <a key={link.href} href={link.href} style={linkStyle}>
+              {link.label}
+            </a>
           ))}
-          <a href="/#scan" className="btn-primary" style={{ padding: "0.5rem 1.25rem", fontSize: "0.9rem", borderRadius: "10px" }}>
-            Start free
+          <a
+            href="/#scan"
+            style={{
+              background: T.accent,
+              color: "#ffffff",
+              fontSize: "14px",
+              fontWeight: 600,
+              padding: "8px 16px",
+              borderRadius: "10px",
+              textDecoration: "none",
+            }}
+          >
+            Free scan
           </a>
         </nav>
 
-        {/* Mobile hamburger */}
-        <button className="md:hidden" onClick={() => setOpen((v) => !v)}
+        <button
+          className="md:hidden"
+          onClick={() => setOpen((v) => !v)}
           style={{ background: "none", border: "none", cursor: "pointer", padding: "0.5rem" }}
-          aria-label={open ? "Close menu" : "Open menu"} aria-expanded={open}>
-          <span style={{ display: "block", width: "20px", height: "2px", background: "#0B1220", marginBottom: "5px" }} />
-          <span style={{ display: "block", width: "20px", height: "2px", background: "#0B1220", marginBottom: "5px" }} />
-          <span style={{ display: "block", width: "20px", height: "2px", background: "#0B1220" }} />
+          aria-label={open ? "Close menu" : "Open menu"}
+          aria-expanded={open}
+        >
+          <span style={{ display: "block", width: "20px", height: "2px", background: T.ink, marginBottom: "5px" }} />
+          <span style={{ display: "block", width: "20px", height: "2px", background: T.ink, marginBottom: "5px" }} />
+          <span style={{ display: "block", width: "20px", height: "2px", background: T.ink }} />
         </button>
       </div>
 
       {open && (
-        <nav style={{ background: "#fff", borderTop: "1px solid #E5E7EB", padding: "1rem 1.5rem 1.5rem" }} aria-label="Mobile navigation">
+        <nav style={{ background: T.surface, borderTop: `1px solid ${T.line}`, padding: "1rem 1.5rem 1.5rem" }} aria-label="Mobile navigation">
           <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "1rem" }}>
             {navLinks.map((link) => (
               <li key={link.href}>
-                <a href={link.href} style={{ color: "#4B5563", fontWeight: 500, textDecoration: "none" }} onClick={() => setOpen(false)}>{link.label}</a>
+                <a href={link.href} style={linkStyle} onClick={() => setOpen(false)}>
+                  {link.label}
+                </a>
               </li>
             ))}
             <li>
-              <a href="/#scan" className="btn-primary" style={{ padding: "0.625rem 1.5rem" }} onClick={() => setOpen(false)}>Start free</a>
+              <a
+                href="/#scan"
+                style={{
+                  display: "inline-block",
+                  background: T.accent,
+                  color: "#ffffff",
+                  fontSize: "14px",
+                  fontWeight: 600,
+                  padding: "10px 20px",
+                  borderRadius: "10px",
+                  textDecoration: "none",
+                }}
+                onClick={() => setOpen(false)}
+              >
+                Free scan
+              </a>
             </li>
           </ul>
         </nav>

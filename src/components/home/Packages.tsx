@@ -103,7 +103,7 @@ export default function Packages() {
   return (
     <section style={{ ...SHELL, marginTop: "44px", display: "flex", flexDirection: "column", gap: "34px" }}>
       {/* Packages */}
-      <div>
+      <div id="packages" style={{ scrollMarginTop: "5rem" }}>
         <div className="board-head" style={{ ...GRID12, marginBottom: "16px" }}>
           <h2 style={{ ...H2, gridColumn: "span 4" }}>Packages</h2>
           <p style={{ gridColumn: "span 8", margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
@@ -164,7 +164,7 @@ export default function Packages() {
       </div>
 
       {/* White label */}
-      <div>
+      <div id="white-label" style={{ scrollMarginTop: "5rem" }}>
         <div className="board-head" style={{ ...GRID12, marginBottom: "16px" }}>
           <h2 style={{ ...H2, gridColumn: "span 4" }}>White label</h2>
           <p style={{ gridColumn: "span 8", margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>

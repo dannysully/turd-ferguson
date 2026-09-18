@@ -559,3 +559,17 @@ details summary::-webkit-details-marker {
     padding: 24px !important;
   }
 }
+
+/* Footer: brand block plus three link columns on the 12-column grid. */
+.footer-col {
+  grid-column: span 2;
+}
+@media (max-width: 860px) {
+  .footer-grid > div,
+  .footer-col {
+    grid-column: 1 / -1 !important;
+  }
+  .footer-grid {
+    row-gap: 24px;
+  }
+}

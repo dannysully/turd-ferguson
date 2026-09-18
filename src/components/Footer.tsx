@@ -1,65 +1,134 @@
 import Link from "next/link";
 
 import BrandMark from "./BrandMark";
-import TierName from "./TierName";
+import TierName, { type TierKey } from "./TierName";
+import { GRID12, MICRO, T } from "@/config/tokens";
 
-function Logo() {
+/**
+ * The footer pattern every page uses, from HomeFaq.dc.html.
+ *
+ * Light now, not navy - the boards put it on the page ground with a hairline
+ * above it, and it was the last large navy surface on the site.
+ *
+ * The board's middle column is "For: SEO agencies, PR agencies". Both have
+ * boards but neither has a page yet, so that column carries the four tier
+ * pages instead, which exist and are worth linking. Privacy and Terms are
+ * left out for the same reason - Legal.dc.html is a board, not a route, and
+ * a footer full of 404s is worse than a shorter footer.
+ */
+
+const PRODUCT: [string, string][] = [
+  ["Free scan", "/#scan"],
+  ["Packages", "/#packages"],
+  ["White label", "/#white-label"],
+  ["Worked example", "/example"],
+];
+
+const TIER_PAGES: TierKey[] = ["tracked", "mentioned", "cited", "everywhere"];
+
+const COMPANY: [string, string][] = [
+  ["About", "/about"],
+  ["Evidence", "/case-studies/vibe-retail"],
+  ["Blog", "/blog"],
+  ["Contact", "/contact"],
+];
+
+const link: React.CSSProperties = { fontSize: "13.5px", color: T.soft, textDecoration: "none" };
+const listStyle: React.CSSProperties = {
+  margin: "12px 0 0",
+  padding: 0,
+  listStyle: "none",
+  display: "flex",
+  flexDirection: "column",
+  gap: "9px",
+};
+
+function Column({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="brand-lockup" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-      <BrandMark id="ftr" size={17} />
-      <span className="on-dark" style={{ fontWeight: 700, fontSize: "1rem", color: "#ffffff", letterSpacing: "-0.02em" }}>
-        <TierName tier="cited" />
-      </span>
+    <div className="footer-col">
+      <div style={MICRO}>{title}</div>
+      <ul style={listStyle}>{children}</ul>
     </div>
   );
 }
 
 export default function Footer() {
   return (
-    <footer style={{ background: "#0B1220", color: "#6B7280" }}>
-      <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "3.5rem 1.5rem 2rem" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "3rem", marginBottom: "3rem" }}>
-          {/* Brand */}
-          <div>
-            <Logo />
-            <p style={{ marginTop: "1rem", fontSize: "0.875rem", lineHeight: 1.65, maxWidth: "220px", color: "#6B7280" }}>
-              Be the brand{" "}
-              <span style={{ background: "linear-gradient(135deg,#7C3AED,#A855F7)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
-                AI recommends.
-              </span>
-            </p>
-            <p style={{ marginTop: "1rem", fontSize: "0.75rem", color: "#4B5563" }}>
-              A sub-brand of{" "}
-              <a href="https://nomadadigital.co.uk" target="_blank" rel="noopener noreferrer" className="footer-link" style={{ fontSize: "0.75rem" }}>
-                Nomada Digital
-              </a>
-            </p>
+    <footer style={{ marginTop: "44px", borderTop: `1px solid ${T.line}` }}>
+      <div
+        className="board-head footer-grid"
+        style={{
+          ...GRID12,
+          alignItems: "start",
+          maxWidth: "1180px",
+          margin: "0 auto",
+          padding: "32px 24px 28px",
+          boxSizing: "border-box",
+        }}
+      >
+        <div style={{ gridColumn: "span 4" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "3px" }}>
+            <BrandMark id="ftr" size={15} />
+            <span style={{ fontSize: "15px", fontWeight: 700, letterSpacing: "-0.022em", color: T.ink }}>
+              <TierName tier="cited" />
+            </span>
           </div>
-
-          {/* Product */}
-          <div>
-            <p style={{ color: "#9CA3AF", fontSize: "0.8125rem", fontWeight: 600, letterSpacing: "0.002em", marginBottom: "1rem" }}>Product</p>
-            <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "0.625rem" }}>
-              {[["Free scan", "/#scan"], ["Example", "/example"], ["alwaystracked", "/alwaystracked"], ["alwaysmentioned", "/alwaysmentioned"], ["alwayscited", "/alwayscited"], ["alwayseverywhere", "/alwayseverywhere"]].map(([label, href]) => (
-                <li key={label}><a href={href} className="footer-link">{label}</a></li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Company */}
-          <div>
-            <p style={{ color: "#9CA3AF", fontSize: "0.8125rem", fontWeight: 600, letterSpacing: "0.002em", marginBottom: "1rem" }}>Company</p>
-            <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "0.625rem" }}>
-              {[["About", "/about"], ["Blog", "/blog"], ["Case studies", "/case-studies/vibe-retail"], ["Contact", "/contact"]].map(([label, href]) => (
-                <li key={label}><Link href={href} className="footer-link">{label}</Link></li>
-              ))}
-            </ul>
-          </div>
+          <p style={{ margin: "12px 0 0", fontSize: "13px", lineHeight: 1.65, color: T.soft, maxWidth: "34ch" }}>
+            Built and run by the senior team at{" "}
+            <a href="https://nomadadigital.co.uk" target="_blank" rel="noopener noreferrer" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
+              Nomada Digital
+            </a>
+            . Be the brand AI recommends.
+          </p>
         </div>
 
-        <div style={{ borderTop: "1px solid #1F2937", paddingTop: "1.5rem", display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "1rem", fontSize: "0.8125rem", color: "#4B5563" }}>
-          <p>&copy; {new Date().getFullYear()} alwayscited. Part of <a href="https://nomadadigital.co.uk" target="_blank" rel="noopener noreferrer" className="footer-link" style={{ fontSize: "0.8125rem" }}>Nomada Digital Ltd</a>.</p>
-          <p>hello@alwayscited.com</p>
+        <Column title="Product">
+          {PRODUCT.map(([label, href]) => (
+            <li key={label}>
+              <a href={href} style={link}>
+                {label}
+              </a>
+            </li>
+          ))}
+        </Column>
+
+        <Column title="Plans">
+          {TIER_PAGES.map((tier) => (
+            <li key={tier}>
+              <Link href={`/always${tier}`} style={link}>
+                <TierName tier={tier} />
+              </Link>
+            </li>
+          ))}
+        </Column>
+
+        <Column title="Company">
+          {COMPANY.map(([label, href]) => (
+            <li key={label}>
+              <Link href={href} style={link}>
+                {label}
+              </Link>
+            </li>
+          ))}
+        </Column>
+      </div>
+
+      <div style={{ maxWidth: "1180px", margin: "0 auto", padding: "0 24px 26px", boxSizing: "border-box" }}>
+        <div
+          style={{
+            borderTop: `1px solid ${T.line}`,
+            paddingTop: "16px",
+            display: "flex",
+            alignItems: "baseline",
+            gap: "18px",
+            flexWrap: "wrap",
+            fontSize: "12.5px",
+            color: T.faint,
+          }}
+        >
+          <span>&copy; {new Date().getFullYear()} Nomada Digital Ltd</span>
+          <div style={{ flexGrow: 1 }} />
+          <span>hello@alwayscited.com</span>
         </div>
       </div>
     </footer>
