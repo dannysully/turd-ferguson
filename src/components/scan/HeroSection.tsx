@@ -25,8 +25,10 @@ const pill: React.CSSProperties = {
 };
 
 export default function HeroSection({ initialDomain = "" }: { initialDomain?: string }) {
+  // No background is set here: body carries the page ground, so every board
+  // sits on #f6f6f7 and the white cards read as surfaces.
   return (
-    <section id="scan" style={{ background: T.bg }}>
+    <section id="scan">
       <div
         style={{
           maxWidth: "940px",

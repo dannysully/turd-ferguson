@@ -36,8 +36,11 @@
 }
 
 body {
-  background: #ffffff;
-  color: #0B1220;
+  /* The boards each set background #f6f6f7 on their root and assume the page
+     carries it - the white cards only read as surfaces because the ground
+     behind them is warm grey. Set here, never per section. */
+  background: var(--bg);
+  color: var(--ink);
   font-family: "Hanken Grotesk Variable", "Hanken Grotesk", system-ui, sans-serif;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
