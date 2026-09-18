@@ -198,7 +198,10 @@ function PromptRow({ q, first, brand }: { q: ScanQuestion; first: boolean; brand
           <p style={{ fontSize: "0.9375rem", color: C.navy, margin: "0 0 0.2rem", lineHeight: 1.5 }}>{q.question}</p>
           <p style={{ fontSize: "0.7rem", color: C.muted, margin: 0 }}>
             {q.kind}
-            {q.google_rank !== null && <> · Google #{q.google_rank}</>}
+            {/* Not "!== null": the free teaser omits google_rank entirely, so it
+                arrives undefined and printed a bare "Google #" with nothing after
+                it. Only a real number earns the label. */}
+            {typeof q.google_rank === "number" && <> · Google #{q.google_rank}</>}
             {hasTranscript && (
               <>
                 {" · "}
