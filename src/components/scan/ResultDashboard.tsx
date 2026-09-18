@@ -436,8 +436,26 @@ export function Sources({ r, limit }: { r: RunScanResponse; limit?: number }) {
  * "7" beside four questions would look broken.
  */
 export function Placements({ r }: { r: RunScanResponse }) {
-  const rows = r.opportunities ?? [];
-  if (!rows.length) return null;
+  // Undefined and empty mean different things and must not render the same.
+  // Undefined is a payload that never carried opportunities - a locked screen,
+  // or the fixture path - and there is nothing to say. An empty array is a
+  // scan that was unlocked and genuinely found none, and dropping the section
+  // there would leave the visitor who paid with an address wondering whether
+  // it broke or whether there was nothing to show.
+  if (!r.opportunities) return null;
+  const rows = r.opportunities;
+  if (!rows.length) {
+    return (
+      <div style={card}>
+        <SectionHead title="Pages feeding the answers you are missing from" readAt={r.read_at} />
+        <p style={{ fontSize: "0.9375rem", color: C.body, margin: 0, lineHeight: 1.6 }}>
+          None this time. Every page the engines cited for these questions either already names you, is a
+          competitor&apos;s own site, or is somewhere an article cannot run. That is a finding, not a gap in
+          the scan.
+        </p>
+      </div>
+    );
+  }
   return (
     <div style={card}>
       <SectionHead title="Pages feeding the answers you are missing from" readAt={r.read_at} />
