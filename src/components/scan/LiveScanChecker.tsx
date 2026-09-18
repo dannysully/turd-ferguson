@@ -34,7 +34,7 @@ type Teaser = {
   by_engine: ByEngine[] | null;
   rank: number | null;
   brand_count: number;
-  top_sources: { source: string; mentions: number; ai_search_volume: number | null; is_own_domain: boolean }[] | null;
+  top_sources: { source: string; mentions: number; ai_search_volume: number | null; is_own_domain: boolean; kind?: string | null; note?: string | null }[] | null;
   total_sources: number;
   /** The questions asked, with tallies. Free - see Prompts in ResultDashboard. */
   questions: ScanQuestion[] | null;
@@ -42,7 +42,7 @@ type Teaser = {
 
 type FullPayload = {
   brands: { brand: string; mentions: number; is_subject: boolean }[];
-  sources: { source: string; mentions: number; ai_search_volume: number | null; urls: string[] }[];
+  sources: { source: string; mentions: number; ai_search_volume: number | null; urls: string[]; kind?: string | null; note?: string | null }[];
   /** Per-question engine detail, including what each one actually said. */
   questions?: { idx: number; engines: EngineAnswer[] }[];
   gated_engines?: string[];
@@ -113,6 +113,8 @@ function toResult(t: Teaser, domain: string, full: FullPayload | null): RunScanR
       domain: s.source,
       mentions: s.mentions,
       ai_search_volume: s.ai_search_volume,
+      kind: s.kind ?? null,
+      note: s.note ?? null,
     })),
     history: [],
     questions: (t.questions ?? []).map((q) => {

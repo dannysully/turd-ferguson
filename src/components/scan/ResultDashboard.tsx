@@ -198,6 +198,7 @@ function PromptRow({ q, first, brand }: { q: ScanQuestion; first: boolean; brand
           <p style={{ fontSize: "0.9375rem", color: C.navy, margin: "0 0 0.2rem", lineHeight: 1.5 }}>{q.question}</p>
           <p style={{ fontSize: "0.7rem", color: C.muted, margin: 0 }}>
             {q.kind}
+            {q.google_rank !== null && <> · Google #{q.google_rank}</>}
             {hasTranscript && (
               <>
                 {" · "}
@@ -317,6 +318,40 @@ export function Leaderboard({ r }: { r: RunScanResponse }) {
   );
 }
 
+/**
+ * What kind of site each cited page is. Purple is the one that matters:
+ * a placement is a page we could realistically get a brand into, which is
+ * the difference between a report and a plan.
+ *
+ * Unclassified renders nothing at all. A domain the classifier did not reach
+ * is not the same finding as one it read and could not place, and inventing
+ * "other" for it would quietly overstate what we know.
+ */
+const KIND_STYLES: Record<string, { label: string; fg: string; bg: string }> = {
+  own: { label: "yours", fg: "#0F7B45", bg: "#EDF6F1" },
+  placement: { label: "placement", fg: "#7C3AED", bg: "#F4F0FE" },
+  competitor: { label: "competitor", fg: "#4B5563", bg: "#F3F4F6" },
+  review: { label: "review site", fg: "#B45309", bg: "#FEF3E2" },
+  other: { label: "other", fg: "#9CA3AF", bg: "#F8F7FF" },
+};
+
+function KindPill({ kind, note }: { kind: string | null; note: string | null }) {
+  if (!kind) return null;
+  const s = KIND_STYLES[kind] ?? KIND_STYLES.other;
+  return (
+    <span
+      title={note ?? undefined}
+      style={{
+        display: "inline-block", fontSize: "0.6875rem", fontWeight: 600,
+        borderRadius: "999px", padding: "0.15rem 0.5rem",
+        color: s.fg, background: s.bg, whiteSpace: "nowrap",
+      }}
+    >
+      {s.label}
+    </span>
+  );
+}
+
 /* ── Sources ── */
 export function Sources({ r, limit }: { r: RunScanResponse; limit?: number }) {
   // Unlimited used to mean every row, which on a real scan is well over a
@@ -326,9 +361,20 @@ export function Sources({ r, limit }: { r: RunScanResponse; limit?: number }) {
   const rows = r.sources.slice(0, cap);
   const hidden = r.sources.length - rows.length;
   const brandDomain = r.brand.name.toLowerCase();
+  // Counted across every source, not just the visible page of them.
+  const placements = r.sources.filter((s) => s.kind === "placement").length;
+  const competitors = r.sources.filter((s) => s.kind === "competitor").length;
+  const classified = r.sources.some((s) => s.kind);
   return (
     <div style={card}>
       <SectionHead title="Every source the engines cited" readAt={r.read_at} />
+      {classified && (
+        <p style={{ fontSize: "0.9375rem", color: C.body, margin: "0 0 0.875rem", lineHeight: 1.6 }}>
+          <strong style={{ color: C.navy }}>{placements}</strong> of these are pages a brand can
+          realistically be placed into. <strong style={{ color: C.navy }}>{competitors}</strong>{" "}
+          already name a competitor.
+        </p>
+      )}
       {rows.length === 0 ? (
         <p style={{ fontSize: "0.9375rem", color: C.body, margin: 0 }}>No sources were cited for this topic.</p>
       ) : (
@@ -336,8 +382,8 @@ export function Sources({ r, limit }: { r: RunScanResponse; limit?: number }) {
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem", minWidth: "420px" }}>
             <thead>
               <tr>
-                {["#", "Source", "Mentions"].map((h, i) => (
-                  <th key={h} style={{ textAlign: i < 2 ? "left" : "right", fontSize: "0.75rem", fontWeight: 600, letterSpacing: "0.002em", color: C.muted, padding: "0 0 0.625rem", paddingLeft: i === 0 ? 0 : "0.75rem" }}>{h}</th>
+                {["#", "Source", "Kind", "Mentions"].map((h, i) => (
+                  <th key={h} style={{ textAlign: i < 3 ? "left" : "right", fontSize: "0.75rem", fontWeight: 600, letterSpacing: "0.002em", color: C.muted, padding: "0 0 0.625rem", paddingLeft: i === 0 ? 0 : "0.75rem" }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -346,6 +392,7 @@ export function Sources({ r, limit }: { r: RunScanResponse; limit?: number }) {
                 <tr key={s.domain} style={{ borderTop: `1px solid ${C.border}` }}>
                   <td style={{ padding: "0.625rem 0", color: C.muted, fontVariantNumeric: "tabular-nums" }}>{i + 1}</td>
                   <td style={{ padding: "0.625rem 0.75rem", color: C.navy, fontWeight: s.domain.includes(brandDomain.split(" ")[0]) ? 700 : 500 }}>{s.domain}</td>
+                  <td style={{ padding: "0.625rem 0.75rem" }}><KindPill kind={s.kind} note={s.note} /></td>
                   <td style={{ padding: "0.625rem 0 0.625rem 0.75rem", textAlign: "right", color: C.navy, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{s.mentions}</td>
                 </tr>
               ))}

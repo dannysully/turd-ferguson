@@ -31,6 +31,15 @@ export type SourceEntry = {
   mentions: number;
   /** Null where search volume was not measured. See LeaderboardEntry. */
   ai_search_volume: number | null;
+  /**
+   * own | competitor | review | placement | other, or null where the
+   * classifier did not reach this domain. Null is "unclassified", never
+   * "other" - a domain we failed to read is a different finding from one we
+   * read and could not place.
+   */
+  kind: string | null;
+  /** One line on why it was classified that way. Null where unclassified. */
+  note: string | null;
 };
 
 export type HistoryPoint = {
@@ -66,6 +75,13 @@ export type ScanQuestion = {
   answered: number;
   /** Of those, how many named the brand. */
   named: number;
+  /**
+   * Where the brand sits in Google's organic results for this question, or
+   * null outside the top 20 - and null also when no organic read was taken.
+   * Deliberately not merged with the AI figures: a share of answers and a
+   * rank are different measures with different denominators.
+   */
+  google_rank: number | null;
   /**
    * What each engine actually said, present only once the scan is unlocked.
    * The tallies above are free; the words are what the email buys.

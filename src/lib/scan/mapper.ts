@@ -63,6 +63,8 @@ export function mapSources(raw: RawEnvelope<RawDomainsResult>): SourceEntry[] {
     domain: normalizeDomain(i.domain),
     mentions: i.metrics.mentions,
     ai_search_volume: i.metrics.ai_search_volume,
+    kind: null,
+    note: null,
   }));
 }
 
