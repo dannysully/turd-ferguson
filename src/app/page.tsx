@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
-import SectorPricing from "@/components/SectorPricing";
 import HeroSection from "@/components/scan/HeroSection";
 import AnswerExplorer from "@/components/home/AnswerExplorer";
 import TwoWays from "@/components/home/TwoWays";
 import TierJourney from "@/components/home/TierJourney";
-import TierName from "@/components/TierName";
+import Packages from "@/components/home/Packages";
 import { CONTACT_URL } from "@/config/pricing";
 
 export const metadata: Metadata = {
@@ -75,31 +74,9 @@ export default function HomePage() {
           comparison block, which argued the same point in prose. */}
       <TierJourney />
 
-      {/* ═══ PRICING - four tiers (Tasks 3, 4) ══════════════════ */}
-      <section id="pricing" style={{ padding: "6rem 1.5rem" }}>
-        <div style={{ ...wrap, textAlign: "center" }}>
-          <SectionLabel text="Pricing" />
-          <h2 style={{
-            fontWeight: 700, fontSize: "clamp(1.875rem, 3.5vw, 2.5rem)",
-            color: C.navy, lineHeight: 1.1, letterSpacing: "-0.03em", marginBottom: "1rem",
-          }}>
-            The packages.
-          </h2>
-
-          {/* Task 5 - replaces the retainer-hostile line */}
-          <p style={{ color: C.body, fontSize: "1.0625rem", lineHeight: 1.65, maxWidth: "520px", margin: "0 auto 1.5rem" }}>
-            Prices on the page. Order when you want it, and no scoping call to find out what it costs. Each package links through to exactly what is included.
-          </p>
-
-          {/* Task 3 - per-keyword framing above the table */}
-          <p style={{ color: C.body, fontSize: "0.9375rem", lineHeight: 1.7, maxWidth: "560px", margin: "0 auto 3rem" }}>
-            Pricing is per target topic. You name the topic, we build the question set buyers actually ask around it - the longer-tail questions people use when they are choosing a provider.
-          </p>
-
-          <SectorPricing />
-
-        </div>
-      </section>
+      {/* Packages and white label, from Packages.dc.html. Replaces the
+          old pricing table and the separate white-label block. */}
+      <Packages />
 
       {/* ═══ PROOF / CASE STUDIES ════════════════════════════════ */}
       <section id="proof" style={{ padding: "6rem 1.5rem" }}>
@@ -220,36 +197,6 @@ export default function HomePage() {
             </a>
             .
           </p>
-        </div>
-      </section>
-
-      {/* ═══ WHITE-LABEL AND NON-POACH (Task 6) ═════════════════ */}
-      <section style={{ padding: "0 1.5rem 6rem" }}>
-        <div style={{ ...wrap, maxWidth: "760px" }}>
-          <div style={{
-            background: C.navy,
-            borderRadius: "24px",
-            padding: "2.75rem 2.5rem",
-            position: "relative",
-            overflow: "hidden",
-          }}>
-            <div className="gradient-orb" style={{ position: "absolute", width: "420px", height: "420px", background: "radial-gradient(circle, rgba(168,85,247,0.14) 0%, transparent 70%)", top: "-150px", right: "-110px", pointerEvents: "none" }} aria-hidden="true" />
-            <div style={{ position: "relative" }}>
-              <h2 style={{
-                fontWeight: 700,
-                fontSize: "clamp(1.5rem, 3vw, 2rem)",
-                color: C.white,
-                lineHeight: 1.15,
-                letterSpacing: "-0.02em",
-                marginBottom: "1rem",
-              }}>
-                Your brand on everything the client sees.
-              </h2>
-              <p style={{ color: "#9CA3AF", fontSize: "1.0625rem", lineHeight: 1.7, maxWidth: "580px" }}>
-                The tracker, the monthly report, the placement records - your logo, not ours. We never contact your client. No calls, no emails, no name on the report. That is in the partner agreement, not just on this page.
-              </p>
-            </div>
-          </div>
         </div>
       </section>
 
