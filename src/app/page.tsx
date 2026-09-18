@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import DarkComparisonSection from "@/components/DarkComparisonSection";
 import SectorPricing from "@/components/SectorPricing";
 import HeroSection from "@/components/scan/HeroSection";
 import AnswerExplorer from "@/components/home/AnswerExplorer";
 import TwoWays from "@/components/home/TwoWays";
+import TierJourney from "@/components/home/TierJourney";
 import TierName from "@/components/TierName";
 import { CONTACT_URL } from "@/config/pricing";
 
@@ -71,27 +71,9 @@ export default function HomePage() {
       <AnswerExplorer />
       <TwoWays />
 
-      {/* ═══ DARK COMPARISON ══════════════════════════════════════ */}
-      <section style={{ background: C.navy, padding: "6rem 1.5rem", position: "relative", overflow: "hidden" }}>
-        <div className="gradient-orb" style={{ position: "absolute", width: "400px", height: "400px", background: "radial-gradient(circle, rgba(168,85,247,0.1) 0%, transparent 70%)", bottom: "-100px", right: "-80px", pointerEvents: "none", animationDelay: "-10s" }} aria-hidden="true" />
-
-        <div style={{ ...wrap, position: "relative" }}>
-          <div style={{ textAlign: "center", marginBottom: "3rem" }}>
-            <SectionLabel text="The alternative" dark />
-            <h2 style={{
-              fontWeight: 700, fontSize: "clamp(1.875rem, 3.5vw, 2.75rem)",
-              color: C.white, lineHeight: 1.1, letterSpacing: "-0.03em",
-            }}>
-              Measurement is where most tools stop.
-            </h2>
-            <p style={{ color: "#9CA3AF", fontSize: "1.0625rem", lineHeight: 1.7, maxWidth: "620px", margin: "0 auto" }}>
-              Ours is where the work starts. The same scan that shows you are not cited also shows which sources are - and we can place you in them.
-            </p>
-          </div>
-
-          <DarkComparisonSection />
-        </div>
-      </section>
+      {/* The four tiers, from Journey.dc.html. Supersedes the dark
+          comparison block, which argued the same point in prose. */}
+      <TierJourney />
 
       {/* ═══ PRICING - four tiers (Tasks 3, 4) ══════════════════ */}
       <section id="pricing" style={{ padding: "6rem 1.5rem" }}>

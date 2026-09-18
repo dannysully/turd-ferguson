@@ -459,3 +459,46 @@ details summary::-webkit-details-marker {
     grid-template-columns: 1fr;
   }
 }
+
+/* Tier tables. The board is 1280 wide with four and five column rows; below
+   that they stack into labelled blocks rather than squeezing. */
+.tier-table {
+  display: grid;
+  column-gap: 16px;
+}
+.tier-table--tracked {
+  grid-template-columns: 2.6fr 0.8fr 0.9fr 1.3fr;
+}
+.tier-table--placed {
+  grid-template-columns: 2.6fr 0.5fr 0.8fr 1.5fr 0.7fr;
+}
+@media (max-width: 860px) {
+  .tier-table--tracked,
+  .tier-table--placed {
+    grid-template-columns: 1fr 1fr;
+    row-gap: 4px;
+  }
+  /* The header row has nothing to label on a phone once the grid reflows. */
+  .tier-table--tracked:first-of-type,
+  .tier-table--placed:first-of-type {
+    display: none;
+  }
+}
+
+.channel-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+@media (max-width: 860px) {
+  .channel-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* The lockup on a dark ground. #7C3AED is unreadable on near-black, so the
+   accent lifts - per the design system, and still through TierName rather
+   than a hand-coloured span. */
+.on-dark .tier-name__accent {
+  color: #a78bfa;
+}
