@@ -108,13 +108,37 @@ export function stripMarkdownLinks(md: string): string {
     .trim();
 }
 
+/**
+ * The cited sources on one answer, deduplicated on domain and url.
+ *
+ * The fallbacks are || and not ??, deliberately, and a sweep that tidies them
+ * back to ?? reintroduces the bug. These fields come off a vendor JSON
+ * response, and a JSON API that has no value for a string field returns an
+ * empty one at least as often as it omits the key. ?? only steps past null
+ * and undefined, so a reference carrying an empty domain and a perfectly good
+ * url normalised to nothing and was dropped by the guard below - the whole
+ * citation lost, not just its domain.
+ *
+ * source is the last title fallback rather than the first. It is the field
+ * Google AI Overview references carry, and it was declared in AioRef and read
+ * by nobody, so an Overview reference with no title stored a null one. What
+ * the field holds is read off that type rather than off DataForSEO docs,
+ * which are not reachable from here - hence last, where the alternative it
+ * displaces is null.
+ */
 function collectCitations(
-  refs: Array<{ domain?: string | null; url?: string | null; title?: string | null; source_name?: string | null }>,
+  refs: Array<{
+    domain?: string | null;
+    url?: string | null;
+    title?: string | null;
+    source_name?: string | null;
+    source?: string | null;
+  }>,
 ): Citation[] {
   const seen = new Set<string>();
   const out: Citation[] = [];
   for (const r of refs) {
-    const domain = normalizeDomain(r.domain ?? r.url ?? "");
+    const domain = normalizeDomain(r.domain || r.url || "");
     if (!domain) continue;
     const key = `${domain}|${r.url ?? ""}`;
     if (seen.has(key)) continue;
@@ -122,7 +146,7 @@ function collectCitations(
     out.push({
       source_domain: domain,
       url: r.url ?? null,
-      title: r.title ?? r.source_name ?? null,
+      title: r.title || r.source_name || r.source || null,
       position: out.length + 1,
     });
   }
@@ -144,7 +168,7 @@ function collectOrganic(items: OrganicItem[]): OrganicHit[] {
   const out: OrganicHit[] = [];
   for (const i of items) {
     if (i.type !== "organic") continue;
-    const domain = normalizeDomain(i.domain ?? i.url ?? "");
+    const domain = normalizeDomain(i.domain || i.url || "");
     const rank = typeof i.rank_group === "number" ? i.rank_group : i.rank_absolute;
     if (!domain || typeof rank !== "number") continue;
     out.push({ domain, url: i.url ?? null, rank });
@@ -269,21 +293,44 @@ export const PARSERS: Record<Engine, (r: Record<string, unknown> | undefined | n
   claude: parseClaude,
 };
 
+/** Folded away only at the end of a name. See namesBrand. */
+const COMPANY_SUFFIX = /\s+(ltd|limited|inc|llc|plc|gmbh|co|company)$/;
+
 /**
  * Does the answer name the brand?
  *
  * Word-boundary matched, case insensitive, with company suffixes folded away.
  * Runs against prose only, never URLs.
+ *
+ * A suffix is only folded where it actually is one - at the end. It used to be
+ * stripped wherever it appeared, which quietly turned three kinds of brand
+ * into a common noun and then counted that noun as the brand being named:
+ * "Inc Magazine" matched any answer containing "magazine", "Company Shop" any
+ * answer containing "shop", and "Limited Edition Prints" matched a rival's
+ * "edition prints". named_in is the number this product sells and the one in
+ * the subject line of the report email, and every one of those errors pushed
+ * it the flattering way - telling a buyer an engine named them when it had
+ * not. It also mangled a legitimately hyphenated name: "Co-op" became "-op".
+ *
+ * Applied repeatedly, so "Acme Co Ltd" loses both and still reads as "acme".
+ * Whitespace is collapsed first, so a name padded or double-spaced by the
+ * model reaches the suffix test in the shape the test expects.
  */
 export function namesBrand(prose: string, brand: string): boolean {
   if (!prose || !brand) return false;
 
-  const stripped = brand
+  let stripped = brand
     .toLowerCase()
-    .replace(/\b(ltd|limited|inc|llc|plc|gmbh|co|company)\b\.?/g, " ")
     .replace(/[.,]/g, " ")
-    .replace(/^the\s+/, "")
-    .trim();
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/^the\s+/, "");
+
+  for (let prev = ""; stripped !== prev; ) {
+    prev = stripped;
+    stripped = stripped.replace(COMPANY_SUFFIX, "").trim();
+  }
+
   if (stripped.length < 2) return false;
 
   const pattern = stripped

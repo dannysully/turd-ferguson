@@ -10,14 +10,6 @@
 
 export type Market = "UK" | "US";
 
-export type StartScanResponse = {
-  scan_id: string;
-  /** Null when no brand name could be read - UI asks for it. */
-  brand: string | null;
-  suggested_topic: string | null;
-  markets: Market[];
-};
-
 export type LeaderboardEntry = {
   brand: string;
   mentions: number;
@@ -168,26 +160,3 @@ export type RunScanResponse = {
   /** Why a field is blank or the result is empty. Null when nothing is missing. */
   reason: string | null;
 };
-
-export type SignUpResponse = { ok: true };
-
-/** Every failure the UI must render. Thrown by adapters, never returned. */
-export class ScanError extends Error {
-  constructor(
-    public readonly kind: "unreachable" | "rate_limited" | "api_down",
-    message: string
-  ) {
-    super(message);
-    this.name = "ScanError";
-  }
-}
-
-export type ScanSource = "fixture" | "live";
-
-export interface ScanAdapter {
-  /** Where results come from. Drives the live-data / illustrative pill. */
-  readonly source: ScanSource;
-  startScan(input: { domain: string; turnstile?: string }): Promise<StartScanResponse>;
-  runScan(input: { scan_id: string; topic: string; market: Market }): Promise<RunScanResponse>;
-  signUp(input: { scan_id: string; email: string }): Promise<SignUpResponse>;
-}
