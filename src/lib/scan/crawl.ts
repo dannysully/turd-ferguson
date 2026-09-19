@@ -72,7 +72,25 @@ export class UnreachableDomain extends Error {
  * up and behind a bot filter.
  */
 type Fetched =
-  | { ok: true; html: string }
+  /**
+   * `url` is the address that actually answered, after every redirect this
+   * followed by hand - not the one we asked for.
+   *
+   * It is carried because relative links are resolved against it. getText
+   * follows the chain internally and used to return only the prose, so the
+   * caller's `base` stayed the URL it had requested. On a homepage that
+   * redirects into a subdirectory - `/en/`, `/uk/`, any locale split, which is
+   * ordinary on the British and European sites this reads - an `href="about"`
+   * in the answering page resolved against the apex and became `/about`
+   * instead of `/en/about`. Those fetches 404, and they do it inside the
+   * allSettled below, so all five "about us" reads were dropped without a
+   * word on exactly that class of site.
+   *
+   * Same shape as the `@`-in-the-query-string fault in normalizeDomain: a URL
+   * assembled in steps, where a later step invalidates a value an earlier one
+   * produced and nothing carries the correction forward.
+   */
+  | { ok: true; html: string; url: string }
   | { ok: false; why: "status"; status: number }
   | { ok: false; why: "not_html" }
   | { ok: false; why: "private" }
@@ -218,7 +236,7 @@ async function getText(url: string, signal: AbortSignal, trusted: string): Promi
       await res.body?.cancel().catch(() => {});
       return FAILED_NOT_HTML;
     }
-    if (!res.body) return { ok: true, html: "" };
+    if (!res.body) return { ok: true, html: "", url: current };
 
     // The cap is on bytes, so a multi-byte character straddling it decodes to
     // one replacement character at the very end of 200KB of prose.
@@ -238,7 +256,7 @@ async function getText(url: string, signal: AbortSignal, trusted: string): Promi
     // logged through describeAnthropicError and wrote a model-call debit for a
     // call that was never made.
     try {
-      return { ok: true, html: decodeBody(await bodyUpTo(res.body, PAGE_BYTE_CAP), type) };
+      return { ok: true, html: decodeBody(await bodyUpTo(res.body, PAGE_BYTE_CAP), type), url: current };
     } catch {
       return FAILED_NETWORK;
     }
@@ -251,6 +269,13 @@ async function getText(url: string, signal: AbortSignal, trusted: string): Promi
  * every extra page on an http-only site resolved to the scheme that had just
  * failed, so the five "about us" reads were thrown away on exactly the sites
  * least likely to have much on the homepage.
+ *
+ * "The URL that actually answered" was only true of the scheme until the
+ * redirect chain started reporting its destination. It described what the
+ * caller intended rather than what it passed, which is why the path half of
+ * the same fault sat under this comment: a redirect into `/en/` left `base` at
+ * the apex, and a relative href resolved a directory too high. Both halves are
+ * the same argument, and it holds for both now.
  */
 function sameHostLinks(html: string, domain: string, base: string): string[] {
   const out = new Set<string>();
@@ -323,7 +348,8 @@ export async function readSite(domain: string): Promise<string> {
       const got = await getText(url, controller.signal, domain);
       if (got.ok) {
         html = got.html;
-        base = url;
+        // The address that answered, not the one we asked for. See Fetched.
+        base = got.url;
         break;
       }
       // The https attempt is the one worth reporting: it is what a visitor
