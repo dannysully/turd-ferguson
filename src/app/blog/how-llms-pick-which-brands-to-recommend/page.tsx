@@ -100,10 +100,10 @@ export default function Post() {
         the AI than a listicle that says &ldquo;#1 Best Overall: [Brand].&rdquo;
       </P>
       <P>
-        Third: recency. Content updated within the last 6-12 months is weighted more heavily
-        than older content. LLMs and AI Overviews both incorporate update signals - a
-        &ldquo;best of&rdquo; list that was last edited two years ago will gradually lose citation share
-        to newer coverage on the same topic. Sources that fail one of these three tests rarely
+        Third: recency. The pages we find behind an answer are usually current ones, and citation
+        rates drift down as an article ages and newer coverage takes its place in the source
+        set. We are not going to put a window on that - we can see the decay in our own
+        tracking, we cannot see the rule behind it. Sources that fail one of these three tests rarely
         make it into AI citations. Generic high-DR domains without category-specific traffic
         don&apos;t qualify. Niche but authoritative trade publications often outperform broad
         consumer publications in B2B categories.
@@ -112,9 +112,9 @@ export default function Post() {
       <H2 id="the-implication-for-b2b-brands">The implication for B2B brands.</H2>
       <P>
         This means AI search visibility is engineered through editorial placement, not through
-        on-site content alone. Most agencies are still selling SEO-style &ldquo;AEO audits&rdquo; that
-        focus on on-site optimisation - FAQ schema, H2 structure, comparison tables. On-site
-        work matters. But it&apos;s the half that comes after placement, not before. The brand
+        on-site content alone. Plenty of what is sold as AEO is on-site work - FAQ schema, H2
+        structure, comparison tables. That work matters. But it is the half that comes after
+        placement, not before. The brand
         cited at position #1 in the editorial source is the brand the AI repeats. If you&apos;re
         not in the editorial source, you&apos;re not in the AI&apos;s answer - regardless of how well
         your FAQ schema is structured.
@@ -122,13 +122,17 @@ export default function Post() {
 
       <H2 id="what-this-looks-like-in">What this looks like in practice.</H2>
       <P>
-        The mechanism is precise. When we placed a &ldquo;best of&rdquo; listicle on a high-authority
-        publication in the retail POS category, our client was named the #1 recommendation.
-        Within hours, Google&apos;s AI Overview was citing the publication and naming our client
-        as Best Overall. The AI wasn&apos;t evaluating POS platforms independently - it was
-        reflecting what its trusted source already said. The same pattern held in ChatGPT:
-        the brand went from being named in none of the tracked answers to 25% of them, reaching
-        100% on the highest-intent prompts.
+        The mechanism is specific. Place a client at the top of a ranked list on a page the
+        engines already read for a category, and the answer starts repeating what that page
+        says - because the answer was never running its own product evaluation. It was
+        restating a source.
+      </P>
+      <P>
+        The one worked example we publish with a client&apos;s name on it is{" "}
+        <Link href="/case-studies/vibe-retail" style={{ color: T.accent, fontWeight: 600 }}>
+          Vibe Retail
+        </Link>
+        , and it is written up with the window it happened over rather than as a bare number.
       </P>
       <P>
         This is why &ldquo;create great content and wait&rdquo; doesn&apos;t work as an AI search strategy.
@@ -138,11 +142,10 @@ export default function Post() {
 
       <H2 id="the-closing-point">The closing point.</H2>
       <P>
-        The reason most agencies haven&apos;t internalised this is that it requires a publisher
-        network to execute. SEO content can be produced from a desk. AEO placements require
-        relationships, editorial credibility, and the willingness to pitch on merit rather
-        than buy backlinks. The agencies that have those relationships are about to have an
-        unfair advantage for the next 18-24 months while the rest of the industry catches up.
+        The reason this is not the standard offering is that it requires a publisher network to
+        execute. On-site content can be produced from a desk. Placements require relationships,
+        editorial credibility, and the willingness to pitch on merit rather than buy a slot.
+        That is a slower thing to build than a prompt library, which is the real barrier here.
       </P>
       <P>
         The window when this is systematically underpriced is short. Brands that move first

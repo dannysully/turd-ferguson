@@ -88,18 +88,23 @@ export default function Post() {
         ways.
       </P>
       <P>
-        A high-DR domain with no niche relevance is valuable for SEO and almost worthless for
-        AEO. A niche trade publication with modest DR but high category relevance is the
-        inverse - gold for AEO, marginal for SEO. This matters practically: if you&apos;re buying
+        In the scans we run, the pages behind an answer are more often category-specific titles
+        than the biggest domains available. A high-DR domain with no niche relevance can be a
+        perfectly good SEO link and still never turn up as a source; a trade publication with
+        modest DR and high category relevance is often the inverse. This matters practically: if you&apos;re buying
         links to improve SEO and those links come from generic high-DR domains, they&apos;re
         probably not moving your AEO citations at all.
       </P>
 
       <H2 id="the-time-horizons-are-different">The time horizons are different.</H2>
       <P>
-        SEO results compound slowly over 3-6 months as backlinks build and content earns its
-        rankings. AEO results land faster - often inside 1-4 weeks - because LLMs cite from
-        sources they already trust, rather than building trust over years.
+        SEO compounds slowly: backlinks build, content earns its rankings, and the curve is
+        measured in months. AEO can move sooner, because a placement does not have to build
+        standing from nothing - it goes onto a page the engine is already reading. How much
+        sooner is not a number we will put on this page. A placement is live in weeks,
+        citation usually follows the next time the engine reads the page, and a Google
+        position moves on its own schedule again. We report those separately rather than
+        averaging them into one promise.
       </P>
       <P>
         The trade is durability. SEO investments compound for years; a strong link profile
@@ -112,9 +117,11 @@ export default function Post() {
       <H2 id="the-measurement-is-different">The measurement is different.</H2>
       <P>
         SEO is measured in keyword rankings, organic traffic, and conversions from organic.
-        AEO is measured in citation rate across a tracked prompt set - typically 20-30 prompts
-        that buyers in the client&apos;s category would actually ask, run weekly across ChatGPT,
-        Perplexity, and Claude - and AI Overview citation status on commercial-intent queries.
+        AEO is measured as whether the answer named you, across a tracked question set - the
+        questions buyers in the client&apos;s category actually ask, run on a weekly cadence -
+        plus whether you appear in the AI Overview on a commercial-intent query. The question
+        count and the cadence are what the tracking plan is priced on, so they are published
+        rather than described as typical.
       </P>
       <P>
         The metrics don&apos;t translate cleanly. A #1 Google ranking and a 100% ChatGPT citation
@@ -126,18 +133,17 @@ export default function Post() {
 
       <H2 id="where-they-overlap-and-why">Where they overlap (and why this matters).</H2>
       <P>
-        This is the actual punchline. The placements that drive AEO citations - high-authority
-        editorial listicles in your niche - are also the highest-quality backlinks for SEO
-        purposes. A &ldquo;best of&rdquo; listicle on a DA73 publication in your exact category, with
-        real organic traffic on the category query, carries more ranking weight than most
-        generic link-building campaigns produce in a year.
+        This is the actual punchline. The placements that get you cited - editorial listicles in
+        your niche - are ordinary editorial links as well. A &ldquo;best of&rdquo; listicle in your exact
+        category, on a page with real organic traffic on the category query, is a link worth
+        having on its own terms. We count it once and report the citation and the position
+        separately, rather than claiming one of them bought the other.
       </P>
       <P>
-        Same placement, two channels improved. This is why alwayscited treats AEO and SEO as
-        one campaign with two outcomes, not two campaigns. Most agencies sell them as separate
-        retainers, which is double-charging for one piece of work. If you&apos;re paying an agency
-        for SEO and a different agency for AEO, check whether their work is actually distinct
-        - or whether you&apos;re buying the same placements twice.
+        Same placement, two jobs. This is why alwayscited treats AEO and SEO as one campaign with
+        two outcomes rather than two campaigns. If you are paying one agency for SEO and
+        another for AEO, it is worth asking what is actually distinct about the second scope -
+        or whether you are buying the same placements twice.
       </P>
 
       <H2 id="the-strategic-call">The strategic call.</H2>
