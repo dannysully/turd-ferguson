@@ -1,8 +1,40 @@
 import { after } from "next/server";
 
+import { QUESTION_COUNT, QUESTION_KINDS } from "@/lib/scan/anthropic";
 import { isMarket } from "@/lib/scan/domain";
 import { runScan } from "@/lib/scan/pipeline";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+
+/** What the confirm screen sends back: the set, minus whatever was dropped. */
+type ConfirmedQuestion = { question?: unknown; kind?: unknown };
+
+/**
+ * The questions the visitor actually approved, cleaned.
+ *
+ * Every one of these becomes a paid read against every engine, so the cap and
+ * the length limits are enforced here rather than trusted from the screen. A
+ * kind we did not write is kept as "custom": the column is free text, and
+ * labelling somebody own question as one of ours would file it under a
+ * heading it does not belong to.
+ */
+function cleanQuestions(input: unknown): { question: string; kind: string }[] | null {
+  if (!Array.isArray(input)) return null;
+  const seen = new Set<string>();
+  const out: { question: string; kind: string }[] = [];
+
+  for (const row of input as ConfirmedQuestion[]) {
+    const question = typeof row?.question === "string" ? row.question.trim() : "";
+    if (question.length < 4 || question.length > 200) continue;
+    const key = question.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const kind = typeof row?.kind === "string" && QUESTION_KINDS.includes(row.kind) ? row.kind : "custom";
+    out.push({ question, kind });
+    if (out.length >= QUESTION_COUNT) break;
+  }
+
+  return out.length ? out : null;
+}
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,7 +48,7 @@ export const maxDuration = 300;
 export async function POST(req: Request, ctx: { params: Promise<{ token: string }> }) {
   const { token } = await ctx.params;
 
-  let body: { topic?: string; market?: string; topic_variants?: string[] };
+  let body: { topic?: string; market?: string; topic_variants?: string[]; questions?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -75,10 +107,42 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
     return Response.json({ error: "store_failed" }, { status: 500 });
   }
 
+  /**
+   * The approved set, stored before the run starts.
+   *
+   * The confirm screen previews the questions and lets clusters, and single
+   * questions, be dropped. Storing them here is what makes that mean
+   * something: runScan asks the scan what it already has and writes a set only
+   * when it finds none, so the screen is not a decoration over a list that is
+   * regenerated a second later.
+   *
+   * Only ever inserted into an empty set. A second confirm on the same scan
+   * leaves the first set alone rather than deleting rows that answers already
+   * point at.
+   */
+  let stored = 0;
+  const confirmed = cleanQuestions(body.questions);
+  if (confirmed) {
+    const existing = await db
+      .from("scan_questions")
+      .select("id", { count: "exact", head: true })
+      .eq("scan_id", scan.id);
+    if (!existing.count) {
+      const rows = confirmed.map(function (q, i) {
+        return { scan_id: scan.id, idx: i, question: q.question, kind: q.kind };
+      });
+      const { error: qErr } = await db.from("scan_questions").insert(rows);
+      // Not fatal: runScan writes its own set when it finds none, so a failure
+      // here costs the visitor their edits, not their scan.
+      if (qErr) console.warn("[scan] could not store the confirmed questions for " + scan.id + ": " + qErr.message);
+      else stored = confirmed.length;
+    }
+  }
+
   // Return now; the run continues after the response is flushed.
   after(async () => {
     await runScan(scan.id);
   });
 
-  return Response.json({ status: "queued" });
+  return Response.json({ status: "queued", questions: stored });
 }

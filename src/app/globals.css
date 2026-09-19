@@ -682,3 +682,41 @@ details summary::-webkit-details-marker {
     row-gap: 6px;
   }
 }
+
+/* ── The scan flow: confirm ─────────────────────────────────────── */
+
+/* What we read off the site beside the card that corrects it. The board is
+   7 and 5 of twelve; below 860px the card drops under the heading. */
+.confirm-top {
+  display: grid;
+  grid-template-columns: 7fr 5fr;
+  column-gap: 24px;
+  align-items: start;
+}
+
+/* Section heading and its description share a line, heading 4, description 8. */
+.confirm-head {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  column-gap: 24px;
+  align-items: baseline;
+}
+.confirm-head > h2 { grid-column: span 4; }
+.confirm-head > p  { grid-column: span 8; }
+
+/* The question table: number, question, cluster, intent, and the control that
+   drops a row. */
+.q-row {
+  display: grid;
+  grid-template-columns: 0.4fr 3fr 1.3fr 1fr 0.7fr;
+  column-gap: 16px;
+  padding: 10px 26px;
+  align-items: baseline;
+}
+
+@media (max-width: 860px) {
+  .confirm-top { grid-template-columns: 1fr; row-gap: 20px; }
+  .q-row { grid-template-columns: 1fr auto; row-gap: 4px; }
+  /* Nothing left to label once the row reflows into two columns. */
+  .q-head { display: none; }
+}

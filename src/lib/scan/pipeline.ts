@@ -382,23 +382,44 @@ export async function runScan(scanId: string): Promise<void> {
       .eq("id", scanId);
 
     // --- Step 1: "Building the questions buyers ask" ---
-    const generated = await generateQuestions({
-      topic: scan.topic,
-      topicVariants: scan.topic_variants ?? [],
-      market,
-      brand,
-      positioning: scan.positioning,
-    });
-    spend.anthropicCalls += 1;
-    checkDeadline();
-
-    const { data: questionRows, error: qErr } = await db
+    /**
+     * The confirm screen may have written these already.
+     *
+     * It previews the set, lets whole clusters and single questions go, and
+     * stores what is left. Regenerating here would throw that away and ask a
+     * different set from the one the visitor approved - and they would have no
+     * way of knowing, because the report only ever shows what was asked.
+     */
+    const { data: confirmedRows } = await db
       .from("scan_questions")
-      .insert(generated.map((q, i) => ({ scan_id: scanId, idx: i, question: q.question, kind: q.kind })))
-      .select("id, idx, question");
-    if (qErr || !questionRows?.length) throw new Error(`could not store the questions: ${qErr?.message}`);
+      .select("id, idx, question")
+      .eq("scan_id", scanId)
+      .order("idx", { ascending: true });
 
-    const ordered = [...questionRows].sort((a, b) => a.idx - b.idx);
+    let ordered = confirmedRows ?? [];
+
+    if (!ordered.length) {
+      const generated = await generateQuestions({
+        topic: scan.topic,
+        topicVariants: scan.topic_variants ?? [],
+        market,
+        brand,
+        positioning: scan.positioning,
+      });
+      spend.anthropicCalls += 1;
+      checkDeadline();
+
+      const rows = generated.map(function (q, i) {
+        return { scan_id: scanId, idx: i, question: q.question, kind: q.kind };
+      });
+      const { data: questionRows, error: qErr } = await db
+        .from("scan_questions")
+        .insert(rows)
+        .select("id, idx, question");
+      if (qErr || !questionRows?.length) throw new Error(`could not store the questions: ${qErr?.message}`);
+
+      ordered = [...questionRows].sort((a, b) => a.idx - b.idx);
+    }
 
     // --- Step 2: "Reading what the engines answered" ---
     await db.from("scans").update({ step: "reading" }).eq("id", scanId);

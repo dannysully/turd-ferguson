@@ -25,6 +25,26 @@ function anthropic(): Anthropic {
   return client;
 }
 
+/**
+ * One retry on an overloaded or rate limited model.
+ *
+ * A 529 is capacity, not a bad request, and it lands often enough to matter:
+ * the question set is the one call a visitor is waiting on with nothing on
+ * screen yet, so failing it outright costs the scan. Anything else - a bad
+ * request, a bad key - is thrown at once, because a retry cannot fix it.
+ */
+async function withRetry<T>(fn: () => Promise<T>, waitMs = 1500): Promise<T> {
+  try {
+    return await fn();
+  } catch (err) {
+    const status = (err as { status?: number } | null)?.status;
+    const retryable = status === 429 || (typeof status === "number" && status >= 500);
+    if (!retryable) throw err;
+    await new Promise((r) => setTimeout(r, waitMs));
+    return fn();
+  }
+}
+
 /** Turns SDK errors into one readable message, keeping the retryable ones distinguishable. */
 export function describeAnthropicError(err: unknown): string {
   if (err instanceof Anthropic.RateLimitError) return "the language model is rate limited";
@@ -99,10 +119,24 @@ export async function readBrand(siteText: string): Promise<BrandRead> {
 export const QUESTION_COUNT = 14;
 
 const QuestionKind = z.enum(["category", "positioning", "sector", "outcome", "comparison"]);
+/** The kinds a stored question may carry. Anything else came from a visitor. */
+export const QUESTION_KINDS: readonly string[] = QuestionKind.options;
 
 const QuestionSet = z.object({
   questions: z
-    .array(z.object({ question: z.string(), kind: QuestionKind }))
+    .array(
+      z.object({
+        question: z.string(),
+        kind: QuestionKind,
+        /**
+         * Which phrase this question belongs to. The confirm screen groups on
+         * it so a buyer can drop a whole cluster before anything is paid for,
+         * and it is normalised back onto the phrases we supplied: a cluster
+         * that is not in the chips is a cluster nobody can turn off.
+         */
+        cluster: z.string().describe("The broad topic or variant phrase this question is for, copied exactly"),
+      }),
+    )
     .describe(`Exactly ${QUESTION_COUNT} questions`),
 });
 export type GeneratedQuestion = z.infer<typeof QuestionSet>["questions"][number];
@@ -152,7 +186,7 @@ export async function generateQuestions(input: {
   // result says nothing about how this brand is actually positioned.
   const variants = (input.topicVariants ?? []).filter((v) => v.trim()).slice(0, TOPIC_VARIANT_COUNT);
 
-  const res = await anthropic().messages.parse({
+  const res = await withRetry(() => anthropic().messages.parse({
     model: MODEL,
     max_tokens: 8000,
     output_config: { effort: EFFORT, format: zodOutputFormat(QuestionSet) },
@@ -191,6 +225,11 @@ export async function generateQuestions(input: {
       "No two questions may be the same question with a synonym swapped. If two",
       "would return the same answer, replace one.",
       "",
+      "Every question carries the cluster it belongs to. Copy the broad topic,",
+      "or the variant phrase, exactly as it was given to you - do not invent a",
+      "new phrase and do not reword one. The buyer is shown these as groups and",
+      "drops the ones they do not sell into.",
+      "",
       "Write them lower case, as typed into a search box, no question marks.",
       "Use the spelling and vocabulary of the market, not American English for a",
       "United Kingdom scan.",
@@ -210,15 +249,21 @@ export async function generateQuestions(input: {
         ].join("\n"),
       },
     ],
-  });
+  }));
 
   const out = res.parsed_output;
   if (!out?.questions?.length) throw new Error("could not build the question set");
 
-  // Belt and braces: the instruction above is advisory, this is not.
+  // Belt and braces: the instruction above is advisory, this is not. The
+  // cluster is folded back onto a phrase we supplied, because the confirm
+  // screen turns clusters into toggles - a cluster the model invented would
+  // render as a chip that matches nothing the buyer recognises.
+  const known = [input.topic, ...variants];
+  const byKey = new Map(known.map((v) => [v.trim().toLowerCase(), v]));
   return out.questions.slice(0, QUESTION_COUNT).map((q) => ({
     ...q,
     question: freshenYears(q.question, year),
+    cluster: byKey.get((q.cluster ?? "").trim().toLowerCase()) ?? input.topic,
   }));
 }
 
