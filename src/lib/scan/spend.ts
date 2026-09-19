@@ -55,16 +55,79 @@ export async function spentSince(
  * Paged for the same reason spentSince is: PostgREST caps a select at 1000
  * rows and says so nowhere, and a ceiling that reads a truncated set
  * under-reports exactly when the day is busy enough to matter.
+ *
+ * Two tables, because a call does not always have a scan to belong to.
+ * /api/scan/start pays for the brand read before it inserts the row that would
+ * carry the cost, so an attempt that dies in between bills nothing anywhere -
+ * and the failure that causes it is the repeating kind, which is precisely
+ * when this ceiling is the only thing left. Those calls go to
+ * model_call_debits instead and are added here. See recordModelCallDebit.
  */
 export async function anthropicCallsSince(since: string): Promise<number> {
   const db = supabaseAdmin();
-  const rows = await selectAll<{ anthropic_calls: number | null }>((from, to) =>
-    db
-      .from("scans")
-      .select("anthropic_calls")
-      .gte("created_at", since)
-      .order("id", { ascending: true })
-      .range(from, to),
+  const [billed, unattributed] = await Promise.all([
+    selectAll<{ anthropic_calls: number | null }>((from, to) =>
+      db
+        .from("scans")
+        .select("anthropic_calls")
+        .gte("created_at", since)
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
+    selectAll<{ calls: number | null }>((from, to) =>
+      db
+        .from("model_call_debits")
+        .select("calls")
+        .gte("created_at", since)
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
+  ]);
+  return (
+    billed.reduce((total, r) => total + Number(r.anthropic_calls ?? 0), 0) +
+    unattributed.reduce((total, r) => total + Number(r.calls ?? 0), 0)
   );
-  return rows.reduce((total, r) => total + Number(r.anthropic_calls ?? 0), 0);
+}
+
+/**
+ * Record model calls that no scan row can carry.
+ *
+ * Called from the two exits in /api/scan/start that can happen after the brand
+ * read has been paid for and before the insert lands: the read itself throwing,
+ * and the insert failing. Both used to leave the calls invisible to
+ * anthropicCallsSince, which is the ceiling written to stop a bad hour
+ * repeating - so the worse the hour, the less of it the ceiling could see.
+ *
+ * Never throws. This runs on a path that is already failing and already has a
+ * sentence to give the visitor; turning a lost debit into a second error would
+ * replace an accurate 502 with a 500 and tell them less. A debit that does not
+ * land is logged and the count is low by that much, which is the same place we
+ * were before this existed.
+ *
+ * Nothing is written when `calls` is zero: the row would say only that a
+ * request failed, which the log already says, and the check constraint on the
+ * table refuses it anyway.
+ */
+export async function recordModelCallDebit(entry: {
+  calls: number;
+  reason: string;
+  domain?: string;
+  ipHash?: string;
+}): Promise<void> {
+  if (entry.calls <= 0) return;
+  try {
+    const { error } = await supabaseAdmin().from("model_call_debits").insert({
+      calls: entry.calls,
+      reason: entry.reason,
+      domain: entry.domain ?? null,
+      ip_hash: entry.ipHash ?? null,
+    });
+    if (error) throw new Error(error.message);
+  } catch (err) {
+    console.warn(
+      `[scan] could not record ${entry.calls} unattributed model call(s) (${entry.reason}): ${
+        err instanceof Error ? err.message : String(err)
+      }`,
+    );
+  }
 }

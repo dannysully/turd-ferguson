@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { T } from "@/config/tokens";
 import { scanReadiness } from "@/lib/scan/readiness";
 import { SETTINGS_FALLBACK } from "@/lib/scan/settings";
+import { anthropicCallsSince } from "@/lib/scan/spend";
 import { supabaseAdmin, supabaseConfigured } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -144,7 +145,7 @@ export default async function AdminScansPage() {
   // eslint-disable-next-line react-hooks/purity
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-  const [{ data: today }, { data: recent }, { data: settings }] = await Promise.all([
+  const [{ data: today }, { data: recent }, { data: settings }, modelCalls] = await Promise.all([
     db.from("scans").select("status, dfs_calls, dfs_cost, anthropic_calls, unlocked_at").gte("created_at", since),
     db
       .from("scans")
@@ -154,6 +155,13 @@ export default async function AdminScansPage() {
       .order("created_at", { ascending: false })
       .limit(50),
     db.from("app_settings").select("key, value"),
+    // Read through the same function the start route enforces with, rather
+    // than summed off the rows above. Those rows are scans, and the day's
+    // model bill is no longer only scans: an attempt that failed before its
+    // row existed is a debit, and a tile that showed a smaller number than
+    // the ceiling it is printed against would be the one place you would
+    // look to find out why scans had stopped and be told nothing.
+    anthropicCallsSince(since),
   ]);
 
   const rows = (today ?? []) as Array<Pick<ScanRow, "status" | "dfs_calls" | "dfs_cost" | "anthropic_calls" | "unlocked_at">>;
@@ -163,7 +171,6 @@ export default async function AdminScansPage() {
   const failed = rows.filter((r) => r.status === "failed").length;
   const unlocked = rows.filter((r) => r.unlocked_at).length;
   const dfsCalls = rows.reduce((a, r) => a + (r.dfs_calls ?? 0), 0);
-  const anthropicCalls = rows.reduce((a, r) => a + (r.anthropic_calls ?? 0), 0);
   const dfsCost = rows.reduce((a, r) => a + Number(r.dfs_cost ?? 0), 0);
 
   const setting = (key: string) => (settings ?? []).find((s) => s.key === key)?.value;
@@ -241,8 +248,8 @@ export default async function AdminScansPage() {
         <Tile label="DataForSEO cost" value={money(dfsCost)} />
         <Tile
           label="Model calls"
-          value={`${anthropicCalls} / ${callCap}`}
-          tone={anthropicCalls > callCap * 0.8 ? C.red : undefined}
+          value={`${modelCalls} / ${callCap}`}
+          tone={modelCalls > callCap * 0.8 ? C.red : undefined}
         />
         <Tile label="Cost per scan" value={total ? money(dfsCost / total) : "-"} />
       </div>
