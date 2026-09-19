@@ -174,7 +174,12 @@ export default async function AdminScansPage() {
   // eslint-disable-next-line react-hooks/purity
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-  const [{ data: today }, { data: recent }, { data: settings }, modelCalls] = await Promise.all([
+  const [
+    { data: today, error: todayErr },
+    { data: recent, error: recentErr },
+    { data: settings, error: settingsErr },
+    modelCalls,
+  ] = await Promise.all([
     db.from("scans").select("status, dfs_calls, dfs_cost, anthropic_calls, unlocked_at").gte("created_at", since),
     db
       .from("scans")
@@ -192,6 +197,37 @@ export default async function AdminScansPage() {
     // look to find out why scans had stopped and be told nothing.
     anthropicCallsSince(since),
   ]);
+
+  /**
+   * A read that failed must not print as a measurement on the page you come to
+   * when you suspect something is wrong.
+   *
+   * All three errors were discarded. The day summary then read `0 / 200` scans
+   * and `$0.0000 / $60` spent - which is what a quiet day looks like, and is the
+   * single most reassuring pair of numbers on this page - and the settings read
+   * is worse than reassuring: `enabled` is `setting("scans_enabled") !== false`,
+   * so an unreadable settings table renders the kill switch as **on** and
+   * suppresses the "scans are switched off" banner. That is the same failure
+   * direction settings.ts is written around, on the surface an operator checks
+   * to find out whether the switch took.
+   *
+   * Not fatal, following the rule already written beside the coverage read: a
+   * number we could not get shows as a dash and everything else on the page
+   * still answers. What changes is that the dash exists at all, and that the
+   * page says which read is missing rather than leaving a zero to be believed.
+   */
+  const failedReads = [
+    todayErr ? "the last 24 hours" : null,
+    recentErr ? "the last 50 runs" : null,
+    settingsErr ? "app_settings" : null,
+  ].filter((s): s is string => Boolean(s));
+  for (const [what, err] of [
+    ["the day summary", todayErr],
+    ["the recent runs", recentErr],
+    ["app_settings", settingsErr],
+  ] as const) {
+    if (err) console.error("[admin] could not read " + what + ": " + err.message);
+  }
 
   const rows = (today ?? []) as Array<Pick<ScanRow, "status" | "dfs_calls" | "dfs_cost" | "anthropic_calls" | "unlocked_at">>;
   const scans = (recent ?? []) as ScanRow[];
@@ -272,7 +308,26 @@ export default async function AdminScansPage() {
 
       <Readiness />
 
-      {!enabled && (
+      {failedReads.length > 0 && (
+        <p
+          style={{
+            marginTop: "1.25rem",
+            padding: "0.75rem 1rem",
+            background: "rgba(220,38,38,0.1)",
+            border: "1px solid rgba(220,38,38,0.35)",
+            borderRadius: 12,
+            color: C.red,
+            fontSize: "0.875rem",
+          }}
+        >
+          Could not read {failedReads.join(" or ")}. The figures below that come from{" "}
+          {failedReads.join(" or ")} are missing rather than zero
+          {settingsErr ? ", and the ceilings and the scans_enabled switch are the built-in defaults, not what is stored" : ""}
+          . Reload before acting on anything here.
+        </p>
+      )}
+
+      {!settingsErr && !enabled && (
         <p
           style={{
             marginTop: "1.25rem",
@@ -296,18 +351,30 @@ export default async function AdminScansPage() {
           marginTop: "1.5rem",
         }}
       >
-        <Tile label="Scans today" value={`${total} / ${cap}`} />
-        <Tile label="Spend today" value={`${money(dfsCost)} / $${costCap}`} tone={dfsCost > costCap * 0.8 ? C.red : undefined} />
-        <Tile label="Unlocked" value={String(unlocked)} tone={C.purple} />
-        <Tile label="Failed" value={String(failed)} tone={failed ? C.red : C.green} />
-        <Tile label="DataForSEO calls" value={String(dfsCalls)} />
-        <Tile label="DataForSEO cost" value={money(dfsCost)} />
+        {/* A dash where the read failed. Every one of these is derived from
+            `today`, so without it each would print the number a quiet day
+            prints, and a quiet day is the thing you would most want to be
+            told this is not. */}
+        <Tile label="Scans today" value={todayErr ? `- / ${cap}` : `${total} / ${cap}`} />
+        <Tile
+          label="Spend today"
+          value={todayErr ? `- / $${costCap}` : `${money(dfsCost)} / $${costCap}`}
+          tone={!todayErr && dfsCost > costCap * 0.8 ? C.red : undefined}
+        />
+        <Tile label="Unlocked" value={todayErr ? "-" : String(unlocked)} tone={C.purple} />
+        <Tile
+          label="Failed"
+          value={todayErr ? "-" : String(failed)}
+          tone={todayErr ? undefined : failed ? C.red : C.green}
+        />
+        <Tile label="DataForSEO calls" value={todayErr ? "-" : String(dfsCalls)} />
+        <Tile label="DataForSEO cost" value={todayErr ? "-" : money(dfsCost)} />
         <Tile
           label="Model calls"
           value={`${modelCalls} / ${callCap}`}
           tone={modelCalls > callCap * 0.8 ? C.red : undefined}
         />
-        <Tile label="Cost per scan" value={total ? money(dfsCost / total) : "-"} />
+        <Tile label="Cost per scan" value={todayErr || !total ? "-" : money(dfsCost / total)} />
       </div>
 
       <h2 style={{ fontSize: "1rem", fontWeight: 700, color: C.navy, marginTop: "2.5rem", marginBottom: "0.75rem" }}>

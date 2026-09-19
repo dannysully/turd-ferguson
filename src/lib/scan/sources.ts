@@ -116,7 +116,7 @@ export async function classifySources(
    * cited - and a domain that falls off the end of an unpaged read is never
    * classified, so it never reaches the placement list and nothing says so.
    */
-  const [{ data: scan }, cited, done, brands] = await Promise.all([
+  const [{ data: scan, error: scanErr }, cited, done, brands] = await Promise.all([
     db.from("scans").select("domain, brand_name, topic").eq("id", scanId).single(),
     selectAll<CitedRow>((from, to) =>
       db
@@ -143,6 +143,18 @@ export async function classifySources(
         .range(from, to),
     ),
   ]);
+  /**
+   * Both ends are fatal, and they are not the same sentence.
+   *
+   * The error was discarded, so a read that did not answer arrived here as
+   * `scan` being null and was reported as `scan <id> not found`. The pipeline
+   * catches this and logs it as "source kinds skipped", which is the line
+   * somebody reads when a report comes back with nothing sorted - and it named
+   * the wrong cause. The behaviour is unchanged on purpose: the topic and the
+   * brand steer the classifier, so guessing at them would spend a model call to
+   * produce verdicts judged against the wrong category.
+   */
+  if (scanErr) throw new Error(`could not read scan ${scanId} to classify its sources: ${scanErr.message}`);
   if (!scan) throw new Error(`scan ${scanId} not found`);
 
   const already = new Set(done.map((r) => r.domain));

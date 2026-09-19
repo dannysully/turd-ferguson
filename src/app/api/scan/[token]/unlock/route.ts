@@ -227,7 +227,30 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
   // an invite would establish is read by nothing. completeUnlock above already
   // sends sendReportReadyEmail through Resend, branded, linking to this scan.
 
-  const payload = await buildUnlockPayload(scan.id as string);
+  /**
+   * The unlock is already a fact by the time this runs, so a failure here is
+   * not a failed unlock and must not read as one.
+   *
+   * buildUnlockPayload throws now where two of its reads used to swallow their
+   * error and hand back an empty report - so this call, which was bare, would
+   * have turned a database blip into an unhandled 500 on the request that has
+   * just taken somebody's address. The row is stamped, the gated pass is away,
+   * and /scan/<token> assembles the same report on the next load, so the true
+   * thing to say is that the report is open and a refresh will fetch it.
+   */
+  let payload;
+  try {
+    payload = await buildUnlockPayload(scan.id as string);
+  } catch (err) {
+    console.error(`[scan] unlocked ${scan.id} but could not assemble the report:`, err);
+    return Response.json(
+      {
+        error: "report_failed",
+        message: "Your report is open, but we could not load it just then. Refresh the page.",
+      },
+      { status: 502, headers: { "cache-control": "no-store" } },
+    );
+  }
 
   return Response.json(
     {

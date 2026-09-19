@@ -209,10 +209,36 @@ export async function completeUnlock(
   // after() rather than a floating promise - the response is already on its way
   // out, and a bare promise gets killed with the function.
   after(async () => {
-    const [{ data: qs }, { data: rows }] = await Promise.all([
+    const [{ data: qs, error: qsErr }, { data: rows, error: rowsErr }] = await Promise.all([
       db.from("scan_questions").select("id").eq("scan_id", scan.id),
       db.from("scan_answers").select("question_id, answered, brand_named").eq("scan_id", scan.id),
     ]);
+
+    /**
+     * No message rather than a message with an invented number in it.
+     *
+     * Both errors were discarded, so a read that did not answer became an empty
+     * list and every count below it came out zero - and neither branch of this
+     * message is number-free. The subject took `Your <brand> report`, which is
+     * harmless, but the body took `reportHeadline`'s else branch and told a lead
+     * "We put 0 buying-intent questions to the engines your buyers use", in
+     * writing, about a scan that had just asked fourteen of them and charged us
+     * for every one. A published number we cannot stand behind is the one thing
+     * "ship it rough" does not cover.
+     *
+     * Returning costs them the link back to the report, which is a real cost and
+     * the smaller one: the unlock is already stamped, this runs in after() with
+     * the response and the assembled report already on their screen, and
+     * /scan/<token> serves it on every later visit. Logged at error because
+     * nothing else records that a lead's message went unsent.
+     */
+    if (qsErr || rowsErr) {
+      console.error(
+        "[scan] could not count " + scan.id + " for its report email, so none was sent: " +
+          (qsErr?.message ?? "") + (qsErr && rowsErr ? "; " : "") + (rowsErr?.message ?? ""),
+      );
+      return;
+    }
 
     const answers = (rows ?? []) as Array<{ question_id: string; answered: boolean; brand_named: boolean }>;
     const questions = (qs ?? []) as Array<{ id: string }>;
@@ -408,26 +434,54 @@ export async function opportunityShape(
   // cited rather than with what we asked, and an unpaged read silently stops
   // at the 1000th row. The count on the locked screen is the number being
   // traded for an email address, so it has to be the whole count.
-  const [citations, { data: answers }, { data: questions }, kinds] = await Promise.all([
-    selectAll<CitationRow>((from, to) =>
-      db
-        .from("scan_citations")
-        .select("source_domain, question_id, engine")
-        .eq("scan_id", scanId)
-        .order("id", { ascending: true })
-        .range(from, to),
-    ),
-    db.from("scan_answers").select("question_id, engine, brand_named").eq("scan_id", scanId),
-    db.from("scan_questions").select("id, question").eq("scan_id", scanId),
-    selectAll<KindRow>((from, to) =>
-      db
-        .from("scan_sources")
-        .select("domain, kind, note, on_topic")
-        .eq("scan_id", scanId)
-        .order("id", { ascending: true })
-        .range(from, to),
-    ),
-  ]);
+  const [citations, { data: answers, error: answersErr }, { data: questions, error: questionsErr }, kinds] =
+    await Promise.all([
+      selectAll<CitationRow>((from, to) =>
+        db
+          .from("scan_citations")
+          .select("source_domain, question_id, engine")
+          .eq("scan_id", scanId)
+          .order("id", { ascending: true })
+          .range(from, to),
+      ),
+      db.from("scan_answers").select("question_id, engine, brand_named").eq("scan_id", scanId),
+      db.from("scan_questions").select("id, question").eq("scan_id", scanId),
+      selectAll<KindRow>((from, to) =>
+        db
+          .from("scan_sources")
+          .select("domain, kind, note, on_topic")
+          .eq("scan_id", scanId)
+          .order("id", { ascending: true })
+          .range(from, to),
+      ),
+    ]);
+
+  /**
+   * A read that failed is not a gate with nothing behind it.
+   *
+   * Both errors were discarded, and the answers read is the one that decides the
+   * whole number: `deriveOpportunities` only counts a citation whose answer is
+   * recorded as `brand_named === false`, so an empty answer set skips every
+   * citation and this returns a flat `count: 0`. Every caller was written
+   * against the opposite. `/api/scan/<token>/opportunities` says in a comment
+   * that "a failed read reports as a failure rather than as a count of zero,
+   * which on this screen would read as 'there is nothing behind the gate'" - and
+   * then answered 200 with `ready: true, count: 0`, which is precisely that
+   * sentence. `/scan/<token>` calls it inside a try that logs and falls back to
+   * the copy with no number in it, and never reached the catch.
+   *
+   * So a database blip told a visitor standing at the gate that there were no
+   * pages to be placed into. That is a measured finding on this product - a real
+   * zero is as much an answer as a fourteen - which is exactly why it must never
+   * be the thing a failure degrades to. Thrown, and all three callers already
+   * have the branch for it.
+   */
+  if (answersErr) {
+    throw new Error("could not read the answers behind the gate: " + answersErr.message);
+  }
+  if (questionsErr) {
+    throw new Error("could not read the questions behind the gate: " + questionsErr.message);
+  }
 
   const opportunities = deriveOpportunities({
     citations,
@@ -463,7 +517,13 @@ export async function buildUnlockPayload(scanId: string): Promise<UnlockPayload>
    * of voice and from the placement list at once - with nothing on the page
    * to say the list is partial.
    */
-  const [brands, sources, { data: questions }, { data: answers }, kinds] = await Promise.all([
+  const [
+    brands,
+    sources,
+    { data: questions, error: questionsErr },
+    { data: answers, error: answersErr },
+    kinds,
+  ] = await Promise.all([
     selectAll<EngineBrandRow>((from, to) =>
       db
         .from("scan_brands")
@@ -498,6 +558,30 @@ export async function buildUnlockPayload(scanId: string): Promise<UnlockPayload>
         .range(from, to),
     ),
   ]);
+
+  /**
+   * The property `/api/scan/<token>/full` already claims, finally true.
+   *
+   * That route's comment reads "the per-scan reads used to swallow their own
+   * error and hand back no rows... They throw now" - and the three paged ones
+   * did, through `selectAll`. These two never have. So a fault on either one
+   * assembled a report with no questions, no transcripts and - because
+   * `deriveOpportunities` needs the answers to know the brand was absent - no
+   * placements, and handed it back as a 200 to the person who had just given
+   * their address for it. The failure and the finding were the same screen, on
+   * the one payload this product sells.
+   *
+   * Thrown so the callers' existing branches fire: /full answers 502
+   * report_failed, /scan/<token> logs and lets the client fetch retry, and the
+   * unlock route says the report could not be assembled rather than serving an
+   * empty one.
+   */
+  if (questionsErr) {
+    throw new Error("could not read the questions for the report: " + questionsErr.message);
+  }
+  if (answersErr) {
+    throw new Error("could not read the answers for the report: " + answersErr.message);
+  }
 
   const brandRows = brands;
   const overall = new Map<string, { brand: string; mentions: number; is_subject: boolean; engines: string[] }>();

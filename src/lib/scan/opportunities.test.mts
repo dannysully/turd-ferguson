@@ -200,6 +200,30 @@ test("rows are ranked by absent answers, then by domain", () => {
   );
 });
 
+test("no answers means no opportunities, whatever was cited", () => {
+  /**
+   * Why a failed `scan_answers` read has to throw rather than return zero.
+   *
+   * An opportunity is a page cited for an answer the brand was *absent* from,
+   * and absence is only knowable from the answer row: a citation whose answer
+   * is missing is skipped, which is right - an answer we do not hold is not an
+   * answer the brand was missing from.
+   *
+   * The consequence is that an empty answer set produces exactly what a scan
+   * with nothing to place into produces. So for as long as `opportunityShape`
+   * and `buildUnlockPayload` swallowed that read's error, a database fault and
+   * a real finding of zero were the same number on the gate - and zero is the
+   * number that tells a visitor there is nothing behind it worth an address.
+   */
+  const out = deriveOpportunities({
+    citations: [cite("trade.example", "q1", "chatgpt"), cite("trade.example", "q2", "gemini")],
+    answers: [],
+    questions: [q("q1", "best crm for agencies"), q("q2", "crm pricing")],
+    kinds: [kind("trade.example", "placement")],
+  });
+  assert.deepEqual(out, []);
+});
+
 test("a domain named for something on Object.prototype is not classified by inheritance", () => {
   // The kinds table is keyed by a value that comes from outside this file.
   const out = deriveOpportunities({

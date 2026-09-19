@@ -58,7 +58,8 @@ type Read = { file: string; line: number; destructure: string };
 
 /**
  * Every `const { ... } = await <something>` whose bindings include `data` or
- * `count`.
+ * `count`, and every such object pattern sitting inside a `const [ ... ] =
+ * await` array pattern.
  *
  * Deliberately not tied to `db.from(` or `supabaseAdmin()`: the call is spelled
  * several ways here - a bare `db`, a chained `supabaseAdmin()`, an `.rpc()` -
@@ -73,22 +74,43 @@ type Read = { file: string; line: number; destructure: string };
  * codebase is counted, and three of the four call sites were ceilings. The
  * sweep reported no unchecked reads and was read as covering the reads, when
  * what it covered was one of the two shapes a read comes in.
+ *
+ * The array pattern was added the same day and is the third blind spot of the
+ * same kind, after the `count` binding and the result held whole. The regex
+ * anchored on `const {`, so every read destructured out of a `Promise.all` -
+ * `const [{ data: answers }, { data: questions }] = await Promise.all([...])` -
+ * was invisible rather than unchecked, and the sweep called the tree clean.
+ * That is not a rare spelling here: it is how the paid report, the locked gate
+ * and the report-ready email each read their rows, because those are the three
+ * places that fetch four or five tables at once.
  */
 function readsIn(file: string): Read[] {
   const source = readFileSync(file, "utf8");
   // Posix-style so the keys in EXEMPT read the same on any machine.
   const name = relative(ROOT, file).split(sep).join("/");
   const out: Read[] = [];
+  const at = (index: number) => source.slice(0, index).split("\n").length;
+
   for (const m of source.matchAll(/const\s*(\{[^}]*\})\s*=\s*await\b/g)) {
     const destructure = m[1];
     if (!/\bdata\b/.test(destructure) && !/\bcount\b/.test(destructure)) continue;
-    out.push({
-      file: name,
-      line: source.slice(0, m.index).split("\n").length,
-      destructure: destructure.replace(/\s+/g, " ").trim(),
-    });
+    out.push({ file: name, line: at(m.index), destructure: tidy(destructure) });
+  }
+
+  // Each element of an array pattern is its own result, so each object pattern
+  // inside one is its own read and gets its own line and its own EXEMPT key.
+  for (const m of source.matchAll(/const\s*\[([^\]]*)\]\s*=\s*await\b/g)) {
+    for (const el of m[1].matchAll(/\{[^}]*\}/g)) {
+      const destructure = el[0];
+      if (!/\bdata\b/.test(destructure) && !/\bcount\b/.test(destructure)) continue;
+      out.push({ file: name, line: at(m.index), destructure: tidy(destructure) });
+    }
   }
   return out;
+}
+
+function tidy(destructure: string): string {
+  return destructure.replace(/\s+/g, " ").trim();
 }
 
 /**
@@ -179,9 +201,139 @@ function undestructuredIn(file: string): { file: string; line: number; text: str
   return out;
 }
 
+/**
+ * Split a comma-separated list at its top level, ignoring commas inside
+ * brackets, braces, parentheses and strings.
+ *
+ * Needed by both halves below, because the two things being paired - the
+ * elements of an array pattern and the arguments to `Promise.all` - are each a
+ * list whose items contain commas of their own: `{ data: x, error: y }` and
+ * `.select("a, b")`.
+ */
+function splitTopLevel(text: string): string[] {
+  const out: string[] = [];
+  let depth = 0;
+  let quote = "";
+  let start = 0;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (quote) {
+      if (c === "\\") i++;
+      else if (c === quote) quote = "";
+      continue;
+    }
+    if (c === '"' || c === "'" || c === "`") quote = c;
+    else if (c === "(" || c === "[" || c === "{") depth++;
+    else if (c === ")" || c === "]" || c === "}") depth--;
+    else if (c === "," && depth === 0) {
+      out.push(text.slice(start, i));
+      start = i + 1;
+    }
+  }
+  out.push(text.slice(start));
+  return out.map((s) => s.trim()).filter(Boolean);
+}
+
+/** The index just past the bracket opened at `open`, or -1. */
+function matchBracket(text: string, open: number): number {
+  const pairs: Record<string, string> = { "(": ")", "[": "]", "{": "}" };
+  const close = pairs[text[open]];
+  if (!close) return -1;
+  let depth = 0;
+  let quote = "";
+  for (let i = open; i < text.length; i++) {
+    const c = text[i];
+    if (quote) {
+      if (c === "\\") i++;
+      else if (c === quote) quote = "";
+      continue;
+    }
+    if (c === '"' || c === "'" || c === "`") quote = c;
+    else if (c === text[open]) depth++;
+    else if (c === close) {
+      depth--;
+      if (depth === 0) return i;
+    }
+  }
+  return -1;
+}
+
+/** Does this expression read rows through postgrest rather than through selectAll? */
+function isBareRead(expr: string): boolean {
+  if (/\bselectAll[<(]/.test(expr)) return false;
+  if (!/\.from\(|\.rpc\(/.test(expr)) return false;
+  if (!/\.select\(/.test(expr)) return false;
+  return !/\.(update|insert|upsert|delete)\(/.test(expr);
+}
+
+/**
+ * Reads sitting in a `Promise.all` whose result is taken as a plain identifier.
+ *
+ * The rule one function up - bind the result apart - has a second face here that
+ * it cannot reach, because the binding and the call are in different places.
+ * `const [rows, kinds] = await Promise.all([db.from(...).select(...), ...])`
+ * binds `rows` to a full postgrest result and there is no destructure anywhere
+ * for the sweep to judge.
+ *
+ * The tree is clean of this today only by accident: every plain identifier in
+ * an array pattern here is a `selectAll` result, and `selectAll` throws on its
+ * own error. But those sit in the same list as the destructured reads - in
+ * `opportunityShape` and `buildUnlockPayload` a `selectAll` and a bare
+ * `db.from(...)` are literally adjacent arguments - so the next read added
+ * beside one would inherit the identifier binding from its neighbour and
+ * disappear.
+ *
+ * Paired positionally rather than guessed at: element i of the pattern belongs
+ * to argument i of `Promise.all`, which is what the language guarantees and
+ * what makes this checkable at all.
+ */
+/**
+ * How many `Promise.all` array destructures the pairing above actually managed
+ * to line up.
+ *
+ * A clean tree makes `UNPAIRED` empty, which is also what a pairing that never
+ * matched anything produces - so the empty list on its own says nothing. This
+ * is the number the guard asserts on instead.
+ */
+let PAIRED = 0;
+
+function unpairedIn(file: string): { file: string; line: number; text: string }[] {
+  const source = readFileSync(file, "utf8");
+  const name = relative(ROOT, file).split(sep).join("/");
+  const out: { file: string; line: number; text: string }[] = [];
+
+  for (const m of source.matchAll(/const\s*\[/g)) {
+    const openPattern = source.indexOf("[", m.index);
+    const closePattern = matchBracket(source, openPattern);
+    if (closePattern < 0) continue;
+
+    const after = source.slice(closePattern + 1);
+    const call = /^\s*=\s*await\s+Promise\.all\(\s*\[/.exec(after);
+    if (!call) continue;
+
+    const openArgs = closePattern + 1 + call[0].lastIndexOf("[");
+    const closeArgs = matchBracket(source, openArgs);
+    if (closeArgs < 0) continue;
+
+    const elements = splitTopLevel(source.slice(openPattern + 1, closePattern));
+    const args = splitTopLevel(source.slice(openArgs + 1, closeArgs));
+    if (elements.length !== args.length) continue;
+    PAIRED += 1;
+
+    const line = source.slice(0, m.index).split("\n").length;
+    for (let i = 0; i < elements.length; i++) {
+      if (elements[i].startsWith("{")) continue;
+      if (!isBareRead(args[i])) continue;
+      out.push({ file: name, line, text: elements[i] });
+    }
+  }
+  return out;
+}
+
 const FILES = sourceFiles(SRC);
 const READS = FILES.flatMap(readsIn);
 const UNDESTRUCTURED = FILES.flatMap(undestructuredIn);
+const UNPAIRED = FILES.flatMap(unpairedIn);
 
 test("the sweep can still see the reads it is sweeping", () => {
   // Guards the regex and the walk together. If either stops working, every
@@ -189,6 +341,19 @@ test("the sweep can still see the reads it is sweeping", () => {
   // which is the failure mode that makes a green check worse than no check.
   assert.ok(FILES.length >= 40, `expected 40+ source files, walked ${FILES.length}`);
   assert.ok(READS.length >= 20, `expected 20+ destructured awaits binding data, found ${READS.length}`);
+  /**
+   * The array half, guarded separately.
+   *
+   * `READS` was already over twenty on object patterns alone, so it would have
+   * stayed green with the array walk matching nothing at all - which is the
+   * state this file was in until 19 September 2026 and the reason ten unchecked
+   * reads sat behind a passing sweep.
+   */
+  assert.ok(
+    READS.some((r) => r.file === "src/lib/scan/unlock.ts" && /answers/.test(r.destructure)),
+    "the array-pattern walk found no read in unlock.ts, so it is matching nothing",
+  );
+  assert.ok(PAIRED >= 4, `expected 4+ paired Promise.all destructures, lined up ${PAIRED}`);
 });
 
 test("every Supabase read looks at its own error", () => {
@@ -211,6 +376,14 @@ test("every Supabase read is destructured, so this sweep can see it", () => {
     UNDESTRUCTURED.map((r) => `${r.file}:${r.line} ${r.text}`),
     [],
     "bind this read apart - a result held whole is invisible to the sweep above, not merely unchecked",
+  );
+});
+
+test("a read inside a Promise.all is destructured too", () => {
+  assert.deepEqual(
+    UNPAIRED.map((r) => `${r.file}:${r.line} ${r.text}`),
+    [],
+    "destructure this element - a postgrest result taken whole out of a Promise.all is invisible to the sweep above",
   );
 });
 
