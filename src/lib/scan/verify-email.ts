@@ -4,6 +4,12 @@ import { Resend } from "resend";
 
 import { T } from "@/config/tokens";
 import { headerSafe } from "@/lib/email-header";
+import {
+  type Palette,
+  reportHeadline,
+  reportHtml,
+  verifyHtml,
+} from "@/lib/scan/email-render";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 /**
@@ -31,15 +37,6 @@ function verifyUrl(verifyToken: string): string {
   return `${siteUrl()}/api/verify/${verifyToken}`;
 }
 
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
 /**
  * A subject line is a mail header.
  *
@@ -64,7 +61,7 @@ function escapeHtml(s: string): string {
  * - nothing here uses `T.faint`. It is 2.54 on white, and the rule written
  *   beside it in tokens.ts is that light-ground text does not use it.
  */
-const E = {
+const E: Palette = {
   ground: T.bg,
   card: T.surface,
   ink: T.ink,
@@ -73,113 +70,10 @@ const E = {
   line: T.line,
   accent: T.accent,
   onAccent: T.surface,
-} as const;
+};
 
 /** No webfont. Fontsource ships Hanken as woff2 and no mail client loads it. */
 const FONT = "-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif";
-
-/**
- * Every field is HTML, already escaped by the caller. The shell escapes
- * nothing: it was escaping the title and the preview line on top of a brand
- * the caller had escaped already, so an ampersand in a company name reached
- * the inbox as &amp;amp;.
- */
-type Shell = {
-  /** Shown by a client rendering the message in a browser view. Not the subject. */
-  title: string;
-  /**
-   * The inbox preview line, shown after the subject in every mail client
-   * there is. With none set a client takes the first text it finds, which
-   * here is the heading - so the reader saw the same sentence twice and
-   * learned nothing from the second.
-   */
-  preheader: string;
-  heading: string;
-  /** Escaped HTML. */
-  body: string;
-  cta: { href: string; label: string };
-  /** Escaped HTML, small print under the button. */
-  footnote: string;
-  /** Escaped HTML under a rule, or nothing. */
-  aside?: string;
-};
-
-/**
- * The chrome both messages share: a 520px card on the page ground, a head
- * that declares its own encoding, an inbox preview line, and a button that
- * survives Outlook.
- *
- * Three things here are not decoration.
- *
- * There was no head element at all, and so no charset. The brand in the
- * heading is read off a crawled site and can hold any character there is;
- * Resend sets utf-8 on the part header, which is what has been carrying it,
- * but a document that declares its own encoding does not depend on that.
- *
- * max-width does nothing in Outlook desktop, which lays out with Word, so the
- * card ran the full width of the window there. The conditional comment gives
- * Outlook a fixed 520 and leaves every other client the fluid card.
- *
- * Outlook also drops padding on an anchor, which left the button as bare text
- * on a purple rectangle. mso-padding-alt on the cell puts it back.
- *
- * None of those three is verified in a mail client - there is no client in
- * here to verify them in. They are the documented behaviours and the standard
- * fixes for them. What is verified is the markup.
- */
-function shell(s: Shell): string {
-  return `<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="color-scheme" content="light dark">
-<meta name="supported-color-schemes" content="light dark">
-<title>${s.title}</title>
-</head>
-<body style="margin:0;padding:0;background:${E.ground};font-family:${FONT};">
-<div style="display:none;max-height:0;max-width:0;overflow:hidden;opacity:0;font-size:1px;line-height:1px;color:${E.ground};">${s.preheader}${"&#8203;".repeat(60)}</div>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${E.ground};">
-<tr><td align="center" style="padding:32px 16px;">
-<!--[if mso]><table role="presentation" width="520" align="center" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;background:${E.card};border-radius:12px;">
-<tr><td style="padding:32px;">
-<div style="font-size:18px;font-weight:600;line-height:1.35;color:${E.ink};padding-bottom:16px;">${s.heading}</div>
-<div style="font-size:15px;line-height:1.55;color:${E.body};padding-bottom:24px;">${s.body}</div>
-<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
-<td bgcolor="${E.accent}" style="border-radius:8px;mso-padding-alt:12px 22px;">
-<a href="${s.cta.href}" style="display:inline-block;padding:12px 22px;font-size:15px;font-weight:600;color:${E.onAccent};text-decoration:none;">${s.cta.label}</a>
-</td>
-</tr></table>
-<div style="font-size:13px;line-height:1.55;color:${E.quiet};padding-top:24px;">${s.footnote}</div>
-${s.aside ? `<div style="font-size:13px;line-height:1.55;color:${E.quiet};margin-top:24px;padding-top:24px;border-top:1px solid ${E.line};">${s.aside}</div>` : ""}
-</td></tr>
-</table>
-<!--[if mso]></td></tr></table><![endif]-->
-</td></tr>
-</table>
-</body></html>`;
-}
-
-function linkFallback(link: string): string {
-  return `If the button does nothing, paste this into your browser:<br><span style="color:${E.accent};word-break:break-all;">${escapeHtml(link)}</span>`;
-}
-
-function verifyHtml(brand: string, link: string): string {
-  const b = escapeHtml(brand);
-  return shell({
-    title: `Open your ${b} report`,
-    preheader: "Confirming your address opens the placements and the full transcripts.",
-    heading: `One click and your ${b} report opens`,
-    body:
-      "We ran the check, and the result is already on your page. Confirming " +
-      "this address opens the rest: which of those pages you could be placed " +
-      "into, and what each engine said word for word.",
-    cta: { href: link, label: "Open the report" },
-    footnote: linkFallback(link),
-    aside: "If you did not ask for this, ignore it and nothing opens.",
-  });
-}
 
 /**
  * Sends it and stamps when. Returns false rather than throwing: a send that
@@ -204,7 +98,7 @@ export async function sendVerificationEmail(input: {
       from: process.env.SCAN_FROM_EMAIL ?? "alwayscited <onboarding@resend.dev>",
       to: input.email,
       subject: headerSafe(`Open your ${input.brand} report`),
-      html: verifyHtml(input.brand, link),
+      html: verifyHtml(E, FONT, input.brand, link),
       text: `We ran the check on ${input.brand}.\n\nOpen the full report: ${link}\n\nIf you did not ask for this, ignore it and nothing opens.`,
     });
     if (error) {
@@ -225,33 +119,6 @@ export async function sendVerificationEmail(input: {
 }
 
 // --------------------------------------------------------- report ready
-
-/**
- * The headline is the sharpest number this product produces, so it is built
- * once and used by both the HTML and the plain-text part. The text part used
- * to drop it, which meant a client showing text only got the blandest
- * version of the one thing worth saying.
- */
-function reportHeadline(brand: string, missed: number, total: number): string {
-  return missed > 0
-    ? `${missed} of the ${total} questions we asked came back without ${brand} in the answer.`
-    : `We put ${total} buying-intent questions to the engines your buyers use.`;
-}
-
-function reportHtml(brand: string, link: string, missed: number, total: number): string {
-  const b = escapeHtml(brand);
-  return shell({
-    title: `Your ${b} report is ready`,
-    preheader: reportHeadline(b, missed, total),
-    heading: `Your ${b} report is ready`,
-    body:
-      reportHeadline(b, missed, total) +
-      " The report adds the pages you could be placed into, ranked by how many " +
-      "answers a placement would win, and what each engine said word for word.",
-    cta: { href: link, label: "Open your report" },
-    footnote: "The link works on any device and does not expire. " + linkFallback(link),
-  });
-}
 
 /**
  * Tells someone their report is ready, and gives them a way back to it.
@@ -289,7 +156,7 @@ export async function sendReportReadyEmail(input: {
       from: process.env.SCAN_FROM_EMAIL ?? "alwayscited <onboarding@resend.dev>",
       to: input.email,
       subject,
-      html: reportHtml(input.brand, link, input.missed, input.total),
+      html: reportHtml(E, FONT, input.brand, link, input.missed, input.total),
       text: `${reportHeadline(input.brand, input.missed, input.total)}\n\nOpen your report: ${link}\n\nThe link works on any device and does not expire.`,
     });
     if (error) console.error("[scan] report email rejected", error);
