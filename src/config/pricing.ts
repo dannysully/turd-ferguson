@@ -22,6 +22,22 @@ import { TIER_PLAIN, type TierKey } from "@/components/TierName";
 /** Single destination for every CTA until real signup and booking flows exist. */
 export const CONTACT_URL = "/contact";
 
+/**
+ * How many questions the tracking base price covers.
+ *
+ * Declared here because it is half of what $99 buys, and a number that says
+ * what a price includes is a claim to a buyer in the same way the price is.
+ * It was typed on four surfaces - the basis line under the homepage card, the
+ * tier journey's lead, the package page gloss and the footer line on
+ * /seo-agencies - and the four did not agree: three said "20 questions,
+ * checked weekly" and the fourth said "20 questions a week", which is a
+ * different offer. An agency reads one of those to a client.
+ *
+ * `priceBasis` below is built from it rather than repeating it, so the number
+ * and the sentence that qualifies it cannot come apart.
+ */
+export const TRACKED_QUESTIONS = 20;
+
 export type Tier = {
   id: string;
   /** Which lockup the TierName component renders. */
@@ -60,7 +76,7 @@ export const TIERS: Tier[] = [
     plainName: TIER_PLAIN.tracked,
     basePrice: 99,
     priceLabel: "from $99/mo",
-    priceBasis: "20 questions, checked weekly. More questions or a tighter cadence moves the price.",
+    priceBasis: `${TRACKED_QUESTIONS} questions, checked weekly. More questions or a tighter cadence moves the price.`,
     positioning: "Know what your coverage did",
     href: "/alwaystracked",
     includes: [
@@ -120,6 +136,33 @@ export const TIERS: Tier[] = [
   },
 ];
 
+/**
+ * The headline price as a sentence says it, for every context that cannot
+ * carry the UI label: meta descriptions, OG and Twitter text, plain-text
+ * email. "$995/mo" is a price tag; "$995 a month" is prose.
+ *
+ * It exists because all three priced pages typed their own price into
+ * `metadata.description` on the line below the one that resolves the tier.
+ * A price in a meta description is the claim a buyer reads in a search result
+ * before they ever reach the page, so it is the worst of the three places for
+ * a number nothing keeps in step - and `c2bf546` is this same mistake made
+ * once already, in copy rather than in config, when the homepage sold a floor
+ * as a flat price.
+ *
+ * Derived from `priceLabel` rather than rebuilt from `basePrice`, so the
+ * "from" on a tier whose price moves with volume travels with the number.
+ * Dropping it is the one bug the deleted `priceFor` had already been fixed
+ * for; the note at the bottom of this file records that, and this is the
+ * function that would otherwise have rediscovered it.
+ *
+ * A tier with no numeric price gets null rather than a string. Its label is a
+ * call to action - "Book a call" - and a sentence about money is the one place
+ * that must not be dropped into. The caller leaves the clause out instead.
+ */
+export function priceProse(tier: Tier): string | null {
+  if (tier.basePrice === null) return null;
+  return tier.priceLabel.replace("/mo", " a month");
+}
 
 /**
  * Sector pricing - removed, not forgotten. Still outstanding on D4 (the sector

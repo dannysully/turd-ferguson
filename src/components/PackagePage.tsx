@@ -1,5 +1,5 @@
 import TierName, { TierText, type TierKey } from "@/components/TierName";
-import { CONTACT_URL, TIERS, type Tier } from "@/config/pricing";
+import { CONTACT_URL, TIERS, TRACKED_QUESTIONS, type Tier } from "@/config/pricing";
 import { ld, ORG_REF, SITE_REF, SITE_URL } from "@/config/schema";
 import { CARD, MICRO, SHELL, T } from "@/config/tokens";
 import Link from "next/link";
@@ -16,7 +16,9 @@ import Link from "next/link";
 export type PackageSection = { heading: string; body: string };
 
 const GLOSS: Record<string, string> = {
-  tracked: "20 questions weekly. The map - you do the placing",
+  // The count comes from pricing.ts. It was typed here, which made this the
+  // third of four surfaces carrying its own copy of what $99 buys.
+  tracked: `${TRACKED_QUESTIONS} questions weekly. The map - you do the placing`,
   mentioned: "We do the placing",
   cited: "Citations and rankings pushed together",
   everywhere: "All of it, across a portfolio",

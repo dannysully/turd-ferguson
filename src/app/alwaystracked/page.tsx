@@ -1,14 +1,22 @@
 import type { Metadata } from "next";
 import { OG_IMAGE } from "@/config/og";
 import PackagePage from "@/components/PackagePage";
-import { TIERS } from "@/config/pricing";
+import { priceProse, TIERS } from "@/config/pricing";
 
 const tier = TIERS.find((t) => t.id === "tracked")!;
+/**
+ * Written as "White-labelled, from $99 a month." rather than opening the
+ * sentence on the price, because `priceProse` returns the label's own casing
+ * and this tier's label carries a leading "from". Capitalising it here would
+ * be a second decision about the string; moving the clause is none.
+ */
+const price = priceProse(tier);
 
 export const metadata: Metadata = {
   title: "alwaystracked | AI visibility tracking",
   description:
-    "AI visibility tracking for one topic: who the engines name, which sources they cite, and which of your coverage is in that list. From $99 a month, white-labelled.",
+    "AI visibility tracking for one topic: who the engines name, which sources they cite, and which of your coverage is in that list." +
+    (price ? ` White-labelled, ${price}.` : " White-labelled."),
   openGraph: { url: "https://alwayscited.com/alwaystracked", images: OG_IMAGE },
   alternates: { canonical: "https://alwayscited.com/alwaystracked" },
 };

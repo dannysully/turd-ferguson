@@ -48,6 +48,13 @@ const INTENT: Record<string, string> = {
  * {MAX_QUESTIONS}" - because it was the one 14 still typed in this file after
  * the constant stopped being. It is the sentence a visitor reads immediately
  * before counting the rows, so it is the copy that gets caught being wrong.
+ *
+ * It was not the one. The cluster standfirst below carried the same number
+ * spelled as a word - "than fourteen variations of the same thing" - and
+ * survived five sweeps for this defect because every one of them looked for
+ * the digit. A number written out is the same claim and goes stale the same
+ * way; copy.test.mts now refuses both spellings so the sixth sweep does not
+ * have to be run by hand.
  */
 const MAX_QUESTIONS = QUESTIONS;
 
@@ -436,7 +443,7 @@ export default function ConfirmScreen(p: {
             </h2>
             <p style={{ margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
               Keep the ones you care about and drop the rest - the question count comes down with them. We would
-              rather run six good questions on one cluster than fourteen variations of the same thing.
+              rather run six good questions on one cluster than {MAX_QUESTIONS} variations of the same thing.
             </p>
           </div>
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>

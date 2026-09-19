@@ -272,7 +272,7 @@ export async function generateQuestions(input: {
       "competes in, not just the widest possible phrase.",
       "",
       "A firm embedding finance operators into venture-backed startups is not",
-      "well measured by fourteen versions of 'best fractional cfo'. It is well",
+      `well measured by ${QUESTION_COUNT} versions of 'best fractional cfo'. It is well`,
       "measured by questions about embedded finance teams, outsourced CFOs for",
       "startups, and CFOs for VC-backed companies, because those are the",
       "searches its buyers run.",

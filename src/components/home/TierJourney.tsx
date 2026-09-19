@@ -24,6 +24,17 @@ import { overviewLabel, type WorkedQuestionId, workedQuestion } from "@/config/w
 
 const priceOf = (id: string) => TIERS.find((t) => t.id === id)?.priceLabel ?? "";
 
+/**
+ * What the price buys, read from pricing.ts the way Packages.tsx already reads
+ * it rather than typed into the lead beside it.
+ *
+ * The tracking lead said "$99 covers 20 questions checked weekly", which is
+ * two numbers this component already renders from config - the price is in the
+ * same Step's header four lines up - typed a second time with nothing holding
+ * them in step.
+ */
+const basisOf = (id: string) => TIERS.find((t) => t.id === id)?.priceBasis ?? "";
+
 const pill = (bg: string, fg: string): React.CSSProperties => ({
   fontSize: "11px",
   fontWeight: 600,
@@ -142,7 +153,7 @@ export default function TierJourney() {
             n={1}
             tier="tracked"
             price={priceOf("tracked")}
-            lead="You find out where you need to be. $99 covers 20 questions checked weekly; volume and cadence move it."
+            lead={`You find out where you need to be. ${basisOf("tracked")}`}
             body="Your buying questions, as many as you want tracked across as many clusters, run across the engines every month. For each one: whether the brand gets named, which engines named it, the answer word for word, and every source it was assembled from - with what kind of publication each one is. That is the placement brief. You act on it yourself."
           />
           <div style={{ borderTop: `1px solid ${T.hair}` }}>

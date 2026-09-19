@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
 import { OG_IMAGE } from "@/config/og";
 import PackagePage from "@/components/PackagePage";
-import { TIERS } from "@/config/pricing";
+import { priceProse, TIERS } from "@/config/pricing";
 
 const tier = TIERS.find((t) => t.id === "cited")!;
+const price = priceProse(tier);
 
 export const metadata: Metadata = {
   title: "AI citations and rankings for agencies",
   description:
-    "Editorial placements in the sources AI engines cite, plus schema work and link insertions aimed at the Google position. $2,495 a month, priced per topic.",
+    "Editorial placements in the sources AI engines cite, plus schema work and link insertions aimed at the Google position." +
+    (price ? ` ${price}, priced per topic.` : ""),
   openGraph: { url: "https://alwayscited.com/alwayscited", images: OG_IMAGE },
   alternates: { canonical: "https://alwayscited.com/alwayscited" },
 };

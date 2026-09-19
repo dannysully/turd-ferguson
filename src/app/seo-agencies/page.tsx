@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { OG_IMAGE } from "@/config/og";
 import Link from "next/link";
 
-import { TIERS } from "@/config/pricing";
+import { TIERS, TRACKED_QUESTIONS } from "@/config/pricing";
 import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
 
 export const metadata: Metadata = {
@@ -163,7 +163,9 @@ export default function SeoAgenciesPage() {
         <Link href="/#packages" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
           See all packages
         </Link>
-        {tracked ? ` - ${tracked.priceLabel} for tracking alone, at 20 questions a week.` : "."}
+        {/* "a week" said something the other three surfaces did not: the basis
+            is questions checked weekly, not new questions every week. */}
+        {tracked ? ` - ${tracked.priceLabel} for tracking alone, at ${TRACKED_QUESTIONS} questions checked weekly.` : "."}
       </p>
     </main>
   );
