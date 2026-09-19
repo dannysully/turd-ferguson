@@ -720,3 +720,60 @@ details summary::-webkit-details-marker {
   /* Nothing left to label once the row reflows into two columns. */
   .q-head { display: none; }
 }
+
+/* ── The waiting sequence ───────────────────────────────────────── */
+/* From HeroSequence.dc.html, its own keyframes. The only multi-act
+   animation on the site: eight acts played while a scan runs, which is
+   the one minute a prospect gives the whole product. */
+
+@keyframes seqIn    { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes seqGrow  { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes seqDash  { to { stroke-dashoffset: 0; } }
+/* The listing physically climbs the page. One keyframe per journey, because
+   10 to 5 and 5 to 1 are different distances - 48px is one result. */
+@keyframes seqClimb5 { from { transform: translateY(240px); opacity: .25; } to { transform: translateY(0); opacity: 1; } }
+@keyframes seqClimb4 { from { transform: translateY(192px); opacity: .25; } to { transform: translateY(0); opacity: 1; } }
+@keyframes seqSettle { from { transform: translateY(-14px); } to { transform: translateY(0); } }
+
+.seq-in  { animation: seqIn .45s ease-out both; }
+.seq-in2 { animation: seqIn .45s ease-out .10s both; }
+.seq-in3 { animation: seqIn .45s ease-out .20s both; }
+.seq-in4 { animation: seqIn .45s ease-out .30s both; }
+.seq-in5 { animation: seqIn .45s ease-out .40s both; }
+.seq-bar { transform-origin: left center; animation: seqGrow .8s cubic-bezier(.2,.7,.3,1) both; }
+.seq-flow { stroke-dasharray: 220; stroke-dashoffset: 220; animation: seqDash 1.2s ease-out .3s both; }
+.seq-climb5 { animation: seqClimb5 1.3s cubic-bezier(.22,.72,.24,1) .45s both; position: relative; z-index: 2; }
+.seq-climb4 { animation: seqClimb4 1.3s cubic-bezier(.22,.72,.24,1) .45s both; position: relative; z-index: 2; }
+.seq-settle { animation: seqSettle .9s cubic-bezier(.22,.72,.24,1) .5s both; }
+
+/* Nothing is hidden at rest with motion off: every act renders in full and
+   the rail is what moves between them. */
+@media (prefers-reduced-motion: reduce) {
+  .seq-in, .seq-in2, .seq-in3, .seq-in4, .seq-in5,
+  .seq-bar, .seq-flow, .seq-climb5, .seq-climb4, .seq-settle {
+    animation: none;
+    opacity: 1;
+    transform: none;
+    stroke-dashoffset: 0;
+  }
+}
+
+.seq-two-up { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; }
+.seq-even   { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.seq-three  { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.seq-four   { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; align-items: stretch; }
+.seq-qrow   { display: grid; grid-template-columns: 3fr 1fr 1fr; column-gap: 16px; padding: 11px 20px; align-items: baseline; }
+.seq-orow   { display: grid; grid-template-columns: 2.2fr 1fr 2.4fr; column-gap: 18px; padding: 13px 20px; align-items: baseline; }
+.seq-irow   { display: grid; grid-template-columns: 2.2fr 1fr 1fr; column-gap: 14px; padding: 10px 16px; align-items: baseline; }
+.seq-sov    { display: grid; grid-template-columns: 180px 1fr 62px; column-gap: 16px; align-items: center; }
+
+@media (max-width: 860px) {
+  .seq-two-up, .seq-even, .seq-three, .seq-four { grid-template-columns: 1fr; }
+  .seq-sov { grid-template-columns: 120px 1fr 48px; }
+}
+
+/* The tier band in the waiting sequence. The tier that is not being talked
+   about is dimmed rather than removed, so the four stay visible as a set.
+   Scoped like .on-dark: TierName is still the only thing colouring a lockup. */
+.tier-quiet .tier-name { color: var(--faint); }
+.tier-quiet .tier-name__accent { color: #c4b5fd; }

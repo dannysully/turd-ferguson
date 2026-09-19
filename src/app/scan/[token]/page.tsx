@@ -25,7 +25,7 @@ export default async function ScanTokenPage({ params }: { params: Promise<{ toke
 
   const { data: scan } = await supabaseAdmin()
     .from("scans")
-    .select("brand_name, domain, positioning, topic, topic_variants, market, status, gated_engines")
+    .select("brand_name, domain, positioning, topic, topic_variants, market, status, engines, gated_engines")
     .eq("public_token", token)
     .maybeSingle();
 
@@ -35,6 +35,7 @@ export default async function ScanTokenPage({ params }: { params: Promise<{ toke
   const positioning = (scan.positioning as string | null) ?? null;
   const topic = (scan.topic as string | null) ?? "";
   const variants = (scan.topic_variants as string[] | null) ?? [];
+  const engines = (scan.engines as string[] | null) ?? [];
   const gated = (scan.gated_engines as string[] | null) ?? [];
   const market = isMarket(scan.market) ? scan.market : "UK";
 
@@ -48,6 +49,7 @@ export default async function ScanTokenPage({ params }: { params: Promise<{ toke
       market={market}
       variants={variants}
       status={scan.status as string}
+      engines={engines}
       gatedEngines={gated}
     />
   );

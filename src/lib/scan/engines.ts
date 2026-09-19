@@ -30,14 +30,20 @@ export type EngineSpec = {
   label: string;
   /** "scraper" reads the consumer product; "model" asks the model directly. */
   kind: "scraper" | "model";
+  /**
+   * The engine own brand colour, from the design tokens. Used for the logo
+   * tiles at a tint, never as text and never recoloured - the point of the
+   * tile is that it is recognisably theirs.
+   */
+  colour: string;
 };
 
 export const ENGINE_SPECS: Record<Engine, EngineSpec> = {
-  google_aio: { key: "google_aio", label: "Google AI Overviews", kind: "scraper" },
-  chatgpt: { key: "chatgpt", label: "ChatGPT", kind: "scraper" },
-  gemini: { key: "gemini", label: "Gemini", kind: "scraper" },
-  perplexity: { key: "perplexity", label: "Perplexity", kind: "model" },
-  claude: { key: "claude", label: "Claude", kind: "model" },
+  google_aio: { key: "google_aio", label: "Google AI Overviews", kind: "scraper", colour: "#ea4335" },
+  chatgpt: { key: "chatgpt", label: "ChatGPT", kind: "scraper", colour: "#10a37f" },
+  gemini: { key: "gemini", label: "Gemini", kind: "scraper", colour: "#4285f4" },
+  perplexity: { key: "perplexity", label: "Perplexity", kind: "model", colour: "#20808d" },
+  claude: { key: "claude", label: "Claude", kind: "model", colour: "#d97757" },
 };
 
 /**

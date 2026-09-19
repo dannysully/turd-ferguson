@@ -14,7 +14,8 @@ import type {
 import { ENGINE_SPECS, isEngine } from "@/lib/scan/engines";
 
 import ConfirmScreen from "./ConfirmScreen";
-import { C, ResultScreen, RunningScreen, btn, field, label } from "./screens";
+import HeroSequence from "./HeroSequence";
+import { C, ResultScreen, btn, field, label } from "./screens";
 
 /**
  * The scan, on its own page, from confirm to report.
@@ -210,6 +211,8 @@ export default function ScanFlow(p: {
   variants: string[];
   /** The scan status as the server read it, which decides where we open. */
   status: string;
+  /** The engines this scan reads, frozen onto the row at start. */
+  engines: string[];
   gatedEngines: string[];
 }) {
   const [phase, setPhase] = useState<Phase>(
@@ -560,9 +563,13 @@ export default function ScanFlow(p: {
         ) : null}
 
         {phase === "running" ? (
-          <div style={{ maxWidth: "640px" }}>
-            <RunningScreen brandLabel={p.brand ?? p.domain} progress={progress} slow={slow} headingRef={headingRef} />
-          </div>
+          <HeroSequence
+            domain={p.domain}
+            engines={p.engines}
+            step={progress}
+            slow={slow}
+            headingRef={headingRef}
+          />
         ) : null}
 
         {phase === "result" && result && full && gatedEngines.length > 0 ? (
