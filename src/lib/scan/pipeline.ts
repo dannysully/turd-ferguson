@@ -211,8 +211,27 @@ async function readAndStore(input: {
 
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        const read = await readEngine(engine, q.question, market, remainingMs());
+        /**
+         * Counted before the await, for the same reason the search volume call
+         * below is: post() is the part DataForSEO bills, and everything that
+         * can throw after it happens once that request has already gone out.
+         * firstTask() throws on a task that came back non-20000 - quota, auth,
+         * bad params - and the run budget aborts a read the engine may well
+         * have executed and billed regardless of whether we waited for it.
+         *
+         * Counted on the way back, both of those were a call made, paid for,
+         * and recorded in no column. This is the defect the search volume call
+         * already fixed, at up to 56 reads a scan rather than one, and it is
+         * the same thing model_call_debits exists to stop on the Anthropic
+         * side - billed work that reaches no column.
+         *
+         * The cost cannot move up with it. Only the response knows what the
+         * task cost, so a read that throws still leaves dfs_cost short by
+         * whatever it billed; dfs_calls is the column that can be made true,
+         * so it is. That asymmetry is why the two lines are now apart.
+         */
         spend.dfsCalls += 1;
+        const read = await readEngine(engine, q.question, market, remainingMs());
         spend.dfsCost += read.cost;
 
         // Google claiming an Overview that did not arrive is worth one retry.
