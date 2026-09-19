@@ -68,7 +68,16 @@ export async function submitContactForm(
    * rather than nowhere.
    */
   if (website) {
-    console.warn("[contact] honeypot filled, not sending", { email, website });
+    // Bounded at the log rather than refused above it. Refusing an oversized
+    // honeypot would answer a bot with an error that no human submission can
+    // produce, which tells whoever is probing exactly which field gave them
+    // away - the thing the success return below exists to avoid. email is
+    // already bounded by the check above this one; website was not bounded
+    // anywhere, on either side, and it is attacker-controlled by definition.
+    console.warn("[contact] honeypot filled, not sending", {
+      email,
+      website: website.slice(0, LIMITS.website),
+    });
     return { status: "success" };
   }
 
