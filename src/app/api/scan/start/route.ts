@@ -1,7 +1,7 @@
 import { after } from "next/server";
 
 import { describeAnthropicError, readBrand } from "@/lib/scan/anthropic";
-import { readSite, UnreachableDomain } from "@/lib/scan/crawl";
+import { type ReadFailure, readSite, UnreachableDomain } from "@/lib/scan/crawl";
 import { isMarket, isPlausibleDomain, normalizeDomain } from "@/lib/scan/domain";
 import { estimateScanCost } from "@/lib/scan/engine-costs";
 import { clientIp, hashIp } from "@/lib/scan/ip";
@@ -17,6 +17,54 @@ export const maxDuration = 60;
 function fail(status: number, code: string, message: string) {
   return Response.json({ error: code, message }, { status });
 }
+
+/**
+ * What a visitor is told when we could not read their site.
+ *
+ * The 422 and 502 line is the same one the brand read already draws, and it is
+ * the only distinction that matters to the person reading it: 422 means the
+ * address is the thing to change, 502 means it is not. Only `dns` and
+ * `not_html` are the visitor to fix. For the other three, "check the address"
+ * is advice with nothing behind it - their address is right, and they are
+ * being sent to look at the one thing that is not wrong.
+ */
+const SITE_READ_FAILURE: Record<
+  ReadFailure,
+  (domain: string, status?: number) => { http: number; code: string; message: string }
+> = {
+  dns: (d) => ({
+    http: 422,
+    code: "unreachable",
+    message: `Nothing answered at ${d}. Check the address and try again.`,
+  }),
+  not_html: (d) => ({
+    http: 422,
+    code: "not_a_page",
+    message: `${d} answered, but did not return a web page. Check the address and try again.`,
+  }),
+  blocked: (d, status) => ({
+    http: 502,
+    code: "site_blocked",
+    // The status is in the sentence on purpose. This is the one failure a
+    // visitor can act on without us - a 403 to a named crawler is an allowlist
+    // entry on their side - and it is the one they would otherwise have to ask
+    // us to look up.
+    message:
+      `${d} is up, but it would not serve the page to our reader` +
+      `${status ? ` (HTTP ${status})` : ""}. ` +
+      `That is usually a bot filter or a firewall rather than anything wrong with your address.`,
+  }),
+  timeout: (d) => ({
+    http: 502,
+    code: "site_slow",
+    message: `${d} took too long to answer. Please try again in a moment.`,
+  }),
+  too_thin: (d) => ({
+    http: 502,
+    code: "too_little_text",
+    message: `We reached ${d} but found too little text to read. If the page loads its words with JavaScript, that is the likely cause.`,
+  }),
+};
 
 export async function POST(req: Request) {
   let body: { domain?: string; turnstileToken?: string; market?: string };
@@ -143,7 +191,15 @@ export async function POST(req: Request) {
     read = await readBrand(siteText, billed);
   } catch (err) {
     if (err instanceof UnreachableDomain) {
-      return fail(422, "unreachable", `We could not read ${domain}. Check the address and try again.`);
+      // Logged with its reason. Every one of these used to print nothing at
+      // all and return the same sentence, so a whole class of site failing on
+      // step one - anything behind a WAF, anything slower than the budget -
+      // was indistinguishable in the log from people mistyping a domain.
+      console.warn(
+        `[scan] site read failed for ${domain}: ${err.reason}${err.status ? ` ${err.status}` : ""}`,
+      );
+      const told = SITE_READ_FAILURE[err.reason](domain, err.status);
+      return fail(told.http, told.code, told.message);
     }
     // Logged rather than swallowed. These two failures look identical to a
     // visitor and are nothing alike: 422 is a site we could not fetch, and
