@@ -21,7 +21,10 @@ import { T } from "@/config/tokens";
  * read as a logo tile.
  *
  * `id` is still accepted so call sites do not all have to change, but nothing
- * reads it now that the gradient is gone.
+ * reads it now that the gradient is gone. The `brand-mark` and
+ * `brand-mark__ast` class hooks went the same way: they existed only for the
+ * rotation keyframes, which 7224dcf removed, and they had carried no style
+ * since. Everything here is inline.
  */
 export default function BrandMark({ size = 18 }: { id: string; size?: number }) {
   return (
@@ -31,10 +34,9 @@ export default function BrandMark({ size = 18 }: { id: string; size?: number }) 
       viewBox="0 0 32 32"
       fill="none"
       aria-hidden="true"
-      className="brand-mark"
       style={{ display: "block", flexShrink: 0 }}
     >
-      <g className="brand-mark__ast" stroke={T.accent} strokeWidth="4.5" strokeLinecap="round">
+      <g stroke={T.accent} strokeWidth="4.5" strokeLinecap="round">
         <line x1="16" y1="4.5" x2="16" y2="27.5" />
         <line x1="6.041" y1="10.25" x2="25.959" y2="21.75" />
         <line x1="25.959" y1="10.25" x2="6.041" y2="21.75" />
