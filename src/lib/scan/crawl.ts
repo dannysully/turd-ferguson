@@ -1,6 +1,7 @@
 import "server-only";
 
 import { checkHost } from "./address";
+import { decodeEntities, toProse } from "./prose";
 
 /** Paths worth reading beyond the homepage, in the order we prefer them. */
 const INTERESTING = /\/(about|services|what-we-do|solutions|sectors|industries)/i;
@@ -244,25 +245,6 @@ async function getText(url: string, signal: AbortSignal, trusted: string): Promi
   }
 }
 
-/** Strip scripts, styles and tags, leaving readable prose. */
-function toProse(html: string): string {
-  return html
-    .replace(/<script\b[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style\b[\s\S]*?<\/style>/gi, " ")
-    .replace(/<noscript\b[\s\S]*?<\/noscript>/gi, " ")
-    .replace(/<svg\b[\s\S]*?<\/svg>/gi, " ")
-    .replace(/<!--[\s\S]*?-->/g, " ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&#39;|&apos;/g, "'")
-    .replace(/&quot;/g, '"')
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
 /**
  * Internal links worth following, resolved against the URL that actually
  * answered rather than a hardcoded https. Built against https unconditionally,
@@ -273,7 +255,15 @@ function toProse(html: string): string {
 function sameHostLinks(html: string, domain: string, base: string): string[] {
   const out = new Set<string>();
   for (const m of html.matchAll(/href\s*=\s*["']([^"']+)["']/gi)) {
-    const href = m[1];
+    /**
+     * Decoded, because an attribute value is entity-encoded in the source and
+     * the address is what it decodes to. A perfectly ordinary
+     * `href="/about?ref=a&amp;p=2"` was fetched with a literal "&amp;" in its
+     * query string - a different request from the one the link makes, on the
+     * pages this bothers to read at all. Same fault as the prose decode below
+     * it, found in the same pass.
+     */
+    const href = decodeEntities(m[1]);
     if (!INTERESTING.test(href)) continue;
     try {
       const url = new URL(href, base);
