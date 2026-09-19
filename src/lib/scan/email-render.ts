@@ -9,14 +9,25 @@
  *
  * The obstacle was never the markup, it was the imports. verify-email.ts
  * pulls in `server-only`, the Resend SDK and the `@/` path alias, and none of
- * those load under `node --test`. So the part worth checking is here, and this
- * file imports nothing at all - the palette and the font arrive as arguments
- * rather than as a dependency. That is what makes `email-render.test.mts`
- * possible, and the test is the reason to prefer it to a tidier import.
+ * those load under `node --test`. So the part worth checking is here, and the
+ * palette and the font arrive as arguments rather than as a dependency. That
+ * is what makes `email-render.test.mts` possible, and the test is the reason
+ * to prefer it to a tidier import.
+ *
+ * This file used to import nothing at all, which was the rule as first
+ * written. The rule it was really keeping is narrower and is what it now
+ * states: **nothing here may import something `node --test` cannot load.**
+ * `../plural.ts` qualifies - a relative specifier with its extension, to a
+ * module that imports nothing itself - and it is here rather than inlined
+ * because the email headline and the report's own h1 are deliberately the
+ * same sentence with the same two numbers. Two copies of the agreement rule
+ * is how they stop being the same sentence.
  *
  * Everything that decides *what* to send stays in verify-email.ts. This
  * decides only what the message looks like.
  */
+
+import { count } from "../plural.ts";
 
 /**
  * The colours the shell needs. verify-email.ts builds this from the design
@@ -190,8 +201,8 @@ export type ReportCounts = {
  */
 export function reportHeadline(brand: string, c: ReportCounts): string {
   return c.missedQuestions > 0
-    ? `${c.missedQuestions} of the ${c.answeredQuestions} questions an engine answered came back without ${brand} in the answer.`
-    : `We put ${c.askedQuestions} buying-intent questions to the engines your buyers use.`;
+    ? `${c.missedQuestions} of the ${count(c.answeredQuestions, "question")} an engine answered came back without ${brand} in the answer.`
+    : `We put ${count(c.askedQuestions, "buying-intent question")} to the engines your buyers use.`;
 }
 
 /**

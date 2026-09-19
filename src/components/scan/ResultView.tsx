@@ -4,6 +4,7 @@ import TierName from "@/components/TierName";
 import { CARD, MICRO, T } from "@/config/tokens";
 import type { LeaderboardEntry, RunScanResponse, ScanQuestion } from "@/lib/scan";
 import { ENGINE_SPECS, isEngine } from "@/lib/scan/engines";
+import { count } from "@/lib/plural";
 import Link from "next/link";
 
 /**
@@ -301,7 +302,12 @@ function SourceTable(p: { r: RunScanResponse; domain: string; detailed: boolean;
         })}
         {hidden > 0 ? (
           <p style={{ margin: 0, padding: "12px 26px", fontSize: "13px", color: T.soft }}>
-            {"The " + rows.length + " most-cited of " + p.total + " pages the engines drew on. The rest come with the report."}
+            {/* "The 1 most-cited of 2 pages" is reachable - `hidden > 0` only
+                says the list is longer than what is shown, not that what is
+                shown is more than one row. */}
+            {(rows.length === 1 ? "The most-cited of " : "The " + rows.length + " most-cited of ") +
+              count(p.total, "page") +
+              " the engines drew on. The rest come with the report."}
           </p>
         ) : null}
         {classified ? (
@@ -382,8 +388,8 @@ function ShareOfVoice(p: { r: RunScanResponse }) {
         <p style={{ margin: "14px 0 0", fontSize: "12.5px", color: T.soft }}>
           {"Mentions across the answers these engines gave, " +
             (rows.length > 12
-              ? "top 12 of " + rows.length + " brands" + (partial ? " we could read." : ".")
-              : rows.length + (partial ? " brands we could read." : " brands in all."))}
+              ? "top 12 of " + count(rows.length, "brand") + (partial ? " we could read." : ".")
+              : count(rows.length, "brand") + (partial ? " we could read." : " in all."))}
         </p>
       </div>
     </section>
@@ -691,7 +697,7 @@ export default function ResultView(p: {
             first
             label="AI visibility"
             value={pct === null ? "-" : pct + "%"}
-            note={named + " of " + answers + " answers named you, across " + qs.length + " questions."}
+            note={named + " of " + count(answers, "answer") + " named you, across " + count(qs.length, "question") + "."}
           />
           <Metric
             label="Sources in the category"

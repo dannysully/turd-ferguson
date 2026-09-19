@@ -217,6 +217,23 @@ test("the headline the html shows is the headline the text part shows", () => {
   assert.doesNotMatch(reportHeadline("Vibe Retail", COUNTS), /of the 14/);
 });
 
+test("a scan of one question does not say 1 questions", () => {
+  /**
+   * Reachable by an ordinary visitor, not a contrived input: the confirm
+   * screen lets a buyer drop every cluster but one and keep a single question,
+   * and it runs. This is the first sentence of the email that report arrives
+   * in, so it is the first thing the buyer reads.
+   */
+  assert.equal(
+    reportHeadline("Vibe Retail", { ...COUNTS, missedQuestions: 1, answeredQuestions: 1, askedQuestions: 1 }),
+    "1 of the 1 question an engine answered came back without Vibe Retail in the answer.",
+  );
+  assert.equal(
+    reportHeadline("Vibe Retail", { ...COUNTS, missedAnswers: 0, missedQuestions: 0, askedQuestions: 1 }),
+    "We put 1 buying-intent question to the engines your buyers use.",
+  );
+});
+
 test("escapeHtml covers the five", () => {
   assert.equal(escapeHtml(`&<>"'`), "&amp;&lt;&gt;&quot;&#39;");
   // Ampersand first, or the entities it writes get re-escaped.
