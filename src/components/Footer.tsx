@@ -23,6 +23,8 @@ const PRODUCT: [string, string][] = [
   ["Free scan", "/#scan"],
   ["Packages", "/#packages"],
   ["White label", "/white-label"],
+  ["Coverage checker", "/coverage-check"],
+  ["Compare", "/compare"],
   ["Worked example", "/example"],
 ];
 

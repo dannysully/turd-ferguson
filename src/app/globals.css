@@ -656,3 +656,29 @@ details summary::-webkit-details-marker {
     }
   }
 }
+
+/* Comparison table. One column today, and the grid is generated from the
+   column set so adding a competitor does not mean rebuilding it. */
+.cmp-row {
+  display: grid;
+  grid-template-columns: 2fr repeat(auto-fit, minmax(0, 1fr));
+  column-gap: 16px;
+}
+@media (max-width: 860px) {
+  .cmp-row {
+    grid-template-columns: 1fr auto;
+  }
+}
+
+/* The benchmark's question list: kind, question, why. */
+.cc-prompt {
+  display: grid;
+  grid-template-columns: 1.3fr 3fr 2.4fr;
+  column-gap: 20px;
+}
+@media (max-width: 860px) {
+  .cc-prompt {
+    grid-template-columns: 1fr;
+    row-gap: 6px;
+  }
+}

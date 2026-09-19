@@ -10,14 +10,14 @@ import { T } from "@/config/tokens";
 /**
  * The topbar, from the boards.
  *
- * The board's nav is Packages, Compare, White label, Blog. Compare has a
- * board but no page - every competitor cell in it is unverified, so it is
- * not something to publish unreviewed - and it is not linked. Packages still
- * points at the homepage section; white label now has its own page.
+ * The board's nav, complete: Packages, Compare, White label, Blog. Compare
+ * ships without its competitor columns - see that page for why - so it is
+ * linked now. Packages still points at the homepage section.
  */
 
 const navLinks = [
   { href: "/#packages", label: "Packages" },
+  { href: "/compare", label: "Compare" },
   { href: "/white-label", label: "White label" },
   { href: "/how-it-works", label: "How it works" },
   { href: "/blog", label: "Blog" },

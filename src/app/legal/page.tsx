@@ -49,6 +49,22 @@ function Gap({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * The five documents the board's sidebar switches between. Four are not
+ * drafted anywhere - terms of service, a standalone cookie policy, a data
+ * processing agreement and a sub-processor list - and Danny's answer on
+ * 19 Sep was that the legal facts wait. They are listed as unpublished
+ * rather than linked or hidden, because a reader looking for terms should
+ * find out they do not exist rather than assume they missed them.
+ */
+const DOCUMENTS: { label: string; here?: boolean }[] = [
+  { label: "Privacy policy", here: true },
+  { label: "Cookies" },
+  { label: "Terms of service" },
+  { label: "Data processing" },
+  { label: "Sub-processors" },
+];
+
 type Section = { id: string; title: string; body: React.ReactNode };
 
 const SECTIONS: Section[] = [
@@ -129,18 +145,59 @@ export default function LegalPage() {
       <div className="board-head" style={{ ...GRID12, alignItems: "start" }}>
         <aside className="legal-nav" style={{ gridColumn: "span 3" }}>
           <div style={MICRO}>Legal</div>
+          {/* The board's sidebar is a switcher between five documents, not a
+              contents list for this one. Only the privacy policy is written,
+              so the other four say so rather than linking somewhere empty or
+              being quietly dropped. */}
           <ul style={{ margin: "12px 0 0", padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: "2px" }}>
-            {SECTIONS.map((s) => (
-              <li key={s.id}>
-                <a
-                  href={`#${s.id}`}
-                  style={{ display: "block", fontSize: "13.5px", color: T.soft, textDecoration: "none", padding: "7px 11px", borderRadius: "8px" }}
-                >
-                  {s.title}
-                </a>
+            {DOCUMENTS.map((d) => (
+              <li key={d.label}>
+                {d.here ? (
+                  <span
+                    style={{
+                      display: "block",
+                      fontSize: "13.5px",
+                      fontWeight: 600,
+                      color: T.ink,
+                      padding: "7px 11px",
+                      borderRadius: "8px",
+                      background: T.surface,
+                      border: `1px solid ${T.line}`,
+                    }}
+                  >
+                    {d.label}
+                  </span>
+                ) : (
+                  <span
+                    style={{
+                      display: "flex",
+                      alignItems: "baseline",
+                      gap: "8px",
+                      fontSize: "13.5px",
+                      color: T.faint,
+                      padding: "7px 11px",
+                    }}
+                  >
+                    {d.label}
+                    <span style={{ fontSize: "11.5px", color: T.faint }}>not yet published</span>
+                  </span>
+                )}
               </li>
             ))}
           </ul>
+
+          <p style={{ margin: "16px 0 0", fontSize: "12.5px", lineHeight: 1.6, color: T.faint }}>
+            On this page:{" "}
+            {SECTIONS.map((sec, i) => (
+              <span key={sec.id}>
+                {i ? ", " : ""}
+                <a href={`#${sec.id}`} style={{ color: T.soft, textDecoration: "none" }}>
+                  {sec.title.toLowerCase()}
+                </a>
+              </span>
+            ))}
+            .
+          </p>
           <p style={{ margin: "20px 0 0", fontSize: "12.5px", lineHeight: 1.6, color: T.faint }}>
             Drafted as a structure, not as legal advice. It needs a solicitor before it can be relied on - this site
             processes personal data of UK and EU residents.

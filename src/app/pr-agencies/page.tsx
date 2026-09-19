@@ -24,8 +24,8 @@ export const metadata: Metadata = {
  * The dead piece is distinguishable without any motion at all, by its border
  * and its dashed line, so the page reads identically with animation off.
  *
- * The board's "open the coverage checker" button is not here:
- * CoverageCheck.dc.html has no page on the site yet.
+ * The board's coverage-checker card is here now that /coverage-check
+ * exists. That page says plainly the benchmark is not running yet.
  */
 
 const priceOf = (id: string) => TIERS.find((t) => t.id === id)?.priceLabel ?? "";
@@ -120,6 +120,30 @@ export default function PrAgenciesPage() {
               </button>
             </div>
           </form>
+
+          {/* The board's coverage-checker card. It has a destination now. */}
+          <div style={{ marginTop: "14px", paddingTop: "14px", borderTop: `1px solid ${T.hair}` }}>
+            <div style={{ fontSize: "13.5px", fontWeight: 600, color: T.ink }}>Already have a campaign to check?</div>
+            <p style={{ margin: "5px 0 10px", fontSize: "13px", lineHeight: 1.55, color: T.soft }}>
+              See which pieces the engines are actually reading, and what the answers said before you started.
+            </p>
+            <a
+              href="/coverage-check"
+              style={{
+                display: "inline-block",
+                background: T.surface,
+                border: `1px solid ${T.line}`,
+                color: T.ink,
+                fontSize: "13.5px",
+                fontWeight: 600,
+                padding: "9px 16px",
+                borderRadius: "10px",
+                textDecoration: "none",
+              }}
+            >
+              Open the coverage checker
+            </a>
+          </div>
         </div>
       </div>
 

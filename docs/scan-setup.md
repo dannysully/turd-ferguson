@@ -67,9 +67,10 @@ which is below the 90 second target for a full run.
 ## 4. Verify before announcing it
 
 - A scan of a domain you control reaches the free result with nobody involved,
-  and the result names Google AI Overviews, ChatGPT and Gemini separately.
-- Giving an email starts the second pass, and Perplexity and Claude appear in
-  the same breakdown a minute or two later without reloading.
+  and the result names all four free engines separately - Google AI Overviews,
+  ChatGPT, Gemini and Perplexity.
+- Giving an email unlocks the full leaderboard, every source and the placement
+  opportunities. It does not start a second pass: nothing is gated by engine.
 - In the network tab, the response to `GET /api/scan/<token>` contains counts
   and four sources. The leaderboard and the full source list appear only in the
   response to `unlock`.
@@ -85,15 +86,23 @@ which is below the 90 second target for a full run.
 A scan runs in two passes over the **same fourteen questions**, so the engines
 are comparable with each other.
 
-**The split below is not what ships today.** `3586cbf` moved Perplexity into
-the free pass and Claude out of the gated one, so `FREE_ENGINES` is now four
-engines and `GATED_ENGINES` is empty - an email currently unlocks the
-leaderboard, the sources and the placement list rather than more engines.
-Whether that or the split below is the intent is a product decision sitting
-in `docs/blocked.md`. The per-call costs underneath were measured against the
-live API and are unchanged by it.
+**What ships: four engines free, none gated.** `FREE_ENGINES` is Google AI
+Overviews, ChatGPT, Gemini and Perplexity; `GATED_ENGINES` is empty. Danny
+confirmed on 19 September 2026 that this is intended and that the earlier
+3-free/2-gated description here was simply out of date - `3586cbf` moved
+Perplexity into the free pass and Claude out.
 
-The free pass as originally configured, before any email:
+So an email does not buy more engines. It unlocks the full leaderboard, every
+source, and the placement opportunities, which is what `unlock.ts` builds.
+Any page needing the number reads it from the config rather than printing a
+literal, so this cannot drift again.
+
+The tables below are the per-call costs as measured against the live API on
+15 September 2026. They are a cost reference, not a description of the
+current split: Claude is no longer read at all, and Perplexity is now in the
+free pass rather than the gated one.
+
+The original free pass, for cost reference:
 
 | Engine | Endpoint | Per call | Per scan |
 |---|---|---|---|
@@ -102,7 +111,8 @@ The free pass as originally configured, before any email:
 | Gemini | LLM Scraper | $0.0040 | $0.056 |
 | **Free scan total** | | | **$0.19** |
 
-The email-gated pass, run once when an address is given:
+The original gated pass, for cost reference. Neither engine is gated today
+and Claude is not read at all:
 
 | Engine | Endpoint | Per call | Per scan |
 |---|---|---|---|
