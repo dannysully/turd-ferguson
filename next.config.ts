@@ -12,6 +12,21 @@ import type { NextConfig } from "next";
  * noindex meta tag; the JSON under /api returns the same brand, domain and
  * placement data and cannot carry a meta tag at all, because it is not HTML.
  * The header is the only form of the directive that reaches it.
+ *
+ * `:path+` on /scan, not `:path*`. The docs for this version are explicit that
+ * `*` is zero or more and that `/blog/:slug*` matches `/blog` - so `/scan`
+ * itself was being served `noindex, nofollow`, which is the one thing
+ * src/app/robots.ts goes out of its way to avoid. It keeps `/scan` crawlable
+ * on purpose: it is the action of seven `<form method="get">` on the home
+ * page, the posts, the case study and both agency pages, and a linked URL
+ * that is closed gets listed as a bare address instead. Verified against the
+ * built server rather than inferred - `/scan` answered 200 with
+ * `noindex, nofollow` on it, `/scan/abc` still does, and `/` never did.
+ *
+ * What is protected is a scan result, which always has a token under it, so
+ * "one or more segments" is the rule that was meant. /api keeps `*`: there is
+ * no page at bare /api, so the extra match costs nothing and a 404 is better
+ * off noindexed anyway.
  */
 const BASELINE = [
   ["x-content-type-options", "nosniff"],
@@ -39,8 +54,12 @@ const isDev = process.env.NODE_ENV === "development";
  *
  * The nonce is the documented route and it costs more here than it returns:
  * the Next docs are explicit that a nonce forces every page to render
- * dynamically, which for 21 static marketing pages means no CDN caching and
- * a server render per view. It would be buying that against an injection
+ * dynamically, which for the static marketing pages means no CDN caching and
+ * a server render per view. (Counted here as 21 when this was written; the
+ * build says 20 today, because /blog reads searchParams for its filter pills
+ * and buys a per-request render with it. Stated as "the static pages" rather
+ * than as a number, because the number moves and nothing depends on it.) It
+ * would be buying that against an injection
  * vector the site does not currently have - every dangerouslySetInnerHTML
  * here is JSON-LD built from static config, none of it from a crawled site
  * or from a visitor.
@@ -138,7 +157,7 @@ const nextConfig: NextConfig = {
     return [
       { source: "/:path*", headers: [...baseline, csp] },
       { source: "/api/:path*", headers: [noIndex] },
-      { source: "/scan/:path*", headers: [noIndex] },
+      { source: "/scan/:path+", headers: [noIndex] },
     ];
   },
 };
