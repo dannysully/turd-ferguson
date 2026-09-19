@@ -192,7 +192,16 @@ function toResult(t: Teaser, domain: string, full: FullPayload | null): RunScanR
    * measured and stay.
    */
   const partial = t.leaderboard_partial === true;
-  const silent = t.of > 0 && (t.by_engine ?? []).every((e) => e.answered === 0);
+  /**
+   * Every engine answered nothing. That is a real finding and the report says
+   * so out loud, which is why the length guard matters: by_engine comes back
+   * null from the teaser when there are no answer rows to aggregate over, and
+   * [].every() is true - so an absent breakdown published the same sentence as
+   * a measured silence. Not measured and measured zero are different findings,
+   * which is the rule the rest of this file already keeps.
+   */
+  const byEngine = t.by_engine ?? [];
+  const silent = t.of > 0 && byEngine.length > 0 && byEngine.every((e) => e.answered === 0);
 
   return {
     scan_id: "",
@@ -842,9 +851,22 @@ export default function ScanFlow(p: {
                     onChange={(e) => setEmail(e.target.value)}
                     style={field}
                     aria-invalid={Boolean(emailErr)}
+                    aria-describedby={emailErr ? "scan-email-error" : undefined}
                   />
+                  {/* Announced, because this is the one form on the site that
+                      converts and a rejected address is the commonest thing
+                      that happens on it. Every other error in this file carries
+                      role=alert; this one changed silently, so a visitor using
+                      a screen reader got a button that appeared to do nothing
+                      and no reason for it. */}
                   {emailErr ? (
-                    <p style={{ fontSize: "0.8125rem", color: T.badFg, marginTop: "0.5rem" }}>{emailErr}</p>
+                    <p
+                      id="scan-email-error"
+                      role="alert"
+                      style={{ fontSize: "0.8125rem", color: T.badFg, marginTop: "0.5rem" }}
+                    >
+                      {emailErr}
+                    </p>
                   ) : null}
                   <button
                     type="submit"
