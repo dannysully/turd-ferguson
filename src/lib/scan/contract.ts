@@ -157,6 +157,13 @@ export type RunScanResponse = {
    */
   opportunities?: ScanOpportunity[];
   gated: boolean;
+  /**
+   * A model batch failed while the leaderboard was being built, so names are
+   * missing from it. Every count in `leaderboard` is still measured - what is
+   * not safe is anything counted *against* it, so rank, of_brands and
+   * share_of_voice are null whenever this is true.
+   */
+  leaderboard_partial: boolean;
   empty: boolean;
   /** Why a field is blank or the result is empty. Null when nothing is missing. */
   reason: string | null;

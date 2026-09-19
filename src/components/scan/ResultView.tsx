@@ -304,12 +304,23 @@ function ShareOfVoice(p: { r: RunScanResponse }) {
   if (!rows.length) return null;
   const top = Math.max(...rows.map((b) => b.mentions), 1);
   const subject = p.r.brand.name.toLowerCase();
+  /**
+   * Part of this leaderboard did not come back.
+   *
+   * Every row below is still a real count - the bars are what those brands
+   * were named. What is missing is other brands, so the standfirst cannot
+   * claim "every brand in the category" and the caption cannot say "in all".
+   * The rank and the share of voice counted against this list are already
+   * absent by the time the data reaches here.
+   */
+  const partial = p.r.leaderboard_partial;
 
   return (
     <section>
       <Head title="Who is being named instead">
-        The same question set scored for every brand in the category. This is the gap, and it is the number that has
-        to move.
+        {partial
+          ? "The same question set scored for every brand we could read. Part of this leaderboard did not come back, so names are missing from it - the counts below are real, but we are not publishing a ranking off a list we know is short."
+          : "The same question set scored for every brand in the category. This is the gap, and it is the number that has to move."}
       </Head>
       <div style={{ ...CARD, padding: "22px 26px" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: "11px", maxWidth: "820px" }}>
@@ -346,7 +357,10 @@ function ShareOfVoice(p: { r: RunScanResponse }) {
           })}
         </div>
         <p style={{ margin: "14px 0 0", fontSize: "12.5px", color: T.soft }}>
-          {"Mentions across the answers these engines gave, " + (rows.length > 12 ? "top 12 of " + rows.length + " brands." : rows.length + " brands in all.")}
+          {"Mentions across the answers these engines gave, " +
+            (rows.length > 12
+              ? "top 12 of " + rows.length + " brands" + (partial ? " we could read." : ".")
+              : rows.length + (partial ? " brands we could read." : " brands in all."))}
         </p>
       </div>
     </section>
@@ -589,7 +603,11 @@ export default function ResultView(p: {
             value={p.totalSources}
             note={"Distinct pages the answers were assembled from. You appear in " + yourSources + "."}
           />
-          {leader ? (
+          {/* Suppressed on a partial leaderboard: naming the top brand is a
+              claim about a competitor, and the brand that would have topped
+              this list may be in the batch that never came back. The rank in
+              its note is already null for the same reason. */}
+          {leader && !r.leaderboard_partial ? (
             <Metric
               label="Top of the leaderboard"
               value={<span style={{ fontSize: "22px" }}>{leader.brand}</span>}

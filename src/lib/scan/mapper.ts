@@ -134,6 +134,10 @@ export function buildRunResult(input: {
     sources,
     history: input.history,
     gated: input.gated,
+    // This path takes a leaderboard whole from the aggregate endpoints. There
+    // is no batched model call in it to lose, so it is never partial - an
+    // empty leaderboard here is an absent one, and `reason` already says so.
+    leaderboard_partial: false,
     empty,
     reason: reasons.length ? reasons.join("; ") : null,
   };

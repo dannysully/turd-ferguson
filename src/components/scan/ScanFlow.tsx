@@ -63,6 +63,13 @@ type Teaser = {
   by_engine: ByEngine[] | null;
   rank: number | null;
   brand_count: number;
+  /**
+   * A model batch failed while this leaderboard was built, so names are missing
+   * from it. Optional: a teaser read from a deploy older than 20260919130000
+   * does not carry the key, and undefined has to mean "not partial" there -
+   * which is the same answer that deploy gives today.
+   */
+  leaderboard_partial?: boolean;
   /** The whole leaderboard, summed across engines. Free since 20260919000000. */
   brands: { brand: string; mentions: number; is_subject: boolean }[] | null;
   /** The four most-cited. Kept so a teaser read before that migration still renders. */
@@ -158,6 +165,15 @@ function toResult(t: Teaser, domain: string, full: FullPayload | null): RunScanR
   }[] = full?.sources ?? t.all_sources ?? t.top_sources ?? [];
   const subject = leaderboard.find((b) => b.is_subject);
   const totalMentions = leaderboard.reduce((a, b) => a + b.mentions, 0);
+  /**
+   * Three of the figures below are counted *against* the leaderboard rather
+   * than read off it, so a leaderboard short of a batch makes all three wrong
+   * in the flattering direction: a better rank, a smaller field, a larger share
+   * of a smaller total. They are nulled here rather than in the view so the
+   * wrong number never reaches a renderer at all - the counts themselves are
+   * measured and stay.
+   */
+  const partial = t.leaderboard_partial === true;
   const silent = t.of > 0 && (t.by_engine ?? []).every((e) => e.answered === 0);
 
   return {
@@ -170,12 +186,14 @@ function toResult(t: Teaser, domain: string, full: FullPayload | null): RunScanR
       name: t.brand ?? domain,
       named_in: t.named,
       of: t.of,
-      rank: t.rank,
-      of_brands: t.brand_count || null,
+      rank: partial ? null : t.rank,
+      of_brands: partial ? null : t.brand_count || null,
       // Needs the whole leaderboard, which the teaser now sends. Still null on a
       // scan whose brand extraction found nobody, which is absent, not zero.
       share_of_voice:
-        subject && totalMentions > 0 ? Math.round((subject.mentions / totalMentions) * 100) : null,
+        !partial && subject && totalMentions > 0
+          ? Math.round((subject.mentions / totalMentions) * 100)
+          : null,
     },
     engines: toBreakdown(t.by_engine),
     top_source: top ? { domain: top.source, brand_present: top.is_own_domain } : null,
@@ -194,6 +212,7 @@ function toResult(t: Teaser, domain: string, full: FullPayload | null): RunScanR
     }),
     opportunities: full?.opportunities ?? undefined,
     gated: !full,
+    leaderboard_partial: partial,
     // Every engine answering nothing is a real finding, not an error.
     empty: silent,
     reason: silent ? "None of the engines produced an answer for these questions yet." : null,

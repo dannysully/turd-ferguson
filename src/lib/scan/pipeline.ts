@@ -115,7 +115,18 @@ async function readAndStore(input: {
   /** Called once the reads are in and the citation work begins, so the screen
    *  can move off "reading" rather than sitting on it for the whole run. */
   onSources?: () => Promise<void>;
-}): Promise<{ dfsCalls: number; dfsCost: number; anthropicCalls: number; answered: Engine[] }> {
+}): Promise<{
+  dfsCalls: number;
+  dfsCost: number;
+  anthropicCalls: number;
+  answered: Engine[];
+  /**
+   * A model batch failed while the leaderboard was being built, so names are
+   * missing from it. The counts this function stores are all still measured -
+   * what this flags is that the population behind a *rank* is short.
+   */
+  leaderboardPartial: boolean;
+}> {
   const db = supabaseAdmin();
   const { scanId, domain, brand, topic, positioning, market, engines, questions, checkDeadline, onSources } =
     input;
@@ -291,6 +302,7 @@ async function readAndStore(input: {
    * not.
    */
   const suppliers = new Set<string>();
+  let failedJudgements = 0;
   if (displayFor.size) {
     const judged = await classifyBrands({ topic, brand, positioning, names: [...displayFor.values()] });
     anthropicCalls += judged.calls;
@@ -307,6 +319,7 @@ async function readAndStore(input: {
     // classifyBrands swallows a bad batch so the others still land, so the
     // count is the only way this shows up. Logged even when nothing failed:
     // a leaderboard that suddenly halves is worth being able to see.
+    failedJudgements = judged.failedBatches;
     console.info(
       `[scan] ${scanId} leaderboard: ${suppliers.size} of ${displayFor.size} names kept as suppliers` +
         (judged.failedBatches ? `, ${judged.failedBatches} batch(es) failed to classify` : ""),
@@ -352,7 +365,23 @@ async function readAndStore(input: {
     if (bErr) throw new Error(`could not store the leaderboard: ${bErr.message}`);
   }
 
-  return { dfsCalls, dfsCost, anthropicCalls, answered };
+  /**
+   * Either half of the leaderboard build can lose a batch, and both lose it the
+   * same way: the batch's names are simply absent from what follows.
+   *
+   * Extraction losing one means brands nobody ever heard of; judgement losing
+   * one means brands that were extracted and then never assessed, which
+   * `suppliers` excludes by design. Both leave the leaderboard short, and a
+   * rank counted against a short population flatters the subject - the one
+   * direction a number on a marketing report must not be wrong in.
+   */
+  return {
+    dfsCalls,
+    dfsCost,
+    anthropicCalls,
+    answered,
+    leaderboardPartial: failedExtractions > 0 || failedJudgements > 0,
+  };
 }
 
 /**
@@ -506,6 +535,7 @@ export async function runScan(scanId: string): Promise<void> {
         step: null,
         completed_at: new Date().toISOString(),
         engines_answered: read.answered,
+        leaderboard_partial: read.leaderboardPartial,
         dfs_calls: spend.dfsCalls,
         dfs_cost: spend.dfsCost,
         anthropic_calls: spend.anthropicCalls,
@@ -600,6 +630,10 @@ export async function runGatedScan(scanId: string): Promise<void> {
         gated_status: "complete",
         gated_completed_at: new Date().toISOString(),
         engines_answered: [...new Set([...(current?.engines_answered ?? []), ...read.answered])],
+        // Set, never cleared. The gated pass re-reads the same questions on two
+        // more engines; it cannot recover names a failed batch lost on the free
+        // pass, so a clean second pass is not evidence the leaderboard is whole.
+        ...(read.leaderboardPartial ? { leaderboard_partial: true } : {}),
         dfs_calls: (current?.dfs_calls ?? 0) + read.dfsCalls,
         dfs_cost: Number(current?.dfs_cost ?? 0) + read.dfsCost,
         anthropic_calls: (current?.anthropic_calls ?? 0) + read.anthropicCalls + kindCalls,
