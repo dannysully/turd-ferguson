@@ -42,6 +42,13 @@ export const maxDuration = 60;
  *
  * Both columns are still written. anthropic_calls is the cost, which the
  * admin page reads; preview_calls is the allowance.
+ *
+ * Taken as a reservation before the call goes out rather than counted after it
+ * comes back. Read-then-write let every request in a concurrent batch read the
+ * same number, pass, spend, and write the same total - so a hundred requests
+ * were a hundred calls and moved the column by one. The route is public and
+ * its only credential is the scan token, so a batch is a thing anyone holding
+ * a link can send. note_preview_call does it in one statement instead.
  */
 const CALL_CEILING = 5;
 
@@ -58,7 +65,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
   const db = supabaseAdmin();
   const { data: scan, error: readErr } = await db
     .from("scans")
-    .select("id, status, domain, brand_name, positioning, topic, topic_variants, market, anthropic_calls, preview_calls")
+    // Neither counter is read here any more. The ceiling is decided by
+    // note_preview_call inside the update, which is the only reading of
+    // preview_calls that two concurrent requests cannot disagree about.
+    .select("id, status, domain, brand_name, positioning, topic, topic_variants, market")
     .eq("public_token", token)
     .maybeSingle();
 
@@ -87,16 +97,6 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
     return Response.json({ error: "already_started", status: scan.status }, { status: 409 });
   }
 
-  if ((scan.preview_calls ?? 0) >= CALL_CEILING) {
-    return Response.json(
-      {
-        error: "rewrite_limit",
-        message: "We have rewritten these a few times now. Run them, or start again with a different category.",
-      },
-      { status: 429 },
-    );
-  }
-
   const topic = (body.topic ?? scan.topic ?? "").trim();
   if (topic.length < 2 || topic.length > 120) {
     return Response.json({ error: "bad_topic", message: "Tell us the category in a few words." }, { status: 400 });
@@ -113,25 +113,56 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
     .filter((v) => v.length >= 2 && v.length <= 80)
     .slice(0, TOPIC_VARIANT_COUNT);
 
-  // The attempts, billed as they go out.
-  //
-  // The comment that used to sit inside this try said the route had no scan
-  // row to bill them onto. It has one, and updates it a few lines below. A
-  // flat +1 let CALL_CEILING pass up to three times the calls it is written to
-  // allow - on a public route with nothing else bounding it - and recorded
-  // nothing at all when the last retry threw, which is the case it exists for.
+  /**
+   * One rewrite, taken before it is spent.
+   *
+   * The reservation is the ceiling: the function updates the row only where
+   * preview_calls is still under it, so two requests arriving together cannot
+   * both pass. A 0 back means refused - already at the ceiling - and nothing
+   * has been spent to find that out.
+   *
+   * An error here refuses too, and says so as a 502 rather than as the rewrite
+   * limit. They are different things and the visitor can act on only one of
+   * them: "try again" is true of a database that did not answer and false of
+   * an allowance that is used up.
+   */
+  const { data: reserved, error: reserveErr } = await db.rpc("note_preview_call", {
+    p_scan: scan.id,
+    p_ceiling: CALL_CEILING,
+  });
+  if (reserveErr) {
+    console.warn("[scan] could not reserve a preview call for " + scan.id + ": " + reserveErr.message);
+    return Response.json(
+      { error: "read_failed", message: "We could not reach the checker. Try again." },
+      { status: 502 },
+    );
+  }
+  if (!Number(reserved ?? 0)) {
+    return Response.json(
+      {
+        error: "rewrite_limit",
+        message: "We have rewritten these a few times now. Run them, or start again with a different category.",
+      },
+      { status: 429 },
+    );
+  }
+
+  // What the call actually billed, against the one already reserved. withRetry
+  // makes up to three requests and Anthropic bills each, so the reservation is
+  // a floor rather than the figure; a call that threw before it sent anything
+  // hands its reservation back.
   const billed = { calls: 0 };
 
-  /** Puts what was billed on the row, through whichever exit this takes. */
+  /** Settles the reservation against the bill, through whichever exit this takes. */
   const recordSpend = async () => {
-    if (!billed.calls) return;
-    await db
-      .from("scans")
-      .update({
-        anthropic_calls: (scan.anthropic_calls ?? 0) + billed.calls,
-        preview_calls: (scan.preview_calls ?? 0) + billed.calls,
-      })
-      .eq("id", scan.id);
+    const delta = billed.calls - 1;
+    if (!delta) return;
+    const { error } = await db.rpc("note_preview_calls", { p_scan: scan.id, p_calls: delta });
+    if (error) {
+      // Not fatal on either exit: the reservation is already on the row, so the
+      // ceiling holds either way and what is lost is the accuracy of the cost.
+      console.warn("[scan] could not settle preview calls for " + scan.id + ": " + error.message);
+    }
   };
 
   // Annotated rather than left to evolve, because the assignment below is a
@@ -157,9 +188,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
     );
   }
 
-  // Counted whether or not the visitor goes on to run them. The admin page and
-  // the ceiling above both read this, and a call that happened is a cost that
-  // happened.
+  // Settled whether or not the visitor goes on to run them. The admin page and
+  // the ceiling above both read these columns, and a call that happened is a
+  // cost that happened.
   await recordSpend();
 
   return Response.json({
