@@ -97,7 +97,20 @@ export async function getSettings(): Promise<Settings> {
   const out = { ...SETTINGS_FALLBACK };
   for (const row of data ?? []) {
     const key = row.key as keyof Settings;
-    if (!(key in out)) continue;
+    /**
+     * hasOwn, not `in`. `in` answers for the whole prototype chain, so a row
+     * keyed `constructor`, `toString` or `valueOf` passed this test and went on
+     * to be compared against `SETTINGS_FALLBACK[key]` - an inherited function
+     * rather than a setting - and, where the shapes had agreed, would have been
+     * written onto `out` as a real own property under a name no reader of this
+     * file would expect to find there.
+     *
+     * Nothing outside writes app_settings, so this is the pattern rather than a
+     * live hole. It is the same pattern as the `/scan?verify=` fix: a plain
+     * object indexed by a string that came from somewhere else, guarded by a
+     * test that does not do what it looks like it does.
+     */
+    if (!Object.hasOwn(out, key)) continue;
 
     if (key === "scan_engines_free" || key === "scan_engines_gated") {
       // An unrecognised engine name is dropped rather than trusted: a typo in
