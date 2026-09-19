@@ -1,14 +1,15 @@
 /**
  * The design tokens, from the canvas.
  *
- * These are exact and are not to be re-derived. They replace the older
- * navy/soft palette that the pre-redesign sections still use: ink is
- * #0f1115, not #0B1220, and the page ground is #f6f6f7, not #F8F7FF.
+ * These are exact and are not to be re-derived. They replaced the older
+ * navy/soft palette: ink is #0f1115, not #0B1220, and the page ground is
+ * #f6f6f7, not #F8F7FF.
  *
- * Both palettes are in the tree while the homepage is rebuilt board by
- * board. New work uses these; a section still on the old `C` object has not
- * been rebuilt yet. The same values are mirrored as CSS custom properties in
- * globals.css for anything that needs them in a stylesheet.
+ * There is one palette now, and this is it. No file defines the old values
+ * any more - the `C` object on the ops page is a set of named aliases onto
+ * these, kept so forty call sites did not have to be rewritten to prove a
+ * point about spelling. The same values are mirrored as CSS custom properties
+ * in globals.css for anything that needs them in a stylesheet.
  */
 export const T = {
   bg: "#f6f6f7",
