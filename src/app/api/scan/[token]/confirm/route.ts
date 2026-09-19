@@ -90,8 +90,24 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
         .slice(0, 5)
     : undefined;
 
-  // The confirmed topic is the trusted value from here on.
-  const { error } = await db
+  /**
+   * The confirmed topic is the trusted value from here on.
+   *
+   * The status checks above are a read, and this is the write - so two confirms
+   * arriving together both saw a scan that was not yet queued, and both started
+   * a run. A double-submitted form was enough. That is a whole second scan
+   * billed, and two pipelines writing answers and citations against one scan
+   * id, which inflates every count derived from them.
+   *
+   * So the status test moves into the update itself: the same three statuses
+   * the guard above rejects, as a filter, which makes the database the arbiter
+   * of who queues the scan. .select() is what makes the outcome readable - no
+   * rows back means another request queued it between our read and our write,
+   * and the honest answer is the status it already has rather than a second
+   * run. Without .select() a zero-row update looks identical to a successful
+   * one, because PostgREST answers both with a 2xx.
+   */
+  const { data: queued, error } = await db
     .from("scans")
     .update({
       topic,
@@ -101,10 +117,16 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
       error: null,
       ...(variants ? { topic_variants: variants } : {}),
     })
-    .eq("id", scan.id);
+    .eq("id", scan.id)
+    .not("status", "in", "(queued,running,complete)")
+    .select("id");
 
   if (error) {
     return Response.json({ error: "store_failed" }, { status: 500 });
+  }
+
+  if (!queued?.length) {
+    return Response.json({ status: "queued", questions: 0 });
   }
 
   /**

@@ -53,7 +53,28 @@ export async function GET(_req: Request, ctx: { params: Promise<{ vtoken: string
   // A second click has nothing left to do. Send them to the report.
   if (lead.verified_at) return NextResponse.redirect(target, { status: 302 });
 
-  await db.from("leads").update({ verified_at: new Date().toISOString() }).eq("id", lead.id);
+  /**
+   * The same check again, as a claim rather than a read.
+   *
+   * The check above is a read followed by a write, which two requests can both
+   * pass before either writes. That is not hypothetical here: mail-security
+   * scanners fetch links in a message on delivery, so the scanner's GET and the
+   * recipient's click routinely arrive together on exactly this URL. Both would
+   * unlock, which means two report-ready emails and two attempts at the gated
+   * pass.
+   *
+   * .is("verified_at", null) makes the update itself the arbiter, and .select()
+   * is what lets us see the result: no rows back means somebody else verified
+   * this lead first, and there is nothing left for this request to do but show
+   * the report.
+   */
+  const { data: claimed } = await db
+    .from("leads")
+    .update({ verified_at: new Date().toISOString() })
+    .eq("id", lead.id)
+    .is("verified_at", null)
+    .select("id");
+  if (!claimed?.length) return NextResponse.redirect(target, { status: 302 });
 
   const accountId = await resolveAccount(
     lead.email as string,

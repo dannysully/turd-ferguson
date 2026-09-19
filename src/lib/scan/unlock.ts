@@ -73,7 +73,8 @@ export async function resolveAccount(email: string, existingId: string | null): 
 /**
  * Attaches the account, stamps the unlock, and starts the engines the email
  * bought. Idempotent on the gated pass: a second unlock of the same scan claims
- * nothing and re-spends nothing.
+ * nothing and re-spends nothing, whether it arrives after the first or
+ * alongside it. The concurrent half of that is new - see the claim below.
  */
 export async function completeUnlock(
   scan: UnlockableScan,
@@ -147,20 +148,48 @@ export async function completeUnlock(
     const spentToday = await spentSince(since, { excludeTrackingRuns: false });
 
     if (spentToday < settings.daily_cost_cap_usd) {
-      const { error: claimErr } = await db
+      /**
+       * The claim, and why it reads the row back.
+       *
+       * This is a compare-and-swap: only the request that moves gated_status
+       * off 'none' is allowed to start the pass. It was written as one and did
+       * not work as one. PostgREST answers an UPDATE that matched no rows with
+       * 204 No Content, and postgrest-js only sets `error` on a non-2xx, so the
+       * request that LOST the race got error null and read that as a win. Both
+       * callers then started the gated pass.
+       *
+       * That is not a near-miss. This pass re-asks every question on the gated
+       * engines, so a double start is dozens of reads paid for twice, and it
+       * writes a second set of answers and citations - which inflates the
+       * leaderboard and every source mention count derived from them. Two
+       * requests reaching here at once is ordinary: the verify link is fetched
+       * by mail-security scanners at about the same moment the recipient
+       * clicks it.
+       *
+       * .select() sends Prefer: return=representation, so the rows actually
+       * updated come back and an empty array is the lost race, distinguishable
+       * from a failure. Do not drop it.
+       */
+      const { data: claimed, error: claimErr } = await db
         .from("scans")
         .update({ gated_status: "queued" })
         .eq("id", scan.id)
-        .eq("gated_status", "none");
-      if (!claimErr) {
+        .eq("gated_status", "none")
+        .select("id");
+      if (claimErr) {
+        console.warn(
+          "[scan] " + scan.id + " gated pass not claimed: " + claimErr.message,
+        );
+      } else if (!claimed?.length) {
+        // Somebody else claimed it between our read and our update. Theirs runs.
+        console.warn(
+          "[scan] " + scan.id + " gated pass already claimed by a concurrent unlock",
+        );
+      } else {
         gatedStarted = true;
         after(async () => {
           await runGatedScan(scan.id);
         });
-      } else {
-        console.warn(
-          "[scan] " + scan.id + " gated pass not claimed: " + claimErr.message,
-        );
       }
     } else {
       /**
