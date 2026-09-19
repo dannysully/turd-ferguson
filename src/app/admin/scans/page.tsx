@@ -37,6 +37,7 @@ const C = {
 };
 
 type ScanRow = {
+  id: string;
   public_token: string;
   domain: string;
   topic: string | null;
@@ -70,6 +71,34 @@ function seconds(row: ScanRow): string {
   return `${Math.round(ms / 1000)}s`;
 }
 
+/**
+ * How many of a scan's cited domains have a kind stored.
+ *
+ * Source classification is wrapped in never-fatal, so a classification call
+ * that fails takes the placement list with it and says nothing anywhere: the
+ * scan completes, the report renders, and the half a visitor trades an email
+ * for is simply absent. Three live scans in production cite 1083 pages between
+ * them and classify none.
+ *
+ * A gap of a few is ordinary - a batch that failed leaves its domains
+ * deliberately unassessed for the next pass rather than inventing a verdict.
+ * Nothing sorted at all is the failure, so that is the only state coloured.
+ */
+type Coverage = { scan_id: string; cited_domains: number; classified_domains: number };
+
+function Sources({ c }: { c?: Coverage }) {
+  if (!c) return <span style={{ color: C.muted }}>-</span>;
+  if (!c.cited_domains) return <span style={{ color: C.muted }}>-</span>;
+  const none = c.classified_domains === 0;
+  return (
+    <span style={{ color: none ? C.red : C.body }}>
+      {c.classified_domains}/{c.cited_domains}
+      {none && (
+        <span style={{ display: "block", fontSize: "0.75rem" }}>none sorted</span>
+      )}
+    </span>
+  );
+}
 function Tile({ label, value, tone }: { label: string; value: string; tone?: string }) {
   return (
     <div style={{ background: C.soft, border: `1px solid ${C.border}`, borderRadius: 16, padding: "1.125rem 1.25rem" }}>
@@ -150,7 +179,7 @@ export default async function AdminScansPage() {
     db
       .from("scans")
       .select(
-        "public_token, domain, topic, market, status, step, error, engines, engines_answered, gated_status, dfs_calls, dfs_cost, anthropic_calls, unlocked_at, created_at, completed_at",
+        "id, public_token, domain, topic, market, status, step, error, engines, engines_answered, gated_status, dfs_calls, dfs_cost, anthropic_calls, unlocked_at, created_at, completed_at",
       )
       .order("created_at", { ascending: false })
       .limit(50),
@@ -166,6 +195,33 @@ export default async function AdminScansPage() {
 
   const rows = (today ?? []) as Array<Pick<ScanRow, "status" | "dfs_calls" | "dfs_cost" | "anthropic_calls" | "unlocked_at">>;
   const scans = (recent ?? []) as ScanRow[];
+
+  /**
+   * Counted in the database rather than here. Citations are the one per-scan
+   * table with no small bound - 564 on one scan in production - so fifty scans
+   * is tens of thousands of rows and past the PostgREST ceiling besides.
+   *
+   * A read that fails leaves the map empty and every cell reads a dash, which
+   * is what an ops page should do with a number it could not get. It must not
+   * take the page down: everything else on it still answers.
+   */
+  const coverage = new Map<string, Coverage>();
+  if (scans.length) {
+    const { data: cov, error: covErr } = await db.rpc("scan_source_coverage", {
+      p_scans: scans.map((r) => r.id),
+    });
+    if (covErr) {
+      console.warn("[admin] could not read source coverage: " + covErr.message);
+    }
+    for (const c of (cov ?? []) as Coverage[]) coverage.set(c.scan_id, c);
+  }
+
+  // The question this answers is how often classification fails, because one in
+  // fifty and one in five want different responses.
+  const unsorted = scans.filter((r) => {
+    const c = coverage.get(r.id);
+    return c && c.cited_domains > 0 && c.classified_domains === 0;
+  }).length;
 
   const total = rows.length;
   const failed = rows.filter((r) => r.status === "failed").length;
@@ -257,6 +313,12 @@ export default async function AdminScansPage() {
       <h2 style={{ fontSize: "1rem", fontWeight: 700, color: C.navy, marginTop: "2.5rem", marginBottom: "0.75rem" }}>
         Last 50 runs
       </h2>
+      <p style={{ color: unsorted ? C.red : C.muted, margin: "-0.5rem 0 0.75rem", fontSize: "0.8125rem" }}>
+        Sources is how many of the domains the engines cited have a kind stored.
+        {unsorted > 0
+          ? " " + unsorted + " of these cited sources and sorted none of them, so each derived no placements and said so on the report."
+          : " Every run here that cited a source sorted at least one."}
+      </p>
       <div style={{ overflowX: "auto", border: `1px solid ${C.border}`, borderRadius: 16 }}>
         <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 900 }}>
           <thead>
@@ -271,13 +333,14 @@ export default async function AdminScansPage() {
               <th style={th}>DFS</th>
               <th style={th}>Cost</th>
               <th style={th}>Model</th>
+              <th style={th}>Sources</th>
               <th style={th}>Email</th>
             </tr>
           </thead>
           <tbody>
             {scans.length === 0 && (
               <tr>
-                <td style={td} colSpan={11}>
+                <td style={td} colSpan={12}>
                   No scans yet.
                 </td>
               </tr>
@@ -317,6 +380,9 @@ export default async function AdminScansPage() {
                 <td style={td}>{r.dfs_calls}</td>
                 <td style={td}>{money(Number(r.dfs_cost ?? 0))}</td>
                 <td style={td}>{r.anthropic_calls}</td>
+                <td style={td}>
+                  <Sources c={coverage.get(r.id)} />
+                </td>
                 <td style={td}>{r.unlocked_at ? "yes" : "-"}</td>
               </tr>
             ))}
