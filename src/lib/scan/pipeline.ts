@@ -10,7 +10,7 @@ import {
   QUESTION_COUNT,
 } from "./anthropic";
 import { brandKey, pickDisplayName } from "./brand-name";
-import { readEngine, readSearchVolumes } from "./dataforseo";
+import { readEngine, readSearchVolumes, volumeKey } from "./dataforseo";
 import { type Market, normalizeDomain } from "./domain";
 import { type Engine, isEngine, namesBrand, type OrganicHit } from "./engines";
 import { classifySources } from "./sources";
@@ -624,7 +624,7 @@ export async function runScan(scanId: string): Promise<void> {
       for (const q of ordered) {
         await db
           .from("scan_questions")
-          .update({ search_volume: sv.volumes.get(q.question) ?? null })
+          .update({ search_volume: sv.volumes.get(volumeKey(q.question)) ?? null })
           .eq("id", q.id);
       }
     } catch (err) {
