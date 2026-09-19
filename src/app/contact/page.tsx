@@ -12,7 +12,7 @@ import { CARD, MICRO, SHELL, T } from "@/config/tokens";
  */
 
 export const metadata: Metadata = {
-  title: "Contact alwayscited",
+  title: "Contact",
   description:
     "Most questions are answered by running a free scan. Portfolio pricing, corrections and everything else, here.",
   alternates: { canonical: "https://alwayscited.com/contact" },
