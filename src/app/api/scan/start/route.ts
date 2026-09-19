@@ -78,6 +78,27 @@ export async function POST(req: Request) {
 
   // A complete scan for this domain inside the cache window is returned as is.
   // Repeat visits are instant and spend on a given domain is capped.
+  //
+  // Unlocked scans are excluded, and that single condition is load-bearing.
+  // This cache is keyed on (domain, market) and nothing else - it does not know
+  // or check who is asking - so without the filter the token handed back is
+  // whichever scan ran most recently, including one somebody else opened with
+  // their email. The full report gates on unlocked_at alone and treats the
+  // public token as the credential, and the result screen fetches it
+  // unconditionally on arrival. So the visitor would land on the unlocked
+  // report having given no address: the placement list, every source and the
+  // detailed question table, which is the one thing the funnel asks for an
+  // email to see.
+  //
+  // Tracking runs are excluded for the same reason the daily cap above excludes
+  // them: they are a paying client's scheduled re-read of their own domain, not
+  // a free scan anyone may be handed. Without this a visitor who typed a
+  // client's domain would be served that client's tracking run as their own
+  // result.
+  //
+  // The filter costs one extra scan per unlocked domain, not one per visitor.
+  // The fresh scan is itself locked, so it becomes the entry the next visitor
+  // hits, and the caps above bound it either way.
   const cacheSince = new Date(Date.now() - settings.domain_cache_days * 86_400_000).toISOString();
   const { data: cached } = await db
     .from("scans")
@@ -85,6 +106,8 @@ export async function POST(req: Request) {
     .eq("domain", domain)
     .eq("market", market)
     .eq("status", "complete")
+    .eq("is_tracking_run", false)
+    .is("unlocked_at", null)
     .gte("completed_at", cacheSince)
     .order("completed_at", { ascending: false })
     .limit(1)

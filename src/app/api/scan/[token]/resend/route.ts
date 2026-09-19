@@ -61,5 +61,14 @@ export async function POST(_req: Request, ctx: { params: Promise<{ token: string
     );
   }
 
-  return Response.json({ ok: true, email: lead.email });
+  // The address is deliberately not returned.
+  //
+  // The public token is the credential for this route, and a token reaches
+  // people who never typed the address: it is in a shared link, and the domain
+  // cache hands a completed scan's token to the next visitor who scans the same
+  // site. A pending lead belongs to whoever submitted it, so echoing it here
+  // discloses one stranger's email address to another through the ordinary
+  // funnel. The screen never used this field - it renders the address the
+  // visitor typed, and reads only "message" off this response.
+  return Response.json({ ok: true });
 }
