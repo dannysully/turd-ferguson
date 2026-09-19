@@ -2,6 +2,13 @@ import "server-only";
 
 import { after } from "next/server";
 
+import {
+  deriveOpportunities,
+  type AnswerRow,
+  type CitationRow,
+  type KindRow,
+  type QuestionRow,
+} from "@/lib/scan/opportunities";
 import { runGatedScan } from "@/lib/scan/pipeline";
 import { getSettings } from "@/lib/scan/settings";
 import { spentSince } from "@/lib/scan/spend";
@@ -330,110 +337,20 @@ export type UnlockPayload = {
   }>;
 };
 
-/** One page a client could realistically be placed into. */
-export type Opportunity = {
-  domain: string;
-  kind: string;
-  note: string | null;
-  /** Answers (question x engine) this page fed where the brand was absent. */
-  absent_answers: number;
-  /**
-   * Distinct questions behind that count. Always <= absent_answers, because
-   * one question answered by four engines is four answers. Both are shown:
-   * the answer count is the reach, the question count is what a placement
-   * would actually be about, and a screen that prints "7" beside a list of
-   * four questions without saying which is which looks broken.
-   */
-  absent_questions: number;
-  /** The questions themselves, deduplicated, for the report. */
-  questions: string[];
-};
-
-type CitationRow = { source_domain: string; question_id: string; engine: string };
-type AnswerRow = { question_id: string; engine: string; brand_named: boolean };
-type QuestionRow = { id: string; question: string };
-type KindRow = { domain: string; kind: string; note: string | null; on_topic: boolean | null };
-
 /**
- * The placement opportunities: pages that fed answers the brand was NOT
- * named in, and that we could realistically be placed into.
- *
- * What this counts is exact rather than inferred. An "answer" is one
- * question on one engine, and a page qualifies for that answer only if it
- * was actually cited as a source for it and the brand was absent from it.
- * Both facts are recorded, so every number here can be read back to a row.
- *
- * What it deliberately does NOT claim: which competitors appear on the page.
- * scan_brands is aggregated per scan and per engine, not per question, so
- * there is no honest way to say "Competitor A is in this listicle" - only
- * which brands the scan saw overall. The design asked for a "who is in it"
- * column; it is not derivable and is left out rather than approximated.
- *
- * own and competitor domains are excluded: you cannot be placed into your
- * own site, and a competitor will not run your brand. Unclassified domains
- * are excluded too - a page the classifier never reached is not a page we
- * can vouch for putting a client on.
- *
- * "other" is excluded as well, and that exclusion is load-bearing. It is
- * where the classifier puts everything it cannot place: the engine's own
- * properties, gov.uk, marketplaces, financial data portals. On the first
- * real scan it put google.com on the opportunity list. A list is judged by
- * its worst row, not its best.
- *
- * on_topic false is excluded too, and it is a different test from kind. A
- * national newspaper is a placement whatever it was cited for; it is only an
- * opportunity when the pages cited are about this category. Null means the
- * row predates the column, and is allowed through so existing scans keep
- * working - only an explicit false removes a row.
- *
- * Exported and shared rather than reimplemented: the locked gate needs the
- * count of these before an email is given, and a second derivation that
- * drifted from this one would put a number on the gate that the unlocked
- * table then contradicts.
+ * The derivation itself is in `./opportunities`, which carries no
+ * `server-only` import and so can be loaded by `node --test`. Re-exported here
+ * because this is where every caller already reaches for it, and because the
+ * gate and the unlocked table must never derive the count from two places.
  */
-export function deriveOpportunities(input: {
-  citations: CitationRow[];
-  answers: AnswerRow[];
-  questions: QuestionRow[];
-  kinds: KindRow[];
-}): Opportunity[] {
-  const kindOf = new Map(input.kinds.map((k) => [k.domain, k]));
-  const PLACEABLE = new Set(["placement", "review"]);
-  const namedAt = new Map<string, boolean>();
-  for (const a of input.answers) namedAt.set(`${a.question_id}|${a.engine}`, a.brand_named);
-
-  const questionText = new Map<string, string>();
-  for (const q of input.questions) questionText.set(q.id, q.question);
-
-  const oppBy = new Map<string, Opportunity>();
-  const seenAnswer = new Set<string>();
-  for (const c of input.citations) {
-    const classified = kindOf.get(c.source_domain);
-    const k = classified?.kind ?? null;
-    if (!k || !PLACEABLE.has(k)) continue;
-    if (classified?.on_topic === false) continue;
-    const answerKey = `${c.source_domain}|${c.question_id}|${c.engine}`;
-    if (seenAnswer.has(answerKey)) continue;
-    seenAnswer.add(answerKey);
-    if (namedAt.get(`${c.question_id}|${c.engine}`) !== false) continue;
-    const row: Opportunity = oppBy.get(c.source_domain) ?? {
-      domain: c.source_domain,
-      kind: k,
-      note: classified?.note ?? null,
-      absent_answers: 0,
-      absent_questions: 0,
-      questions: [],
-    };
-    row.absent_answers += 1;
-    const qt = questionText.get(c.question_id);
-    if (qt && !row.questions.includes(qt)) row.questions.push(qt);
-    oppBy.set(c.source_domain, row);
-  }
-  for (const row of oppBy.values()) row.absent_questions = row.questions.length;
-  return [...oppBy.values()].sort(
-    (a, b) => b.absent_answers - a.absent_answers || a.domain.localeCompare(b.domain),
-  );
-}
+export type {
+  AnswerRow,
+  CitationRow,
+  KindRow,
+  Opportunity,
+  QuestionRow,
+} from "@/lib/scan/opportunities";
+export { deriveOpportunities } from "@/lib/scan/opportunities";
 
 /**
  * What the locked gate is allowed to know: how many opportunities there are

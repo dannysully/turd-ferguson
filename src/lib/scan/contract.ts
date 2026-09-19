@@ -154,7 +154,8 @@ export type RunScanResponse = {
    * many named the brand. Free, and deliberately so: the strongest evidence a
    * scan is real is the list of things it asked.
    *
-   * Optional because the fixture and /example paths do not have it.
+   * Optional because the fixture path does not have it. /example carried the
+   * same gap and is gone - e21d801 redirected it and the route was deleted.
    */
   questions?: ScanQuestion[];
   /**
