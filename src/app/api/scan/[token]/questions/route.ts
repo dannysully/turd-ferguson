@@ -25,14 +25,25 @@ export const maxDuration = 60;
  */
 
 /**
- * How many model calls one scan may make before it has run anything.
+ * How many times one scan may have its question set written.
  *
- * A scan starts at one (reading the site), so this allows the first set plus
- * four rewrites. The route is otherwise unbounded - nothing else stops the
- * same token asking for a new set forever - and an Anthropic call is not
- * covered by daily_cost_cap_usd, which sums DataForSEO spend only.
+ * The first set plus four rewrites. The route is otherwise unbounded - nothing
+ * else stops the same token asking for a new set forever - and an Anthropic
+ * call is not covered by daily_cost_cap_usd, which sums DataForSEO spend only.
+ *
+ * Counted off preview_calls, which exists because this used to count off
+ * anthropic_calls and that column stopped meaning previews the day the
+ * pipeline started billing onto it. A free pass writes one call for the
+ * question set, one per engine for brand extraction, one to judge the
+ * leaderboard and one for source kinds, so any scan that has run is past a
+ * ceiling of six before a visitor has rewritten anything. Where that showed
+ * was the retry a failed scan offers: the screen came back, asked for its
+ * preview, and was told we had rewritten these a few times now.
+ *
+ * Both columns are still written. anthropic_calls is the cost, which the
+ * admin page reads; preview_calls is the allowance.
  */
-const CALL_CEILING = 6;
+const CALL_CEILING = 5;
 
 export async function POST(req: Request, ctx: { params: Promise<{ token: string }> }) {
   const { token } = await ctx.params;
@@ -45,11 +56,27 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
   }
 
   const db = supabaseAdmin();
-  const { data: scan } = await db
+  const { data: scan, error: readErr } = await db
     .from("scans")
-    .select("id, status, domain, brand_name, positioning, topic, topic_variants, market, anthropic_calls")
+    .select("id, status, domain, brand_name, positioning, topic, topic_variants, market, anthropic_calls, preview_calls")
     .eq("public_token", token)
     .maybeSingle();
+
+  /**
+   * A read that failed is not a token that does not exist.
+   *
+   * These arrived at the screen as the same 404, so a broken select - a column
+   * that is not there yet, a database that is not answering - told the visitor
+   * their scan link was wrong. That is the one message that makes somebody
+   * close the tab rather than try again, and it is the wrong one.
+   */
+  if (readErr) {
+    console.warn("[scan] could not read the scan for a preview: " + readErr.message);
+    return Response.json(
+      { error: "read_failed", message: "We could not reach the checker. Try again." },
+      { status: 502 },
+    );
+  }
 
   if (!scan) return Response.json({ error: "not_found" }, { status: 404 });
 
@@ -60,7 +87,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
     return Response.json({ error: "already_started", status: scan.status }, { status: 409 });
   }
 
-  if ((scan.anthropic_calls ?? 0) >= CALL_CEILING) {
+  if ((scan.preview_calls ?? 0) >= CALL_CEILING) {
     return Response.json(
       {
         error: "rewrite_limit",
@@ -100,7 +127,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
     if (!billed.calls) return;
     await db
       .from("scans")
-      .update({ anthropic_calls: (scan.anthropic_calls ?? 0) + billed.calls })
+      .update({
+        anthropic_calls: (scan.anthropic_calls ?? 0) + billed.calls,
+        preview_calls: (scan.preview_calls ?? 0) + billed.calls,
+      })
       .eq("id", scan.id);
   };
 
