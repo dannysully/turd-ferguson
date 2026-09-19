@@ -9,4 +9,11 @@
  * They cannot live in contact/actions.ts: a "use server" module may only
  * export async functions, so a client component cannot read a constant from it.
  */
-export const CONTACT_LIMITS = { name: 120, company: 200, message: 5000 };
+/**
+ * email is 254 because that is the longest an address may be over SMTP
+ * (RFC 5321). It was the one field with no bound on either side, while the
+ * comment above and the one in contact/actions.ts both said every field had
+ * one - and it is the field that goes into a header rather than a body, as
+ * the reply-to on the message we send ourselves.
+ */
+export const CONTACT_LIMITS = { name: 120, email: 254, company: 200, message: 5000 };

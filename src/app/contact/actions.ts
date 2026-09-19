@@ -39,6 +39,14 @@ export async function submitContactForm(
     return { status: "error", message: "Name, email, and message are required." };
   }
 
+  // Bounded before the regex, because the regex is two unbounded runs either
+  // side of an @ and will happily accept a megabyte of them. This is the field
+  // that becomes a header rather than a body line, and it was the one field
+  // the comment above promised was bounded and was not.
+  if (email.length > LIMITS.email) {
+    return { status: "error", message: "That email address is longer than an address can be." };
+  }
+
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return { status: "error", message: "Please enter a valid email address." };
   }
@@ -80,8 +88,21 @@ export async function submitContactForm(
     };
   }
 
+  /**
+   * Every exit below this line is the same sentence to the visitor and, until
+   * now, nothing at all to us.
+   *
+   * A form that stops delivering looks identical from outside to one that
+   * never gets used: the sender is told to email us directly, they do or they
+   * do not, and no line anywhere records that the route is broken. This is the
+   * silent-failure path AGENTS.md warns about, on the one form on the site.
+   * The reasons are distinguishable and worth distinguishing - a key that is
+   * not set is a deploy, a Resend error is a sending domain or a revoked key,
+   * and a throw is neither.
+   */
   const key = process.env.RESEND_API_KEY;
   if (!key) {
+    console.error("[contact] RESEND_API_KEY is not set, so an enquiry could not be sent");
     return {
       status: "error",
       message:
@@ -100,19 +121,24 @@ export async function submitContactForm(
         `Name:    ${name}`,
         `Email:   ${email}`,
         `Company: ${company || "not given"}`,
-        `Website: ${website || "not given"}`,
+        // No Website line. That field is the honeypot and a filled one never
+        // reaches here, so the line could only ever read "not given" - which
+        // reads as an enquirer who declined to give one, on a form that has
+        // never asked.
         "",
         message,
       ].join("\n"),
     });
     if (error) {
+      console.error("[contact] Resend refused an enquiry: " + (error.message || error.name));
       return {
         status: "error",
         message:
           "We could not send that just now. Please email hello@alwayscited.com directly and we will pick it up.",
       };
     }
-  } catch {
+  } catch (err) {
+    console.error("[contact] could not send an enquiry: " + ((err as Error)?.message ?? "unknown"));
     return {
       status: "error",
       message:

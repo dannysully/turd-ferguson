@@ -55,8 +55,15 @@ export default function ContactForm() {
   const [state, formAction, pending] = useActionState(submitContactForm, initialState);
 
   if (state.status === "success") {
+    /**
+     * role="status" because this panel replaces the whole form. The error
+     * paragraph below is role="alert" and announces; this said nothing at all,
+     * so somebody using a screen reader pressed Send, heard the button label
+     * change to "Sending", and then had the form vanish from under them with
+     * no confirmation that anything had been received.
+     */
     return (
-      <div style={{ background: T.wash, border: "1px solid " + T.accent, borderRadius: "14px", padding: "20px 22px" }}>
+      <div role="status" style={{ background: T.wash, border: "1px solid " + T.accent, borderRadius: "14px", padding: "20px 22px" }}>
         <p style={{ margin: 0, fontSize: "15px", fontWeight: 600, color: T.ink }}>Message received.</p>
         <p style={{ margin: "6px 0 0", fontSize: "14px", lineHeight: 1.65, color: T.soft }}>
           It reaches the people doing the work, and is usually answered the same working day.
@@ -88,6 +95,7 @@ export default function ContactForm() {
         name="email"
         type="email"
         required
+        maxLength={CONTACT_LIMITS.email}
         autoComplete="email"
         placeholder="you@youragency.com"
         style={inputStyle}
