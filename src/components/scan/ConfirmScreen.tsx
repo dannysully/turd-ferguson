@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 
 import { CARD, MICRO, T } from "@/config/tokens";
 import type { Market } from "@/lib/scan";
@@ -469,9 +470,9 @@ export default function ConfirmScreen(p: {
           <div style={{ padding: "12px 26px", display: "flex", alignItems: "baseline", gap: "14px", flexWrap: "wrap" }}>
             <span style={{ fontSize: "13px", color: T.soft }}>
               {footerText}
-              <a href="/#faq" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
+              <Link href="/#faq" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
                 here is why
-              </a>
+              </Link>
               .
             </span>
             <div style={{ flexGrow: 1 }} />

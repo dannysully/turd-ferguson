@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { OG_IMAGE } from "@/config/og";
+import Link from "next/link";
 
 import CtaSection from "@/components/CtaSection";
 import { TIER_PLAIN } from "@/components/TierName";
@@ -279,9 +280,9 @@ export default function WhatIsAEOPage() {
               rather than claiming one caused the other.
             </p>
             <p style={P}>
-              <a href="/how-it-works" style={LINK}>
+              <Link href="/how-it-works" style={LINK}>
                 How we run those campaigns
-              </a>
+              </Link>
             </p>
           </Body>
         </Section>
@@ -332,9 +333,9 @@ export default function WhatIsAEOPage() {
               over rather than a bare number.
             </p>
             <p style={P}>
-              <a href="/case-studies/vibe-retail" style={LINK}>
+              <Link href="/case-studies/vibe-retail" style={LINK}>
                 Read the Vibe Retail write-up
-              </a>
+              </Link>
             </p>
           </Body>
         </Section>

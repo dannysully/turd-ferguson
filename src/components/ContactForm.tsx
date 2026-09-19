@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import Link from "next/link";
 
 import { submitContactForm, type ContactFormState } from "@/app/contact/actions";
 import { T } from "@/config/tokens";
@@ -103,9 +104,9 @@ export default function ContactForm() {
       </button>
       <p style={{ margin: "12px 0 0", fontSize: "12.5px", lineHeight: 1.55, color: T.soft }}>
         Goes to a person, usually answered the same working day. We do not add you to anything - see the{" "}
-        <a href="/legal" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
+        <Link href="/legal" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
           privacy policy
-        </a>
+        </Link>
         .
       </p>
     </form>

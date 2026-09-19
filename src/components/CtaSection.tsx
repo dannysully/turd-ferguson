@@ -18,6 +18,7 @@
  * the top of the homepage instead. Fixed here.
  */
 import { CARD, GRID12, SHELL, T } from "@/config/tokens";
+import Link from "next/link";
 
 export default function CtaSection() {
   return (
@@ -34,7 +35,7 @@ export default function CtaSection() {
         </div>
 
         <div style={{ gridColumn: "span 6", display: "flex", gap: "10px", flexWrap: "wrap" }}>
-          <a
+          <Link
             href="/#scan"
             style={{
               fontSize: "15px",
@@ -48,8 +49,8 @@ export default function CtaSection() {
             }}
           >
             Run a free scan
-          </a>
-          <a
+          </Link>
+          <Link
             href="/#packages"
             style={{
               fontSize: "15px",
@@ -64,7 +65,7 @@ export default function CtaSection() {
             }}
           >
             See pricing
-          </a>
+          </Link>
         </div>
       </div>
     </section>

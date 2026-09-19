@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import TierName, { type TierKey } from "@/components/TierName";
 import { TIERS } from "@/config/pricing";
@@ -721,7 +721,10 @@ const ACT_BODIES = [
 /** How far through the pipeline, by its own step rather than by the story. */
 const STEP_PCT = [15, 55, 85, 100];
 
-export default function HeroSequence(p: {
+// headingRef is destructured out of the props bag for the same reason as in
+// screens.tsx: a ref held in `p` makes every read of `p` a ref access to the
+// React Compiler, which flagged p.step and p.engines during render.
+export default function HeroSequence({ headingRef, ...p }: {
   domain: string;
   /** The engines this scan actually reads, frozen onto the row at start. */
   engines: string[];
@@ -859,7 +862,7 @@ export default function HeroSequence(p: {
           </div>
 
           <h2
-            ref={p.headingRef}
+            ref={headingRef}
             tabIndex={-1}
             style={{
               margin: "12px 0 0",

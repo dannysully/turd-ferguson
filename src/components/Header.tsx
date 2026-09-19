@@ -65,7 +65,7 @@ export default function Header() {
               {link.label}
             </a>
           ))}
-          <a
+          <Link
             href="/#scan"
             style={{
               background: T.accent,
@@ -78,7 +78,7 @@ export default function Header() {
             }}
           >
             Free scan
-          </a>
+          </Link>
         </nav>
 
         <button
@@ -105,7 +105,7 @@ export default function Header() {
               </li>
             ))}
             <li>
-              <a
+              <Link
                 href="/#scan"
                 style={{
                   display: "inline-block",
@@ -120,7 +120,7 @@ export default function Header() {
                 onClick={() => setOpen(false)}
               >
                 Free scan
-              </a>
+              </Link>
             </li>
           </ul>
         </nav>

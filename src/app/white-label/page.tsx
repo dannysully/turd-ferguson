@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { OG_IMAGE } from "@/config/og";
+import Link from "next/link";
 
 import TierName from "@/components/TierName";
 import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
@@ -115,9 +116,9 @@ export default function WhiteLabelPage() {
       </section>
 
       <p style={{ margin: 0, fontSize: "13.5px", color: T.soft, lineHeight: 1.65 }}>
-        <a href="/#packages" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
+        <Link href="/#packages" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
           See what it costs
-        </a>{" "}
+        </Link>{" "}
         - or run a scan on a client first. The <TierName tier="cited" /> plan is the one most agencies start on.
       </p>
     </main>

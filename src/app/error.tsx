@@ -1,6 +1,7 @@
 "use client";
 
 import { CARD, MICRO, SHELL, T } from "@/config/tokens";
+import Link from "next/link";
 
 /**
  * The runtime error boundary, for the same reason as not-found.tsx: without
@@ -75,7 +76,7 @@ export default function Error({
         >
           Try again
         </button>
-        <a
+        <Link
           href="/"
           style={{
             fontSize: "15px",
@@ -89,7 +90,7 @@ export default function Error({
           }}
         >
           Back to the homepage
-        </a>
+        </Link>
       </div>
 
       {error.digest ? (

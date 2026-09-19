@@ -1,5 +1,6 @@
 import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
 import { ORG_REF, SITE_REF, ld } from "@/config/schema";
+import Link from "next/link";
 
 /**
  * FAQ and the closing scan - HomeFaq.dc.html.
@@ -167,9 +168,9 @@ export default function HomeFaq() {
             </div>
             <p style={{ margin: "10px 0 0", fontSize: "12.5px", color: T.soft }}>
               Or{" "}
-              <a href="/contact" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
+              <Link href="/contact" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
                 talk to a partner
-              </a>{" "}
+              </Link>{" "}
               if you have a portfolio to move.
             </p>
           </form>

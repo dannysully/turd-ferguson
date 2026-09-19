@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { OG_IMAGE } from "@/config/og";
+import Link from "next/link";
 
 import CtaSection from "@/components/CtaSection";
 import TierName from "@/components/TierName";
@@ -163,9 +164,9 @@ export default function HowItWorksPage() {
               something you can look at rather than something we assert.
             </p>
             <p style={{ margin: "12px 0 0", fontSize: "14px" }}>
-              <a href="/#scan" style={LINK}>
+              <Link href="/#scan" style={LINK}>
                 Run a free scan
-              </a>
+              </Link>
             </p>
           </div>
         </div>
@@ -186,9 +187,9 @@ export default function HowItWorksPage() {
               work is getting onto those pages rather than guessing at what an engine rewards.
             </p>
             <p style={P}>
-              <a href="/what-is-aeo" style={LINK}>
+              <Link href="/what-is-aeo" style={LINK}>
                 The longer version, with what we can and cannot claim about it
-              </a>
+              </Link>
             </p>
           </Body>
         </Section>
@@ -246,9 +247,9 @@ export default function HowItWorksPage() {
               package pages rather than behind a call.
             </p>
             <p style={P}>
-              <a href="/compare" style={LINK}>
+              <Link href="/compare" style={LINK}>
                 What we do and what it costs
-              </a>
+              </Link>
             </p>
           </Body>
         </Section>

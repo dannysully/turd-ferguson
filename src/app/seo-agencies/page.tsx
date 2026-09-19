@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { OG_IMAGE } from "@/config/og";
+import Link from "next/link";
 
 import { TIERS } from "@/config/pricing";
 import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
@@ -159,9 +160,9 @@ export default function SeoAgenciesPage() {
       </section>
 
       <p style={{ margin: 0, fontSize: "13.5px", color: T.soft, lineHeight: 1.65 }}>
-        <a href="/#packages" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
+        <Link href="/#packages" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
           See all packages
-        </a>
+        </Link>
         {tracked ? ` - ${tracked.priceLabel} for tracking alone, at 20 questions a week.` : "."}
       </p>
     </main>

@@ -53,7 +53,12 @@ export function DomainScreen(p: {
 }
 
 /* ── 2. Topic and market ── */
-export function TopicScreen(p: {
+// headingRef is destructured out of the props bag rather than read as
+// p.headingRef. The React Compiler treats a ref held anywhere in an object
+// as making every read of that object a ref access, so leaving it in `p`
+// flagged p.onBack, p.readOnly and even module-level style constants as
+// refs accessed during render.
+export function TopicScreen({ headingRef, ...p }: {
   brand: string | null; brandName?: string; onBrandName?: (v: string) => void;
   topic: string; onTopic?: (v: string) => void;
   market: Market; onMarket?: (m: Market) => void;
@@ -64,7 +69,7 @@ export function TopicScreen(p: {
   const canRun = p.topic.trim() && (p.brand || (p.brandName ?? "").trim());
   return (
     <form onSubmit={p.onSubmit ?? ((e) => e.preventDefault())} noValidate>
-      <h2 ref={p.headingRef} tabIndex={-1} style={{ fontSize: "1rem", fontWeight: 700, color: T.ink, margin: "0 0 1rem", outline: "none", lineHeight: 1.45 }}>
+      <h2 ref={headingRef} tabIndex={-1} style={{ fontSize: "1rem", fontWeight: 700, color: T.ink, margin: "0 0 1rem", outline: "none", lineHeight: 1.45 }}>
         {p.brand ? <>We read <span style={{ color: T.accent }}>{p.brand}</span> from the domain.</> : "Tell us what to check."}
       </h2>
       {!p.brand && (

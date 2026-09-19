@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { OG_IMAGE } from "@/config/og";
+import Link from "next/link";
 
 import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
 
@@ -169,7 +170,7 @@ export default function CoverageCheckPage() {
             </p>
           </div>
 
-          <a
+          <Link
             href="/#scan"
             style={{
               display: "block",
@@ -185,7 +186,7 @@ export default function CoverageCheckPage() {
             }}
           >
             Run the free scan instead
-          </a>
+          </Link>
         </div>
       </div>
 
@@ -236,9 +237,9 @@ export default function CoverageCheckPage() {
 
       <p style={{ margin: 0, fontSize: "13.5px", lineHeight: 1.65, color: T.soft }}>
         Built for PR teams who are tired of reporting reach.{" "}
-        <a href="/pr-agencies" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
+        <Link href="/pr-agencies" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
           See how agencies use it
-        </a>
+        </Link>
       </p>
     </main>
   );

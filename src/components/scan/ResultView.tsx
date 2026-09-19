@@ -4,6 +4,7 @@ import TierName from "@/components/TierName";
 import { CARD, MICRO, T } from "@/config/tokens";
 import type { RunScanResponse, ScanQuestion } from "@/lib/scan";
 import { ENGINE_SPECS, isEngine } from "@/lib/scan/engines";
+import Link from "next/link";
 
 /**
  * The result, free and unlocked, from Flow2Free.dc.html and Flow3Report.dc.html.
@@ -662,7 +663,7 @@ export default function ResultView(p: {
 
         {p.unlocked ? (
           <div style={{ marginTop: "14px", display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
-            <a
+            <Link
               href="/#packages"
               className="btn-primary"
               style={{
@@ -675,8 +676,8 @@ export default function ResultView(p: {
               }}
             >
               See what it costs
-            </a>
-            <a
+            </Link>
+            <Link
               href="/contact"
               style={{
                 background: T.surface,
@@ -691,7 +692,7 @@ export default function ResultView(p: {
               }}
             >
               Talk it through
-            </a>
+            </Link>
           </div>
         ) : null}
       </section>

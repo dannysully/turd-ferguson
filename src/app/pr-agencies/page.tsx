@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { OG_IMAGE } from "@/config/og";
+import Link from "next/link";
 
 import TierName from "@/components/TierName";
 import { TIERS } from "@/config/pricing";
@@ -129,7 +130,7 @@ export default function PrAgenciesPage() {
             <p style={{ margin: "5px 0 10px", fontSize: "13px", lineHeight: 1.55, color: T.soft }}>
               See which pieces the engines are actually reading, and what the answers said before you started.
             </p>
-            <a
+            <Link
               href="/coverage-check"
               style={{
                 display: "inline-block",
@@ -144,7 +145,7 @@ export default function PrAgenciesPage() {
               }}
             >
               Open the coverage checker
-            </a>
+            </Link>
           </div>
         </div>
       </div>
@@ -278,9 +279,9 @@ export default function PrAgenciesPage() {
 
       <p style={{ margin: 0, fontSize: "13.5px", color: T.soft, lineHeight: 1.65 }}>
         White-labelled throughout.{" "}
-        <a href="/#packages" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
+        <Link href="/#packages" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
           See all packages
-        </a>
+        </Link>
       </p>
     </main>
   );

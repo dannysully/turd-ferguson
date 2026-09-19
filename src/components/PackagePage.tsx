@@ -2,6 +2,7 @@ import TierName from "@/components/TierName";
 import { CONTACT_URL, TIERS, type Tier } from "@/config/pricing";
 import { ld, ORG_REF, SITE_REF, SITE_URL } from "@/config/schema";
 import { CARD, MICRO, SHELL, T } from "@/config/tokens";
+import Link from "next/link";
 
 /**
  * A package page, from PackageDetail.dc.html.
@@ -108,9 +109,9 @@ export default function PackagePage({
       />
       <div className="confirm-top">
         <div>
-          <a href="/#packages" style={{ fontSize: "13px", fontWeight: 600, textDecoration: "none", color: T.accent }}>
+          <Link href="/#packages" style={{ fontSize: "13px", fontWeight: 600, textDecoration: "none", color: T.accent }}>
             All packages
-          </a>
+          </Link>
           <div style={{ ...MICRO, marginTop: "18px" }}>Package</div>
           <h1
             style={{
@@ -151,7 +152,7 @@ export default function PackagePage({
           >
             {tier.basePrice === null ? "Book a partner call" : "Start a client"}
           </a>
-          <a
+          <Link
             href="/#scan"
             style={{
               display: "block",
@@ -168,7 +169,7 @@ export default function PackagePage({
             }}
           >
             Scan one first
-          </a>
+          </Link>
         </div>
       </div>
 
@@ -263,9 +264,9 @@ export default function PackagePage({
 
       <p style={{ margin: 0, fontSize: "13.5px", color: T.soft, lineHeight: 1.65 }}>
         Not sure which tier a client needs?{" "}
-        <a href="/#scan" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
+        <Link href="/#scan" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
           Run the free scan
-        </a>{" "}
+        </Link>{" "}
         - the source table usually answers it.
       </p>
     </section>

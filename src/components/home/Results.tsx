@@ -1,4 +1,5 @@
 import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
+import Link from "next/link";
 
 /**
  * The evidence. No board covers this - the five homepage boards scope the
@@ -90,7 +91,7 @@ export default function Results() {
           ))}
         </div>
 
-        <a
+        <Link
           href="/case-studies/vibe-retail"
           style={{
             display: "inline-flex",
@@ -107,7 +108,7 @@ export default function Results() {
           <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
             <path d="M3 8h10M9 3l5 5-5 5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-        </a>
+        </Link>
       </div>
 
       <div className="on-dark" style={{ background: T.ink, borderRadius: "18px", padding: "32px 40px", marginTop: "20px" }}>
