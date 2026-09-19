@@ -48,7 +48,15 @@ export const FAQS: Faq[] = [
   {
     q: "Why is there no search volume anywhere in this?",
     hint: "Because it is zero on the questions that matter",
-    a: "Search volume indexes keyword-shaped queries. What a buyer actually types into an engine is a sentence - eleven words, a budget, a constraint, a deadline - and those return nothing. On a real scan we ran in September, all fourteen questions came back at zero volume, and those fourteen were the ones deciding who got recommended. A column that reads zero on every row is not a measure. So we track the questions nearest the decision and report whether you were named in the answer, which is the thing that changes what someone buys.",
+    // "all fourteen ... those fourteen" was a typed question count, twice, in
+    // the one answer on this page that reports a real reading. It is not
+    // fixable by substituting QUESTIONS: this sentence describes a scan that
+    // ran in September and asked the number of questions it asked, so a live
+    // constant would restate a past reading with a future number, which is the
+    // worse of the two errors. The count is not what the answer turns on -
+    // every row reading zero is - so it comes out and the claim stops being
+    // able to drift at all.
+    a: "Search volume indexes keyword-shaped queries. What a buyer actually types into an engine is a sentence - eleven words, a budget, a constraint, a deadline - and those return nothing. On a real scan we ran in September, every question came back at zero volume, and those were the ones deciding who got recommended. A column that reads zero on every row is not a measure. So we track the questions nearest the decision and report whether you were named in the answer, which is the thing that changes what someone buys.",
   },
   {
     q: "Then how do you choose which questions to track?",

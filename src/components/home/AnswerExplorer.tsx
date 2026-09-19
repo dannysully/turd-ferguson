@@ -18,6 +18,19 @@ import { type WorkedQuestionId, workedQuestion } from "@/config/worked-example";
  * not a reading of one.
  */
 
+/**
+ * The "cited on N of the QUESTIONS questions" numerator, counted off the same
+ * constant as its denominator.
+ *
+ * The denominator was derived in 1408c89 and the 7 beside it was left typed,
+ * which leaves the pair able to become arithmetic no scan can produce: shorten
+ * the free pass below seven and the homepage reads "cited on 7 of the 5
+ * questions". Half the set is what this row has always illustrated, and half
+ * of QUESTIONS is what it says now - the same 7 today, and still a possible
+ * reading whatever QUESTIONS becomes.
+ */
+const EXAMPLE_CITED_ON = Math.round(QUESTIONS * 0.5);
+
 const pill = (bg: string, fg: string): React.CSSProperties => ({
   fontSize: "11px",
   fontWeight: 600,
@@ -71,7 +84,7 @@ const DATA: Row[] = [
         // questions", "five answers draw on it" - and this row was counting
         // questions under the word answers. Read off QUESTIONS for the same
         // reason config/scan-shape.ts exists.
-        why: `Cited on 7 of the ${QUESTIONS} questions and it is an editorial listicle, so inclusion is a conversation rather than a rebuild.`,
+        why: `Cited on ${EXAMPLE_CITED_ON} of the ${QUESTIONS} questions and it is an editorial listicle, so inclusion is a conversation rather than a rebuild.`,
       },
       {
         mode: "Create",

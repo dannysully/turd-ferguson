@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import TierName from "@/components/TierName";
 import { TIERS } from "@/config/pricing";
+import { FREE_ANSWERS } from "@/config/scan-shape";
 import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
 
 export const metadata: Metadata = {
@@ -46,6 +47,23 @@ const ANSWERS: { k: string; q: string }[] = [
   { k: "Objection question", q: "is [Brand] easy to set up" },
 ];
 
+/**
+ * The example report line, counted rather than typed.
+ *
+ * The denominator was the literal 56 - question count times engine count,
+ * the exact figure `config/scan-shape.ts` exists to own, typed into the one
+ * sentence on this page that shows an agency what our reporting looks like.
+ * Shorten the free pass and this page kept quoting a denominator no scan
+ * produces, in the sentence it tells a PR director to take to their board.
+ *
+ * The numerator is a share of the denominator for the same reason, not to
+ * claim precision: it is an illustration of the shape of the line, and the
+ * one property that has to hold is that it stays a possible reading. Typed,
+ * a 22 survives a free pass that drops below 22 answers and becomes
+ * arithmetic nobody can get to.
+ */
+const EXAMPLE_NAMED = Math.round(FREE_ANSWERS * 0.4);
+
 const CHANGES: { label: string; body: string }[] = [
   {
     label: "Target list",
@@ -53,7 +71,12 @@ const CHANGES: { label: string; body: string }[] = [
   },
   {
     label: "Reporting",
-    body: '"Named in 22 of 56 AI answers, from nothing before the campaign" is a sentence a marketing director can take to their board. Reach and AVE are not.',
+    body:
+      '"Named in ' +
+      EXAMPLE_NAMED +
+      " of " +
+      FREE_ANSWERS +
+      ' AI answers, from nothing before the campaign" is a sentence a marketing director can take to their board. Reach and AVE are not.',
   },
   {
     label: "Retention",
