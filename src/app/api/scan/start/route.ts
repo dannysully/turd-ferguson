@@ -1,6 +1,6 @@
 import { after } from "next/server";
 
-import { readBrand } from "@/lib/scan/anthropic";
+import { describeAnthropicError, readBrand } from "@/lib/scan/anthropic";
 import { readSite, UnreachableDomain } from "@/lib/scan/crawl";
 import { isMarket, isPlausibleDomain, normalizeDomain } from "@/lib/scan/domain";
 import { estimateScanCost } from "@/lib/scan/engine-costs";
@@ -118,6 +118,13 @@ export async function POST(req: Request) {
     if (err instanceof UnreachableDomain) {
       return fail(422, "unreachable", `We could not read ${domain}. Check the address and try again.`);
     }
+    // Logged rather than swallowed. These two failures look identical to a
+    // visitor and are nothing alike: 422 is a site we could not fetch, and
+    // this is a site we fetched and then could not read. One of those is ours.
+    // nomadadigital.co.uk produced this on 19 Sep and it was the language
+    // model returning 529, not the site - which is unreadable from the
+    // response alone unless the reason is written down.
+    console.warn(`[scan] read failed for ${domain}: ${describeAnthropicError(err)}`);
     return fail(502, "read_failed", "We could not read that site just now. Please try again.");
   }
 

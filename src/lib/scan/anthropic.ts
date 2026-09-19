@@ -72,7 +72,9 @@ const BrandRead = z.object({
 export type BrandRead = z.infer<typeof BrandRead>;
 
 export async function readBrand(siteText: string): Promise<BrandRead> {
-  const res = await anthropic().messages.parse({
+  // Retried for the same reason the question set is: this is the first thing a
+  // visitor does, and a 529 here reads to them as "your site cannot be read".
+  const res = await withRetry(() => anthropic().messages.parse({
     model: MODEL,
     max_tokens: 4000,
     output_config: { effort: EFFORT, format: zodOutputFormat(BrandRead) },
@@ -107,7 +109,7 @@ export async function readBrand(siteText: string): Promise<BrandRead> {
       "Set confidence to low when the site does not make the category clear.",
     ].join("\n"),
     messages: [{ role: "user", content: `Website text:\n\n${siteText}` }],
-  });
+  }));
 
   const out = res.parsed_output;
   if (!out) throw new Error("could not read the brand from that site");

@@ -109,7 +109,13 @@ export default function ConfirmScreen(p: {
   const [clusters, setClusters] = useState<string[]>([]);
   const [dropped, setDropped] = useState<Set<string>>(new Set());
 
-  const [writing, setWriting] = useState(false);
+  /**
+   * True from the first paint when there is a category to work from, because
+   * that is when the request is about to fire. Starting at false rendered
+   * "tell us the category above" for one frame under a field that already had
+   * one, which is the wrong thing to say to somebody who is waiting.
+   */
+  const [writing, setWriting] = useState(p.initialTopic.trim().length >= 2);
   const [error, setError] = useState("");
   /** The topic and market the set on screen was written for. */
   const [writtenFor, setWrittenFor] = useState<{ topic: string; market: Market } | null>(null);
