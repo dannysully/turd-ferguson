@@ -154,13 +154,44 @@ export default function ConfirmScreen(p: {
     [p.token, p.variants],
   );
 
-  // Written once, on arrival, when the site gave us a category to work from.
-  // A site that did not is left with an empty field rather than a guess, so
-  // there is nothing to write yet.
+  /**
+   * Written once, on arrival, when the site gave us a category to work from.
+   * A site that did not is left with an empty field rather than a guess, so
+   * there is nothing to write yet.
+   *
+   * On the disable below, because this was the last lint error in the project
+   * and it is worth saying why it is not a defect rather than leaving it to be
+   * re-litigated every run.
+   *
+   * react-hooks/set-state-in-effect is aimed at cascading renders: an effect
+   * that sets state, causing a render, causing the effect again. That cannot
+   * happen here, and it is provable rather than argued. `write` opens with
+   * setWriting(true) and setError(""), and on the only path this effect takes:
+   *
+   * - `writing` is initialised to `p.initialTopic.trim().length >= 2`, which
+   *   is the same condition guarding the call. So it is already true.
+   * - `error` is initialised to "", which is what it is set to.
+   *
+   * Both are therefore no-op sets, and React bails out of re-rendering when
+   * setState is given the value it already holds. The rule flags it because it
+   * cannot see the coupling between the useState initialiser twenty lines up
+   * and the guard on this line - and that coupling is deliberate, written to
+   * stop the screen saying "tell us the category above" for one frame under a
+   * field that already had one.
+   *
+   * The run-once ref is the other half: the effect re-runs when `write` is
+   * rebuilt, and without the guard a second request would fire mid-typing.
+   *
+   * Restructuring to satisfy the rule - deferring the call into a microtask,
+   * say - would add a frame of nothing on the first screen of the funnel to
+   * silence a warning about a render that does not occur. Narrowed to this one
+   * line so the rule stays live everywhere else.
+   */
   const started = useRef(false);
   useEffect(() => {
     if (started.current) return;
     started.current = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- see above: both sets are no-ops on this path
     if (p.initialTopic.trim().length >= 2) void write(p.initialTopic, p.initialMarket);
   }, [p.initialTopic, p.initialMarket, write]);
 
