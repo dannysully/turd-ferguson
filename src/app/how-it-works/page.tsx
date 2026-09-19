@@ -4,7 +4,7 @@ import CtaSection from "@/components/CtaSection";
 export const metadata: Metadata = {
   title: "How AI Search Citations Are Engineered",
   description:
-    "The exact mechanism alwayscited uses to engineer AI Overview and ChatGPT citations for B2B brands — listicle placements, on-site AEO content, and anchored authority transfer.",
+    "The exact mechanism alwayscited uses to engineer AI Overview and ChatGPT citations for B2B brands - listicle placements, on-site AEO content, and anchored authority transfer.",
   alternates: { canonical: "https://alwayscited.com/how-it-works" },
   openGraph: {
     title: "How AI Search Citations Are Engineered | alwayscited",
@@ -19,7 +19,7 @@ const articleSchema = {
   "@type": "Article",
   headline: "How AI search citations are engineered",
   description:
-    "The pattern most agencies haven't seen yet — how alwayscited engineers AI Overview and LLM citations through strategic listicle placements and AEO-structured content.",
+    "The pattern most agencies haven't seen yet - how alwayscited engineers AI Overview and LLM citations through strategic listicle placements and AEO-structured content.",
   url: "https://alwayscited.com/how-it-works",
   author: { "@type": "Organization", name: "alwayscited" },
   publisher: {
@@ -85,14 +85,14 @@ export default function HowItWorksPage() {
         </div>
       </section>
 
-      {/* Section 1 — The mechanism */}
+      {/* Section 1 - The mechanism */}
       <section style={{ background: "#ffffff" }}>
         <div className="mx-auto max-w-[1100px] px-6 py-24">
           <H>Why LLMs cite the sources they cite.</H>
           <Body>
             When a buyer asks ChatGPT or Google&apos;s AI Overview &ldquo;what&apos;s the best [category] tool?&rdquo;,
             the AI doesn&apos;t independently evaluate platforms. It cites a ranked list from a
-            publication it considers authoritative. That&apos;s the mechanism — and it&apos;s a deliberately
+            publication it considers authoritative. That&apos;s the mechanism - and it&apos;s a deliberately
             exploitable one. LLMs and AI Overviews lean heavily on up-to-date &ldquo;best of&rdquo; listicles
             published on high-authority domains. The brand cited at position #1 in those listicles
             is the brand the AI repeats back to the buyer. Most agencies haven&apos;t internalised this
@@ -101,13 +101,13 @@ export default function HowItWorksPage() {
         </div>
       </section>
 
-      {/* Section 2 — Two-pronged outcome */}
+      {/* Section 2 - Two-pronged outcome */}
       <section style={{ background: "#F5F5F4" }}>
         <div className="mx-auto max-w-[1100px] px-6 py-24">
           <H>One placement, two channels.</H>
           <Body>
             The same listicle placements that capture AI Overview citations are the highest-authority
-            backlinks available — pages with real organic traffic in your exact niche carry
+            backlinks available - pages with real organic traffic in your exact niche carry
             significantly more ranking weight than generic high-DR placements without topical
             relevance. Every placement we secure does two jobs: gets the brand cited by AI, and pulls
             product pages up Google&apos;s traditional rankings. One campaign, two outcomes, same investment.
@@ -115,7 +115,7 @@ export default function HowItWorksPage() {
         </div>
       </section>
 
-      {/* Section 3 — Campaign structure */}
+      {/* Section 3 - Campaign structure */}
       <section style={{ background: "#ffffff" }}>
         <div className="mx-auto max-w-[1100px] px-6 py-24">
           <H>What we actually do.</H>
@@ -130,7 +130,7 @@ export default function HowItWorksPage() {
             {[
               {
                 heading: "Listicle placements on high-authority domains in your niche.",
-                body: "Editorial placements where your brand is positioned as the top recommendation on merit — not paid promotion dressed up as editorial.",
+                body: "Editorial placements where your brand is positioned as the top recommendation on merit - not paid promotion dressed up as editorial.",
               },
               {
                 heading: "AEO-engineered on-site content.",
@@ -138,7 +138,7 @@ export default function HowItWorksPage() {
               },
               {
                 heading: "Anchored authority transfer.",
-                body: "Every external placement carries two contextual links — one to your homepage, one to the relevant on-site page — so authority flows where it converts.",
+                body: "Every external placement carries two contextual links - one to your homepage, one to the relevant on-site page - so authority flows where it converts.",
               },
             ].map(({ heading, body }) => (
               <div
@@ -167,13 +167,13 @@ export default function HowItWorksPage() {
         </div>
       </section>
 
-      {/* Section 4 — Same-day proof */}
+      {/* Section 4 - Same-day proof */}
       <section style={{ background: "#F5F5F4" }}>
         <div className="mx-auto max-w-[1100px] px-6 py-24">
           <H>We do this on demand.</H>
           <Body>
             The most recent placement we secured for a client went live in the morning. By that
-            evening, Google&apos;s AI Overview was already pulling it to the top of the response — naming
+            evening, Google&apos;s AI Overview was already pulling it to the top of the response - naming
             our client as Best Overall in their category. That kind of velocity isn&apos;t a side effect
             of traditional SEO. It&apos;s an engineered outcome. It only works when the placement is
             structured for AI consumption from the outset, on a domain the AI already considers
@@ -182,7 +182,7 @@ export default function HowItWorksPage() {
         </div>
       </section>
 
-      {/* Section 5 — Comparison table */}
+      {/* Section 5 - Comparison table */}
       <section style={{ background: "#ffffff" }}>
         <div className="mx-auto max-w-[1100px] px-6 py-24">
           <H>How alwayscited compares.</H>

@@ -38,7 +38,7 @@ const faqSchema = {
       name: "Is AEO replacing SEO?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "No — AEO is layering on top of SEO. The same placements that drive AI Overview citations are also high-authority backlinks that improve traditional search rankings. The two channels reinforce each other; they don't substitute.",
+        text: "No - AEO is layering on top of SEO. The same placements that drive AI Overview citations are also high-authority backlinks that improve traditional search rankings. The two channels reinforce each other; they don't substitute.",
       },
     },
     {
@@ -46,7 +46,7 @@ const faqSchema = {
       name: "Can I do AEO myself?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Some of it — yes. You can structure your on-site content for AI Overview capture (FAQ schema, question-format H2s, comparison tables, opening paragraphs tuned to query phrasing). What you can't easily do alone is secure listicle placements on high-authority domains in your niche. That's relationship-led editorial work that takes years of publisher network building to do at any scale.",
+        text: "Some of it - yes. You can structure your on-site content for AI Overview capture (FAQ schema, question-format H2s, comparison tables, opening paragraphs tuned to query phrasing). What you can't easily do alone is secure listicle placements on high-authority domains in your niche. That's relationship-led editorial work that takes years of publisher network building to do at any scale.",
       },
     },
     {
@@ -62,7 +62,7 @@ const faqSchema = {
       name: "How do you measure AEO results?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Across two measurements. First: citation rate across a tracked prompt set — typically 20-30 prompts that buyers in the client's category would actually ask, run weekly across ChatGPT, Perplexity, and Claude. Second: AI Overview citation status on commercial-intent queries — a binary check for whether the client appears as a top citation when the target query is run on Google.",
+        text: "Across two measurements. First: citation rate across a tracked prompt set - typically 20-30 prompts that buyers in the client's category would actually ask, run weekly across ChatGPT, Perplexity, and Claude. Second: AI Overview citation status on commercial-intent queries - a binary check for whether the client appears as a top citation when the target query is run on Google.",
       },
     },
     {
@@ -70,7 +70,7 @@ const faqSchema = {
       name: "What does AEO cost?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Pricing varies by category and competitive set. As a benchmark, AEO retainers typically start at $3,000-5,000/month for a focused single-product engagement, scaling up to $15,000-30,000/month for multi-product or multi-market campaigns. Most agencies running real AEO work — not audits — operate on a performance-linked basis.",
+        text: "Pricing varies by category and competitive set. As a benchmark, AEO retainers typically start at $3,000-5,000/month for a focused single-product engagement, scaling up to $15,000-30,000/month for multi-product or multi-market campaigns. Most agencies running real AEO work - not audits - operate on a performance-linked basis.",
       },
     },
   ],
@@ -79,11 +79,11 @@ const faqSchema = {
 const faqs = [
   {
     q: "Is AEO replacing SEO?",
-    a: "No — AEO is layering on top of SEO. The same placements that drive AI Overview citations are also high-authority backlinks that improve traditional search rankings. The two channels reinforce each other; they don't substitute.",
+    a: "No - AEO is layering on top of SEO. The same placements that drive AI Overview citations are also high-authority backlinks that improve traditional search rankings. The two channels reinforce each other; they don't substitute.",
   },
   {
     q: "Can I do AEO myself?",
-    a: "Some of it — yes. You can structure your on-site content for AI Overview capture (FAQ schema, question-format H2s, comparison tables, opening paragraphs tuned to query phrasing). What you can't easily do alone is secure listicle placements on high-authority domains in your niche. That's relationship-led editorial work that takes years of publisher network building to do at any scale.",
+    a: "Some of it - yes. You can structure your on-site content for AI Overview capture (FAQ schema, question-format H2s, comparison tables, opening paragraphs tuned to query phrasing). What you can't easily do alone is secure listicle placements on high-authority domains in your niche. That's relationship-led editorial work that takes years of publisher network building to do at any scale.",
   },
   {
     q: "Which AI search systems matter most for B2B?",
@@ -91,11 +91,11 @@ const faqs = [
   },
   {
     q: "How do you measure AEO results?",
-    a: "Across two measurements. First: citation rate across a tracked prompt set — typically 20-30 prompts that buyers in the client's category would actually ask, run weekly across ChatGPT, Perplexity, and Claude. Second: AI Overview citation status on commercial-intent queries — a binary check for whether the client appears as a top citation when the target query is run on Google.",
+    a: "Across two measurements. First: citation rate across a tracked prompt set - typically 20-30 prompts that buyers in the client's category would actually ask, run weekly across ChatGPT, Perplexity, and Claude. Second: AI Overview citation status on commercial-intent queries - a binary check for whether the client appears as a top citation when the target query is run on Google.",
   },
   {
     q: "What does AEO cost?",
-    a: "Pricing varies by category and competitive set. As a benchmark, AEO retainers typically start at $3,000-5,000/month for a focused single-product engagement, scaling up to $15,000-30,000/month for multi-product or multi-market campaigns. Most agencies running real AEO work — not audits — operate on a performance-linked basis.",
+    a: "Pricing varies by category and competitive set. As a benchmark, AEO retainers typically start at $3,000-5,000/month for a focused single-product engagement, scaling up to $15,000-30,000/month for multi-product or multi-market campaigns. Most agencies running real AEO work - not audits - operate on a performance-linked basis.",
   },
 ];
 
@@ -160,7 +160,7 @@ export default function WhatIsAEOPage() {
         </div>
       </section>
 
-      {/* Opening paragraph — engineered for AI Overview capture */}
+      {/* Opening paragraph - engineered for AI Overview capture */}
       <section style={{ background: "#ffffff" }}>
         <div className="mx-auto max-w-[1100px] px-6 py-16">
           <p
@@ -174,7 +174,7 @@ export default function WhatIsAEOPage() {
             }}
           >
             AEO (Answer Engine Optimisation) is the practice of optimising content and editorial
-            placements to be cited by AI search systems — including Google&apos;s AI Overview, ChatGPT,
+            placements to be cited by AI search systems - including Google&apos;s AI Overview, ChatGPT,
             Perplexity, and Claude. Where traditional SEO targets ranking positions on a search
             results page, AEO targets the citations inside the AI-generated answer itself. The
             mechanics are different: AI systems weight editorial authority and topical relevance
@@ -192,10 +192,10 @@ export default function WhatIsAEOPage() {
           <H2>How is AEO different from SEO?</H2>
           <Prose>
             SEO and AEO target different surfaces. SEO targets the search engine results page
-            (SERP) — the ten blue links and featured snippets that appear when you run a Google
+            (SERP) - the ten blue links and featured snippets that appear when you run a Google
             query. AEO targets the AI-generated response that increasingly appears above or instead
             of those links: Google&apos;s AI Overview, ChatGPT&apos;s answer, Perplexity&apos;s summary. The
-            buyer journey is different as a result — SEO assumes the buyer clicks a result and
+            buyer journey is different as a result - SEO assumes the buyer clicks a result and
             lands on your website. AEO assumes the buyer reads the AI&apos;s answer and may never click
             anything at all.
           </Prose>
@@ -204,15 +204,15 @@ export default function WhatIsAEOPage() {
             The measurement frameworks are different too. SEO is measured in keyword rankings,
             organic traffic, and conversions from organic. AEO is measured in citation rate across
             a tracked prompt set, and AI Overview citation status on commercial-intent queries. A
-            #1 Google ranking and a 100% ChatGPT citation rate are both valuable — but they
+            #1 Google ranking and a 100% ChatGPT citation rate are both valuable - but they
             measure different things and are pursued through different mechanisms.
           </Prose>
           <br />
           <Prose>
             In practice, the two channels overlap more than they compete. The editorial placements
             that drive AI Overview citations are also high-quality backlinks for SEO purposes. The
-            on-site content structured for AEO — question-format H2s, comparison tables, FAQ
-            schema — also improves traditional rankings. Both matter, and the most effective
+            on-site content structured for AEO - question-format H2s, comparison tables, FAQ
+            schema - also improves traditional rankings. Both matter, and the most effective
             campaigns move both simultaneously. See{" "}
             <a href="/how-it-works" style={{ color: "#D85A30" }}>
               how we run those campaigns
@@ -230,15 +230,15 @@ export default function WhatIsAEOPage() {
             LLMs and AI Overviews don&apos;t evaluate products independently. They identify which
             publications they consider authoritative on a given topic, and then surface the brands
             recommended by those publications. When a buyer asks ChatGPT &ldquo;what&apos;s the best retail
-            POS system?&rdquo; the AI doesn&apos;t run its own product evaluation — it cites a ranked list
+            POS system?&rdquo; the AI doesn&apos;t run its own product evaluation - it cites a ranked list
             from a publication it trusts. The brand at position #1 in that list is the brand the
             AI returns.
           </Prose>
           <br />
           <Prose>
             This means topical relevance of the source matters more than raw domain authority. A
-            niche trade publication focused on retail technology — even with modest overall
-            authority metrics — will outperform a generic high-DA technology publication for retail
+            niche trade publication focused on retail technology - even with modest overall
+            authority metrics - will outperform a generic high-DA technology publication for retail
             POS queries. AI systems weight specialisation over scale.
           </Prose>
           <br />
@@ -246,7 +246,7 @@ export default function WhatIsAEOPage() {
             Recency matters significantly. Content updated within the last 6-12 months is weighted
             more heavily than older content. An authoritative &ldquo;best of&rdquo; listicle that was last
             updated two years ago carries less citation weight than a current one on the same
-            domain. This is why placement campaigns need fresh editorial coverage — not just
+            domain. This is why placement campaigns need fresh editorial coverage - not just
             historical mentions.
           </Prose>
         </div>
@@ -257,7 +257,7 @@ export default function WhatIsAEOPage() {
         <div className="mx-auto max-w-[1100px] px-6 py-24">
           <H2>Can AEO results be engineered intentionally?</H2>
           <Prose>
-            Yes — by securing placements on the specific publications that AI systems are already
+            Yes - by securing placements on the specific publications that AI systems are already
             citing in a given category. This isn&apos;t a vague &ldquo;create good content&rdquo; recommendation.
             It&apos;s a specific mechanism: identify the publications the AI already trusts for the
             target category, secure editorial placements on those publications with the brand
@@ -267,7 +267,7 @@ export default function WhatIsAEOPage() {
           <br />
           <Prose>
             The evidence that this is engineerable: we have secured same-day AI Overview citations
-            for clients — a placement goes live in the morning, and by that evening the AI is
+            for clients - a placement goes live in the morning, and by that evening the AI is
             citing it. That velocity doesn&apos;t happen by accident. It happens when the placement is
             on a domain the AI already trusts, in a topic cluster the AI is already attempting to
             answer, with the brand positioned correctly within the editorial structure of the piece.
@@ -301,7 +301,7 @@ export default function WhatIsAEOPage() {
             The reason AEO moves faster is structural. SEO requires building trust over time
             through accumulating link signals, user engagement data, and indexation history. AEO
             works by placing content on publications the AI already considers trustworthy. The
-            trust is already there — the placement activates it. As long as the editorial
+            trust is already there - the placement activates it. As long as the editorial
             placement is correctly structured and on the right domain, the citation can appear
             within hours of publication.
           </Prose>
@@ -315,7 +315,7 @@ export default function WhatIsAEOPage() {
         </div>
       </section>
 
-      {/* Section 5 — Comparison table */}
+      {/* Section 5 - Comparison table */}
       <section style={{ background: "#F5F5F4" }}>
         <div className="mx-auto max-w-[1100px] px-6 py-24">
           <H2>AEO vs SEO at a glance.</H2>
@@ -366,7 +366,7 @@ export default function WhatIsAEOPage() {
                   { row: "Time to first result", seo: "3-6 months", aeo: "1-4 weeks" },
                   { row: "Measurement", seo: "Keyword rankings", aeo: "Citation rate across tracked prompts" },
                   { row: "Buyer touchpoint", seo: "Click required", aeo: "Information delivered without click" },
-                  { row: "Investment compounds", seo: "Yes — slowly", aeo: "Yes — quickly with the right placements" },
+                  { row: "Investment compounds", seo: "Yes - slowly", aeo: "Yes - quickly with the right placements" },
                 ].map(({ row, seo, aeo }) => (
                   <tr key={row} style={{ borderBottom: "1px solid #B4B2A9" }}>
                     <td
@@ -390,7 +390,7 @@ export default function WhatIsAEOPage() {
         </div>
       </section>
 
-      {/* Section 6 — FAQ */}
+      {/* Section 6 - FAQ */}
       <section style={{ background: "#ffffff" }}>
         <div className="mx-auto max-w-[1100px] px-6 py-24">
           <H2>Frequently asked questions about AEO.</H2>
