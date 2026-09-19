@@ -861,3 +861,30 @@ details > summary { list-style: none; }
 @media (max-width: 860px) {
   .deliverable { grid-template-columns: 1fr; row-gap: 6px; }
 }
+
+/* The case study: at-a-glance pairs, cited questions and keyword rows. */
+.cs-glance {
+  margin: 12px 0 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 20px;
+  row-gap: 9px;
+}
+.cs-cite {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  column-gap: 16px;
+  padding: 12px 20px;
+  align-items: baseline;
+}
+.cs-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 11px 0;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+@media (max-width: 860px) {
+  .cs-cite { grid-template-columns: 1fr; row-gap: 4px; }
+}
