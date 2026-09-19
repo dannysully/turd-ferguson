@@ -27,7 +27,9 @@ export default async function ScanTokenPage({ params }: { params: Promise<{ toke
   const db = supabaseAdmin();
   const { data: scan } = await db
     .from("scans")
-    .select("id, brand_name, domain, positioning, topic, topic_variants, market, status, engines, gated_engines, unlocked_at")
+    .select(
+      "id, brand_name, domain, positioning, topic, topic_variants, market, status, engines, gated_engines, gated_status, unlocked_at",
+    )
     .eq("public_token", token)
     .maybeSingle();
 
@@ -97,6 +99,19 @@ export default async function ScanTokenPage({ params }: { params: Promise<{ toke
   const variants = (scan.topic_variants as string[] | null) ?? [];
   const engines = (scan.engines as string[] | null) ?? [];
   const gated = (scan.gated_engines as string[] | null) ?? [];
+  /**
+   * How far the gated pass has got, read here rather than defaulted in the
+   * browser.
+   *
+   * The verify link calls completeUnlock, which stamps gated_status 'queued'
+   * and starts the pass in after(), then redirects straight here - so this
+   * page renders, every time, while that pass is queued or running. The client
+   * assumed "none" and only learned otherwise from the /full fetch, which a
+   * server-rendered report does not make. The banner therefore told the reader
+   * the gated engines had not run, on the one screen the email exists to
+   * deliver, and never took it back.
+   */
+  const gatedStatus = (scan.gated_status as string | null) ?? "none";
   const market = isMarket(scan.market) ? scan.market : "UK";
 
   return (
@@ -114,6 +129,7 @@ export default async function ScanTokenPage({ params }: { params: Promise<{ toke
       initialFull={full}
       unlocked={unlocked}
       gatedEngines={gated}
+      initialGatedStatus={gatedStatus}
       initialOppCount={oppCount}
     />
   );

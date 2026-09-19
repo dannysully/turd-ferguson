@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { QUESTIONS } from "@/config/scan-shape";
 import { MICRO, SHELL, T } from "@/config/tokens";
 import type {
   EngineAnswer,
@@ -224,7 +225,15 @@ function toResult(t: Teaser, domain: string, full: FullPayload | null): RunScanR
     },
     engines: toBreakdown(t.by_engine),
     top_source: top ? { domain: top.source, brand_present: top.is_own_domain } : null,
-    leaderboard: leaderboard.map((b) => ({ brand: b.brand, mentions: b.mentions, ai_search_volume: null })),
+    // is_subject is carried rather than dropped: the view used to re-derive it
+    // by comparing spellings against brand.name, which is a second judge of a
+    // fact the server already settled. See LeaderboardEntry.
+    leaderboard: leaderboard.map((b) => ({
+      brand: b.brand,
+      mentions: b.mentions,
+      ai_search_volume: null,
+      is_subject: b.is_subject,
+    })),
     sources: sourceRows.map((s) => ({
       domain: s.source,
       mentions: s.mentions,
@@ -338,6 +347,19 @@ export default function ScanFlow(p: {
    * zero and is not the same thing.
    */
   initialOppCount?: number | null;
+  /**
+   * The gated pass as the server found it on the row.
+   *
+   * This defaulted to "none" and was only ever corrected by the /full fetch -
+   * which a server-rendered report never makes, because `full` is already in
+   * the page. So the primary unlock path was the broken one: the verify link
+   * queues the gated pass, redirects here, and the first thing the reader was
+   * told is that those engines "have not run for this scan". The poll below
+   * only starts on queued or running, so nothing corrected it either; the pass
+   * finished, the answers landed in the database, and the page kept saying it
+   * had not happened until somebody reloaded.
+   */
+  initialGatedStatus?: string;
 }) {
   const [phase, setPhase] = useState<Phase>(
     p.status === "complete" ? "result" : p.status === "queued" || p.status === "running" ? "running" : "confirm",
@@ -353,7 +375,7 @@ export default function ScanFlow(p: {
   const [teaser, setTeaser] = useState<Teaser | null>(p.initialTeaser ?? null);
   const [full, setFull] = useState<FullPayload | null>(p.initialFull ? asFull(p.initialFull) : null);
   const [gatedEngines, setGatedEngines] = useState<string[]>(p.gatedEngines);
-  const [gatedStatus, setGatedStatus] = useState<string>("none");
+  const [gatedStatus, setGatedStatus] = useState<string>(p.initialGatedStatus ?? "none");
   /**
    * How many placement opportunities are waiting behind the gate. Fetched on
    * its own, from a route that returns counts and nothing else, so a locked
@@ -574,7 +596,17 @@ export default function ScanFlow(p: {
       if (!res.ok) return data.message ?? "We could not start that check.";
 
       if (data.status === "complete") {
+        /**
+         * The confirm route answering "complete" is the domain cache handing
+         * back a scan for this (domain, market) that has already run. It is a
+         * completed scan like any other and the poll's counterpart event
+         * already carries `cached: false`, so this one was simply missing -
+         * every cache hit finished the funnel without firing scan_completed at
+         * all, which understates completions by exactly the scans that cost
+         * nothing to serve.
+         */
         setPhase("result");
+        track("scan_completed", { cached: true });
         return null;
       }
       setProgress(0);
@@ -712,7 +744,9 @@ export default function ScanFlow(p: {
         "."
       : gatedEngines.length
         ? "We will run the same " +
-          (result?.brand.of ?? 14) +
+          // This scan's own count when we have it; the shape the product asks
+          // for when we do not. Never a 14 typed here - see config/scan-shape.
+          (result?.brand.of ?? QUESTIONS) +
           " questions through " +
           engineNames +
           " as well, and show you which of the " +
