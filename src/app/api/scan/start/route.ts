@@ -107,11 +107,36 @@ export async function POST(req: Request) {
 
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-  const { count: todayCount } = await db
+  /**
+   * A ceiling that could not be read has not been cleared.
+   *
+   * The error was discarded here, and a failed count comes back null, so
+   * `?? 0` stated "nothing has run today" as a fact whenever the read did not
+   * answer - and the cap it guards was simply off for as long as that lasted.
+   * The direction matters: the hour this fails in is an hour the database is
+   * unwell, which is the same hour every request below still pays Anthropic for
+   * a site read before reaching an insert that will fail. So the ceiling went
+   * blind exactly when it was the only thing left, which is the shape
+   * `anthropicCallsSince` was already fixed for.
+   *
+   * Refused rather than allowed, and it is not a new trade for this route: the
+   * three ceilings around it - getSettings, spentSince, anthropicCallsSince -
+   * all throw on a read that fails and so already refuse the scan. These two
+   * were the outliers, with nothing written down to say why.
+   *
+   * Its own code, not "capped". The cap was not hit; we could not find out
+   * whether it was, and a log that cannot tell those apart sends whoever reads
+   * it to the wrong question.
+   */
+  const { count: todayCount, error: todayErr } = await db
     .from("scans")
     .select("id", { count: "exact", head: true })
     .eq("is_tracking_run", false)
     .gte("created_at", since);
+  if (todayErr) {
+    console.warn("[scan] could not count today's scans, so the daily cap is unverified: " + todayErr.message);
+    return fail(503, "cap_unreadable", "We could not start that scan just now. Please try again in a moment.");
+  }
   if ((todayCount ?? 0) >= settings.daily_scan_cap) {
     return fail(503, "capped", "We have hit today's scan limit. We will be back shortly.");
   }
@@ -150,11 +175,24 @@ export async function POST(req: Request) {
     return fail(503, "capped", "We have hit today's scan limit. We will be back shortly.");
   }
 
-  const { count: ipCount } = await db
+  /**
+   * The per-IP limit, refused rather than waved through when it cannot be read.
+   *
+   * Same defect as the daily cap above and the same fix, with one difference in
+   * what the visitor is told: 429 "you have used today's free scans" would be a
+   * statement about them that we have no basis for. We do not know how many
+   * they have used - that is the whole failure - so this answers the same 503 as
+   * the cap above rather than accusing them of something unmeasured.
+   */
+  const { count: ipCount, error: ipErr } = await db
     .from("scans")
     .select("id", { count: "exact", head: true })
     .eq("ip_hash", ipHash)
     .gte("created_at", since);
+  if (ipErr) {
+    console.warn("[scan] could not count scans for this address, so the per-IP limit is unverified: " + ipErr.message);
+    return fail(503, "cap_unreadable", "We could not start that scan just now. Please try again in a moment.");
+  }
   if ((ipCount ?? 0) >= settings.ip_scans_per_day) {
     return fail(429, "rate_limited", "You have used today's free scans. Try again tomorrow.");
   }

@@ -57,12 +57,22 @@ function sourceFiles(dir: string): string[] {
 type Read = { file: string; line: number; destructure: string };
 
 /**
- * Every `const { ... } = await <something>` whose bindings include `data`.
+ * Every `const { ... } = await <something>` whose bindings include `data` or
+ * `count`.
  *
  * Deliberately not tied to `db.from(` or `supabaseAdmin()`: the call is spelled
  * several ways here - a bare `db`, a chained `supabaseAdmin()`, an `.rpc()` -
  * and a pattern that named them would miss the next spelling. What identifies a
  * Supabase result is the shape it is destructured into.
+ *
+ * `count` was added on 19 September 2026, and its absence is the more
+ * instructive half of this file. The sweep matched `data` alone, so a read
+ * written `.select("id", { count: "exact", head: true })` was invisible to it -
+ * a head request returns no rows at all, so the only binding worth taking is
+ * `count`. That shape is not an obscure corner: it is how every ceiling in this
+ * codebase is counted, and three of the four call sites were ceilings. The
+ * sweep reported no unchecked reads and was read as covering the reads, when
+ * what it covered was one of the two shapes a read comes in.
  */
 function readsIn(file: string): Read[] {
   const source = readFileSync(file, "utf8");
@@ -71,7 +81,7 @@ function readsIn(file: string): Read[] {
   const out: Read[] = [];
   for (const m of source.matchAll(/const\s*(\{[^}]*\})\s*=\s*await\b/g)) {
     const destructure = m[1];
-    if (!/\bdata\b/.test(destructure)) continue;
+    if (!/\bdata\b/.test(destructure) && !/\bcount\b/.test(destructure)) continue;
     out.push({
       file: name,
       line: source.slice(0, m.index).split("\n").length,
@@ -104,6 +114,24 @@ const EXEMPT: Record<string, string> = {
   "src/lib/scan/pipeline.ts:questionRows": "throws on the next line either way",
 };
 
+/**
+ * The local name the rows - or the count - came back as, which is how EXEMPT
+ * keys a read.
+ *
+ * `data` first, because a read that binds both is a read for its rows. A head
+ * request binds only `count`, and keying those as "data" too would have made
+ * every one of them collide on a single key per file - so one exemption would
+ * have silently excused all of them.
+ */
+function boundName(destructure: string): string {
+  const data = /\bdata\s*:\s*(\w+)/.exec(destructure);
+  if (data) return data[1];
+  if (/\bdata\b/.test(destructure)) return "data";
+  const count = /\bcount\s*:\s*(\w+)/.exec(destructure);
+  if (count) return count[1];
+  return "count";
+}
+
 const FILES = sourceFiles(SRC);
 const READS = FILES.flatMap(readsIn);
 
@@ -116,10 +144,12 @@ test("the sweep can still see the reads it is sweeping", () => {
 });
 
 test("every Supabase read looks at its own error", () => {
-  const unchecked = READS.filter((r) => !/\berror\b/.test(r.destructure)).filter((r) => {
-    const bound = /data\s*:\s*(\w+)/.exec(r.destructure)?.[1] ?? "data";
-    return !(`${r.file}:${bound}` in EXEMPT);
-  });
+  const unchecked = READS.filter((r) => !/\berror\b/.test(r.destructure)).filter(
+    // hasOwn, not `in`: EXEMPT is a plain object keyed by a string built out of
+    // a file path and an identifier, so `in` would answer true for a read bound
+    // to `constructor` or `toString` and excuse it without an entry.
+    (r) => !Object.hasOwn(EXEMPT, `${r.file}:${boundName(r.destructure)}`),
+  );
 
   assert.deepEqual(
     unchecked.map((r) => `${r.file}:${r.line} ${r.destructure}`),
@@ -133,10 +163,7 @@ test("every exemption still points at a read that exists", () => {
   // see. The list has to stay honest in both directions.
   for (const key of Object.keys(EXEMPT)) {
     const [file, bound] = key.split(":");
-    const found = READS.some((r) => {
-      const name = /data\s*:\s*(\w+)/.exec(r.destructure)?.[1] ?? "data";
-      return r.file === file && name === bound;
-    });
+    const found = READS.some((r) => r.file === file && boundName(r.destructure) === bound);
     assert.ok(found, `EXEMPT lists ${key}, but there is no such read any more - delete the entry`);
   }
 });

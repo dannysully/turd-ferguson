@@ -181,6 +181,24 @@ const SLOW_MS = 150_000;
  */
 const STUCK_MS = 6 * 60 * 1000;
 
+/**
+ * What a visitor is told about a pass that did not finish.
+ *
+ * One constant because it is now said on two paths that have to agree. The poll
+ * said it and the server render did not: `status` arrives here as "failed" -
+ * from the pipeline's own catch, or from `isFreePassDead` on a row the platform
+ * killed - and "failed" falls through the phase test below to "confirm", with
+ * `error` still empty. So a visitor who reloaded, or came back to a stalled scan
+ * on the link in their email, was put back on step 1 with a fresh question
+ * preview and no indication that anything had happened, while the visitor who
+ * happened to still have the tab open was told plainly.
+ *
+ * Landing on confirm is the right screen either way - the confirm route accepts
+ * a re-run for both kinds of failure. What was missing is the sentence saying
+ * why they are looking at it.
+ */
+const RUN_FAILED = "We could not finish that check. You can run it again.";
+
 function track(event: string, props: Record<string, unknown> = {}) {
   if (typeof window === "undefined") return;
   const w = window as unknown as { dataLayer?: unknown[] };
@@ -418,7 +436,7 @@ export default function ScanFlow(p: {
     p.status === "complete" ? "result" : p.status === "queued" || p.status === "running" ? "running" : "confirm",
   );
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(p.status === "failed" ? RUN_FAILED : "");
   /** An unlocked scan whose report would not load. Not the same thing as a gate. */
   const [fullError, setFullError] = useState("");
 
@@ -556,7 +574,7 @@ export default function ScanFlow(p: {
           // or a vendor; the status route no longer sends it, and this is what
           // it is replaced by. The action is the same either way, and it is on
           // the screen they land back on.
-          setError("We could not finish that check. You can run it again.");
+          setError(RUN_FAILED);
           setPhase("confirm");
           return;
         }

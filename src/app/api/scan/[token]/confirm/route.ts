@@ -205,11 +205,33 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
   let stored = 0;
   const confirmed = cleanQuestions(body.questions);
   if (confirmed) {
-    const existing = await db
+    /**
+     * Destructured and checked, where it used to be `const existing = await`
+     * with only `existing.count` read afterwards.
+     *
+     * A failed count comes back null, which is the same value as "no rows", and
+     * null is the signal to insert - so a read that did not answer meant this
+     * wrote a second question set over a scan that already had one. Said
+     * honestly: that was never reachable as damage, because `unique (scan_id,
+     * idx)` refuses the whole batch atomically and the warn below is what
+     * happened instead. The constraint was doing the work this comment claimed
+     * the count was doing, and the two should not disagree.
+     *
+     * Skipped rather than made fatal. A count we cannot read costs the visitor
+     * the edits they made on the confirm screen, which is exactly what the
+     * failed insert already cost them - and runScan writes its own set when it
+     * finds none, so it never costs them the scan.
+     */
+    const { count: existingCount, error: existingErr } = await db
       .from("scan_questions")
       .select("id", { count: "exact", head: true })
       .eq("scan_id", scan.id);
-    if (!existing.count) {
+    if (existingErr) {
+      console.warn(
+        "[scan] could not count the stored questions for " + scan.id + ", so the confirmed set was not written: " +
+          existingErr.message,
+      );
+    } else if (!existingCount) {
       const rows = confirmed.map(function (q, i) {
         return { scan_id: scan.id, idx: i, question: q.question, kind: q.kind };
       });

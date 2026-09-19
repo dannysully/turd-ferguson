@@ -103,16 +103,31 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
    * Counted per scan and not per address, because it is our sending reputation
    * being spent and the address is the caller side of it to vary.
    *
-   * Fails open on purpose: a count that errors comes back null and reads as
-   * zero. Turning a database hiccup into a lost lead is the worse of the two
-   * failures, and this ceiling is for volume rather than for any one message.
+   * Fails open on purpose, and that judgement stands: a count that errors comes
+   * back null and reads as zero. Turning a database hiccup into a lost lead is
+   * the worse of the two failures here, and this ceiling is for volume rather
+   * than for any one message. It is the opposite call to the two spend ceilings
+   * in /api/scan/start, deliberately - those guard money we spend, this one
+   * guards a lead we would lose.
+   *
+   * What it must not be is silent. The error was discarded outright, so the
+   * period this cap was off looked exactly like a period nobody tried to unlock
+   * anything - and this is the cap whose absence means one public token can put
+   * our branding in any inbox repeatedly. Read and logged; the decision to
+   * continue is unchanged.
    */
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-  const { count: sentToday } = await db
+  const { count: sentToday, error: sentErr } = await db
     .from("leads")
     .select("id", { count: "exact", head: true })
     .eq("scan_id", scan.id)
     .gte("created_at", since);
+  if (sentErr) {
+    console.warn(
+      `[scan] could not count today's unlock sends for ${scan.id}, so the send cap is not being enforced on this` +
+        ` request: ${sentErr.message}`,
+    );
+  }
 
   if ((sentToday ?? 0) >= settings.unlock_emails_per_day) {
     // Logged, because the ordinary way to reach this is not a visitor: one
