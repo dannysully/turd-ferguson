@@ -7,6 +7,7 @@ import { TIER_PLAIN } from "@/components/TierName";
 import { TIERS } from "@/config/pricing";
 import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
 import { ENGINES, ENGINE_SPECS, FREE_ENGINES } from "@/lib/scan/engines";
+import { listOf } from "@/config/scan-shape";
 import { ORG_REF, ld } from "@/config/schema";
 
 /**
@@ -76,12 +77,6 @@ const articleSchema = jsonLd("Article", {
   author: ORG_REF,
   publisher: ORG_REF,
 });
-
-/** "a, b, c and d" - used for the engine lists, which come from config. */
-function listOf(names: string[]): string {
-  if (names.length <= 1) return names[0] ?? "";
-  return names.slice(0, -1).join(", ") + " and " + names[names.length - 1];
-}
 
 const freeEngines = listOf(FREE_ENGINES.map((e) => ENGINE_SPECS[e].label));
 const otherEngines = listOf(

@@ -1,4 +1,5 @@
 import { FREE_ENGINES, GATED_ENGINES } from "@/lib/scan/engines";
+import { QUESTIONS } from "@/config/scan-shape";
 import { CARD, MICRO, SHELL, T } from "@/config/tokens";
 
 /**
@@ -13,9 +14,6 @@ import { CARD, MICRO, SHELL, T } from "@/config/tokens";
  * number on the site about what the product does has to match what the
  * product does, so it is derived and cannot go stale again.
  */
-
-/** Kept in step with QUESTION_COUNT in lib/scan/anthropic.ts, which is server-only. */
-const QUESTIONS = 14;
 
 const facts: { label: string; value: string; note?: string }[] = [
   { label: "Buying questions generated", value: `${QUESTIONS}` },

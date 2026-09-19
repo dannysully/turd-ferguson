@@ -3,6 +3,7 @@ import { OG_IMAGE } from "@/config/og";
 
 import TierName from "@/components/TierName";
 import { BRAND, ORG_REF, SITE_REF, ld } from "@/config/schema";
+import { FREE_ANSWERS, FREE_ENGINE_COUNT, QUESTIONS } from "@/config/scan-shape";
 import { CARD, MICRO, SHELL, T } from "@/config/tokens";
 
 /**
@@ -51,7 +52,14 @@ const RULES = [
   },
   {
     title: "Scope every claim",
-    body: 'An "AI visibility: 24%" reads as a total. We write 24% of 70 answers, across 14 questions and 5 engines, read on a date. A percentage without its denominator is not a finding.',
+    body:
+      'An "AI visibility: 24%" reads as a total. We write 24% of ' +
+      FREE_ANSWERS +
+      ' answers, across ' +
+      QUESTIONS +
+      ' questions and ' +
+      FREE_ENGINE_COUNT +
+      ' engines, read on a date. A percentage without its denominator is not a finding.',
   },
   {
     title: "Say what is measured and what is inferred",

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { listOf, namedOf, pickEngines } from "@/config/scan-shape";
 import { CARD, MICRO, SHELL, T } from "@/config/tokens";
 
 /**
@@ -31,9 +32,14 @@ const WARN = pill(T.warnBg, T.warnFg);
 
 type Row = {
   text: string;
-  named: string;
-  tone: React.CSSProperties;
-  you: string;
+  /**
+   * Which of the free engines named the brand, by position in that set.
+   *
+   * Named rather than positional, this panel told the homepage "Named by
+   * Claude only" for a year after Claude left the free pass, and never once
+   * named Perplexity, which joined it. See config/scan-shape.ts.
+   */
+  engines: number[];
   answer: string;
   rivals: string[];
   sources: { url: string; kind: string }[];
@@ -43,9 +49,7 @@ type Row = {
 const DATA: Row[] = [
   {
     text: "best project management software for creative teams",
-    named: "0 of 4",
-    tone: BAD,
-    you: "Not named on any engine",
+    engines: [],
     answer:
       '"For creative teams, the tools most often recommended are [Competitor A], [Competitor B] and [Competitor C]. [Competitor A] is usually cited for its proofing workflow..."',
     rivals: ["[Competitor A]", "[Competitor B]", "[Competitor C]"],
@@ -69,9 +73,7 @@ const DATA: Row[] = [
   },
   {
     text: "best crm for small b2b companies",
-    named: "1 of 4",
-    tone: WARN,
-    you: "Named by ChatGPT only",
+    engines: [1],
     answer:
       '"[Competitor B] and [Competitor D] are the usual picks for small B2B teams. [Your brand] is also mentioned for lighter pipelines..."',
     rivals: ["[Competitor B]", "[Competitor D]"],
@@ -95,9 +97,7 @@ const DATA: Row[] = [
   },
   {
     text: "which invoicing tool integrates with xero",
-    named: "2 of 4",
-    tone: WARN,
-    you: "Named by Gemini and AI Overviews",
+    engines: [0, 2],
     answer:
       '"Several tools integrate with Xero. Commonly mentioned are [Competitor C], [Your brand] and [Competitor E], with [Competitor C] usually listed first..."',
     rivals: ["[Competitor C]", "[Competitor E]"],
@@ -121,9 +121,7 @@ const DATA: Row[] = [
   },
   {
     text: "best help desk software for saas",
-    named: "0 of 4",
-    tone: BAD,
-    you: "Not named on any engine",
+    engines: [],
     answer:
       '"[Competitor F] and [Competitor G] dominate recommendations for SaaS support teams, usually on the strength of their automation..."',
     rivals: ["[Competitor F]", "[Competitor G]"],
@@ -147,9 +145,7 @@ const DATA: Row[] = [
   },
   {
     text: "alternatives to [Competitor A] for small teams",
-    named: "1 of 4",
-    tone: WARN,
-    you: "Named by Claude only",
+    engines: [3],
     answer:
       '"Teams moving away from [Competitor A] usually consider [Competitor B], [Competitor H] and [Your brand]..."',
     rivals: ["[Competitor B]", "[Competitor H]"],
@@ -172,6 +168,18 @@ const DATA: Row[] = [
     ],
   },
 ];
+
+/**
+ * "Named by ChatGPT only", built from the free engine set rather than typed
+ * beside it. One sentence, one source, so the prose and the count in the left
+ * column cannot disagree about how many engines there are.
+ */
+function namedBy(picks: number[]): string {
+  const labels = pickEngines(picks);
+  if (!labels.length) return "Not named on any engine";
+  if (labels.length === 1) return "Named by " + labels[0] + " only";
+  return "Named by " + listOf(labels);
+}
 
 const label: React.CSSProperties = { ...MICRO, display: "block" };
 
@@ -242,7 +250,7 @@ export default function AnswerExplorer() {
               >
                 <span style={{ fontSize: "13.5px", color: T.ink, lineHeight: 1.4 }}>{row.text}</span>
                 <span style={{ textAlign: "right" }}>
-                  <span style={row.tone}>{row.named}</span>
+                  <span style={row.engines.length ? WARN : BAD}>{namedOf(row.engines)}</span>
                 </span>
               </button>
             ))}
@@ -280,7 +288,7 @@ export default function AnswerExplorer() {
                 }}
               >
                 <span style={{ fontSize: "13px", fontWeight: 600, color: T.ink, flexGrow: 1 }}>You</span>
-                <span style={{ ...pill(T.surface, T.badFg) }}>{sel.you}</span>
+                <span style={{ ...pill(T.surface, T.badFg) }}>{namedBy(sel.engines)}</span>
               </div>
               <div
                 style={{

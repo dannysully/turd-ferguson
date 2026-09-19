@@ -1,5 +1,6 @@
 import TierName, { TIER_PLAIN, type TierKey } from "@/components/TierName";
 import { TIERS } from "@/config/pricing";
+import { listOf, namedOf, pickEngines } from "@/config/scan-shape";
 import { CARD, GRID12, MICRO, SHELL, T } from "@/config/tokens";
 
 /**
@@ -61,11 +62,17 @@ function Step({ n, tier, price, lead, body, dark }: {
   );
 }
 
+/**
+ * Which engines named the brand, by position in the free engine set rather
+ * than by name. The row read "Claude" under a column headed "Which engines"
+ * long after Claude left the free pass, and never read Perplexity, which
+ * joined it. Positions cannot say that.
+ */
 const TRACKED = [
-  { prompt: "alternatives to [Competitor A] for small teams", named: "2 of 4", aio: "mentioned", engines: "Gemini, AI Overviews" },
-  { prompt: "best crm for small b2b companies", named: "1 of 4", aio: "none shown", engines: "Claude" },
-  { prompt: "which invoicing tool integrates with xero", named: "3 of 4", aio: "mentioned", engines: "ChatGPT, Gemini, AI Overviews" },
-  { prompt: "best project management software for creative teams", named: "0 of 4", aio: "shown, absent", engines: "none" },
+  { prompt: "alternatives to [Competitor A] for small teams", engines: [0, 2], aio: "mentioned" },
+  { prompt: "best crm for small b2b companies", engines: [3], aio: "none shown" },
+  { prompt: "which invoicing tool integrates with xero", engines: [0, 1, 2], aio: "mentioned" },
+  { prompt: "best project management software for creative teams", engines: [], aio: "shown, absent" },
 ];
 
 const PLACEMENTS = [
@@ -138,9 +145,9 @@ export default function TierJourney() {
             {TRACKED.map((r) => (
               <div key={r.prompt} className="tier-table tier-table--tracked" style={{ padding: "11px 26px", borderBottom: `1px solid ${T.hair}`, alignItems: "baseline" }}>
                 <div style={{ fontSize: "13.5px", color: T.ink }}>{r.prompt}</div>
-                <div style={{ fontSize: "13.5px", fontWeight: 600, textAlign: "right", color: T.ink }}>{r.named}</div>
+                <div style={{ fontSize: "13.5px", fontWeight: 600, textAlign: "right", color: T.ink }}>{namedOf(r.engines)}</div>
                 <div style={{ ...cellNote, textAlign: "right" }}>{r.aio}</div>
-                <div style={cellNote}>{r.engines}</div>
+                <div style={cellNote}>{listOf(pickEngines(r.engines)) || "none"}</div>
               </div>
             ))}
             <p style={{ margin: 0, padding: "12px 26px", fontSize: "12.5px", color: T.soft }}>
