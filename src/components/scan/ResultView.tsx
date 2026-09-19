@@ -405,13 +405,29 @@ function LockedRows() {
  * blurred skeleton and a gate offering a list - so a visitor gave an address
  * for rows that were never there, and the report then told them so. The gate
  * and the report have to agree before the address is given, not after.
+ *
+ * `unclassified` is the difference between the two ways of reaching zero, and
+ * only one of them is a finding. deriveOpportunities excludes any page whose
+ * kind is null, so a scan where nothing was classified derives zero however
+ * many pages it cited - and the copy for "we looked and there are none" is
+ * false on it. Measured on 19 September 2026: of six scans read back from
+ * production, three had zero of their sources classified while citing 255, 264
+ * and 564 pages between them, and one of those three is unlocked and live. The
+ * report told its reader that was a finding rather than a gap. Source
+ * classification is wrapped in never-fatal, so this is not only an artefact of
+ * scans that predate the column - a classification call that fails today lands
+ * a fresh scan in exactly the same state.
  */
-function NoPlacements() {
+function NoPlacements(p: { unclassified?: boolean }) {
   return (
     <div style={{ ...CARD, padding: "22px 26px" }}>
       <p style={{ margin: 0, fontSize: "14px", lineHeight: 1.65, color: T.soft }}>
-        None this time. Every page the engines cited for these questions either already names you, is a competitor
-        own site, or is somewhere an article cannot run. That is a finding, not a gap in the scan.
+        {p.unclassified
+          ? "We could not sort the pages behind this scan into the ones an article could run on, so this list could" +
+            " not be built. That is a gap in the scan rather than a finding - every page the engines cited is still" +
+            " listed above, and none of them has been ruled out."
+          : "None this time. Every page the engines cited for these questions either already names you, is a" +
+            " competitor own site, or is somewhere an article cannot run. That is a finding, not a gap in the scan."}
       </p>
     </div>
   );
@@ -517,6 +533,13 @@ export default function ResultView(p: {
   const r = p.r;
   /** A counted zero on either side of the gate. Not "not counted yet". */
   const emptyList = p.unlocked ? !(r.opportunities && r.opportunities.length) : Boolean(p.noPlacements);
+  /**
+   * Zero because nothing was classified, which is a different sentence from
+   * zero because nothing qualified. Read off the sources the page already has:
+   * the teaser carries each page kind as well as the unlock payload, so this
+   * needs no extra read and is the same answer on both sides of the gate.
+   */
+  const unclassified = r.sources.length > 0 && r.sources.every((x) => !x.kind);
   const answers = r.engines.reduce((a, e) => a + e.answered, 0);
   const named = r.engines.reduce((a, e) => a + e.named, 0);
   const missing = answers - named;
@@ -676,11 +699,11 @@ export default function ResultView(p: {
               </div>
             </div>
           ) : (
-            <NoPlacements />
+            <NoPlacements unclassified={unclassified} />
           )
         ) : p.noPlacements ? (
           <div>
-            <NoPlacements />
+            <NoPlacements unclassified={unclassified} />
             <div style={{ ...CARD, padding: "24px", marginTop: "16px", maxWidth: "560px" }}>{p.gate}</div>
           </div>
         ) : (

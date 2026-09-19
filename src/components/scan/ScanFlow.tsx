@@ -689,7 +689,7 @@ export default function ScanFlow(p: {
      and a gate promising something the reader has already scrolled past is
      worse than no gate. What the address buys is the placement list. */
   const gateBody = noPlacements
-    ? "There is no placement list on this one, so what the address buys is the transcript: what each engine said" +
+    ? "There is no placement list to unlock here, so what the address buys is the transcript: what each engine said" +
       " word for word, question by question, and every page it cited for each" +
       (gatedEngines.length ? ", plus the same questions put through " + engineNames : "") +
       "."
