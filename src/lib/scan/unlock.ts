@@ -25,12 +25,25 @@ export type UnlockableScan = {
   brand_name: string | null;
   topic: string | null;
   market: string | null;
+  unlocked_at: string | null;
   gated_engines: string[] | null;
   gated_status: string | null;
 };
 
 export const SCAN_UNLOCK_COLUMNS =
-  "id, public_token, domain, brand_name, topic, market, status, account_id, gated_engines, gated_status";
+  "id, public_token, domain, brand_name, topic, market, status, account_id, unlocked_at, gated_engines, gated_status";
+
+/**
+ * The unlock did not take, so nothing downstream of it may behave as though it
+ * did. Thrown rather than returned because every caller has to stop: an unlock
+ * that half-happens is the failure this file is written around.
+ */
+export class UnlockNotStamped extends Error {
+  constructor(scanId: string, detail: string) {
+    super("unlock not stamped on " + scanId + ": " + detail);
+    this.name = "UnlockNotStamped";
+  }
+}
 
 /**
  * Finds or creates the account behind an address.
@@ -104,6 +117,9 @@ export async function resolveAccount(email: string, existingId: string | null): 
  * bought. Idempotent on the gated pass: a second unlock of the same scan claims
  * nothing and re-spends nothing, whether it arrives after the first or
  * alongside it. The concurrent half of that is new - see the claim below.
+ *
+ * Throws UnlockNotStamped if the stamp did not take, and everything after the
+ * stamp is deliberately below it - see the check for why.
  */
 export async function completeUnlock(
   scan: UnlockableScan,
@@ -127,17 +143,44 @@ export async function completeUnlock(
     .select("id")
     .single();
 
-  await db
+  /**
+   * The stamp, and why its result is read.
+   *
+   * unlocked_at is the whole gate. /api/scan/<token>/full serves the report on
+   * that column alone, so a scan the stamp did not reach is a report nobody can
+   * open again - including the person who has just given us their address.
+   *
+   * This was written as a fire-and-forget update. postgrest-js reports a failed
+   * write on the returned `error` and throws nothing, so a write that did not
+   * happen was indistinguishable here from one that did, and the two things
+   * below it ran anyway: a branded email telling them the report is ready, with
+   * a link that 403s, and the gated pass - dozens of paid engine reads whose
+   * results land on a row no request can ever serve. The failure and the
+   * success were the same code path and the same screen.
+   *
+   * .select() is what makes it legible: Prefer: return=representation sends the
+   * updated rows back, so no rows is a stamp that did not land rather than a
+   * silence that reads as success. Do not drop it.
+   */
+  const { data: stamped, error: stampErr } = await db
     .from("scans")
     .update({
       account_id: accountId,
       client_domain_id: clientDomain?.id ?? null,
       unlocked_at: new Date().toISOString(),
     })
-    .eq("id", scan.id);
+    .eq("id", scan.id)
+    .select("id");
+
+  if (stampErr || !stamped?.length) {
+    throw new UnlockNotStamped(scan.id, stampErr?.message ?? "no row came back");
+  }
 
   // Tell them it is ready and give them a way back to it. Closing the tab used
   // to lose the report entirely: it is assembled once, for the tab that asked.
+  //
+  // Below the stamp on purpose. This message promises a link that only works
+  // once unlocked_at is set, so it is not sent until that is a fact.
   //
   // after() rather than a floating promise - the response is already on its way
   // out, and a bare promise gets killed with the function.

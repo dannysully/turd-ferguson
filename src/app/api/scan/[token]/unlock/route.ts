@@ -1,5 +1,6 @@
 import {
   SCAN_UNLOCK_COLUMNS,
+  UnlockNotStamped,
   buildUnlockPayload,
   completeUnlock,
   resolveAccount,
@@ -165,11 +166,35 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
   }
 
   // ---- unlock straight away ----
-  const { gatedStarted, gatedEngines } = await completeUnlock(
-    scan as unknown as UnlockableScan,
-    accountId,
-    email,
-  );
+  /**
+   * A stamp that did not take is told, not papered over.
+   *
+   * The report in this response would be perfectly real - buildUnlockPayload
+   * reads the same rows either way - so the tempting thing is to serve it and
+   * say nothing. That is the worse outcome: the scan stays locked, the link in
+   * the email 403s, and the visitor who paid an address for it finds the gate
+   * again with no idea why. A retry costs one more row against a cap of five
+   * and is very likely to succeed, because what fails here is transient.
+   */
+  let gatedStarted: boolean;
+  let gatedEngines: string[];
+  try {
+    ({ gatedStarted, gatedEngines } = await completeUnlock(
+      scan as unknown as UnlockableScan,
+      accountId,
+      email,
+    ));
+  } catch (err) {
+    if (!(err instanceof UnlockNotStamped)) throw err;
+    console.error("[scan] " + err.message);
+    return Response.json(
+      {
+        error: "unlock_failed",
+        message: "We could not open that report just now. Please try again in a moment.",
+      },
+      { status: 502, headers: { "cache-control": "no-store" } },
+    );
+  }
 
   // No magic link is sent here, and adding one back would be a regression.
   // There is no browser Supabase client, no @supabase/ssr and no login on this
