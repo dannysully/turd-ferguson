@@ -1,3 +1,4 @@
+import { SETTINGS_FALLBACK, getSettings } from "@/lib/scan/settings";
 import { sendVerificationEmail } from "@/lib/scan/verify-email";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
@@ -6,6 +7,9 @@ export const dynamic = "force-dynamic";
 
 /** A second send inside this window is treated as a double click, not a retry. */
 const COOLDOWN_MS = 60_000;
+
+/** The window the send ceiling is counted over, matching the unlock route. */
+const WINDOW_HOURS = 24;
 
 /**
  * Sends the verification email again.
@@ -44,6 +48,64 @@ export async function POST(_req: Request, ctx: { params: Promise<{ token: string
     return Response.json(
       { ok: true, throttled: true, message: "That one is already on its way." },
       { status: 200 },
+    );
+  }
+
+  /**
+   * The cooldown above is a ceiling on rate. This is the ceiling on volume,
+   * and without it the route had none.
+   *
+   * The unlock route bounds how much branded mail one scan link may put in an
+   * inbox in a day, and it counts rows in `leads`: one unlock, one lead, one
+   * message. This route sends the same message again and inserts nothing, so
+   * it never incremented that count and was never checked against it. Sixty
+   * seconds apart, forever, is about fourteen hundred messages a day to one
+   * address, past a cap that reads five - and the public token is the only
+   * credential, which is in every shared scan link.
+   *
+   * Counted per lead rather than per scan, because the unlock cap already
+   * holds the per-scan line: five leads a day, each of which may be re-mailed
+   * this many times. Thirty messages in a day is a ceiling; fourteen hundred
+   * is not.
+   *
+   * Fails closed, unlike the unlock cap, and the difference is deliberate: a
+   * refusal there costs a lead that has just typed an address, where a refusal
+   * here costs a second copy of a message already sent once. The cheap failure
+   * is the one to take.
+   */
+  const { data: sends, error: capErr } = await db.rpc("note_verify_send", {
+    p_lead: lead.id as string,
+    p_window_hours: WINDOW_HOURS,
+  });
+
+  if (capErr || typeof sends !== "number" || sends === 0) {
+    console.warn(
+      `[scan] could not count verification sends for ${lead.id}: ${capErr?.message ?? "no count"}`,
+    );
+    return Response.json(
+      { error: "email_failed", message: "Still no luck. Try again in a minute." },
+      { status: 502 },
+    );
+  }
+
+  let cap = SETTINGS_FALLBACK.unlock_emails_per_day;
+  try {
+    cap = (await getSettings()).unlock_emails_per_day;
+  } catch {
+    // The documented default rather than no ceiling at all. This is the one
+    // place a settings blip must not widen.
+  }
+
+  if (sends > cap) {
+    // Logged, because the ordinary way to reach this is not a visitor: a
+    // message that has not arrived after five sends is not going to.
+    console.warn(`[scan] verification resend cap reached for ${lead.id}: ${sends} in ${WINDOW_HOURS}h`);
+    return Response.json(
+      {
+        error: "too_many_sends",
+        message: "We have sent that several times today. Check your spam folder, or try again tomorrow.",
+      },
+      { status: 429 },
     );
   }
 
