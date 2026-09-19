@@ -16,6 +16,21 @@ export type LeaderboardEntry = {
   /** Null where search volume was not measured. Never coerce this to zero:
       "not measured" and "no volume" are different findings. */
   ai_search_volume: number | null;
+  /**
+   * Whether this row is the brand the scan is about.
+   *
+   * The server already knows - `scan_brands.is_subject` is set when the row is
+   * written, and both the teaser RPC and buildUnlockPayload carry it through -
+   * and the views were throwing it away and re-deciding by comparing the row's
+   * spelling against `brand.name`. Two pieces of code judging the same fact,
+   * which is the failure AGENTS.md names: the extractor's spelling of the
+   * subject and the leaderboard's need not match, and when they do not the
+   * report highlights nobody and calls the runner-up the leader.
+   *
+   * Optional because the fixture path has no such flag. Absent means "ask the
+   * name", which is what every reader did before this existed.
+   */
+  is_subject?: boolean;
 };
 
 export type SourceEntry = {

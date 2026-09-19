@@ -2,7 +2,7 @@
 
 import TierName from "@/components/TierName";
 import { CARD, MICRO, T } from "@/config/tokens";
-import type { RunScanResponse, ScanQuestion } from "@/lib/scan";
+import type { LeaderboardEntry, RunScanResponse, ScanQuestion } from "@/lib/scan";
 import { ENGINE_SPECS, isEngine } from "@/lib/scan/engines";
 import Link from "next/link";
 
@@ -82,6 +82,23 @@ function KindPill(p: { kind: string | null; note: string | null }) {
       {label}
     </span>
   );
+}
+
+/**
+ * Whether a leaderboard row is the brand this scan is about.
+ *
+ * `is_subject` is set by the pipeline when the row is written and carried all
+ * the way here by both the teaser and the unlock payload, so it is the answer.
+ * The name compare is the fallback for the fixture path, which has no flag -
+ * and it is also what this file used to do on its own, which is the defect:
+ * the brand extractor's spelling of the subject and the leaderboard's are
+ * produced by different code and need not match. When they did not, the report
+ * bolded nobody in the share-of-voice bars and handed "Top of the leaderboard"
+ * to whoever was actually second.
+ */
+function isSubject(row: LeaderboardEntry, brandName: string): boolean {
+  if (typeof row.is_subject === "boolean") return row.is_subject;
+  return row.brand.toLowerCase() === brandName.toLowerCase();
 }
 
 function Head(p: { title: string; children: React.ReactNode }) {
@@ -303,7 +320,6 @@ function ShareOfVoice(p: { r: RunScanResponse }) {
   const rows = p.r.leaderboard;
   if (!rows.length) return null;
   const top = Math.max(...rows.map((b) => b.mentions), 1);
-  const subject = p.r.brand.name.toLowerCase();
   /**
    * Part of this leaderboard did not come back.
    *
@@ -325,7 +341,7 @@ function ShareOfVoice(p: { r: RunScanResponse }) {
       <div style={{ ...CARD, padding: "22px 26px" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: "11px", maxWidth: "820px" }}>
           {rows.slice(0, 12).map((b) => {
-            const you = b.brand.toLowerCase() === subject;
+            const you = isSubject(b, p.r.brand.name);
             return (
               <div key={b.brand} className="seq-sov">
                 <div style={{ fontSize: "13.5px", fontWeight: you ? 700 : 500, color: you ? T.ink : T.soft }}>
@@ -561,7 +577,19 @@ export default function ResultView(p: {
 
   const ranks = qs.map((q) => q.google_rank).filter((v): v is number => typeof v === "number");
   const bestRank = ranks.length ? Math.min(...ranks) : null;
-  const leader = r.leaderboard.find((b) => b.brand.toLowerCase() !== r.brand.name.toLowerCase());
+  /**
+   * The brand at the top of the leaderboard, which is the first row: both the
+   * teaser RPC and buildUnlockPayload order by mentions descending.
+   *
+   * It used to be the first row that was NOT the subject, under a label saying
+   * "Top of the leaderboard". On a scan where the brand tops its own category -
+   * the best result this product can return, and one that exists in production -
+   * the tile named the runner-up as the leader and then said "You sit 1st"
+   * directly underneath it. The two halves of one metric contradicted each
+   * other, and the half in the big type was the false one.
+   */
+  const topBrand = r.leaderboard[0] ?? null;
+  const topIsYou = topBrand ? isSubject(topBrand, r.brand.name) : false;
   const yourSources = r.sources.filter((s) => s.domain === p.domain || s.domain.endsWith("." + p.domain)).length;
 
   return (
@@ -667,14 +695,18 @@ export default function ResultView(p: {
               claim about a competitor, and the brand that would have topped
               this list may be in the batch that never came back. The rank in
               its note is already null for the same reason. */}
-          {leader && !r.leaderboard_partial ? (
+          {topBrand && !r.leaderboard_partial ? (
             <Metric
               label="Top of the leaderboard"
-              value={<span style={{ fontSize: "22px" }}>{leader.brand}</span>}
+              value={<span style={{ fontSize: "22px" }}>{topBrand.brand}</span>}
               note={
-                leader.mentions +
+                topBrand.mentions +
                 " mentions" +
-                (r.brand.rank ? ". You sit " + ordinal(r.brand.rank) + "." : ".")
+                (topIsYou
+                  ? ". That is you - nobody we read is named more often."
+                  : r.brand.rank
+                    ? ". You sit " + ordinal(r.brand.rank) + "."
+                    : ".")
               }
             />
           ) : null}
