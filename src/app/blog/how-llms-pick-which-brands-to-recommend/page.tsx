@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { OG_IMAGE } from "@/config/og";
 import Link from "next/link";
 
 import PostShell, { H2, P } from "@/components/PostShell";
@@ -14,6 +15,7 @@ export const metadata: Metadata = {
       "https://alwayscited.com/blog/how-llms-pick-which-brands-to-recommend",
   },
   openGraph: {
+    images: OG_IMAGE,
     title: "How LLMs Pick Which Brands to Recommend | alwayscited",
     description:
       "The mechanics of LLM citation are simpler - and more exploitable - than most agencies realise.",

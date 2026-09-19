@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { OG_IMAGE } from "@/config/og";
 
 import TierName from "@/components/TierName";
 import { TIERS } from "@/config/pricing";
@@ -8,6 +9,7 @@ export const metadata: Metadata = {
   title: "How we compare",
   description:
     "What alwayscited does and what it costs, set out row by row. No competitor columns: we will not publish a claim about another company's product without a dated source for it.",
+  openGraph: { url: "https://alwayscited.com/compare", images: OG_IMAGE },
   alternates: { canonical: "https://alwayscited.com/compare" },
 };
 

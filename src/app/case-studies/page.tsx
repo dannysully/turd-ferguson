@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { OG_IMAGE } from "@/config/og";
 import Link from "next/link";
 
 import { CARD, MICRO, SHELL, T } from "@/config/tokens";
@@ -23,6 +24,7 @@ export const metadata: Metadata = {
     "Short case studies, and every figure says what it was measured against and when. Clients are named only where the agency has agreed to it.",
   alternates: { canonical: "https://alwayscited.com/case-studies" },
   openGraph: {
+    images: OG_IMAGE,
     title: "What the work actually moved | alwayscited",
     description: "Short case studies, and every figure says what it was measured against and when.",
     url: "https://alwayscited.com/case-studies",

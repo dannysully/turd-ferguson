@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { OG_IMAGE } from "@/config/og";
 import Link from "next/link";
 
 import PostShell, { H2, P } from "@/components/PostShell";
@@ -13,6 +14,7 @@ export const metadata: Metadata = {
     canonical: "https://alwayscited.com/blog/aeo-vs-seo-whats-actually-different",
   },
   openGraph: {
+    images: OG_IMAGE,
     title: "AEO vs SEO: What's Actually Different | alwayscited",
     description:
       "The clearest comparison of AEO and SEO you'll read this year - written by people who actually do both.",

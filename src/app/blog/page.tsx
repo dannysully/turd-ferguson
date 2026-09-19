@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { OG_IMAGE } from "@/config/og";
 import Link from "next/link";
 
 import { formatPostDate, POSTS, type PostKind } from "@/config/posts";
@@ -21,6 +22,7 @@ export const metadata: Metadata = {
     "Written for people who run agencies, not for search engines. Every number says where it came from and when it was taken.",
   alternates: { canonical: "https://alwayscited.com/blog" },
   openGraph: {
+    images: OG_IMAGE,
     title: "What we have actually found | alwayscited",
     description: "Written for people who run agencies, not for search engines.",
     url: "https://alwayscited.com/blog",

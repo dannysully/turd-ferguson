@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { OG_IMAGE } from "@/config/og";
 
 import TierName from "@/components/TierName";
 import { TIERS } from "@/config/pricing";
@@ -8,6 +9,7 @@ export const metadata: Metadata = {
   title: "For PR agencies",
   description:
     "You already place the coverage. We tell you which of it the engines actually read - so a PR placement has a measurable outcome, and the report says whether the client got named.",
+  openGraph: { url: "https://alwayscited.com/pr-agencies", images: OG_IMAGE },
   alternates: { canonical: "https://alwayscited.com/pr-agencies" },
 };
 

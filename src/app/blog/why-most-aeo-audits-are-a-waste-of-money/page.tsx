@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { OG_IMAGE } from "@/config/og";
 import Link from "next/link";
 
 import PostShell, { H2, P } from "@/components/PostShell";
@@ -14,6 +15,7 @@ export const metadata: Metadata = {
       "https://alwayscited.com/blog/why-most-aeo-audits-are-a-waste-of-money",
   },
   openGraph: {
+    images: OG_IMAGE,
     title: "Why Most AEO Audits Are a Waste of Money | alwayscited",
     description:
       "The agency industry has a new product to sell. Most of it is a report you don't need.",

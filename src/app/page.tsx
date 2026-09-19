@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { OG_IMAGE } from "@/config/og";
 import HeroSection from "@/components/scan/HeroSection";
 import AnswerExplorer from "@/components/home/AnswerExplorer";
 import TwoWays from "@/components/home/TwoWays";
@@ -14,6 +15,7 @@ export const metadata: Metadata = {
     "Check whether AI engines name your client. Run a free scan to see who Google AI Overviews and ChatGPT cite for a topic, then get placed in those sources. White-labelled for agencies, prices on the page.",
   alternates: { canonical: "https://alwayscited.com" },
   openGraph: {
+    images: OG_IMAGE,
     title: "LLM Visibility Checker | alwayscited",
     description: "Check whether AI engines name your client. Free scan, then white-label placements in the sources they cite. Prices on the page.",
     url: "https://alwayscited.com",

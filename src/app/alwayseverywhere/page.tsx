@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { OG_IMAGE } from "@/config/og";
 import PackagePage from "@/components/PackagePage";
 import { TIERS } from "@/config/pricing";
 
@@ -8,6 +9,7 @@ export const metadata: Metadata = {
   title: "alwayseverywhere | Multi-market AI visibility for agencies",
   description:
     "Multi-market, multi-brand AI citation placements with a dedicated strategist, white-labelled for agencies running this across a client base.",
+  openGraph: { url: "https://alwayscited.com/alwayseverywhere", images: OG_IMAGE },
   alternates: { canonical: "https://alwayscited.com/alwayseverywhere" },
 };
 

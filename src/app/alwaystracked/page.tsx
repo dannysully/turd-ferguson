@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { OG_IMAGE } from "@/config/og";
 import PackagePage from "@/components/PackagePage";
 import { TIERS } from "@/config/pricing";
 
@@ -8,6 +9,7 @@ export const metadata: Metadata = {
   title: "alwaystracked | AI visibility tracking for agencies",
   description:
     "Ongoing AI visibility tracking for one topic: who the engines name, which sources they cite, and which of your coverage is in that list. $99 a month, white-labelled.",
+  openGraph: { url: "https://alwayscited.com/alwaystracked", images: OG_IMAGE },
   alternates: { canonical: "https://alwayscited.com/alwaystracked" },
 };
 

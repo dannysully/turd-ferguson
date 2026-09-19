@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { OG_IMAGE } from "@/config/og";
 
 import { TIERS } from "@/config/pricing";
 import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
@@ -7,6 +8,7 @@ export const metadata: Metadata = {
   title: "For SEO agencies",
   description:
     "Sell AI visibility without building a second supply chain. The work is placement on third-party pages - the work you already do, aimed at a different target list - run white-label under your name.",
+  openGraph: { url: "https://alwayscited.com/seo-agencies", images: OG_IMAGE },
   alternates: { canonical: "https://alwayscited.com/seo-agencies" },
 };
 

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { OG_IMAGE } from "@/config/og";
 import Link from "next/link";
 
 import { CARD, MICRO, SHELL, T } from "@/config/tokens";
@@ -28,6 +29,7 @@ export const metadata: Metadata = {
     "How a US retail SaaS became the most cited cloud POS brand on AI search in under eight weeks. Three AI Overview citations, and the money keyword from #83 to #4.",
   alternates: { canonical: "https://alwayscited.com/case-studies/vibe-retail" },
   openGraph: {
+    images: OG_IMAGE,
     title: "One listicle placement, on a page already ranking for the category",
     description:
       "Three AI Overview citations. The money keyword went from #83 to #4 in eight weeks, and reached #1 four months in.",

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { OG_IMAGE } from "@/config/og";
 
 import ContactForm from "@/components/ContactForm";
 import { CARD, MICRO, SHELL, T } from "@/config/tokens";
@@ -17,6 +18,7 @@ export const metadata: Metadata = {
     "Most questions are answered by running a free scan. Portfolio pricing, corrections and everything else, here.",
   alternates: { canonical: "https://alwayscited.com/contact" },
   openGraph: {
+    images: OG_IMAGE,
     title: "Contact alwayscited",
     description: "Most questions are answered by running a free scan. Everything else, here.",
     url: "https://alwayscited.com/contact",

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { OG_IMAGE } from "@/config/og";
 
 import TierName, { TIER_PLAIN } from "@/components/TierName";
 import { CARD, MICRO, SHELL, T } from "@/config/tokens";
@@ -18,6 +19,7 @@ export const metadata: Metadata = {
     "An agency built the tool it wanted, then sold it to other agencies. Run by the senior team at Nomada Digital, a B2B search agency in York.",
   alternates: { canonical: "https://alwayscited.com/about" },
   openGraph: {
+    images: OG_IMAGE,
     title: "About " + TIER_PLAIN.cited,
     description:
       "An agency built the tool it wanted, then sold it to other agencies. Run by the senior team at Nomada Digital, York.",

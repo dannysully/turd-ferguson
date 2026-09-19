@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { OG_IMAGE } from "@/config/og";
 
 import CtaSection from "@/components/CtaSection";
 import { TIER_PLAIN } from "@/components/TierName";
@@ -52,6 +53,7 @@ export const metadata: Metadata = {
     "AEO is getting a brand named inside an AI-generated answer rather than ranked in the links underneath it. What it is, how it differs from SEO, and how we measure it.",
   alternates: { canonical: "https://alwayscited.com/what-is-aeo" },
   openGraph: {
+    images: OG_IMAGE,
     title: "What is AEO? A guide to answer engine optimisation | alwayscited",
     description:
       "AEO is getting a brand named inside an AI-generated answer rather than ranked in the links underneath it.",

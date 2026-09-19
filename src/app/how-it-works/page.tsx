@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { OG_IMAGE } from "@/config/og";
 
 import CtaSection from "@/components/CtaSection";
 import TierName from "@/components/TierName";
@@ -46,6 +47,7 @@ export const metadata: Metadata = {
     "The mechanism alwayscited uses to get brands named in AI answers - placement on the pages the engines already read, the on-site work that backs it up, and what we measure.",
   alternates: { canonical: "https://alwayscited.com/how-it-works" },
   openGraph: {
+    images: OG_IMAGE,
     title: "How AI search citations are engineered | alwayscited",
     description:
       "The mechanism alwayscited uses to get brands named in AI answers - placement on the pages the engines already read.",
