@@ -157,7 +157,25 @@ export async function completeUnlock(
         after(async () => {
           await runGatedScan(scan.id);
         });
+      } else {
+        console.warn(
+          "[scan] " + scan.id + " gated pass not claimed: " + claimErr.message,
+        );
       }
+    } else {
+      /**
+       * Said out loud, because nothing else records it.
+       *
+       * The row keeps gated_status 'none', which is also what a scan with no
+       * gated engines looks like, so an email traded for a pass the budget
+       * turned away left no trace anywhere. It is not an error - the cap is
+       * doing its job - but it is the number worth knowing when deciding
+       * whether the cap is set right.
+       */
+      console.warn(
+        "[scan] " + scan.id + " gated pass skipped: spent " + spentToday.toFixed(4) +
+          " of a " + settings.daily_cost_cap_usd + " cap in the last 24h",
+      );
     }
   }
 

@@ -278,6 +278,16 @@ export default async function AdminScansPage() {
                     <span style={{ display: "block", color: C.muted, fontSize: "0.75rem" }}>
                       gated {r.gated_status}
                     </span>
+                  ) : r.unlocked_at ? (
+                    /* An email was traded and the gated pass never started: the
+                       cost cap turned it away, or the claim update lost its
+                       race. "none" after an unlock was indistinguishable from
+                       "no gated engines configured" on this page, so the one
+                       state an operator would want to act on was the one it
+                       did not show. */
+                    <span style={{ display: "block", color: C.red, fontSize: "0.75rem" }}>
+                      gated not started
+                    </span>
                   ) : null}
                 </td>
                 <td style={{ ...td, color: r.status === "failed" ? C.red : r.status === "complete" ? C.green : C.body }}>

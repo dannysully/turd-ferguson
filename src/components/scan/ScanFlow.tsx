@@ -697,7 +697,19 @@ export default function ScanFlow(p: {
                 ". This takes another minute or two, and the results appear here."
               : gatedStatus === "complete"
                 ? engineNames + " are included below."
-                : "We could not reach " + engineNames + " this time. Everything above is unaffected."}
+                : gatedStatus === "failed"
+                  ? "We could not reach " + engineNames + " this time. Everything above is unaffected."
+                  : /**
+                     * Unlocked, and the pass was never started - the day's cost
+                     * cap turned it away before it asked anything.
+                     *
+                     * This used to fall into the branch above and tell the
+                     * visitor we could not reach the engines, which is a claim
+                     * about what an engine did on a run that never happened.
+                     * Nothing was reached for. Say that instead.
+                     */
+                    engineNames +
+                    " have not run for this scan, so nothing below includes them. Everything above is unaffected."}
           </p>
         ) : null}
 
