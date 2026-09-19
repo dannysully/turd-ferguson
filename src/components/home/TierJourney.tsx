@@ -9,9 +9,13 @@ import { overviewLabel, type WorkedQuestionId, workedQuestion } from "@/config/w
  *
  * Built static. The board autoplays one tier at a time on a 3.6s cycle, but
  * nothing is hidden at rest there and nothing is hidden here: all four render
- * in full, and the rail is anchor links rather than a player. Motion is a
- * second pass, and a static page that matches the design beats an animated
- * one that does not.
+ * in full, and the rail is anchor links rather than a player.
+ *
+ * The board's stagger arrives on the tier that starts playing; with no player
+ * there is no such moment, so ac-row hangs it off the scroll position instead.
+ * See the ac-row comment in globals.css for why these rows come up from .55
+ * rather than the board's opacity 0 - a table that holds the placement list
+ * must not be empty to something that renders the page without scrolling it.
  *
  * Prices come from src/config/pricing.ts, not from the board. The two agree
  * today; if they ever diverge, the config is the one that is also on the
@@ -123,7 +127,7 @@ export default function TierJourney() {
             href={`#tier-${tier}`}
             style={{ flexGrow: 1, flexBasis: 0, textDecoration: "none", display: "block" }}
           >
-            <span style={{ display: "block", height: "3px", borderRadius: "3px", background: T.line }} />
+            <span className="ac-grow" style={{ display: "block", height: "3px", borderRadius: "3px", background: T.line }} />
             <span style={{ display: "block", marginTop: "7px", fontSize: "12px", fontWeight: 600, letterSpacing: "0.002em" }}>
               <TierName tier={tier} />
             </span>
@@ -151,7 +155,7 @@ export default function TierJourney() {
             {TRACKED.map((id) => {
               const q = workedQuestion(id);
               return (
-              <div key={id} className="tier-table tier-table--tracked" style={{ padding: "11px 26px", borderBottom: `1px solid ${T.hair}`, alignItems: "baseline" }}>
+              <div key={id} className="tier-table tier-table--tracked ac-row" style={{ padding: "11px 26px", borderBottom: `1px solid ${T.hair}`, alignItems: "baseline" }}>
                 <div style={{ fontSize: "13.5px", color: T.ink }}>{q.text}</div>
                 <div style={{ fontSize: "13.5px", fontWeight: 600, textAlign: "right", color: T.ink }}>{namedOf(q.engines)}</div>
                 <div style={{ ...cellNote, textAlign: "right" }}>{overviewLabel(q)}</div>
@@ -183,7 +187,7 @@ export default function TierJourney() {
               <div style={th}>Status</div>
             </div>
             {PLACEMENTS.map((r) => (
-              <div key={r.url} className="tier-table tier-table--placed" style={{ padding: "11px 26px", borderBottom: `1px solid ${T.hair}`, alignItems: "baseline" }}>
+              <div key={r.url} className="tier-table tier-table--placed ac-row" style={{ padding: "11px 26px", borderBottom: `1px solid ${T.hair}`, alignItems: "baseline" }}>
                 <div style={{ fontSize: "13px", color: T.ink, wordBreak: "break-word" }}>{r.url}</div>
                 <div style={{ ...cellNote, textAlign: "right" }}>{r.dr}</div>
                 <div style={{ ...cellNote, textAlign: "right" }}>{r.traffic}</div>
@@ -287,7 +291,7 @@ export default function TierJourney() {
               </p>
               <div className="channel-grid">
                 {CHANNELS.map((c) => (
-                  <div key={c.name} style={{ background: "#16181e", border: "1px solid #23262d", borderRadius: "12px", padding: "13px 15px" }}>
+                  <div key={c.name} className="ac-row" style={{ background: "#16181e", border: "1px solid #23262d", borderRadius: "12px", padding: "13px 15px" }}>
                     <div style={{ fontSize: "13.5px", fontWeight: 600, color: "#ffffff" }}>{c.name}</div>
                     <div style={{ fontSize: "12.5px", color: T.faint, marginTop: "3px", lineHeight: 1.5 }}>{c.note}</div>
                   </div>

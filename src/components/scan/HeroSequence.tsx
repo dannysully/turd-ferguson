@@ -421,6 +421,9 @@ function ActPlacement() {
  * client recognises. One row climbs and the rest settle around it; the climb
  * distance is (places moved x the height of one result), so the motion cannot
  * claim more movement than the numbers do.
+ *
+ * seq-rise is acRise: the panel arrives at .3s over 1s, and the climb starts
+ * at .45s, so the listing is there to be read before a row moves inside it.
  */
 
 const LINK_BLUE = "#1a0dab";
@@ -430,7 +433,7 @@ type SerpRow = { site: string; path: string; title: string; snippet?: string; yo
 function SerpPanel(p: { keyword: string; count: string; from: number; to: number; rows: SerpRow[] }) {
   const climb = p.from - p.to === 5 ? "seq-climb5" : "seq-climb4";
   return (
-    <div style={{ ...CARD, marginTop: "8px", overflow: "hidden" }}>
+    <div className="seq-rise" style={{ ...CARD, marginTop: "8px", overflow: "hidden" }}>
       <div style={{ padding: "10px 16px", borderBottom: "1px solid " + T.hair }}>
         <div style={{ border: "1px solid " + T.line, borderRadius: "999px", padding: "6px 14px", fontSize: "12.5px" }}>
           {p.keyword}

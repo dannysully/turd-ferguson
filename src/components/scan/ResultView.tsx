@@ -348,7 +348,14 @@ function ShareOfVoice(p: { r: RunScanResponse }) {
                   {b.brand}
                 </div>
                 <div style={{ height: "22px", background: T.chip, borderRadius: "4px", overflow: "hidden" }}>
+                  {/* acGrow, at Flow2Free.dc.html's own .8s cubic-bezier -
+                      seq-bar is already that exact declaration. Time-based
+                      rather than scroll-driven because this arrives when the
+                      scan finishes, which is the moment the board animates.
+                      The count sits in text beside it, so a bar at scaleX(0)
+                      hides a graphic and never a number. */}
                   <div
+                    className="seq-bar"
                     style={{
                       height: "100%",
                       width: Math.round((b.mentions / top) * 100) + "%",

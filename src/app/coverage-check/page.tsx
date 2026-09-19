@@ -32,6 +32,13 @@ export const metadata: Metadata = {
  * page must not read as a measurement of anyone real.
  *
  * Open decisions are in docs/blocked.md, one question each.
+ *
+ * Motion: the board's acIn stagger and acStamp land on the question list, the
+ * one thing on this page that is real content rather than a promise. acSweep
+ * is deliberately not ported - it is an infinite shimmer whose whole meaning
+ * is "a request is in flight", and nothing on a stubbed form is in flight. A
+ * page headed "Not open yet" must not animate as though it were running, and
+ * the boards' own rule is that nothing loops.
  */
 
 type Prompt = { kind: string; q: string; why: string; weak?: boolean };
@@ -201,9 +208,9 @@ export default function CoverageCheckPage() {
 
         <div style={{ ...CARD, overflow: "hidden" }}>
           {PROMPTS.map((q, i) => (
-            <div key={q.q} className="cc-prompt" style={{ padding: "14px 26px", borderTop: i ? `1px solid ${T.hair}` : undefined, alignItems: "baseline" }}>
+            <div key={q.q} className="cc-prompt ac-row" style={{ padding: "14px 26px", borderTop: i ? `1px solid ${T.hair}` : undefined, alignItems: "baseline" }}>
               <div>
-                <span style={q.weak ? pill(T.warnBg, T.warnFg) : pill(T.chip, T.soft)}>{q.kind}</span>
+                <span className="ac-stamp" style={q.weak ? pill(T.warnBg, T.warnFg) : pill(T.chip, T.soft)}>{q.kind}</span>
               </div>
               <div style={{ fontSize: "14px", color: T.ink }}>{q.q}</div>
               <div style={{ fontSize: "12.5px", lineHeight: 1.5, color: T.soft }}>{q.why}</div>

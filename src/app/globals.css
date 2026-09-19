@@ -447,6 +447,89 @@ details summary::-webkit-details-marker {
   }
 }
 
+/* ── acIn and acGrow on a static page ────────────────────────────
+
+   Journey.dc.html staggers .in through .in5 across the tier content at .09s
+   intervals, and CoverageCheck.dc.html does the same at .07s. Both boards
+   trigger on a state change: a tier starts playing, a check finishes. The
+   built pages have no such state - all four tiers render in full and the
+   benchmark does not run - so the trigger here is scroll position, on the
+   same view() timeline as the charts above.
+
+   A scroll timeline has no seconds in it, so the board's .45s duration and
+   .09s stagger cannot be written down directly. What replaces the stagger is
+   geometry rather than taste: consecutive rows start their cover phase one
+   row-height of scroll apart, which against a viewport is about a sixth of
+   the animation's own span. At an ordinary scroll speed that is the same
+   .07-.09s the boards ask for, and it stays right at any speed because it is
+   measured in the same units as the scrolling.
+
+   One deliberate departure from the boards. acIn is opacity 0 -> 1, and a
+   view() animation holds its from-state for everything still below the fold,
+   so a crawler rendering the page would find the placement table and the
+   prompt list empty. ac-row lifts 8px and comes up from .55 instead: the same
+   movement, never invisible. The charts may start at 0 because a dot is not
+   content; a table row is. Same reason acStamp loses its opacity leg and
+   keeps its scale.  */
+
+@keyframes ac-row {
+  from {
+    opacity: 0.55;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ac-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* acStamp, minus the opacity leg. The overshoot to 1.06 is the board's. */
+@keyframes ac-stamp {
+  0% {
+    transform: scale(0.82);
+  }
+  60% {
+    transform: scale(1.06);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .ac-row {
+      animation: ac-row linear both;
+      animation-timeline: view();
+      animation-range: cover 0% cover 28%;
+    }
+
+    .ac-grow {
+      transform-origin: left center;
+      animation: ac-grow linear both;
+      animation-timeline: view();
+      animation-range: cover 2% cover 26%;
+    }
+
+    /* The pill lands just after the row carrying it. */
+    .ac-stamp {
+      display: inline-block;
+      animation: ac-stamp linear both;
+      animation-timeline: view();
+      animation-range: cover 6% cover 34%;
+    }
+  }
+}
+
 /* Comparison table. One column today, and the grid is generated from the
    column set so adding a competitor does not mean rebuilding it. */
 .cmp-row {
@@ -524,6 +607,12 @@ details summary::-webkit-details-marker {
 @keyframes seqClimb5 { from { transform: translateY(240px); opacity: .25; } to { transform: translateY(0); opacity: 1; } }
 @keyframes seqClimb4 { from { transform: translateY(192px); opacity: .25; } to { transform: translateY(0); opacity: 1; } }
 @keyframes seqSettle { from { transform: translateY(-14px); } to { transform: translateY(0); } }
+/* acRise: the listing panel arrives before anything in it climbs. The board
+   defines .serp-rise and never applies it, so the element is the inbox's
+   reading rather than the board's letter - but the panel is the only thing on
+   the act it can mean, and the .3s delay puts it in front of the .45s climb.
+   Starts at .35 opacity, not 0: the act is legible from the first frame. */
+@keyframes seqRise  { from { transform: translateY(46px); opacity: .35; } to { transform: translateY(0); opacity: 1; } }
 
 .seq-in  { animation: seqIn .45s ease-out both; }
 .seq-in2 { animation: seqIn .45s ease-out .10s both; }
@@ -535,12 +624,13 @@ details summary::-webkit-details-marker {
 .seq-climb5 { animation: seqClimb5 1.3s cubic-bezier(.22,.72,.24,1) .45s both; position: relative; z-index: 2; }
 .seq-climb4 { animation: seqClimb4 1.3s cubic-bezier(.22,.72,.24,1) .45s both; position: relative; z-index: 2; }
 .seq-settle { animation: seqSettle .9s cubic-bezier(.22,.72,.24,1) .5s both; }
+.seq-rise { animation: seqRise 1s cubic-bezier(.2,.7,.3,1) .3s both; }
 
 /* Nothing is hidden at rest with motion off: every act renders in full and
    the rail is what moves between them. */
 @media (prefers-reduced-motion: reduce) {
   .seq-in, .seq-in2, .seq-in3, .seq-in4, .seq-in5,
-  .seq-bar, .seq-flow, .seq-climb5, .seq-climb4, .seq-settle {
+  .seq-bar, .seq-flow, .seq-climb5, .seq-climb4, .seq-settle, .seq-rise {
     animation: none;
     opacity: 1;
     transform: none;
