@@ -15,7 +15,23 @@ import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
  * that colours a tier name.
  */
 
-const priceOf = (id: string) => TIERS.find((t) => t.id === id)?.basePrice ?? null;
+/**
+ * The price, as its label rather than rebuilt from the number.
+ *
+ * This read `basePrice` and assembled `$99` + `/mo`, which dropped the "from"
+ * that `TIERS[0].priceLabel` carries - so the homepage card said a flat
+ * "$99/mo" while /alwaystracked, its JSON-LD and the basis sentence four
+ * pixels below all said "from $99/mo". The card contradicted its own next
+ * line: "20 questions, checked weekly. More questions or a tighter cadence
+ * moves the price."
+ *
+ * It is the same bug `priceFor` in pricing.ts had already been fixed for, on
+ * the surface with the most traffic, and it is the expensive direction to get
+ * wrong - a floor shown as a flat price is a number an agency quotes their
+ * client before finding out it moves. PackagePage renders `priceLabel`
+ * straight for exactly this reason; the homepage does now too.
+ */
+const labelOf = (id: string) => TIERS.find((t) => t.id === id)?.priceLabel ?? "";
 
 /**
  * The basis under the price, read from pricing.ts rather than typed here.
@@ -28,7 +44,31 @@ const priceOf = (id: string) => TIERS.find((t) => t.id === id)?.basePrice ?? nul
  */
 const basisOf = (id: string) => TIERS.find((t) => t.id === id)?.priceBasis;
 
-const money = (n: number) => `$${n.toLocaleString("en-US")}`;
+/**
+ * The label, with its qualifiers set smaller than the number.
+ *
+ * The board's treatment is a 36px figure with a quiet "/mo" beside it, and
+ * "from" is the same kind of word - a qualifier on the number, not part of
+ * it. Both are de-emphasised and neither is dropped, so the card keeps the
+ * board's typography and still says the whole of what pricing.ts says.
+ *
+ * Anything that is not a price - "Book a call" - has no number to size
+ * against and is rendered as it is.
+ */
+function priceNode(label: string): React.ReactNode {
+  if (!label.includes("$")) return label;
+  const from = label.startsWith("from ");
+  const rest = from ? label.slice("from ".length) : label;
+  const perMoSuffix = rest.endsWith("/mo");
+  const figure = perMoSuffix ? rest.slice(0, -"/mo".length) : rest;
+  return (
+    <>
+      {from ? <span style={perMo}>from </span> : null}
+      {figure}
+      {perMoSuffix ? <span style={perMo}>/mo</span> : null}
+    </>
+  );
+}
 
 const li: React.CSSProperties = {
   fontSize: "13.5px",
@@ -107,9 +147,6 @@ function Card({
 }
 
 export default function Packages() {
-  const tracked = priceOf("tracked");
-  const mentioned = priceOf("mentioned");
-  const cited = priceOf("cited");
 
   return (
     <section style={{ ...SHELL, marginTop: "44px", display: "flex", flexDirection: "column", gap: "34px" }}>
@@ -127,7 +164,7 @@ export default function Packages() {
           <Card
             tier="tracked"
             under="The map. You do the placing"
-            price={tracked !== null ? <>{money(tracked)}<span style={perMo}>/mo</span></> : "Talk to us"}
+            price={priceNode(labelOf("tracked"))}
             basis={basisOf("tracked")}
             items={[
               "A locked question set across the clusters that matter to the account, so each reading is comparable with the last",
@@ -140,7 +177,7 @@ export default function Packages() {
           <Card
             tier="mentioned"
             under="We do the placing for you"
-            price={mentioned !== null ? <>{money(mentioned)}<span style={perMo}>/mo</span></> : "Talk to us"}
+            price={priceNode(labelOf("mentioned"))}
             items={[
               <>
                 Everything in <TierName tier="tracked" />, and we manage the outreach
@@ -155,7 +192,7 @@ export default function Packages() {
             flag="Most taken"
             featured
             under="The full push on AI citations and Google rankings together"
-            price={cited !== null ? <>{money(cited)}<span style={perMo}>/mo</span></> : "Talk to us"}
+            price={priceNode(labelOf("cited"))}
             items={[
               <>
                 Everything in <TierName tier="mentioned" />, at a higher volume
@@ -168,7 +205,7 @@ export default function Packages() {
           <Card
             tier="everywhere"
             under="All of it, across a portfolio"
-            price="Talk to us"
+            price={priceNode(labelOf("everywhere"))}
             items={["Multiple clients under one agreement", "Priced on volume, not per seat", "Your dashboards, your branding"]}
           />
         </div>
