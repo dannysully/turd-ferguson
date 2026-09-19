@@ -1,28 +1,36 @@
 "use client";
 
 import { useActionState } from "react";
+
 import { submitContactForm, type ContactFormState } from "@/app/contact/actions";
+import { T } from "@/config/tokens";
+
+/**
+ * The contact form, from Contact.dc.html: name, work email, agency, and what
+ * you need. Four fields, because every extra one costs replies and the scan
+ * already answers most of what a longer form would ask.
+ */
 
 const initialState: ContactFormState = { status: "idle" };
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
-  padding: "0.75rem 1rem",
-  border: "1px solid #B4B2A9",
-  borderRadius: "6px",
-  fontSize: "1rem",
-  color: "#3D3D3A",
-  background: "#ffffff",
-  outline: "none",
-  transition: "border-color 0.15s ease",
+  boxSizing: "border-box",
+  fontFamily: "inherit",
+  fontSize: "14px",
+  color: T.ink,
+  background: T.surface,
+  border: "1px solid " + T.line,
+  borderRadius: "10px",
+  padding: "11px 13px",
 };
 
 const labelStyle: React.CSSProperties = {
   display: "block",
-  fontSize: "0.875rem",
-  color: "#0D1B2A",
-  marginBottom: "0.4rem",
-  fontFamily: "Georgia, 'Times New Roman', Times, serif",
+  fontSize: "13px",
+  fontWeight: 600,
+  color: T.ink,
+  marginBottom: "6px",
 };
 
 export default function ContactForm() {
@@ -30,26 +38,10 @@ export default function ContactForm() {
 
   if (state.status === "success") {
     return (
-      <div
-        style={{
-          padding: "2rem",
-          background: "#F5F5F4",
-          borderRadius: "8px",
-          borderLeft: "3px solid #1D9E75",
-        }}
-      >
-        <p
-          style={{
-            fontFamily: "Georgia, 'Times New Roman', Times, serif",
-            color: "#0D1B2A",
-            fontSize: "1.1rem",
-            marginBottom: "0.5rem",
-          }}
-        >
-          Message received.
-        </p>
-        <p style={{ color: "#3D3D3A", lineHeight: 1.7 }}>
-          We&apos;ll be in touch shortly to schedule a call.
+      <div style={{ background: T.wash, border: "1px solid " + T.accent, borderRadius: "14px", padding: "20px 22px" }}>
+        <p style={{ margin: 0, fontSize: "15px", fontWeight: 600, color: T.ink }}>Message received.</p>
+        <p style={{ margin: "6px 0 0", fontSize: "14px", lineHeight: 1.65, color: T.soft }}>
+          It reaches the people doing the work, and is usually answered the same working day.
         </p>
       </div>
     );
@@ -57,110 +49,65 @@ export default function ContactForm() {
 
   return (
     <form action={formAction} noValidate>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-          gap: "1.25rem",
-          marginBottom: "1.25rem",
-        }}
-      >
-        <div>
-          <label htmlFor="name" style={labelStyle}>
-            Name <span style={{ color: "#D85A30" }}>*</span>
-          </label>
-          <input
-            id="name"
-            name="name"
-            type="text"
-            required
-            autoComplete="name"
-            style={inputStyle}
-          />
-        </div>
-        <div>
-          <label htmlFor="email" style={labelStyle}>
-            Email <span style={{ color: "#D85A30" }}>*</span>
-          </label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            required
-            autoComplete="email"
-            style={inputStyle}
-          />
-        </div>
-        <div>
-          <label htmlFor="company" style={labelStyle}>
-            Company
-          </label>
-          <input
-            id="company"
-            name="company"
-            type="text"
-            autoComplete="organization"
-            style={inputStyle}
-          />
-        </div>
-        <div>
-          <label htmlFor="website" style={labelStyle}>
-            Website URL
-          </label>
-          <input
-            id="website"
-            name="website"
-            type="url"
-            autoComplete="url"
-            placeholder="https://"
-            style={inputStyle}
-          />
-        </div>
-      </div>
+      <label htmlFor="c-name" style={labelStyle}>
+        Name
+      </label>
+      <input id="c-name" name="name" type="text" required autoComplete="name" style={inputStyle} />
 
-      <div style={{ marginBottom: "1.5rem" }}>
-        <label htmlFor="message" style={labelStyle}>
-          Message <span style={{ color: "#D85A30" }}>*</span>
-        </label>
-        <textarea
-          id="message"
-          name="message"
-          required
-          rows={5}
-          style={{ ...inputStyle, resize: "vertical" }}
-        />
-      </div>
+      <label htmlFor="c-email" style={{ ...labelStyle, marginTop: "16px" }}>
+        Work email
+      </label>
+      <input
+        id="c-email"
+        name="email"
+        type="email"
+        required
+        autoComplete="email"
+        placeholder="you@youragency.com"
+        style={inputStyle}
+      />
 
-      {state.status === "error" && (
-        <p
-          style={{
-            color: "#c0392b",
-            fontSize: "0.875rem",
-            marginBottom: "1rem",
-          }}
-          role="alert"
-        >
+      <label htmlFor="c-agency" style={{ ...labelStyle, marginTop: "16px" }}>
+        Agency
+      </label>
+      <input id="c-agency" name="company" type="text" autoComplete="organization" style={inputStyle} />
+
+      <label htmlFor="c-msg" style={{ ...labelStyle, marginTop: "16px" }}>
+        What do you need
+      </label>
+      <textarea id="c-msg" name="message" rows={4} required style={{ ...inputStyle, resize: "vertical" }} />
+
+      {state.status === "error" ? (
+        <p role="alert" style={{ margin: "12px 0 0", fontSize: "13px", color: T.badFg }}>
           {state.message}
         </p>
-      )}
+      ) : null}
 
       <button
         type="submit"
+        className="btn-primary"
         disabled={pending}
         style={{
-          background: pending ? "#b04020" : "#D85A30",
-          color: "#ffffff",
-          padding: "0.875rem 2rem",
-          borderRadius: "8px",
-          fontSize: "1rem",
-          fontWeight: 500,
-          border: "none",
+          width: "100%",
+          marginTop: "18px",
+          fontFamily: "inherit",
+          fontSize: "15px",
+          fontWeight: 600,
+          border: 0,
+          borderRadius: "10px",
+          padding: "13px 20px",
           cursor: pending ? "wait" : "pointer",
-          transition: "background 0.15s ease",
         }}
       >
-        {pending ? "Sending…" : "Send message"}
+        {pending ? "Sending" : "Send"}
       </button>
+      <p style={{ margin: "12px 0 0", fontSize: "12.5px", lineHeight: 1.55, color: T.soft }}>
+        Goes to a person, usually answered the same working day. We do not add you to anything - see the{" "}
+        <a href="/legal" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
+          privacy policy
+        </a>
+        .
+      </p>
     </form>
   );
 }

@@ -815,3 +815,37 @@ details > summary { list-style: none; }
   }
   .res-head { display: none; }
 }
+
+/* Two equal columns on the 12-column grid, six and six. Stacks on a phone. */
+.page-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 24px;
+  align-items: start;
+}
+@media (max-width: 860px) {
+  .page-split { grid-template-columns: 1fr; row-gap: 20px; }
+}
+
+/* The writing index: kind, title and date across the twelve. */
+.post-row {
+  display: grid;
+  grid-template-columns: 2fr 7fr 3fr;
+  column-gap: 24px;
+  align-items: baseline;
+  padding: 20px 26px;
+}
+@media (max-width: 860px) {
+  .post-row { grid-template-columns: 1fr; row-gap: 6px; }
+}
+
+/* A post: article on eight columns, aside on four. Stacks on a phone. */
+.post-shell {
+  display: grid;
+  grid-template-columns: 8fr 4fr;
+  column-gap: 24px;
+  align-items: start;
+}
+@media (max-width: 860px) {
+  .post-shell { grid-template-columns: 1fr; row-gap: 26px; }
+}

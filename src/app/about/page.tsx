@@ -1,15 +1,26 @@
 import type { Metadata } from "next";
-import CtaSection from "@/components/CtaSection";
+
+import TierName, { TIER_PLAIN } from "@/components/TierName";
+import { CARD, MICRO, SHELL, T } from "@/config/tokens";
+
+/**
+ * About, from About.dc.html.
+ *
+ * The measurement rules are the point of the page. Each one exists because it
+ * caught a real error in a real client report, and they are the strongest
+ * thing we can say about how this is built - stronger than any claim about
+ * the team, which is why they sit above it.
+ */
 
 export const metadata: Metadata = {
-  title: "About alwayscited | AI Citation Placements for Agencies",
+  title: "About " + TIER_PLAIN.cited + " | AI citation placements for agencies",
   description:
-    "alwayscited places brands inside the third-party articles AI engines cite, and tracks what happens next. We work mainly through agencies, white-labelled. A sub-brand of Nomada Digital.",
+    "An agency built the tool it wanted, then sold it to other agencies. Run by the senior team at Nomada Digital, a B2B search agency in York.",
   alternates: { canonical: "https://alwayscited.com/about" },
   openGraph: {
-    title: "About alwayscited | AI Citation Placements for Agencies",
+    title: "About " + TIER_PLAIN.cited,
     description:
-      "We engineer brand visibility across AI search systems for B2B brands. A sub-brand of Nomada Digital — 5-star Google-reviewed B2B search agency, York, UK.",
+      "An agency built the tool it wanted, then sold it to other agencies. Run by the senior team at Nomada Digital, York.",
     url: "https://alwayscited.com/about",
   },
 };
@@ -17,13 +28,13 @@ export const metadata: Metadata = {
 const aboutSchema = {
   "@context": "https://schema.org",
   "@type": "AboutPage",
-  name: "About alwayscited",
+  name: "About " + TIER_PLAIN.cited,
   description:
-    "alwayscited places brands inside the third-party articles AI engines cite - Google AI Overviews, ChatGPT, Gemini and Perplexity - and tracks what happens next.",
+    "An agency built the tool it wanted, then sold it to other agencies. Run by the senior team at Nomada Digital, a B2B search agency in York.",
   url: "https://alwayscited.com/about",
   publisher: {
     "@type": "Organization",
-    name: "alwayscited",
+    name: TIER_PLAIN.cited,
     url: "https://alwayscited.com",
     parentOrganization: {
       "@type": "Organization",
@@ -33,112 +44,131 @@ const aboutSchema = {
   },
 };
 
+const RULES = [
+  {
+    title: "Unmeasured is excluded, never zero",
+    body: "An engine that returns no answer is dropped from the denominator. Scoring it as a miss understates a position; averaging it in flatters one.",
+  },
+  {
+    title: "Store the whole answer",
+    body: "Full response text and source lists are kept per question, so any figure can be read back to the words that produced it. A score nobody can audit is not evidence.",
+  },
+  {
+    title: "Scope every claim",
+    body: 'An "AI visibility: 24%" reads as a total. We write 24% of 70 answers, across 14 questions and 5 engines, read on a date. A percentage without its denominator is not a finding.',
+  },
+  {
+    title: "Say what is measured and what is inferred",
+    body: "A reading taken from a chart or a screenshot is labelled as such. Solid lines and plain numbers mean measured. Where two tools disagree we report it rather than smooth it.",
+  },
+];
+
+const TEAM = [
+  "Strategy and accounts",
+  "Link building and placements",
+  "SEO and content",
+  "Tracking and analytics",
+];
+
 export default function AboutPage() {
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(aboutSchema) }}
-      />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(aboutSchema) }} />
 
-      {/* Hero */}
-      <section style={{ background: "linear-gradient(160deg, #0D1B2A 0%, #152636 100%)" }}>
-        <div className="mx-auto max-w-[1100px] px-6 py-24 md:py-32">
-          <h1
-            style={{
-              fontFamily: "Georgia, 'Times New Roman', Times, serif",
-              color: "#ffffff",
-              fontSize: "clamp(2rem, 4vw, 3rem)",
-              lineHeight: 1.15,
-              marginBottom: "1.25rem",
-            }}
-          >
-            About alwayscited.
-          </h1>
-          <p style={{ color: "#b4c5d6", fontSize: "1.1rem", lineHeight: 1.6, maxWidth: "36rem" }}>
-            We place brands inside the third-party articles AI engines cite, and we track what happens next.
-          </p>
-        </div>
-      </section>
-
-      {/* Section 1 — What alwayscited is */}
-      <section style={{ background: "#ffffff" }}>
-        <div className="mx-auto max-w-[1100px] px-6 py-24">
-          <h2
-            style={{
-              fontFamily: "Georgia, 'Times New Roman', Times, serif",
-              color: "#0D1B2A",
-              fontSize: "clamp(1.5rem, 2.5vw, 1.875rem)",
-              lineHeight: 1.2,
-              marginBottom: "1.5rem",
-            }}
-          >
-            What alwayscited is.
-          </h2>
-          <div style={{ maxWidth: "44rem" }}>
-            <p style={{ color: "#3D3D3A", fontSize: "1.0625rem", lineHeight: 1.75, marginBottom: "1.25rem" }}>
-              We place brands inside the third-party articles that AI engines cite, and we track
-              what happens next. That is the whole product.
-            </p>
-            <p style={{ color: "#3D3D3A", fontSize: "1.0625rem", lineHeight: 1.75, marginBottom: "1.25rem" }}>
-              We work mainly through agencies - the ones that earn coverage and the ones that build
-              links, because the thing being measured is the same either way. Your clients are asking
-              what you are doing about AI search, and most agencies do not yet have a fulfillment
-              answer. We are that answer, white-labelled - our work, your brand on the report, no
-              contact with your client at any point.
-            </p>
-            <p style={{ color: "#3D3D3A", fontSize: "1.0625rem", lineHeight: 1.75, marginBottom: "1.25rem", fontWeight: 600 }}>
-              Why placements rather than a dashboard.
-            </p>
-            <p style={{ color: "#3D3D3A", fontSize: "1.0625rem", lineHeight: 1.75 }}>
-              AI engines do not evaluate brands independently. They extract from content that
-              already ranks and already gets read. Knowing you are not cited does not get you
-              cited - so we go and change the source, then show you the sequence: where the page
-              ranked before, where it ranks now, and the date the link went live.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Section 2 — Powered by Nomada Digital */}
-      <section style={{ background: "#F5F5F4" }}>
-        <div className="mx-auto max-w-[1100px] px-6 py-24">
-          <h2
-            style={{
-              fontFamily: "Georgia, 'Times New Roman', Times, serif",
-              color: "#0D1B2A",
-              fontSize: "clamp(1.5rem, 2.5vw, 1.875rem)",
-              lineHeight: 1.2,
-              marginBottom: "1.5rem",
-            }}
-          >
-            Built by Nomada Digital.
-          </h2>
-          <div style={{ maxWidth: "44rem" }}>
-            <p style={{ color: "#3D3D3A", fontSize: "1.0625rem", lineHeight: 1.75, marginBottom: "1.25rem" }}>
-              alwayscited is a sub-brand of{" "}
+      <section style={{ ...SHELL, paddingTop: "44px", display: "flex", flexDirection: "column", gap: "30px" }}>
+        <div className="confirm-top">
+          <div>
+            <div style={MICRO}>Who runs this</div>
+            <h1
+              style={{
+                margin: "10px 0 0",
+                fontSize: "36px",
+                fontWeight: 700,
+                letterSpacing: "-0.03em",
+                lineHeight: 1.18,
+                color: T.ink,
+              }}
+            >
+              An agency built the tool it wanted, then sold it to other agencies.
+            </h1>
+            <p style={{ margin: "14px 0 0", fontSize: "15px", lineHeight: 1.7, color: T.soft, maxWidth: "64ch" }}>
+              <TierName tier="cited" /> is run by the senior team at{" "}
               <a
                 href="https://nomadadigital.co.uk"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ color: "#D85A30" }}
+                style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}
               >
                 Nomada Digital
-              </a>{" "}
-, a B2B search agency in York, UK. Nomada has spent the last decade building organic
-              visibility for B2B brands in competitive categories - financial services, SaaS,
-              professional services and telecoms. alwayscited applies the same publisher network
-              and editorial relationships to a new visibility channel: citation by AI.
+              </a>
+              , a B2B search agency in York. We built the scan because we needed it for our own clients, and the
+              placement side because measuring a gap we could not close was not worth charging for.
             </p>
-            <p style={{ color: "#3D3D3A", fontSize: "1.0625rem", lineHeight: 1.75 }}>
-              We run this on our own clients before we sell it to anyone. That is also why the
-              tracker exists.
+          </div>
+
+          <div style={{ ...CARD, padding: "24px", alignSelf: "start" }}>
+            <div style={MICRO}>Why agencies only</div>
+            <p style={{ margin: "10px 0 0", fontSize: "14px", lineHeight: 1.7, color: T.soft }}>
+              Selling direct would put us in front of the clients our partners already have. That is a short-term
+              revenue decision with a long-term cost, so we do not make it. Every engagement runs through an agency,
+              under their name.
             </p>
           </div>
         </div>
-      </section>
 
-      <CtaSection />
+        <section>
+          <div className="board-head confirm-head" style={{ marginBottom: "16px" }}>
+            <h2 style={{ margin: 0, fontSize: "19px", fontWeight: 700, letterSpacing: "-0.022em", color: T.ink }}>
+              How we measure
+            </h2>
+            <p style={{ margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
+              These rules exist because each one caught a real error in a real client report. They are the part worth
+              carrying into anything we build.
+            </p>
+          </div>
+          <div className="two-up">
+            {RULES.map((r) => (
+              <div key={r.title} style={{ ...CARD, padding: "22px 24px" }}>
+                <div style={{ fontSize: "14.5px", fontWeight: 600 }}>{r.title}</div>
+                <p style={{ margin: "8px 0 0", fontSize: "14px", lineHeight: 1.65, color: T.soft }}>{r.body}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section>
+          <div className="board-head confirm-head" style={{ marginBottom: "16px" }}>
+            <h2 style={{ margin: 0, fontSize: "19px", fontWeight: 700, letterSpacing: "-0.022em", color: T.ink }}>
+              Who you deal with
+            </h2>
+            <p style={{ margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
+              Small team, no account managers between you and the people doing the work.
+            </p>
+          </div>
+          <div style={{ ...CARD, display: "flex", overflow: "hidden", flexWrap: "wrap" }}>
+            {TEAM.map((role, i) => (
+              <div
+                key={role}
+                style={{
+                  flexGrow: 1,
+                  flexBasis: "220px",
+                  padding: "20px 24px",
+                  borderLeft: i ? "1px solid " + T.line : undefined,
+                }}
+              >
+                <div style={{ fontSize: "14.5px", fontWeight: 600 }}>{role}</div>
+                <div style={{ fontSize: "13px", color: T.soft, marginTop: "3px" }}>
+                  One person, named once you tell us which names go on a public page.
+                </div>
+              </div>
+            ))}
+          </div>
+          {/* The board carries [CONFIRM which names go on a public page before
+              this ships]. Four invented names would be a worse answer than a
+              visible gap, so the roles are real and the names wait. */}
+          <p style={{ margin: "12px 0 0", fontSize: "12.5px", color: T.faint }}>
+            Roles rather than names until Danny confirms which go on a public page.
+          </p>
+        </section>
+      </section>
     </>
   );
 }

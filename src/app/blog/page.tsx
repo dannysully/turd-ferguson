@@ -1,15 +1,28 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { formatPostDate, POSTS, type PostKind } from "@/config/posts";
+import { CARD, MICRO, SHELL, T } from "@/config/tokens";
+
+/**
+ * The writing index, from BlogIndex.dc.html.
+ *
+ * Two things on the board are not built. The filter pills are real - they
+ * filter - but only the kinds that have a post in them are shown, because a
+ * pill that leads to an empty page is a worse answer than no pill. And the
+ * lead post card has no metric cells: the board fills them with [METRIC
+ * LABEL] and [N], and none of these pieces carries a figure of its own.
+ * Inventing two would be inventing a finding.
+ */
+
 export const metadata: Metadata = {
-  title: "Blog — Notes on AI Search",
+  title: "What we have actually found | alwayscited",
   description:
-    "How LLMs pick brands, why most AEO services miss the point, and what's actually changing in B2B search. Notes from the alwayscited team.",
+    "Written for people who run agencies, not for search engines. Every number says where it came from and when it was taken.",
   alternates: { canonical: "https://alwayscited.com/blog" },
   openGraph: {
-    title: "Blog — Notes on AI Search | alwayscited",
-    description:
-      "How LLMs pick brands, why most AEO services miss the point, and what's actually changing in B2B search.",
+    title: "What we have actually found | alwayscited",
+    description: "Written for people who run agencies, not for search engines.",
     url: "https://alwayscited.com/blog",
   },
 };
@@ -17,138 +30,135 @@ export const metadata: Metadata = {
 const blogSchema = {
   "@context": "https://schema.org",
   "@type": "Blog",
-  name: "alwayscited Blog",
-  description: "Notes on AI search, AEO, and what's actually changing in B2B search.",
+  name: "alwayscited",
+  description: "Notes on AI search, written for people who run agencies.",
   url: "https://alwayscited.com/blog",
-  publisher: {
-    "@type": "Organization",
-    name: "alwayscited",
-    url: "https://alwayscited.com",
-  },
+  publisher: { "@type": "Organization", name: "alwayscited", url: "https://alwayscited.com" },
 };
 
-const posts = [
-  {
-    slug: "how-llms-pick-which-brands-to-recommend",
-    title: "How LLMs pick which brands to recommend (and what it means for your visibility)",
-    excerpt:
-      "When a B2B buyer asks ChatGPT for a product recommendation, the LLM doesn't independently evaluate vendors. It cites a small set of editorial sources — and returns the brand at the top. Here's the mechanism.",
-    readTime: "5 min read",
-    date: "30 April 2026",
-  },
-  {
-    slug: "aeo-vs-seo-whats-actually-different",
-    title: "AEO vs SEO: what's actually different (and what isn't)",
-    excerpt:
-      "AEO and SEO are overlapping channels with different target surfaces, different measurement frameworks, and different time horizons. Here's the clearest comparison you'll read this year.",
-    readTime: "5 min read",
-    date: "30 April 2026",
-  },
-  {
-    slug: "why-most-aeo-audits-are-a-waste-of-money",
-    title: "Why most AEO audits are a waste of money",
-    excerpt:
-      "The agency industry has a new product to sell. Most of it is a report you don't need. If you're being pitched an AEO audit as a standalone deliverable, you're being sold the wrong thing.",
-    readTime: "5 min read",
-    date: "30 April 2026",
-  },
-];
+function pill(active: boolean): React.CSSProperties {
+  return {
+    background: active ? T.surface : "transparent",
+    border: "1px solid " + (active ? T.line : "transparent"),
+    color: active ? T.ink : T.soft,
+    fontSize: "14px",
+    fontWeight: 600,
+    padding: "8px 15px",
+    borderRadius: "999px",
+    textDecoration: "none",
+  };
+}
 
-export default function BlogIndexPage() {
+export default async function BlogIndexPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ kind?: string }>;
+}) {
+  const { kind } = await searchParams;
+  const kinds = Array.from(new Set(POSTS.map((p) => p.kind))) as PostKind[];
+  const active = kinds.find((k) => k === kind) ?? null;
+  const shown = active ? POSTS.filter((p) => p.kind === active) : POSTS;
+  const lead = shown[0];
+  const rest = shown.slice(1);
+
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(blogSchema) }}
-      />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(blogSchema) }} />
 
-      {/* Hero */}
-      <section style={{ background: "linear-gradient(160deg, #0D1B2A 0%, #152636 100%)" }}>
-        <div className="mx-auto max-w-[1100px] px-6 py-24 md:py-28">
-          <h1
-            style={{
-              fontFamily: "Georgia, 'Times New Roman', Times, serif",
-              color: "#ffffff",
-              fontSize: "clamp(2rem, 4vw, 3rem)",
-              lineHeight: 1.2,
-              marginBottom: "1rem",
-            }}
-          >
-            Notes on AI search.
-          </h1>
-          <p style={{ color: "#b4c5d6", fontSize: "1.1rem", lineHeight: 1.6, maxWidth: "36rem" }}>
-            How LLMs pick brands, why most AEO services miss the point, and what&apos;s actually
-            changing in B2B search.
+      <section style={{ ...SHELL, paddingTop: "44px", display: "flex", flexDirection: "column", gap: "26px" }}>
+        <div className="board-head confirm-head">
+          <div>
+            <div style={MICRO}>Writing</div>
+            <h1
+              style={{
+                margin: "8px 0 0",
+                fontSize: "27px",
+                fontWeight: 700,
+                letterSpacing: "-0.03em",
+                color: T.ink,
+              }}
+            >
+              What we have actually found
+            </h1>
+          </div>
+          <p style={{ margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
+            Written for people who run agencies, not for search engines. Every number says where it came from and
+            when it was taken. No explainers on what an AI Overview is.
           </p>
         </div>
-      </section>
 
-      {/* Post list */}
-      <section style={{ background: "#ffffff" }}>
-        <div className="mx-auto max-w-[1100px] px-6 py-24">
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "0",
-              borderTop: "1px solid #B4B2A9",
-            }}
+        <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+          <Link href="/blog" style={pill(!active)}>
+            All
+          </Link>
+          {kinds.map((k) => (
+            <Link key={k} href={"/blog?kind=" + encodeURIComponent(k)} style={pill(active === k)}>
+              {k}
+            </Link>
+          ))}
+        </div>
+
+        {lead ? (
+          <Link
+            href={"/blog/" + lead.slug}
+            style={{ ...CARD, display: "block", padding: "28px 30px", textDecoration: "none" }}
           >
-            {posts.map((post) => (
-              <article
+            <div style={{ ...MICRO, color: T.accent }}>{lead.kind}</div>
+            <h2
+              style={{
+                margin: "10px 0 0",
+                fontSize: "25px",
+                fontWeight: 700,
+                letterSpacing: "-0.03em",
+                lineHeight: 1.22,
+                color: T.ink,
+                maxWidth: "24ch",
+              }}
+            >
+              {lead.title}
+            </h2>
+            <p style={{ margin: "10px 0 0", fontSize: "14.5px", lineHeight: 1.6, color: T.soft, maxWidth: "70ch" }}>
+              {lead.blurb}
+            </p>
+            <div style={{ marginTop: "14px", fontSize: "13px", color: T.soft }}>
+              {formatPostDate(lead.date) + " - " + lead.readMinutes + " min read"}
+            </div>
+          </Link>
+        ) : null}
+
+        {rest.length ? (
+          <div style={{ ...CARD, overflow: "hidden" }}>
+            {rest.map((post) => (
+              <Link
                 key={post.slug}
-                style={{ borderBottom: "1px solid #B4B2A9", padding: "2.5rem 0" }}
+                href={"/blog/" + post.slug}
+                className="post-row"
+                style={{ borderTop: "1px solid " + T.hair, textDecoration: "none" }}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "1rem",
-                    marginBottom: "0.75rem",
-                    fontSize: "0.8125rem",
-                    color: "#5F5E5A",
-                  }}
-                >
-                  <span>{post.date}</span>
-                  <span>·</span>
-                  <span>{post.readTime}</span>
-                </div>
-                <h2 style={{ marginBottom: "0" }}>
-                  <Link
-                    href={`/blog/${post.slug}`}
+                <div style={MICRO}>{post.kind}</div>
+                <div>
+                  <div
                     style={{
-                      fontFamily: "Georgia, 'Times New Roman', Times, serif",
-                      color: "#0D1B2A",
-                      fontSize: "clamp(1.2rem, 2.5vw, 1.5rem)",
-                      lineHeight: 1.25,
-                      textDecoration: "none",
-                      display: "block",
-                      marginBottom: "0.75rem",
+                      fontSize: "16px",
+                      fontWeight: 600,
+                      letterSpacing: "-0.022em",
+                      color: T.ink,
+                      lineHeight: 1.35,
                     }}
                   >
                     {post.title}
-                  </Link>
-                </h2>
-                <p
-                  style={{
-                    color: "#5F5E5A",
-                    fontSize: "0.9375rem",
-                    lineHeight: 1.7,
-                    maxWidth: "44rem",
-                    marginBottom: "1rem",
-                  }}
-                >
-                  {post.excerpt}
-                </p>
-                <Link
-                  href={`/blog/${post.slug}`}
-                  style={{ color: "#D85A30", fontSize: "0.9375rem", fontWeight: 500 }}
-                >
-                  Read →
-                </Link>
-              </article>
+                  </div>
+                  <div style={{ fontSize: "13.5px", lineHeight: 1.55, color: T.soft, marginTop: "4px" }}>
+                    {post.blurb}
+                  </div>
+                </div>
+                <div style={{ textAlign: "right", fontSize: "13px", color: T.soft }}>
+                  {formatPostDate(post.date) + " - " + post.readMinutes + " min"}
+                </div>
+              </Link>
             ))}
           </div>
-        </div>
+        ) : null}
       </section>
     </>
   );
