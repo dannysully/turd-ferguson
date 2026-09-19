@@ -231,17 +231,26 @@ async function readAndStore(input: {
   // round trips bolted onto the end of every scan, all of them independent.
   const extractions = await Promise.all(
     engines.map(async (engine) => {
-      const prose = answers
+      const blocks = answers
         .filter((a) => a.engine === engine && a.answered)
         .map((a) => a.prose)
-        .filter(Boolean)
-        .join("\n\n---\n\n");
-      if (!prose.trim()) return null;
-      const extracted = await extractBrands(prose, { topic, brand });
-      return { engine, extracted };
+        .filter(Boolean);
+      if (!blocks.length) return null;
+      const out = await extractBrands(blocks, { topic, brand });
+      return { engine, extracted: out.brands, calls: out.calls, failedBatches: out.failedBatches };
     }),
   );
-  anthropicCalls += extractions.filter(Boolean).length;
+  anthropicCalls += extractions.reduce((n, r) => n + (r?.calls ?? 0), 0);
+
+  // extractBrands swallows a bad batch now rather than failing the run, so the
+  // count is the only way a partial leaderboard shows up. The trade is
+  // deliberate: every engine read on this scan is already paid for by the time
+  // the extraction runs, and losing the lot to one truncated response is worse
+  // than a leaderboard that is short a few names.
+  const failedExtractions = extractions.reduce((n, r) => n + (r?.failedBatches ?? 0), 0);
+  if (failedExtractions) {
+    console.warn(`[scan] ${scanId} leaderboard: ${failedExtractions} prose batch(es) failed to extract`);
+  }
   checkDeadline();
 
   // One spelling per brand, chosen across the whole scan rather than per

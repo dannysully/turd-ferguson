@@ -296,18 +296,97 @@ const BrandList = z.object({
 });
 
 /**
+ * Answers per request, by length of prose.
+ *
+ * This used to be one call for every answer an engine gave, joined into a
+ * single string and cut at 120,000 characters. Both halves of that were the
+ * shape the source classifier was already fixed for: the input grew with the
+ * scan rather than with the batch, and the cut fell at the end of the joined
+ * string, so what it dropped was whole later answers - the last questions
+ * asked simply had no brands extracted from them and nothing said so.
+ *
+ * The output ceiling was the worse half. It was a flat 8,000 tokens against
+ * an input that scaled with the scan, and unlike the classifier this call is
+ * NOT wrapped in "never fatal": a truncated response fails the schema parse,
+ * which threw out of Promise.all, which failed the whole run - after every
+ * engine read on it had already been paid for.
+ */
+const PROSE_BATCH_CHARS = 60_000;
+
+/**
  * Pull the competitor set out of the Overview prose. Publications, directories
  * and generic nouns are excluded deliberately: the leaderboard is who the
  * engines recommend, which is a different list from who they cite.
+ *
+ * Takes the answers as separate blocks rather than one joined string so the
+ * batching can fall between two answers instead of through the middle of one.
+ * Duplicate names across batches are not merged here - the caller already
+ * merges on brandKey, which folds case and punctuation, and two normalisers
+ * that disagree is how a leaderboard grows a second row for one company.
  */
 export async function extractBrands(
-  prose: string,
+  blocks: string[],
   context: { topic: string; brand: string } = { topic: "", brand: "" },
-): Promise<{ brand: string; mentions: number }[]> {
-  if (!prose.trim()) return [];
+): Promise<{ brands: { brand: string; mentions: number }[]; calls: number; failedBatches: number }> {
+  // One answer is clamped to a whole batch rather than to some smaller share
+  // of one, so nothing is cut tighter here than the old 120,000-character cut
+  // would have cut it. 60,000 characters is some 15,000 words from a single
+  // engine answer; the clamp is a bound on the pathological case, not a size
+  // any answer in this pipeline is expected to reach.
+  const usable = blocks
+    .map((b) => b.trim())
+    .filter(Boolean)
+    .map((b) => (b.length > PROSE_BATCH_CHARS ? b.slice(0, PROSE_BATCH_CHARS) : b));
+  if (!usable.length) return { brands: [], calls: 0, failedBatches: 0 };
 
+  const batches: string[][] = [];
+  let current: string[] = [];
+  let size = 0;
+  for (const block of usable) {
+    if (current.length && size + block.length > PROSE_BATCH_CHARS) {
+      batches.push(current);
+      current = [];
+      size = 0;
+    }
+    current.push(block);
+    size += block.length;
+  }
+  if (current.length) batches.push(current);
+
+  const brands: { brand: string; mentions: number }[] = [];
+  let calls = 0;
+  let failedBatches = 0;
+  for (const batch of batches) {
+    try {
+      brands.push(...(await extractBrandBatch(batch, context)));
+    } catch (err) {
+      // One bad batch must not cost the scan its leaderboard, and must not
+      // cost it the engine reads already paid for. Counted and returned so
+      // the caller can say a leaderboard is partial rather than assume it.
+      failedBatches += 1;
+      console.warn("[scan] a prose batch failed to extract:", err instanceof Error ? err.message : err);
+    }
+    calls += 1;
+  }
+  return { brands, calls, failedBatches };
+}
+
+async function extractBrandBatch(
+  batch: string[],
+  context: { topic: string; brand: string },
+): Promise<{ brand: string; mentions: number }[]> {
   const res = await anthropic().messages.parse({
     model: MODEL,
+    /**
+     * The same 8,000 as before, and it means something different now.
+     *
+     * The two calls below scale their ceiling with the batch because their
+     * output is one row per input row, so the arithmetic is exact. Here the
+     * output is however many companies happen to be named, which no input
+     * measurement predicts - so the ceiling stays at the maximum for the task
+     * and the INPUT is what got bounded. A fixed ceiling over a bounded batch
+     * is a ceiling that no longer scales with the scan, which was the defect.
+     */
     max_tokens: 8000,
     output_config: { effort: EFFORT, format: zodOutputFormat(BrandList) },
     system: [
@@ -327,7 +406,7 @@ export async function extractBrands(
     messages: [
       {
         role: "user",
-        content: [context.brand ? `Subject brand: ${context.brand}` : "", prose.slice(0, 120_000)]
+        content: [context.brand ? `Subject brand: ${context.brand}` : "", batch.join("\n\n---\n\n")]
           .filter(Boolean)
           .join("\n\n"),
       },

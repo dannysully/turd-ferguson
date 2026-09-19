@@ -41,6 +41,17 @@ export async function GET(_req: Request, ctx: { params: Promise<{ token: string 
     );
   }
 
-  const shape = await opportunityShape(scan.id as string);
-  return Response.json({ ...shape, ready: true }, { headers: { "cache-control": "no-store" } });
+  // Same rule as the full report: a failed read reports as a failure rather
+  // than as a count of zero, which on this screen would read as "there is
+  // nothing behind the gate".
+  try {
+    const shape = await opportunityShape(scan.id as string);
+    return Response.json({ ...shape, ready: true }, { headers: { "cache-control": "no-store" } });
+  } catch (err) {
+    console.error(`[scan] could not count opportunities for ${scan.id}:`, err);
+    return Response.json(
+      { error: "count_failed" },
+      { status: 502, headers: { "cache-control": "no-store" } },
+    );
+  }
 }

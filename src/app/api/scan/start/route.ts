@@ -6,6 +6,7 @@ import { isMarket, isPlausibleDomain, normalizeDomain } from "@/lib/scan/domain"
 import { estimateScanCost } from "@/lib/scan/engine-costs";
 import { clientIp, hashIp } from "@/lib/scan/ip";
 import { getSettings } from "@/lib/scan/settings";
+import { spentSince } from "@/lib/scan/spend";
 import { verifyTurnstile } from "@/lib/scan/turnstile";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
@@ -61,12 +62,7 @@ export async function POST(req: Request) {
 
   // Spend is capped as well as volume: adding engines changes the cost of a
   // scan by an order of magnitude, so a count alone is no longer a safe limit.
-  const { data: spendRows } = await db
-    .from("scans")
-    .select("dfs_cost")
-    .eq("is_tracking_run", false)
-    .gte("created_at", since);
-  const spentToday = (spendRows ?? []).reduce((a, r) => a + Number(r.dfs_cost ?? 0), 0);
+  const spentToday = await spentSince(since, { excludeTrackingRuns: true });
   if (spentToday >= settings.daily_cost_cap_usd) {
     return fail(503, "capped", "We have hit today's scan limit. We will be back shortly.");
   }

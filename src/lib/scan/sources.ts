@@ -1,6 +1,7 @@
 import "server-only";
 
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { selectAll } from "@/lib/supabase/page";
 
 import { classifySourceDomains } from "./anthropic";
 import { normalizeDomain } from "./domain";
@@ -92,16 +93,45 @@ function knownKind(domain: string): { kind: SourceKind; note: string } | null {
 export async function classifySources(scanId: string): Promise<{ anthropicCalls: number; classified: number }> {
   const db = supabaseAdmin();
 
-  const [{ data: scan }, { data: cited }, { data: done }, { data: brands }] = await Promise.all([
+  type CitedRow = { source_domain: string; url: string | null; title: string | null };
+
+  /**
+   * Paged, all three of them. Citations are the one per-scan table with no
+   * small bound - questions x engines x however many sources each answer
+   * cited - and a domain that falls off the end of an unpaged read is never
+   * classified, so it never reaches the placement list and nothing says so.
+   */
+  const [{ data: scan }, cited, done, brands] = await Promise.all([
     db.from("scans").select("domain, brand_name, topic").eq("id", scanId).single(),
-    db.from("scan_citations").select("source_domain, url, title").eq("scan_id", scanId),
-    db.from("scan_sources").select("domain").eq("scan_id", scanId),
-    db.from("scan_brands").select("brand, is_subject").eq("scan_id", scanId),
+    selectAll<CitedRow>((from, to) =>
+      db
+        .from("scan_citations")
+        .select("source_domain, url, title")
+        .eq("scan_id", scanId)
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
+    selectAll<{ domain: string }>((from, to) =>
+      db
+        .from("scan_sources")
+        .select("domain")
+        .eq("scan_id", scanId)
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
+    selectAll<{ brand: string; is_subject: boolean }>((from, to) =>
+      db
+        .from("scan_brands")
+        .select("brand, is_subject")
+        .eq("scan_id", scanId)
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
   ]);
   if (!scan) throw new Error(`scan ${scanId} not found`);
 
-  const already = new Set((done ?? []).map((r) => r.domain as string));
-  const domains = [...new Set((cited ?? []).map((r) => r.source_domain as string))].filter(
+  const already = new Set(done.map((r) => r.domain));
+  const domains = [...new Set(cited.map((r) => r.source_domain))].filter(
     (d) => d && !already.has(d),
   );
   if (!domains.length) return { anthropicCalls: 0, classified: 0 };
@@ -110,7 +140,7 @@ export async function classifySources(scanId: string): Promise<{ anthropicCalls:
   // The pages behind each domain, so the classifier can tell a ski feature
   // from a company filing on the same masthead.
   const pagesBy = new Map<string, { url: string | null; title: string | null }[]>();
-  for (const c of (cited ?? []) as Array<{ source_domain: string; url: string | null; title: string | null }>) {
+  for (const c of cited) {
     const list = pagesBy.get(c.source_domain) ?? [];
     if (list.length < 3 && !list.some((p) => p.url === c.url)) {
       list.push({ url: c.url, title: c.title });
@@ -142,7 +172,7 @@ export async function classifySources(scanId: string): Promise<{ anthropicCalls:
 
   let anthropicCalls = 0;
   if (unknown.length) {
-    const competitors = [...new Set((brands ?? []).filter((b) => !b.is_subject).map((b) => b.brand as string))];
+    const competitors = [...new Set(brands.filter((b) => !b.is_subject).map((b) => b.brand))];
     const judged = await classifySourceDomains({
       topic: (scan.topic as string | null) ?? "",
       brand: (scan.brand_name as string | null) ?? (scan.domain as string),

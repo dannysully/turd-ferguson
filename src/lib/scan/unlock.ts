@@ -4,8 +4,10 @@ import { after } from "next/server";
 
 import { runGatedScan } from "@/lib/scan/pipeline";
 import { getSettings } from "@/lib/scan/settings";
+import { spentSince } from "@/lib/scan/spend";
 import { sendReportReadyEmail } from "@/lib/scan/verify-email";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { selectAll } from "@/lib/supabase/page";
 
 /**
  * What unlocking a scan actually does, in one place.
@@ -121,8 +123,7 @@ export async function completeUnlock(
     // day's budget after the count cap has already been passed.
     const settings = await getSettings();
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const { data: spendRows } = await db.from("scans").select("dfs_cost").gte("created_at", since);
-    const spentToday = (spendRows ?? []).reduce((a, r) => a + Number(r.dfs_cost ?? 0), 0);
+    const spentToday = await spentSince(since, { excludeTrackingRuns: false });
 
     if (spentToday < settings.daily_cost_cap_usd) {
       const { error: claimErr } = await db
@@ -304,18 +305,36 @@ export async function opportunityShape(
   scanId: string,
 ): Promise<{ count: number; answers: number; kinds: Record<string, number> }> {
   const db = supabaseAdmin();
-  const [{ data: citations }, { data: answers }, { data: questions }, { data: kinds }] = await Promise.all([
-    db.from("scan_citations").select("source_domain, question_id, engine").eq("scan_id", scanId),
+  // Citations and source kinds are paged: both scale with what the engines
+  // cited rather than with what we asked, and an unpaged read silently stops
+  // at the 1000th row. The count on the locked screen is the number being
+  // traded for an email address, so it has to be the whole count.
+  const [citations, { data: answers }, { data: questions }, kinds] = await Promise.all([
+    selectAll<CitationRow>((from, to) =>
+      db
+        .from("scan_citations")
+        .select("source_domain, question_id, engine")
+        .eq("scan_id", scanId)
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
     db.from("scan_answers").select("question_id, engine, brand_named").eq("scan_id", scanId),
     db.from("scan_questions").select("id, question").eq("scan_id", scanId),
-    db.from("scan_sources").select("domain, kind, note, on_topic").eq("scan_id", scanId),
+    selectAll<KindRow>((from, to) =>
+      db
+        .from("scan_sources")
+        .select("domain, kind, note, on_topic")
+        .eq("scan_id", scanId)
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
   ]);
 
   const opportunities = deriveOpportunities({
-    citations: (citations ?? []) as CitationRow[],
+    citations,
     answers: (answers ?? []) as AnswerRow[],
     questions: (questions ?? []) as QuestionRow[],
-    kinds: (kinds ?? []) as KindRow[],
+    kinds,
   });
 
   const byKind: Record<string, number> = {};
@@ -331,12 +350,37 @@ export async function opportunityShape(
 export async function buildUnlockPayload(scanId: string): Promise<UnlockPayload> {
   const db = supabaseAdmin();
 
-  const [{ data: brands }, { data: sources }, { data: questions }, { data: answers }, { data: kinds }] = await Promise.all([
-    db.from("scan_brands").select("engine, brand, mentions, is_subject").eq("scan_id", scanId),
-    db
-      .from("scan_citations")
-      .select("source_domain, url, title, question_id, engine, scan_questions(search_volume)")
-      .eq("scan_id", scanId),
+  type CitationWithVolume = CitationRow & {
+    url: string | null;
+    title: string | null;
+    scan_questions?: unknown;
+  };
+  type EngineBrandRow = { engine: string; brand: string; mentions: number; is_subject: boolean };
+
+  /**
+   * The three that scale with what the engines gave back are paged. This is
+   * the paid report: an unpaged citation read stops at the 1000th row, and a
+   * source that falls off the end is missing from the source list, from share
+   * of voice and from the placement list at once - with nothing on the page
+   * to say the list is partial.
+   */
+  const [brands, sources, { data: questions }, { data: answers }, kinds] = await Promise.all([
+    selectAll<EngineBrandRow>((from, to) =>
+      db
+        .from("scan_brands")
+        .select("engine, brand, mentions, is_subject")
+        .eq("scan_id", scanId)
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
+    selectAll<CitationWithVolume>((from, to) =>
+      db
+        .from("scan_citations")
+        .select("source_domain, url, title, question_id, engine, scan_questions(search_volume)")
+        .eq("scan_id", scanId)
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
     db
       .from("scan_questions")
       .select("id, idx, question, kind, search_volume, google_rank")
@@ -346,11 +390,17 @@ export async function buildUnlockPayload(scanId: string): Promise<UnlockPayload>
       .from("scan_answers")
       .select("question_id, engine, answered, brand_named, response_text")
       .eq("scan_id", scanId),
-    db.from("scan_sources").select("domain, kind, note, on_topic").eq("scan_id", scanId),
+    selectAll<KindRow>((from, to) =>
+      db
+        .from("scan_sources")
+        .select("domain, kind, note, on_topic")
+        .eq("scan_id", scanId)
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
   ]);
 
-  type BrandRow = { engine: string; brand: string; mentions: number; is_subject: boolean };
-  const brandRows = (brands ?? []) as BrandRow[];
+  const brandRows = brands;
   const overall = new Map<string, { brand: string; mentions: number; is_subject: boolean; engines: string[] }>();
   for (const b of brandRows) {
     const row = overall.get(b.brand) ?? { brand: b.brand, mentions: 0, is_subject: b.is_subject, engines: [] };
@@ -370,19 +420,10 @@ export async function buildUnlockPayload(scanId: string): Promise<UnlockPayload>
     kind: string | null;
     note: string | null;
   };
-  const kindOf = new Map(
-    (
-      (kinds ?? []) as Array<{
-        domain: string;
-        kind: string;
-        note: string | null;
-        on_topic: boolean | null;
-      }>
-    ).map((k) => [k.domain, k]),
-  );
+  const kindOf = new Map(kinds.map((k) => [k.domain, k]));
   const bySource = new Map<string, SourceRow>();
   const counted = new Set<string>();
-  for (const c of sources ?? []) {
+  for (const c of sources) {
     const row: SourceRow = bySource.get(c.source_domain) ?? {
       source: c.source_domain,
       mentions: 0,
@@ -436,10 +477,10 @@ export async function buildUnlockPayload(scanId: string): Promise<UnlockPayload>
   }));
 
   const opportunities = deriveOpportunities({
-    citations: (sources ?? []) as CitationRow[],
+    citations: sources,
     answers: answerRows,
     questions: (questions ?? []) as QuestionRow[],
-    kinds: (kinds ?? []) as KindRow[],
+    kinds,
   });
 
   return {

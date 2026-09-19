@@ -273,6 +273,8 @@ export default function ScanFlow(p: {
   );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  /** An unlocked scan whose report would not load. Not the same thing as a gate. */
+  const [fullError, setFullError] = useState("");
 
   const [progress, setProgress] = useState(0);
   const [slow, setSlow] = useState(false);
@@ -325,13 +327,30 @@ export default function ScanFlow(p: {
 
       try {
         const res = await fetch("/api/scan/" + p.token + "/full", { cache: "no-store" });
-        if (!res.ok || stop) return;
+        if (stop) return;
+        if (!res.ok) {
+          /**
+           * 403 is the gate doing its job - this scan was never unlocked, and
+           * the gated view is the right screen for it.
+           *
+           * Anything else is a scan that IS unlocked whose report would not
+           * load. Falling through to the gate there shows a visitor who has
+           * already given an address the wall again, as though they had never
+           * given one, which reads as losing the report rather than as a
+           * failure to fetch it.
+           */
+          if (res.status !== 403) {
+            setFullError("We could not load your full report just now. Refresh the page, or open the link in your email again.");
+          }
+          return;
+        }
         const data = await res.json();
         setFull(asFull(data));
         setGatedEngines(data.gated_engines ?? p.gatedEngines);
         setGatedStatus(data.gated_status ?? "none");
       } catch {
-        // No full payload is the gated state, which renders fine.
+        // A dropped request is not a failed unlock. The gated view renders,
+        // and a refresh asks again.
       }
     })();
 
@@ -621,6 +640,23 @@ export default function ScanFlow(p: {
             slow={slow}
             headingRef={headingRef}
           />
+        ) : null}
+
+        {phase === "result" && result && fullError ? (
+          <p
+            role="alert"
+            style={{
+              fontSize: "0.8125rem",
+              color: T.badFg,
+              border: "1px solid " + T.line,
+              borderRadius: 12,
+              padding: "0.75rem 1rem",
+              margin: "0 0 1rem",
+              lineHeight: 1.6,
+            }}
+          >
+            {fullError}
+          </p>
         ) : null}
 
         {phase === "result" && result && full && gatedEngines.length > 0 ? (

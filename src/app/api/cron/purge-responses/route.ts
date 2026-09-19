@@ -82,14 +82,21 @@ export async function GET(req: Request) {
   const failures: string[] = [];
   for (let i = 0; i < ids.length; i += CHUNK) {
     const batch = ids.slice(i, i + CHUNK);
-    const { data, error } = await db
+    /**
+     * `count: exact` rather than counting a returned representation. The
+     * number comes back in the Content-Range header, which is the true number
+     * of rows the update touched - where `select("id")` asked PostgREST to
+     * send every cleared id back so we could call `.length` on it, and a row
+     * ceiling sits over anything PostgREST returns. A batch of 500 scans is
+     * up to tens of thousands of answers; none of those ids were ever read.
+     */
+    const { count, error } = await db
       .from("scan_answers")
-      .update({ response_text: null })
+      .update({ response_text: null }, { count: "exact" })
       .in("scan_id", batch)
-      .not("response_text", "is", null)
-      .select("id");
+      .not("response_text", "is", null);
     if (error) failures.push(error.message);
-    else cleared += data?.length ?? 0;
+    else cleared += count ?? 0;
   }
 
   return NextResponse.json(
