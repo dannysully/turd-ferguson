@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { listOf, namedOf, pickEngines } from "@/config/scan-shape";
 import { CARD, MICRO, SHELL, T } from "@/config/tokens";
+import { type WorkedQuestionId, workedQuestion } from "@/config/worked-example";
 
 /**
  * "AI answers, question by question" - the product, shown rather than
@@ -31,15 +32,17 @@ const BAD = pill(T.badBg, T.badFg);
 const WARN = pill(T.warnBg, T.warnFg);
 
 type Row = {
-  text: string;
   /**
-   * Which of the free engines named the brand, by position in that set.
+   * The question, and which of the free engines named the brand, both from
+   * config/worked-example.ts.
    *
-   * Named rather than positional, this panel told the homepage "Named by
-   * Claude only" for a year after Claude left the free pass, and never once
-   * named Perplexity, which joined it. See config/scan-shape.ts.
+   * Typed here, this panel told the homepage "Named by Claude only" for a
+   * year after Claude left the free pass, and never once named Perplexity,
+   * which joined it - so the engine set moved to config/scan-shape.ts. The
+   * row's own result stayed, and TierJourney kept a second copy of it that
+   * disagreed on three questions of four. Both halves are named once now.
    */
-  engines: number[];
+  id: WorkedQuestionId;
   answer: string;
   rivals: string[];
   sources: { url: string; kind: string }[];
@@ -48,8 +51,7 @@ type Row = {
 
 const DATA: Row[] = [
   {
-    text: "best project management software for creative teams",
-    engines: [],
+    id: "pm-creative",
     answer:
       '"For creative teams, the tools most often recommended are [Competitor A], [Competitor B] and [Competitor C]. [Competitor A] is usually cited for its proofing workflow..."',
     rivals: ["[Competitor A]", "[Competitor B]", "[Competitor C]"],
@@ -72,8 +74,7 @@ const DATA: Row[] = [
     ],
   },
   {
-    text: "best crm for small b2b companies",
-    engines: [1],
+    id: "crm-b2b",
     answer:
       '"[Competitor B] and [Competitor D] are the usual picks for small B2B teams. [Your brand] is also mentioned for lighter pipelines..."',
     rivals: ["[Competitor B]", "[Competitor D]"],
@@ -96,8 +97,7 @@ const DATA: Row[] = [
     ],
   },
   {
-    text: "which invoicing tool integrates with xero",
-    engines: [0, 2],
+    id: "xero",
     answer:
       '"Several tools integrate with Xero. Commonly mentioned are [Competitor C], [Your brand] and [Competitor E], with [Competitor C] usually listed first..."',
     rivals: ["[Competitor C]", "[Competitor E]"],
@@ -120,8 +120,7 @@ const DATA: Row[] = [
     ],
   },
   {
-    text: "best help desk software for saas",
-    engines: [],
+    id: "helpdesk-saas",
     answer:
       '"[Competitor F] and [Competitor G] dominate recommendations for SaaS support teams, usually on the strength of their automation..."',
     rivals: ["[Competitor F]", "[Competitor G]"],
@@ -144,8 +143,7 @@ const DATA: Row[] = [
     ],
   },
   {
-    text: "alternatives to [Competitor A] for small teams",
-    engines: [3],
+    id: "competitor-alternatives",
     answer:
       '"Teams moving away from [Competitor A] usually consider [Competitor B], [Competitor H] and [Your brand]..."',
     rivals: ["[Competitor B]", "[Competitor H]"],
@@ -186,6 +184,7 @@ const label: React.CSSProperties = { ...MICRO, display: "block" };
 export default function AnswerExplorer() {
   const [picked, setPicked] = useState(0);
   const sel = DATA[picked];
+  const selQ = workedQuestion(sel.id);
 
   return (
     <div style={{ ...SHELL, marginTop: "40px" }}>
@@ -224,9 +223,11 @@ export default function AnswerExplorer() {
               <div style={MICRO}>Question</div>
               <div style={{ ...MICRO, textAlign: "right" }}>Named</div>
             </div>
-            {DATA.map((row, i) => (
+            {DATA.map((row, i) => {
+              const q = workedQuestion(row.id);
+              return (
               <button
-                key={row.text}
+                key={row.id}
                 type="button"
                 onClick={() => setPicked(i)}
                 aria-pressed={i === picked}
@@ -248,12 +249,13 @@ export default function AnswerExplorer() {
                   boxShadow: i === picked ? `inset 2px 0 0 ${T.accent}` : undefined,
                 }}
               >
-                <span style={{ fontSize: "13.5px", color: T.ink, lineHeight: 1.4 }}>{row.text}</span>
+                <span style={{ fontSize: "13.5px", color: T.ink, lineHeight: 1.4 }}>{q.text}</span>
                 <span style={{ textAlign: "right" }}>
-                  <span style={row.engines.length ? WARN : BAD}>{namedOf(row.engines)}</span>
+                  <span style={q.engines.length ? WARN : BAD}>{namedOf(q.engines)}</span>
                 </span>
               </button>
-            ))}
+              );
+            })}
           </div>
 
           {/* Right: the answer, the gap, the sources, the plan */}
@@ -288,7 +290,7 @@ export default function AnswerExplorer() {
                 }}
               >
                 <span style={{ fontSize: "13px", fontWeight: 600, color: T.ink, flexGrow: 1 }}>You</span>
-                <span style={{ ...pill(T.surface, T.badFg) }}>{namedBy(sel.engines)}</span>
+                <span style={{ ...pill(T.surface, T.badFg) }}>{namedBy(selQ.engines)}</span>
               </div>
               <div
                 style={{

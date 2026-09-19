@@ -2,6 +2,7 @@ import TierName, { TIER_PLAIN, type TierKey } from "@/components/TierName";
 import { TIERS } from "@/config/pricing";
 import { listOf, namedOf, pickEngines } from "@/config/scan-shape";
 import { CARD, GRID12, MICRO, SHELL, T } from "@/config/tokens";
+import { overviewLabel, type WorkedQuestionId, workedQuestion } from "@/config/worked-example";
 
 /**
  * "Four tiers, each one adding to the last" - Journey.dc.html.
@@ -63,16 +64,21 @@ function Step({ n, tier, price, lead, body, dark }: {
 }
 
 /**
- * Which engines named the brand, by position in the free engine set rather
- * than by name. The row read "Claude" under a column headed "Which engines"
- * long after Claude left the free pass, and never read Perplexity, which
- * joined it. Positions cannot say that.
+ * The alwaystracked table: four of the homepage's worked questions, read off
+ * the one registry that holds them.
+ *
+ * Typed here, this table read "Claude" under a column headed "Which engines"
+ * long after Claude left the free pass - which is why the engine set became a
+ * position into config/scan-shape.ts. The question's own result stayed typed,
+ * and it was a second copy of what AnswerExplorer prints further up the same
+ * page: three of these four rows named different engines there. See
+ * config/worked-example.ts.
  */
-const TRACKED = [
-  { prompt: "alternatives to [Competitor A] for small teams", engines: [0, 2], aio: "mentioned" },
-  { prompt: "best crm for small b2b companies", engines: [3], aio: "none shown" },
-  { prompt: "which invoicing tool integrates with xero", engines: [0, 1, 2], aio: "mentioned" },
-  { prompt: "best project management software for creative teams", engines: [], aio: "shown, absent" },
+const TRACKED: WorkedQuestionId[] = [
+  "competitor-alternatives",
+  "crm-b2b",
+  "xero",
+  "pm-creative",
 ];
 
 const PLACEMENTS = [
@@ -142,14 +148,17 @@ export default function TierJourney() {
               <div style={{ ...th, textAlign: "right" }}>AI Overview</div>
               <div style={th}>Which engines</div>
             </div>
-            {TRACKED.map((r) => (
-              <div key={r.prompt} className="tier-table tier-table--tracked" style={{ padding: "11px 26px", borderBottom: `1px solid ${T.hair}`, alignItems: "baseline" }}>
-                <div style={{ fontSize: "13.5px", color: T.ink }}>{r.prompt}</div>
-                <div style={{ fontSize: "13.5px", fontWeight: 600, textAlign: "right", color: T.ink }}>{namedOf(r.engines)}</div>
-                <div style={{ ...cellNote, textAlign: "right" }}>{r.aio}</div>
-                <div style={cellNote}>{listOf(pickEngines(r.engines)) || "none"}</div>
+            {TRACKED.map((id) => {
+              const q = workedQuestion(id);
+              return (
+              <div key={id} className="tier-table tier-table--tracked" style={{ padding: "11px 26px", borderBottom: `1px solid ${T.hair}`, alignItems: "baseline" }}>
+                <div style={{ fontSize: "13.5px", color: T.ink }}>{q.text}</div>
+                <div style={{ fontSize: "13.5px", fontWeight: 600, textAlign: "right", color: T.ink }}>{namedOf(q.engines)}</div>
+                <div style={{ ...cellNote, textAlign: "right" }}>{overviewLabel(q)}</div>
+                <div style={cellNote}>{listOf(pickEngines(q.engines)) || "none"}</div>
               </div>
-            ))}
+              );
+            })}
             <p style={{ margin: 0, padding: "12px 26px", fontSize: "12.5px", color: T.soft }}>
               Example data. A real scan carries the verbatim answer and the full source list behind every row.
             </p>
