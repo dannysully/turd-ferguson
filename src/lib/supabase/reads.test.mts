@@ -132,8 +132,56 @@ function boundName(destructure: string): string {
   return "count";
 }
 
+/**
+ * Reads bound to a plain identifier instead of being destructured.
+ *
+ * The sweep below recognises a read by the shape it is destructured into, so a
+ * read that is never destructured is not merely unchecked - it is *invisible*,
+ * and no amount of widening the binding names reaches it. That is not
+ * hypothetical: `/api/scan/[token]/confirm` held one until 19 September 2026,
+ * written `const existing = await db...` with only `existing.count` read
+ * afterwards. Its error was discarded and the sweep reported a clean tree.
+ *
+ * So the rule is the narrow one rather than a judgement about the read: bind
+ * the result apart, and the sweep can see you. Anchored on `.from(` or `.rpc(`
+ * within the statement and on a `.select(` with no mutating verb, so the writes
+ * sweep next door keeps the writes and this keeps the reads.
+ *
+ * A read handed to `selectAll` is not caught and must not be: those are arrow
+ * functions returning a page, and `selectAll` throws on the error itself.
+ */
+function undestructuredIn(file: string): { file: string; line: number; text: string }[] {
+  const source = readFileSync(file, "utf8");
+  const name = relative(ROOT, file).split(sep).join("/");
+  const lines = source.split("\n");
+  const out: { file: string; line: number; text: string }[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const text = lines[i].trim();
+    // Prose, not code. The first draft of this rule flagged the sentence in
+    // /confirm that explains the defect it was written for, which is a good
+    // reminder that a sweep matching source text matches comments too.
+    if (text.startsWith("*") || text.startsWith("//") || text.startsWith("/*")) continue;
+    if (!/\bconst\s+[A-Za-z_]\w*\s*=\s*await\b/.test(lines[i])) continue;
+    const chain = lines.slice(i, i + 20).join("\n");
+    const body = chain.slice(0, chain.indexOf(";") + 1 || undefined);
+    // `selectAll` takes an arrow returning one page and throws on the error
+    // itself, so the `.from(...).select(...)` inside it is not an unchecked
+    // read - it is the one shape in this tree that is checked somewhere else
+    // on purpose. Excluded by the call, not by the binding, because the
+    // binding is rows and looks exactly like an unchecked read.
+    if (/\bselectAll[<(]/.test(body)) continue;
+    if (!/\.from\(|\.rpc\(/.test(body)) continue;
+    if (!/\.select\(/.test(body)) continue;
+    if (/\.(update|insert|upsert|delete)\(/.test(body)) continue;
+    out.push({ file: name, line: i + 1, text });
+  }
+  return out;
+}
+
 const FILES = sourceFiles(SRC);
 const READS = FILES.flatMap(readsIn);
+const UNDESTRUCTURED = FILES.flatMap(undestructuredIn);
 
 test("the sweep can still see the reads it is sweeping", () => {
   // Guards the regex and the walk together. If either stops working, every
@@ -144,7 +192,7 @@ test("the sweep can still see the reads it is sweeping", () => {
 });
 
 test("every Supabase read looks at its own error", () => {
-  const unchecked = READS.filter((r) => !/\berror\b/.test(r.destructure)).filter(
+  const unchecked: Read[] = READS.filter((r) => !/\berror\b/.test(r.destructure)).filter(
     // hasOwn, not `in`: EXEMPT is a plain object keyed by a string built out of
     // a file path and an identifier, so `in` would answer true for a read bound
     // to `constructor` or `toString` and excuse it without an entry.
@@ -155,6 +203,14 @@ test("every Supabase read looks at its own error", () => {
     unchecked.map((r) => `${r.file}:${r.line} ${r.destructure}`),
     [],
     "these reads discard their error, so a failed read is indistinguishable from an empty one",
+  );
+});
+
+test("every Supabase read is destructured, so this sweep can see it", () => {
+  assert.deepEqual(
+    UNDESTRUCTURED.map((r) => `${r.file}:${r.line} ${r.text}`),
+    [],
+    "bind this read apart - a result held whole is invisible to the sweep above, not merely unchecked",
   );
 });
 

@@ -119,8 +119,13 @@ test("the sweep can still see the writes it is sweeping", () => {
 });
 
 test("every Supabase write looks at its own error", () => {
+  // hasOwn, not `in`, to match the reads sweep. EXEMPT is a plain object keyed
+  // by a string built out of a line of source, so `in` answers for the whole
+  // prototype chain. Not reachable today - every key carries a file path and a
+  // colon - but a membership test that does not do what it looks like it does
+  // is the exact thing these two files exist to catch elsewhere.
   const unchecked = WRITES.filter((w) => !w.checked).filter(
-    (w) => !(`${w.file}:${w.text}` in EXEMPT),
+    (w) => !Object.hasOwn(EXEMPT, `${w.file}:${w.text}`),
   );
 
   assert.deepEqual(
