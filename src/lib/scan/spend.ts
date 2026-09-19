@@ -31,3 +31,40 @@ export async function spentSince(
   });
   return rows.reduce((total, r) => total + Number(r.dfs_cost ?? 0), 0);
 }
+
+/**
+ * Model calls billed onto the scans created since `since`.
+ *
+ * daily_cost_cap_usd bounds DataForSEO spend and nothing bounded Anthropic
+ * spend at all. The two are not interchangeable: the engine reads are what
+ * the cap was written for, but a scan also pays for a brand read, a question
+ * set, a brand extraction per engine, a leaderboard judgement and a source
+ * classification, and every one of those is a model call that the dollar cap
+ * cannot see. A loop that spends nothing at DataForSEO can spend all day at
+ * Anthropic and trip no ceiling.
+ *
+ * Counted in calls rather than dollars on purpose. A dollar figure here would
+ * be a price per call typed into this repo, which goes stale silently and
+ * reads as measured when it is guessed; a call count is what the column
+ * actually holds.
+ *
+ * Tracking runs are included. This is the whole day's model budget rather
+ * than a visitor's allowance, and a tracking run spends it like anything
+ * else.
+ *
+ * Paged for the same reason spentSince is: PostgREST caps a select at 1000
+ * rows and says so nowhere, and a ceiling that reads a truncated set
+ * under-reports exactly when the day is busy enough to matter.
+ */
+export async function anthropicCallsSince(since: string): Promise<number> {
+  const db = supabaseAdmin();
+  const rows = await selectAll<{ anthropic_calls: number | null }>((from, to) =>
+    db
+      .from("scans")
+      .select("anthropic_calls")
+      .gte("created_at", since)
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  return rows.reduce((total, r) => total + Number(r.anthropic_calls ?? 0), 0);
+}

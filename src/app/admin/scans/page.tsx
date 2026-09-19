@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { T } from "@/config/tokens";
 import { scanReadiness } from "@/lib/scan/readiness";
+import { SETTINGS_FALLBACK } from "@/lib/scan/settings";
 import { supabaseAdmin, supabaseConfigured } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -169,6 +170,10 @@ export default async function AdminScansPage() {
   const enabled = setting("scans_enabled") !== false;
   const cap = Number(setting("daily_scan_cap") ?? 200);
   const costCap = Number(setting("daily_cost_cap_usd") ?? 60);
+  // The model ceiling reads its default from the same place the server does,
+  // so an unset row shows the number the start route is actually enforcing
+  // rather than a second copy of it typed here.
+  const callCap = Number(setting("anthropic_calls_per_day") ?? SETTINGS_FALLBACK.anthropic_calls_per_day);
   const freeEngines = (setting("scan_engines_free") as string[] | undefined) ?? [];
   const gatedEngines = (setting("scan_engines_gated") as string[] | undefined) ?? [];
 
@@ -234,7 +239,11 @@ export default async function AdminScansPage() {
         <Tile label="Failed" value={String(failed)} tone={failed ? C.red : C.green} />
         <Tile label="DataForSEO calls" value={String(dfsCalls)} />
         <Tile label="DataForSEO cost" value={money(dfsCost)} />
-        <Tile label="Model calls" value={String(anthropicCalls)} />
+        <Tile
+          label="Model calls"
+          value={`${anthropicCalls} / ${callCap}`}
+          tone={anthropicCalls > callCap * 0.8 ? C.red : undefined}
+        />
         <Tile label="Cost per scan" value={total ? money(dfsCost / total) : "-"} />
       </div>
 

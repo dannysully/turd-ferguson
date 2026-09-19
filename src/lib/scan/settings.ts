@@ -29,6 +29,16 @@ export type Settings = {
    * without a ceiling one token is an open relay for our own branding.
    */
   unlock_emails_per_day: number;
+  /**
+   * Model calls the whole site may bill in a rolling day.
+   *
+   * daily_cost_cap_usd sums DataForSEO spend and cannot see an Anthropic
+   * call, so until this existed the model bill had no ceiling at all - only
+   * per-scan ones, which bound a scan and not a day. Counted in calls rather
+   * than dollars because a price per call typed into this repo goes stale
+   * without anybody noticing, and a call count is what the column holds.
+   */
+  anthropic_calls_per_day: number;
 };
 
 export const SETTINGS_FALLBACK: Settings = {
@@ -42,6 +52,11 @@ export const SETTINGS_FALLBACK: Settings = {
   require_email_verification: false,
   response_retention_days: 7,
   unlock_emails_per_day: 5,
+  // Roughly eight calls per free pass, against a daily_scan_cap of 200. Set
+  // above what a full day of scanning costs rather than at it: this is a
+  // runaway guard, and a ceiling that trips on an ordinary busy day would be
+  // turned off the first time it did.
+  anthropic_calls_per_day: 2500,
 };
 
 /**

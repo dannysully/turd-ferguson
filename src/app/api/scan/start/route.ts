@@ -6,7 +6,7 @@ import { isMarket, isPlausibleDomain, normalizeDomain } from "@/lib/scan/domain"
 import { estimateScanCost } from "@/lib/scan/engine-costs";
 import { clientIp, hashIp } from "@/lib/scan/ip";
 import { getSettings } from "@/lib/scan/settings";
-import { spentSince } from "@/lib/scan/spend";
+import { anthropicCallsSince, spentSince } from "@/lib/scan/spend";
 import { verifyTurnstile } from "@/lib/scan/turnstile";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
@@ -120,6 +120,34 @@ export async function POST(req: Request) {
   // scan by an order of magnitude, so a count alone is no longer a safe limit.
   const spentToday = await spentSince(since, { excludeTrackingRuns: true });
   if (spentToday >= settings.daily_cost_cap_usd) {
+    return fail(503, "capped", "We have hit today's scan limit. We will be back shortly.");
+  }
+
+  /**
+   * The model bill, which the dollar cap above cannot see.
+   *
+   * daily_cost_cap_usd sums dfs_cost, and the call this route is about to
+   * make - reading the site and naming the brand - costs nothing at
+   * DataForSEO. So did the question set, the brand extraction, the
+   * leaderboard judgement and the source classification. Every per-scan
+   * ceiling in this codebase bounds one scan; nothing bounded a day.
+   *
+   * Checked here rather than inside the Anthropic client because this is the
+   * first door and the cheapest place to refuse: every model call downstream
+   * belongs to a scan that started here.
+   *
+   * What it does not cover, stated rather than implied: a request that fails
+   * before the insert a few lines below bills its calls to no row, so those
+   * are invisible to this count. readSite runs first and refuses an
+   * unreadable site before a penny of model spend, which is what keeps that
+   * gap small - the calls this cannot see are the ones where the read
+   * succeeded and the store then failed.
+   */
+  const callsToday = await anthropicCallsSince(since);
+  if (callsToday >= settings.anthropic_calls_per_day) {
+    console.warn(
+      `[scan] model call cap reached: ${callsToday} of ${settings.anthropic_calls_per_day} in 24h`,
+    );
     return fail(503, "capped", "We have hit today's scan limit. We will be back shortly.");
   }
 
