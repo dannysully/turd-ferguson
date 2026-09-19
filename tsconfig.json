@@ -11,6 +11,12 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
+    // `npm run check` runs src/**/*.test.ts straight through Node 24, which
+    // strips types but does not resolve extensionless specifiers. The tests
+    // therefore import "./domain.ts" rather than "./domain", and this is what
+    // lets tsc read that. Safe here because noEmit is on: nothing is written
+    // out, so no .ts specifier can survive into a build artefact.
+    "allowImportingTsExtensions": true,
     "jsx": "react-jsx",
     "incremental": true,
     "plugins": [
