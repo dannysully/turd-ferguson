@@ -55,6 +55,75 @@ type Fetched =
   | { ok: false; why: "not_html" }
   | { ok: false; why: "network" };
 
+/**
+ * The first PAGE_BYTE_CAP bytes, and no more of them read than that.
+ *
+ * `await res.arrayBuffer()` and then slicing capped the *decode* and not the
+ * read: the whole response was pulled into memory first, so the cap bounded
+ * nothing that costs anything. The address is typed by a visitor on a public
+ * endpoint, so the size of that response is chosen by whoever is asking - a few
+ * hundred megabytes of anything, served slowly enough to stay inside the
+ * budget, is a function killed for memory on the first thing anyone does here.
+ *
+ * Reading the stream and cancelling at the cap also stops the transfer, which
+ * the old shape could not: it had already paid for every byte before it threw
+ * any of them away.
+ */
+async function bodyUpTo(body: ReadableStream<Uint8Array>, cap: number): Promise<Uint8Array> {
+  const reader = body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    while (total < cap) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value?.byteLength) continue;
+      chunks.push(value);
+      total += value.byteLength;
+    }
+  } finally {
+    // The stream is either finished or being abandoned mid-body. Both want the
+    // same call, and a reader that has already ended treats it as a no-op.
+    await reader.cancel().catch(() => {});
+  }
+
+  const out = new Uint8Array(Math.min(total, cap));
+  let at = 0;
+  for (const chunk of chunks) {
+    if (at >= out.length) break;
+    const take = Math.min(chunk.byteLength, out.length - at);
+    out.set(chunk.subarray(0, take), at);
+    at += take;
+  }
+  return out;
+}
+
+/**
+ * The encoding the response declared, or utf-8 where it declared nothing.
+ *
+ * TextDecoder was built with no argument, which is utf-8 whatever the site
+ * said. A page served as windows-1252 or iso-8859-1 - still ordinary on older
+ * British and European sites, which is the market this scans - reached the
+ * brand read with a replacement character wherever an accent or a curly quote
+ * had been. That is not a rendering blemish here: the prose it mangles is the
+ * only thing the model is given to name the company from.
+ *
+ * The header is the authority and a meta tag inside the document is not read.
+ * An unknown label makes TextDecoder throw, so that falls back rather than
+ * failing the read.
+ */
+function decodeBody(bytes: Uint8Array, contentType: string): string {
+  const declared = /charset\s*=\s*"?([\w.:-]+)"?/i.exec(contentType)?.[1];
+  if (declared) {
+    try {
+      return new TextDecoder(declared).decode(bytes);
+    } catch {
+      // Not a label TextDecoder knows. utf-8 below.
+    }
+  }
+  return new TextDecoder().decode(bytes);
+}
+
 async function getText(url: string, signal: AbortSignal): Promise<Fetched> {
   try {
     const res = await fetch(url, {
@@ -62,13 +131,22 @@ async function getText(url: string, signal: AbortSignal): Promise<Fetched> {
       redirect: "follow",
       headers: { "user-agent": "alwayscited-scan/1.0 (+https://alwayscited.com)" },
     });
-    if (!res.ok) return { ok: false, why: "status", status: res.status };
+    // Nothing reads the body on either refusal, so it is dropped rather than
+    // left for the collector at whatever size it arrived.
+    if (!res.ok) {
+      await res.body?.cancel().catch(() => {});
+      return { ok: false, why: "status", status: res.status };
+    }
     const type = res.headers.get("content-type") ?? "";
-    if (!type.includes("html")) return { ok: false, why: "not_html" };
+    if (!type.includes("html")) {
+      await res.body?.cancel().catch(() => {});
+      return { ok: false, why: "not_html" };
+    }
+    if (!res.body) return { ok: true, html: "" };
 
-    // Cap the read rather than trusting content-length.
-    const buf = await res.arrayBuffer();
-    return { ok: true, html: new TextDecoder().decode(buf.slice(0, PAGE_BYTE_CAP)) };
+    // The cap is on bytes, so a multi-byte character straddling it decodes to
+    // one replacement character at the very end of 200KB of prose.
+    return { ok: true, html: decodeBody(await bodyUpTo(res.body, PAGE_BYTE_CAP), type) };
   } catch {
     return { ok: false, why: "network" };
   }
