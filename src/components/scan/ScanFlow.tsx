@@ -15,7 +15,8 @@ import { ENGINE_SPECS, isEngine } from "@/lib/scan/engines";
 
 import ConfirmScreen from "./ConfirmScreen";
 import HeroSequence from "./HeroSequence";
-import { C, ResultScreen, btn, field, label } from "./screens";
+import ResultView from "./ResultView";
+import { C, btn, field, label } from "./screens";
 
 /**
  * The scan, on its own page, from confirm to report.
@@ -107,6 +108,29 @@ function track(event: string, props: Record<string, unknown> = {}) {
   if (typeof window === "undefined") return;
   const w = window as unknown as { dataLayer?: unknown[] };
   if (Array.isArray(w.dataLayer)) w.dataLayer.push({ event, ...props });
+}
+
+/**
+ * The unlock payload, as the screens need it.
+ *
+ * Written once because it was written three times and one of them was wrong:
+ * every reader picked brands, sources and questions off the response and left
+ * `opportunities` behind, which is the one thing the email address buys. The
+ * table that renders it has shipped since 9d54925 and has never had a row in
+ * it, because nothing ever put the rows into state.
+ */
+function asFull(data: {
+  brands?: FullPayload["brands"];
+  sources?: FullPayload["sources"];
+  questions?: FullPayload["questions"];
+  opportunities?: ScanOpportunity[];
+}): FullPayload {
+  return {
+    brands: data.brands ?? [],
+    sources: data.sources ?? [],
+    questions: data.questions ?? [],
+    opportunities: data.opportunities ?? [],
+  };
 }
 
 /** Teaser plus whatever has been unlocked, in the shape the screens render. */
@@ -214,6 +238,15 @@ export default function ScanFlow(p: {
   /** The engines this scan reads, frozen onto the row at start. */
   engines: string[];
   gatedEngines: string[];
+  /** The result, read on the server for a scan that has already finished. */
+  initialTeaser?: Teaser | null;
+  /** The unlocked half, read on the server for a scan that has been unlocked. */
+  initialFull?: {
+    brands?: FullPayload["brands"];
+    sources?: FullPayload["sources"];
+    questions?: FullPayload["questions"];
+    opportunities?: ScanOpportunity[];
+  } | null;
 }) {
   const [phase, setPhase] = useState<Phase>(
     p.status === "complete" ? "result" : p.status === "queued" || p.status === "running" ? "running" : "confirm",
@@ -224,8 +257,8 @@ export default function ScanFlow(p: {
   const [progress, setProgress] = useState(0);
   const [slow, setSlow] = useState(false);
 
-  const [teaser, setTeaser] = useState<Teaser | null>(null);
-  const [full, setFull] = useState<FullPayload | null>(null);
+  const [teaser, setTeaser] = useState<Teaser | null>(p.initialTeaser ?? null);
+  const [full, setFull] = useState<FullPayload | null>(p.initialFull ? asFull(p.initialFull) : null);
   const [gatedEngines, setGatedEngines] = useState<string[]>(p.gatedEngines);
   const [gatedStatus, setGatedStatus] = useState<string>("none");
   /**
@@ -274,7 +307,7 @@ export default function ScanFlow(p: {
         const res = await fetch("/api/scan/" + p.token + "/full", { cache: "no-store" });
         if (!res.ok || stop) return;
         const data = await res.json();
-        setFull({ brands: data.brands ?? [], sources: data.sources ?? [], questions: data.questions ?? [] });
+        setFull(asFull(data));
         setGatedEngines(data.gated_engines ?? p.gatedEngines);
         setGatedStatus(data.gated_status ?? "none");
       } catch {
@@ -445,7 +478,7 @@ export default function ScanFlow(p: {
         return;
       }
 
-      setFull({ brands: data.brands ?? [], sources: data.sources ?? [], questions: data.questions ?? [] });
+      setFull(asFull(data));
       setGatedEngines(data.gated_engines ?? gatedEngines);
       setGatedStatus(data.gated_status ?? "none");
       track("scan_unlocked", {});
@@ -596,10 +629,11 @@ export default function ScanFlow(p: {
         ) : null}
 
         {phase === "result" && result ? (
-          <ResultScreen
-            result={result}
-            gated={!full}
-            headingRef={headingRef}
+          <ResultView
+            r={result}
+            domain={p.domain}
+            totalSources={sourceCount}
+            unlocked={Boolean(full)}
             gate={
               pendingEmail ? (
                 <VerifyPending email={pendingEmail} note={resendNote} busy={busy} onResend={onResend} />

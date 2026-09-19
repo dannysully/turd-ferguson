@@ -777,3 +777,41 @@ details summary::-webkit-details-marker {
    Scoped like .on-dark: TierName is still the only thing colouring a lockup. */
 .tier-quiet .tier-name { color: var(--faint); }
 .tier-quiet .tier-name__accent { color: #c4b5fd; }
+
+/* ── The scan result: the tables from Flow2Free and Flow3Report ── */
+
+.res-qrow {
+  display: grid;
+  grid-template-columns: 3fr 0.9fr;
+  column-gap: 16px;
+  padding: 11px 26px;
+  align-items: baseline;
+}
+.res-qrow--full { grid-template-columns: 3fr 0.9fr 1fr 1.4fr; }
+.res-srow {
+  display: grid;
+  grid-template-columns: 3fr 1.1fr 0.9fr 1.1fr;
+  column-gap: 16px;
+  padding: 11px 26px;
+  align-items: baseline;
+}
+.res-prow {
+  display: grid;
+  grid-template-columns: 2.6fr 1fr 1fr 1.4fr;
+  column-gap: 16px;
+  padding: 12px 26px;
+  align-items: baseline;
+}
+/* A disclosure row still has to look like a row, and the arrow the browser
+   adds sits badly in a four-column grid. */
+.res-qrow summary::-webkit-details-marker { display: none; }
+details > summary { list-style: none; }
+
+@media (max-width: 860px) {
+  .res-qrow, .res-qrow--full, .res-srow, .res-prow {
+    grid-template-columns: 1fr auto;
+    row-gap: 4px;
+    padding: 11px 18px;
+  }
+  .res-head { display: none; }
+}

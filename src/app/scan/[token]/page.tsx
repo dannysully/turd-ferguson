@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import ScanFlow from "@/components/scan/ScanFlow";
 import { isMarket } from "@/lib/scan/domain";
+import { buildUnlockPayload } from "@/lib/scan/unlock";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 /**
@@ -23,13 +24,27 @@ export const metadata: Metadata = {
 export default async function ScanTokenPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
 
-  const { data: scan } = await supabaseAdmin()
+  const db = supabaseAdmin();
+  const { data: scan } = await db
     .from("scans")
-    .select("brand_name, domain, positioning, topic, topic_variants, market, status, engines, gated_engines")
+    .select("id, brand_name, domain, positioning, topic, topic_variants, market, status, engines, gated_engines, unlocked_at")
     .eq("public_token", token)
     .maybeSingle();
 
   if (!scan) notFound();
+
+  /**
+   * A finished scan arrives with its result already in the page.
+   *
+   * It used to render an empty shell and fetch the teaser from the browser,
+   * which meant the person who followed a link from their inbox watched a
+   * blank page decide what to show them. The same two calls the API routes
+   * make, made here instead, and the client only polls for what is still
+   * moving.
+   */
+  const complete = scan.status === "complete";
+  const teaser = complete ? (await db.rpc("scan_teaser", { p_token: token })).data : null;
+  const full = complete && scan.unlocked_at ? await buildUnlockPayload(scan.id as string) : null;
 
   const brand = (scan.brand_name as string | null) ?? null;
   const positioning = (scan.positioning as string | null) ?? null;
@@ -50,6 +65,8 @@ export default async function ScanTokenPage({ params }: { params: Promise<{ toke
       variants={variants}
       status={scan.status as string}
       engines={engines}
+      initialTeaser={teaser}
+      initialFull={full}
       gatedEngines={gated}
     />
   );
