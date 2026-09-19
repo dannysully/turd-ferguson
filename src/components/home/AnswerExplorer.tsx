@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { listOf, namedOf, pickEngines } from "@/config/scan-shape";
+import { listOf, namedOf, pickEngines, QUESTIONS } from "@/config/scan-shape";
 import { CARD, MICRO, SHELL, T } from "@/config/tokens";
 import { type WorkedQuestionId, workedQuestion } from "@/config/worked-example";
 
@@ -64,7 +64,14 @@ const DATA: Row[] = [
       {
         mode: "Join",
         target: "publication.example/best-pm-tools-2026",
-        why: "Feeding 7 of the 14 answers and it is an editorial listicle, so inclusion is a conversation rather than a rebuild.",
+        // "14 answers" was a denominator no scan this product runs can
+        // produce: a free pass is QUESTIONS questions across four engines, so
+        // the answer count is 56 and the question count is 14. The two other
+        // rows in this panel already count questions - "cited on three
+        // questions", "five answers draw on it" - and this row was counting
+        // questions under the word answers. Read off QUESTIONS for the same
+        // reason config/scan-shape.ts exists.
+        why: `Cited on 7 of the ${QUESTIONS} questions and it is an editorial listicle, so inclusion is a conversation rather than a rebuild.`,
       },
       {
         mode: "Create",

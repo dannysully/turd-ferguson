@@ -43,6 +43,11 @@ const INTENT: Record<string, string> = {
  * it in step: lower QUESTIONS and this screen still offers fourteen, still
  * prints "14 of a possible 14" under the button, and the server silently
  * discards the overflow the visitor was just told they could keep.
+ *
+ * The standfirst above the table reads this too - "A free scan runs up to
+ * {MAX_QUESTIONS}" - because it was the one 14 still typed in this file after
+ * the constant stopped being. It is the sentence a visitor reads immediately
+ * before counting the rows, so it is the copy that gets caught being wrong.
  */
 const MAX_QUESTIONS = QUESTIONS;
 
@@ -480,7 +485,7 @@ export default function ConfirmScreen(p: {
           </h2>
           <p style={{ margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
             Written as a buyer would type them, not as keywords, and aimed at the end of the decision rather than
-            the top of it. Edit any of them, swap one out, or add your own. A free scan runs up to 14.
+            the top of it. Edit any of them, swap one out, or add your own. A free scan runs up to {MAX_QUESTIONS}.
           </p>
         </div>
 

@@ -1,6 +1,6 @@
 import { after } from "next/server";
 
-import { describeAnthropicError, readBrand } from "@/lib/scan/anthropic";
+import { describeAnthropicError, QUESTION_COUNT, readBrand } from "@/lib/scan/anthropic";
 import { type ReadFailure, readSite, UnreachableDomain } from "@/lib/scan/crawl";
 import { isMarket, isPlausibleDomain, normalizeDomain } from "@/lib/scan/domain";
 import { estimateScanCost } from "@/lib/scan/engine-costs";
@@ -293,8 +293,13 @@ export async function POST(req: Request) {
   after(() => {
     // Our cost basis stays server side: it is in the log and the admin page,
     // never in a response a visitor can read.
-    const free = estimateScanCost(settings.scan_engines_free, 14).toFixed(3);
-    const gated = estimateScanCost(settings.scan_engines_gated, 14).toFixed(3);
+    // QUESTION_COUNT, not a typed 14. This is the figure the daily dollar cap
+    // is reasoned about against, so a question-count change that left it at 14
+    // would understate or overstate every scan in the log while the cap itself
+    // moved - the one place a stale copy of this number is hard to notice,
+    // because nothing on screen contradicts it.
+    const free = estimateScanCost(settings.scan_engines_free, QUESTION_COUNT).toFixed(3);
+    const gated = estimateScanCost(settings.scan_engines_gated, QUESTION_COUNT).toFixed(3);
     console.log(
       `[scan] started ${domain} (${market}) free=${settings.scan_engines_free.join(",")} ($${free}) ` +
         `gated=${settings.scan_engines_gated.join(",")} ($${gated} on unlock)`,
