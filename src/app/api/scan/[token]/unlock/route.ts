@@ -125,15 +125,11 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
     email,
   );
 
-  // The magic link establishes the session for the return visit. It is sent,
-  // not waited on: making someone leave the page to see what they were just
-  // promised loses them.
-  const site = process.env.NEXT_PUBLIC_SITE_URL ?? "https://alwayscited.com";
-  void db.auth.admin
-    .inviteUserByEmail(email, { redirectTo: `${site}/scan/${token}` })
-    .catch((err) => {
-      console.warn("[scan] magic link not sent", err instanceof Error ? err.message : err);
-    });
+  // No magic link is sent here, and adding one back would be a regression.
+  // There is no browser Supabase client, no @supabase/ssr and no login on this
+  // site - /scan/[token] is authorised by the token in the URL - so the session
+  // an invite would establish is read by nothing. completeUnlock above already
+  // sends sendReportReadyEmail through Resend, branded, linking to this scan.
 
   const payload = await buildUnlockPayload(scan.id as string);
 

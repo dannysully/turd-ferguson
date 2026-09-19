@@ -83,12 +83,10 @@ export async function GET(_req: Request, ctx: { params: Promise<{ vtoken: string
 
   await completeUnlock(scan as unknown as UnlockableScan, accountId, lead.email as string);
 
-  // The session for the return visit. Sent, not waited on.
-  void db.auth.admin
-    .inviteUserByEmail(lead.email as string, { redirectTo: target })
-    .catch((err) => {
-      console.warn("[scan] magic link not sent", err instanceof Error ? err.message : err);
-    });
+  // No magic link is sent here, and adding one back would be a regression.
+  // Nothing on this site reads a Supabase session - the report is authorised by
+  // the token in the URL - and completeUnlock above already sends the branded
+  // report-ready email through Resend.
 
   return NextResponse.redirect(target, { status: 302 });
 }
