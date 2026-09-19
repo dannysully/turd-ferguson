@@ -53,3 +53,8 @@ next-env.d.ts
 # machine-local agent permissions, never committed
 .claude/settings.local.json
 /docs/.tree-lock
+
+# Supabase CLI scratch state. Local link details, not schema - and AGENTS.md
+# tells every session to run `git add src supabase`, so without this line one
+# of them stages pooler-url into a public repo.
+/supabase/.temp/

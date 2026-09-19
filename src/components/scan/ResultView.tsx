@@ -21,10 +21,11 @@ import { ENGINE_SPECS, isEngine } from "@/lib/scan/engines";
  * - **"Where your competitors are cited and you are not"**, the board heading.
  *   The derivation finds pages cited for questions where no engine named the
  *   brand. That is not the same claim, however well it would sell.
- * - **The whole leaderboard and every source, before unlock.** The teaser RPC
- *   does not send them yet - that is the migration in blocked.md. Every
- *   section here renders from what it is given and disappears when it is given
- *   nothing, so the day that migration is applied these fill in with no deploy.
+ * The whole leaderboard and every source are free, and have been since
+ * 20260919000000 put them in the teaser. Only the placement list is gated, and
+ * the blur is on that table alone. Every section here renders from what it is
+ * given and disappears when it is given nothing, which is why widening the
+ * teaser filled these in without touching this file.
  */
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -513,7 +514,7 @@ export default function ResultView(p: {
           <p style={{ margin: "12px 0 0", fontSize: "14.5px", lineHeight: 1.65, color: T.soft, maxWidth: "58ch" }}>
             {p.unlocked
               ? "Everything is stored, so any figure here can be read back to the words that produced it."
-              : "Everything you were shown while this ran is on this page, in full and free: the questions, the tallies, and the pages the answers were assembled from."}
+              : "Everything you were shown while this ran is on this page, in full and free: the questions, the tallies, the leaderboard, and every page the answers were assembled from."}
           </p>
           <div style={{ marginTop: "14px", display: "flex", gap: "8px", flexWrap: "wrap" }}>
             {r.engines.map((e) => {

@@ -38,8 +38,9 @@ function html(brand: string, link: string): string {
           One click and your ${escapeHtml(brand)} report opens
         </td></tr>
         <tr><td style="font-size:15px;line-height:1.55;color:#3d4451;padding-bottom:24px;">
-          We ran the check. Confirming this address opens the full leaderboard,
-          every source the engines drew on, and what each one said.
+          We ran the check, and the result is already on your page. Confirming
+          this address opens the rest: which of those pages you could be placed
+          into, and what each engine said word for word.
         </td></tr>
         <tr><td style="padding-bottom:24px;">
           <a href="${link}" style="display:inline-block;background:#7C3AED;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:12px 22px;border-radius:8px;">Open the report</a>
@@ -117,8 +118,9 @@ function reportHtml(brand: string, link: string, missed: number, total: number):
           Your ${escapeHtml(brand)} report is ready
         </td></tr>
         <tr><td style="font-size:15px;line-height:1.55;color:#3d4451;padding-bottom:24px;">
-          ${headline} The report has the full leaderboard, every source the
-          engines drew on, and what each one said word for word.
+          ${headline} The report adds the pages you could be placed into,
+          ranked by how many answers a placement would win, and what each
+          engine said word for word.
         </td></tr>
         <tr><td style="padding-bottom:24px;">
           <a href="${link}" style="display:inline-block;background:#7C3AED;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:12px 22px;border-radius:8px;">Open your report</a>

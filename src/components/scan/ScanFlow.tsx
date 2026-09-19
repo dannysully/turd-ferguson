@@ -27,14 +27,27 @@ import { btn, field, label } from "./screens";
  * URL, so a reload, a second device or the link in the email all land on the
  * same scan rather than an empty form.
  *
- * The gated half is genuinely absent, not hidden: until the address is given
- * the browser holds the teaser only, and the unlock response is the first time
- * the leaderboard and the full source list cross the wire.
+ * The gated half is genuinely absent, not hidden: the rows behind the blur are
+ * never sent until the address is given, and the unlock response is the first
+ * time the placement list crosses the wire.
+ *
+ * Since 20260919000000 the leaderboard and the whole source list come down in
+ * the teaser, so they are free. The email buys the placement list - the pages
+ * feeding answers the brand is missing from - and nothing else.
  */
 
 type Phase = "confirm" | "running" | "result";
 
 type ByEngine = { engine: string; asked: number; answered: number; named: number };
+
+type TeaserSource = {
+  source: string;
+  mentions: number;
+  ai_search_volume: number | null;
+  is_own_domain: boolean;
+  kind?: string | null;
+  note?: string | null;
+};
 
 type Teaser = {
   brand: string | null;
@@ -50,16 +63,12 @@ type Teaser = {
   by_engine: ByEngine[] | null;
   rank: number | null;
   brand_count: number;
-  top_sources:
-    | {
-        source: string;
-        mentions: number;
-        ai_search_volume: number | null;
-        is_own_domain: boolean;
-        kind?: string | null;
-        note?: string | null;
-      }[]
-    | null;
+  /** The whole leaderboard, summed across engines. Free since 20260919000000. */
+  brands: { brand: string; mentions: number; is_subject: boolean }[] | null;
+  /** The four most-cited. Kept so a teaser read before that migration still renders. */
+  top_sources: TeaserSource[] | null;
+  /** Every cited source. Free since 20260919000000. */
+  all_sources: TeaserSource[] | null;
   total_sources: number;
   /** The questions asked, with tallies. Free - see Prompts in ResultDashboard. */
   questions: ScanQuestion[] | null;
@@ -136,8 +145,19 @@ function asFull(data: {
 /** Teaser plus whatever has been unlocked, in the shape the screens render. */
 function toResult(t: Teaser, domain: string, full: FullPayload | null): RunScanResponse {
   const top = t.top_sources?.[0];
-  const subject = full?.brands.find((b) => b.is_subject);
-  const totalMentions = full?.brands.reduce((a, b) => a + b.mentions, 0) ?? 0;
+  /* The teaser carries the whole leaderboard and every source now, so both are
+     free. The unlock payload is preferred only because it also carries the URLs
+     behind each source; where it is absent the teaser is not a lesser copy. */
+  const leaderboard = full?.brands ?? t.brands ?? [];
+  const sourceRows: {
+    source: string;
+    mentions: number;
+    ai_search_volume: number | null;
+    kind?: string | null;
+    note?: string | null;
+  }[] = full?.sources ?? t.all_sources ?? t.top_sources ?? [];
+  const subject = leaderboard.find((b) => b.is_subject);
+  const totalMentions = leaderboard.reduce((a, b) => a + b.mentions, 0);
   const silent = t.of > 0 && (t.by_engine ?? []).every((e) => e.answered === 0);
 
   return {
@@ -152,15 +172,15 @@ function toResult(t: Teaser, domain: string, full: FullPayload | null): RunScanR
       of: t.of,
       rank: t.rank,
       of_brands: t.brand_count || null,
-      // Share of voice needs the whole leaderboard, so it stays blank until unlock.
+      // Needs the whole leaderboard, which the teaser now sends. Still null on a
+      // scan whose brand extraction found nobody, which is absent, not zero.
       share_of_voice:
         subject && totalMentions > 0 ? Math.round((subject.mentions / totalMentions) * 100) : null,
     },
     engines: toBreakdown(t.by_engine),
     top_source: top ? { domain: top.source, brand_present: top.is_own_domain } : null,
-    leaderboard:
-      full?.brands.map((b) => ({ brand: b.brand, mentions: b.mentions, ai_search_volume: null })) ?? [],
-    sources: (full?.sources ?? t.top_sources ?? []).map((s) => ({
+    leaderboard: leaderboard.map((b) => ({ brand: b.brand, mentions: b.mentions, ai_search_volume: null })),
+    sources: sourceRows.map((s) => ({
       domain: s.source,
       mentions: s.mentions,
       ai_search_volume: s.ai_search_volume,
@@ -524,21 +544,25 @@ export default function ScanFlow(p: {
     ? oppCount + (oppCount === 1 ? " page" : " pages") + " you could be placed into"
     : gatedEngines.length
       ? "Unlock the full report, plus " + engineNames
-      : "See who is winning, and where to get placed";
+      : // Not "see who is winning" any more - the leaderboard is on the page
+        // above this gate. Only the placement half is still behind it.
+        "Where you could get placed";
 
   /* The count leads when we have it: a gate that names what is behind it is
      worth crossing, and a blurred table with no number is just a blurred
      table. What it must not say is that these pages cite a competitor - the
-     derivation does not establish that, however well it would sell. */
+     derivation does not establish that, however well it would sell.
+
+     It must also not sell what is already on the page. The leaderboard and the
+     full source list were behind this gate until 20260919000000 made them free,
+     and a gate promising something the reader has already scrolled past is
+     worse than no gate. What the address buys is the placement list. */
   const gateBody = oppCount
     ? (oppCount === 1 ? "One page is" : oppCount + " pages are") +
       " already feeding the answers you are missing from, and " +
       (oppCount === 1 ? "it is" : "they are") +
       " somewhere an article can run. Ranked by how many answers a placement would put you into, with the" +
-      " questions behind each one - plus the full leaderboard and all " +
-      sourceCount +
-      " sources cited for " +
-      (result?.topic ?? "this category") +
+      " questions behind each one" +
       (gatedEngines.length ? ", and the same questions put through " + engineNames : "") +
       "."
     : gatedEngines.length
@@ -546,19 +570,13 @@ export default function ScanFlow(p: {
         (result?.brand.of ?? 14) +
         " questions through " +
         engineNames +
-        " as well, then show you the full leaderboard and all " +
+        " as well, and show you which of the " +
         sourceCount +
-        " sources cited for " +
-        (result?.topic ?? "this category") +
-        "."
-      : "The full leaderboard - " +
-        (result?.brand.of_brands ? "all " + result.brand.of_brands + " brands" : "every brand") +
-        " these engines name for " +
-        (result?.topic ?? "this category") +
-        ", ranked - and all " +
+        " pages above are ones you could be placed into."
+      : "Which of the " +
         sourceCount +
-        " sources they cite. The source list is the useful half: those are the pages already being read back to" +
-        " your buyers, and the ones worth being on.";
+        " pages above are feeding answers you are missing from, and which of those are somewhere an article can" +
+        " realistically run. That is the half of this you can act on.";
 
   return (
     <div>

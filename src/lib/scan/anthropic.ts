@@ -26,23 +26,38 @@ function anthropic(): Anthropic {
 }
 
 /**
- * One retry on an overloaded or rate limited model.
+ * Two retries on an overloaded or rate limited model, backing off between them.
  *
  * A 529 is capacity, not a bad request, and it lands often enough to matter:
- * the question set is the one call a visitor is waiting on with nothing on
- * screen yet, so failing it outright costs the scan. Anything else - a bad
- * request, a bad key - is thrown at once, because a retry cannot fix it.
+ * the question set is the one call a visitor is waiting on on the first screen
+ * of the funnel, so failing it outright costs the scan. It 529ed three times in
+ * one testing session, which is more than a single retry covers - two attempts
+ * against a dependency that flaky still leaves the visitor at a dead end more
+ * often than it should.
+ *
+ * Backed off rather than immediate: a second call fired 1.5s into a capacity
+ * wobble tends to meet the same wobble. Worst case this adds about five and a
+ * half seconds before giving up, which is spent under a screen that says it is
+ * writing the questions - and a visitor who waited is worth more than one who
+ * was told no.
+ *
+ * Anything else - a bad request, a bad key - is thrown at once, because a
+ * retry cannot fix it.
  */
-async function withRetry<T>(fn: () => Promise<T>, waitMs = 1500): Promise<T> {
-  try {
-    return await fn();
-  } catch (err) {
-    const status = (err as { status?: number } | null)?.status;
-    const retryable = status === 429 || (typeof status === "number" && status >= 500);
-    if (!retryable) throw err;
-    await new Promise((r) => setTimeout(r, waitMs));
-    return fn();
+async function withRetry<T>(fn: () => Promise<T>, waits = [1500, 4000]): Promise<T> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt <= waits.length; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      const status = (err as { status?: number } | null)?.status;
+      const retryable = status === 429 || (typeof status === "number" && status >= 500);
+      if (!retryable || attempt === waits.length) throw err;
+      await new Promise((r) => setTimeout(r, waits[attempt]));
+    }
   }
+  throw lastErr;
 }
 
 /** Turns SDK errors into one readable message, keeping the retryable ones distinguishable. */
