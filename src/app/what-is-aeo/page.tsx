@@ -1,440 +1,418 @@
 import type { Metadata } from "next";
+
 import CtaSection from "@/components/CtaSection";
+import { TIER_PLAIN } from "@/components/TierName";
+import { TIERS } from "@/config/pricing";
+import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
+import { ENGINES, ENGINE_SPECS, FREE_ENGINES } from "@/lib/scan/engines";
+
+/**
+ * What is AEO - the guide page.
+ *
+ * This and /how-it-works are the two public pages with no artboard, which is
+ * why they were still on the pre-redesign palette - Georgia headings, navy
+ * #0D1B2A, orange #D85A30 - after every other surface had moved. The 19 Sep
+ * CSS sweep looked for #0B1220 and #F8F7FF and found neither, because this
+ * page never used those two. There were two legacy palettes in the tree, and
+ * the sweep that declared the token migration finished only knew about one.
+ *
+ * No board means no board to copy, so the rules in inbox.md stand in for one:
+ * tokens only, h1 36px/700/-0.03em, h2 19px, body 14-15px, the 1180 container,
+ * sentence case, hyphens. No motion - the one-beat-per-page rule takes its
+ * vocabulary from a board's own keyframes, and inventing a beat for a page
+ * that has no board is a different thing from following the rule.
+ *
+ * On the copy: blocked.md listed seven unsourced claims across this page and
+ * /how-it-works, twice, and Danny has not answered. AGENTS.md is not ambiguous
+ * about the state that leaves the site in - a statement about what an engine
+ * does carries [VERIFY] until there is a dated source, and these were
+ * published as plain fact. Copy is reversible and explicitly mine, so rather
+ * than leave them live for a third session I applied the test blocked.md
+ * itself recommended. Every sentence here is now one of: a description of
+ * what we do, something our own scans actually observe, or gone.
+ *
+ * Cut outright, and recoverable from git at 6b473ac: the "most B2B buyers
+ * research through AI search" market statistic; the engine market-share
+ * ordering, three ranked claims about other companies; the 1-4 week and 4-8
+ * week results benchmarks and the "SEO takes 3-6 months" comparison; the
+ * 3,000-5,000/month retainer range, which was a claim about what other
+ * agencies charge and undercut our own published prices two clicks away; the
+ * 6-12 month recency window; and the same-day citation anecdote, which is a
+ * client result with no dated source. The full before-and-after is in
+ * worklog.md.
+ *
+ * The mechanism claims are kept but reattributed. We cannot see inside an
+ * engine; we can see the sources behind an answer, because every scan records
+ * them. That is a smaller claim and it is one we can stand behind.
+ */
 
 export const metadata: Metadata = {
-  title: "What is AEO? A Complete Guide to Answer Engine Optimisation",
+  title: "What is AEO? A guide to answer engine optimisation",
   description:
-    "AEO (Answer Engine Optimisation) is how brands get cited by ChatGPT, Google's AI Overview, and other AI search systems. Here's exactly how it works, how it differs from SEO, and how long it takes.",
+    "AEO is getting a brand named inside an AI-generated answer rather than ranked in the links underneath it. What it is, how it differs from SEO, and how we measure it.",
   alternates: { canonical: "https://alwayscited.com/what-is-aeo" },
   openGraph: {
-    title: "What is AEO? A Complete Guide to Answer Engine Optimisation | alwayscited",
+    title: "What is AEO? A guide to answer engine optimisation | alwayscited",
     description:
-      "AEO is how brands get cited by ChatGPT, Google's AI Overview, and other AI search systems. Here's exactly how it works.",
+      "AEO is getting a brand named inside an AI-generated answer rather than ranked in the links underneath it.",
     url: "https://alwayscited.com/what-is-aeo",
   },
 };
 
-const articleSchema = {
-  "@context": "https://schema.org",
-  "@type": "Article",
-  headline: "What is AEO? A complete guide to Answer Engine Optimisation",
+/** One place that knows the JSON-LD envelope, so no block repeats it. */
+function jsonLd(type: string, body: Record<string, unknown>): string {
+  return JSON.stringify({ "@context": "https://schema.org", "@type": type, ...body });
+}
+
+const articleSchema = jsonLd("Article", {
+  headline: "What is AEO? A guide to answer engine optimisation",
   description:
-    "AEO (Answer Engine Optimisation) is the practice of optimising content and editorial placements to be cited by AI search systems including Google's AI Overview, ChatGPT, Perplexity, and Claude.",
+    "AEO (answer engine optimisation) is the practice of getting a brand named and cited inside the answer an AI search system generates, rather than ranked in the list of links underneath it.",
   url: "https://alwayscited.com/what-is-aeo",
   author: { "@type": "Organization", name: "alwayscited" },
-  publisher: {
-    "@type": "Organization",
-    name: "alwayscited",
-    url: "https://alwayscited.com",
-  },
-};
+  publisher: { "@type": "Organization", name: "alwayscited", url: "https://alwayscited.com" },
+});
 
-const faqSchema = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  mainEntity: [
-    {
-      "@type": "Question",
-      name: "Is AEO replacing SEO?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "No - AEO is layering on top of SEO. The same placements that drive AI Overview citations are also high-authority backlinks that improve traditional search rankings. The two channels reinforce each other; they don't substitute.",
-      },
-    },
-    {
-      "@type": "Question",
-      name: "Can I do AEO myself?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "Some of it - yes. You can structure your on-site content for AI Overview capture (FAQ schema, question-format H2s, comparison tables, opening paragraphs tuned to query phrasing). What you can't easily do alone is secure listicle placements on high-authority domains in your niche. That's relationship-led editorial work that takes years of publisher network building to do at any scale.",
-      },
-    },
-    {
-      "@type": "Question",
-      name: "Which AI search systems matter most for B2B?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "Google's AI Overview (the largest by traffic share), ChatGPT (the largest by user share among informed buyers), and Perplexity (the smallest of the three by volume but disproportionately used by enterprise researchers). Claude and Gemini matter less for now but the citation mechanics across all five are similar.",
-      },
-    },
-    {
-      "@type": "Question",
-      name: "How do you measure AEO results?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "Across two measurements. First: citation rate across a tracked prompt set - typically 20-30 prompts that buyers in the client's category would actually ask, run weekly across ChatGPT, Perplexity, and Claude. Second: AI Overview citation status on commercial-intent queries - a binary check for whether the client appears as a top citation when the target query is run on Google.",
-      },
-    },
-    {
-      "@type": "Question",
-      name: "What does AEO cost?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "Pricing varies by category and competitive set. As a benchmark, AEO retainers typically start at $3,000-5,000/month for a focused single-product engagement, scaling up to $15,000-30,000/month for multi-product or multi-market campaigns. Most agencies running real AEO work - not audits - operate on a performance-linked basis.",
-      },
-    },
-  ],
-};
+/** "a, b, c and d" - used for the engine lists, which come from config. */
+function listOf(names: string[]): string {
+  if (names.length <= 1) return names[0] ?? "";
+  return names.slice(0, -1).join(", ") + " and " + names[names.length - 1];
+}
 
-const faqs = [
+const freeEngines = listOf(FREE_ENGINES.map((e) => ENGINE_SPECS[e].label));
+const otherEngines = listOf(
+  ENGINES.filter((e) => !FREE_ENGINES.includes(e)).map((e) => ENGINE_SPECS[e].label),
+);
+
+const tracked = TIERS.find((t) => t.id === "tracked");
+const mentioned = TIERS.find((t) => t.id === "mentioned");
+const cited = TIERS.find((t) => t.id === "cited");
+
+/**
+ * The first sentence of a price basis, trimmed for use mid-sentence.
+ *
+ * Not a lowercase of the whole string: the bases in pricing.ts are two
+ * sentences, and lowercasing the lot produced "checked weekly. more questions
+ * or a tighter cadence moves the price" in the rendered FAQ and in the
+ * FAQPage schema with it.
+ */
+function firstClause(s: string): string {
+  const first = s.split(". ")[0].replace(/[.]+$/, "");
+  return first.charAt(0).toLowerCase() + first.slice(1);
+}
+
+/**
+ * The prices come from pricing.ts so this page cannot contradict the pricing
+ * card, which is exactly what the old copy did.
+ *
+ * Tier names are TIER_PLAIN rather than <TierName>: these strings render into
+ * the page and are also serialised into the FAQPage schema below, and JSON-LD
+ * is one of the plain-text contexts that must strip the colour.
+ */
+const priceAnswer = [
+  "Ours are published rather than quoted.",
+  tracked ? "Tracking is " + tracked.priceLabel + "." + (tracked.priceBasis ? " " + tracked.priceBasis : "") : "",
+  mentioned ? "Placements start at " + mentioned.priceLabel + " under " + TIER_PLAIN.mentioned + "." : "",
+  cited
+    ? "The " + TIER_PLAIN.cited + " plan, which adds the on-site work and the link insertions, is " + cited.priceLabel + "."
+    : "",
+  "What other agencies charge is not something we can source, so this page does not say.",
+]
+  .filter(Boolean)
+  .join(" ");
+
+type Faq = { q: string; hint: string; a: string };
+
+const FAQS: Faq[] = [
   {
     q: "Is AEO replacing SEO?",
-    a: "No - AEO is layering on top of SEO. The same placements that drive AI Overview citations are also high-authority backlinks that improve traditional search rankings. The two channels reinforce each other; they don't substitute.",
+    hint: "No - it sits on top of it",
+    a: "No. A placement is an ordinary editorial link as well as a page an engine can read as a source, so one article can move a citation and a Google position. We report the two separately rather than averaging them into one number, because only one of them may have moved and you should be able to tell which.",
   },
   {
     q: "Can I do AEO myself?",
-    a: "Some of it - yes. You can structure your on-site content for AI Overview capture (FAQ schema, question-format H2s, comparison tables, opening paragraphs tuned to query phrasing). What you can't easily do alone is secure listicle placements on high-authority domains in your niche. That's relationship-led editorial work that takes years of publisher network building to do at any scale.",
+    hint: "The on-site half, yes",
+    a: "Some of it. You can structure your own pages for capture - FAQ schema, question-format headings, comparison tables, opening paragraphs written in the phrasing a buyer actually uses. What is harder to do from a desk is getting into the third-party pages the engines are already reading, because that is editorial relationship work rather than a change you can deploy.",
   },
   {
-    q: "Which AI search systems matter most for B2B?",
-    a: "Google's AI Overview (the largest by traffic share), ChatGPT (the largest by user share among informed buyers), and Perplexity (the smallest of the three by volume but disproportionately used by enterprise researchers). Claude and Gemini matter less for now but the citation mechanics across all five are similar.",
+    q: "Which AI systems do you read?",
+    hint: FREE_ENGINES.length + " on the free scan",
+    a: "A free scan reads " + freeEngines + ". " + otherEngines + " costs materially more per run, so it sits on the tracking plan rather than the free check. We do not publish a ranking of which engine matters most - we have no source for one, and the honest answer is that it depends on who your buyers are.",
   },
   {
-    q: "How do you measure AEO results?",
-    a: "Across two measurements. First: citation rate across a tracked prompt set - typically 20-30 prompts that buyers in the client's category would actually ask, run weekly across ChatGPT, Perplexity, and Claude. Second: AI Overview citation status on commercial-intent queries - a binary check for whether the client appears as a top citation when the target query is run on Google.",
+    q: "How do you measure results?",
+    hint: "Two measures, never averaged",
+    a:
+      "Two things, kept apart. First: whether you were named in the answer, across a tracked question set" +
+      (tracked?.priceBasis ? " - " + firstClause(tracked.priceBasis) : "") +
+      ". Second: the Google position for the same question, which comes back in the same response at no extra cost. A citation and a ranking are different outcomes and we never roll them into a single score.",
   },
   {
-    q: "What does AEO cost?",
-    a: "Pricing varies by category and competitive set. As a benchmark, AEO retainers typically start at $3,000-5,000/month for a focused single-product engagement, scaling up to $15,000-30,000/month for multi-product or multi-market campaigns. Most agencies running real AEO work - not audits - operate on a performance-linked basis.",
+    q: "What does it cost?",
+    hint: "Published, not quoted",
+    a: priceAnswer,
   },
 ];
 
-const H2 = ({ children }: { children: React.ReactNode }) => (
-  <h2
-    style={{
-      fontFamily: "Georgia, 'Times New Roman', Times, serif",
-      color: "#0D1B2A",
-      fontSize: "clamp(1.6rem, 2.8vw, 2rem)",
-      lineHeight: 1.2,
-      marginBottom: "1.5rem",
-    }}
-  >
-    {children}
-  </h2>
-);
+/** Built from the array the page renders, so the two cannot drift apart. */
+const faqSchema = jsonLd("FAQPage", {
+  mainEntity: FAQS.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })),
+});
 
-const Prose = ({ children }: { children: React.ReactNode }) => (
-  <p
-    style={{
-      color: "#3D3D3A",
-      fontSize: "1.0625rem",
-      lineHeight: 1.75,
-      maxWidth: "44rem",
-    }}
-  >
-    {children}
-  </p>
-);
+const COMPARISON: { row: string; seo: string; aeo: string }[] = [
+  { row: "Target surface", seo: "The list of links", aeo: "The answer written above them" },
+  { row: "What is measured", seo: "Your position on a keyword", aeo: "Whether the answer named you" },
+  { row: "Where the work lands", seo: "Mostly your own pages", aeo: "Mostly pages the engines already cite" },
+  { row: "Who has to say yes", seo: "A ranking system", aeo: "An editor" },
+  { row: "Buyer touchpoint", seo: "A click", aeo: "No click needed" },
+];
+
+const P: React.CSSProperties = {
+  margin: 0,
+  fontSize: "14.5px",
+  lineHeight: 1.7,
+  color: T.soft,
+  maxWidth: "72ch",
+};
+
+const LINK: React.CSSProperties = { fontWeight: 600, textDecoration: "none", color: T.accent };
+
+function Body({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ ...CARD, padding: "26px 30px", display: "flex", flexDirection: "column", gap: "14px" }}>
+      {children}
+    </div>
+  );
+}
+
+function Section({
+  title,
+  lede,
+  children,
+}: {
+  title: string;
+  lede: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section>
+      <div className="board-head" style={{ ...GRID12, marginBottom: "16px" }}>
+        <h2 style={{ ...H2, gridColumn: "span 4" }}>{title}</h2>
+        <p style={{ gridColumn: "span 8", margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>{lede}</p>
+      </div>
+      {children}
+    </section>
+  );
+}
 
 export default function WhatIsAEOPage() {
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
-      />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: articleSchema }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: faqSchema }} />
 
-      {/* Hero */}
-      <section style={{ background: "linear-gradient(160deg, #0D1B2A 0%, #152636 100%)" }}>
-        <div className="mx-auto max-w-[1100px] px-6 py-24 md:py-32">
-          <h1
-            style={{
-              fontFamily: "Georgia, 'Times New Roman', Times, serif",
-              color: "#ffffff",
-              fontSize: "clamp(1.9rem, 4vw, 3rem)",
-              lineHeight: 1.15,
-              marginBottom: "1.25rem",
-              maxWidth: "40rem",
-            }}
-          >
-            What is AEO? A complete guide to Answer Engine Optimisation.
-          </h1>
-          <p style={{ color: "#b4c5d6", fontSize: "1.1rem", lineHeight: 1.6, maxWidth: "36rem" }}>
-            AEO is how brands get cited by ChatGPT, Google&apos;s AI Overview, and other AI search
-            systems. Here&apos;s exactly how it works.
-          </p>
-        </div>
-      </section>
-
-      {/* Opening paragraph - engineered for AI Overview capture */}
-      <section style={{ background: "#ffffff" }}>
-        <div className="mx-auto max-w-[1100px] px-6 py-16">
-          <p
-            style={{
-              color: "#3D3D3A",
-              fontSize: "1.125rem",
-              lineHeight: 1.75,
-              maxWidth: "46rem",
-              borderLeft: "3px solid #D85A30",
-              paddingLeft: "1.5rem",
-            }}
-          >
-            AEO (Answer Engine Optimisation) is the practice of optimising content and editorial
-            placements to be cited by AI search systems - including Google&apos;s AI Overview, ChatGPT,
-            Perplexity, and Claude. Where traditional SEO targets ranking positions on a search
-            results page, AEO targets the citations inside the AI-generated answer itself. The
-            mechanics are different: AI systems weight editorial authority and topical relevance
-            more heavily than the link equity signals that drive traditional Google rankings. As of
-            2026, most B2B buyers research products through AI search before clicking any traditional
-            result, which makes AEO a critical visibility channel for brands selling to informed
-            buyers.
-          </p>
-        </div>
-      </section>
-
-      {/* Section 1 */}
-      <section style={{ background: "#F5F5F4" }}>
-        <div className="mx-auto max-w-[1100px] px-6 py-24">
-          <H2>How is AEO different from SEO?</H2>
-          <Prose>
-            SEO and AEO target different surfaces. SEO targets the search engine results page
-            (SERP) - the ten blue links and featured snippets that appear when you run a Google
-            query. AEO targets the AI-generated response that increasingly appears above or instead
-            of those links: Google&apos;s AI Overview, ChatGPT&apos;s answer, Perplexity&apos;s summary. The
-            buyer journey is different as a result - SEO assumes the buyer clicks a result and
-            lands on your website. AEO assumes the buyer reads the AI&apos;s answer and may never click
-            anything at all.
-          </Prose>
-          <br />
-          <Prose>
-            The measurement frameworks are different too. SEO is measured in keyword rankings,
-            organic traffic, and conversions from organic. AEO is measured in citation rate across
-            a tracked prompt set, and AI Overview citation status on commercial-intent queries. A
-            #1 Google ranking and a 100% ChatGPT citation rate are both valuable - but they
-            measure different things and are pursued through different mechanisms.
-          </Prose>
-          <br />
-          <Prose>
-            In practice, the two channels overlap more than they compete. The editorial placements
-            that drive AI Overview citations are also high-quality backlinks for SEO purposes. The
-            on-site content structured for AEO - question-format H2s, comparison tables, FAQ
-            schema - also improves traditional rankings. Both matter, and the most effective
-            campaigns move both simultaneously. See{" "}
-            <a href="/how-it-works" style={{ color: "#D85A30" }}>
-              how we run those campaigns
-            </a>
-            .
-          </Prose>
-        </div>
-      </section>
-
-      {/* Section 2 */}
-      <section style={{ background: "#ffffff" }}>
-        <div className="mx-auto max-w-[1100px] px-6 py-24">
-          <H2>How do AI systems decide which brands to cite?</H2>
-          <Prose>
-            LLMs and AI Overviews don&apos;t evaluate products independently. They identify which
-            publications they consider authoritative on a given topic, and then surface the brands
-            recommended by those publications. When a buyer asks ChatGPT &ldquo;what&apos;s the best retail
-            POS system?&rdquo; the AI doesn&apos;t run its own product evaluation - it cites a ranked list
-            from a publication it trusts. The brand at position #1 in that list is the brand the
-            AI returns.
-          </Prose>
-          <br />
-          <Prose>
-            This means topical relevance of the source matters more than raw domain authority. A
-            niche trade publication focused on retail technology - even with modest overall
-            authority metrics - will outperform a generic high-DA technology publication for retail
-            POS queries. AI systems weight specialisation over scale.
-          </Prose>
-          <br />
-          <Prose>
-            Recency matters significantly. Content updated within the last 6-12 months is weighted
-            more heavily than older content. An authoritative &ldquo;best of&rdquo; listicle that was last
-            updated two years ago carries less citation weight than a current one on the same
-            domain. This is why placement campaigns need fresh editorial coverage - not just
-            historical mentions.
-          </Prose>
-        </div>
-      </section>
-
-      {/* Section 3 */}
-      <section style={{ background: "#F5F5F4" }}>
-        <div className="mx-auto max-w-[1100px] px-6 py-24">
-          <H2>Can AEO results be engineered intentionally?</H2>
-          <Prose>
-            Yes - by securing placements on the specific publications that AI systems are already
-            citing in a given category. This isn&apos;t a vague &ldquo;create good content&rdquo; recommendation.
-            It&apos;s a specific mechanism: identify the publications the AI already trusts for the
-            target category, secure editorial placements on those publications with the brand
-            positioned at or near the top of the ranked list, and structure the surrounding on-site
-            content to reinforce the citation pattern.
-          </Prose>
-          <br />
-          <Prose>
-            The evidence that this is engineerable: we have secured same-day AI Overview citations
-            for clients - a placement goes live in the morning, and by that evening the AI is
-            citing it. That velocity doesn&apos;t happen by accident. It happens when the placement is
-            on a domain the AI already trusts, in a topic cluster the AI is already attempting to
-            answer, with the brand positioned correctly within the editorial structure of the piece.
-          </Prose>
-          <br />
-          <Prose>
-            What you can do yourself: on-site AEO work (FAQ schema, question-format H2s, comparison
-            tables, structured opening paragraphs). What requires a specialist: identifying the
-            right publications, and securing placements on those publications through editorial
-            relationships rather than paid placement. See{" "}
-            <a href="/" style={{ color: "#D85A30" }}>
-              what alwayscited does
-            </a>
-            .
-          </Prose>
-        </div>
-      </section>
-
-      {/* Section 4 */}
-      <section style={{ background: "#ffffff" }}>
-        <div className="mx-auto max-w-[1100px] px-6 py-24">
-          <H2>How long does AEO take to show results?</H2>
-          <Prose>
-            AEO produces measurable results significantly faster than SEO. The benchmark from our
-            client work: 1-4 weeks for the first measurable citations, and 4-8 weeks for sustained
-            presence in 50%+ of tracked AI prompts. For context, traditional SEO typically takes
-            3-6 months to show meaningful ranking movement on competitive commercial keywords.
-          </Prose>
-          <br />
-          <Prose>
-            The reason AEO moves faster is structural. SEO requires building trust over time
-            through accumulating link signals, user engagement data, and indexation history. AEO
-            works by placing content on publications the AI already considers trustworthy. The
-            trust is already there - the placement activates it. As long as the editorial
-            placement is correctly structured and on the right domain, the citation can appear
-            within hours of publication.
-          </Prose>
-          <br />
-          <Prose>
-            One caveat on durability: AEO citation positions can shift as LLM training data and
-            citation behaviour evolve. Maintaining citations requires active monitoring of the
-            citation landscape and refreshing placements when newer content displaces older ones.
-            This is why alwayscited operates on retainer rather than one-off engagement.
-          </Prose>
-        </div>
-      </section>
-
-      {/* Section 5 - Comparison table */}
-      <section style={{ background: "#F5F5F4" }}>
-        <div className="mx-auto max-w-[1100px] px-6 py-24">
-          <H2>AEO vs SEO at a glance.</H2>
-          <div style={{ overflowX: "auto" }}>
-            <table
+      <main
+        style={{
+          ...SHELL,
+          paddingTop: "44px",
+          paddingBottom: "44px",
+          display: "flex",
+          flexDirection: "column",
+          gap: "32px",
+        }}
+      >
+        <div className="board-head" style={{ ...GRID12, alignItems: "start" }}>
+          <div style={{ gridColumn: "span 7" }}>
+            <div style={MICRO}>Answer engine optimisation</div>
+            <h1
               style={{
-                width: "100%",
-                borderCollapse: "collapse",
-                fontSize: "0.9375rem",
-                color: "#3D3D3A",
+                margin: "10px 0 0",
+                fontSize: "36px",
+                fontWeight: 700,
+                letterSpacing: "-0.03em",
+                lineHeight: 1.18,
+                color: T.ink,
               }}
             >
-              <thead>
-                <tr style={{ borderBottom: "2px solid #0D1B2A" }}>
-                  <th
-                    style={{
-                      textAlign: "left",
-                      padding: "0.75rem 1rem 0.75rem 0",
-                      fontFamily: "Georgia, 'Times New Roman', Times, serif",
-                      color: "#0D1B2A",
-                      fontWeight: "normal",
-                      minWidth: "160px",
-                    }}
-                  >
-                    &nbsp;
-                  </th>
-                  {["SEO", "AEO"].map((col) => (
-                    <th
-                      key={col}
-                      style={{
-                        textAlign: "left",
-                        padding: "0.75rem 1rem",
-                        fontFamily: "Georgia, 'Times New Roman', Times, serif",
-                        color: col === "AEO" ? "#D85A30" : "#0D1B2A",
-                        fontWeight: "normal",
-                        minWidth: "200px",
-                      }}
-                    >
-                      {col}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  { row: "Target surface", seo: "Search results page", aeo: "AI-generated answer" },
-                  { row: "Primary signal", seo: "Link equity", aeo: "Editorial authority" },
-                  { row: "Time to first result", seo: "3-6 months", aeo: "1-4 weeks" },
-                  { row: "Measurement", seo: "Keyword rankings", aeo: "Citation rate across tracked prompts" },
-                  { row: "Buyer touchpoint", seo: "Click required", aeo: "Information delivered without click" },
-                  { row: "Investment compounds", seo: "Yes - slowly", aeo: "Yes - quickly with the right placements" },
-                ].map(({ row, seo, aeo }) => (
-                  <tr key={row} style={{ borderBottom: "1px solid #B4B2A9" }}>
-                    <td
-                      style={{
-                        padding: "1rem 1rem 1rem 0",
-                        fontFamily: "Georgia, 'Times New Roman', Times, serif",
-                        color: "#0D1B2A",
-                        fontWeight: "normal",
-                        fontSize: "0.875rem",
-                      }}
-                    >
-                      {row}
-                    </td>
-                    <td style={{ padding: "1rem", color: "#5F5E5A" }}>{seo}</td>
-                    <td style={{ padding: "1rem", color: "#0D1B2A", fontWeight: 500, background: "#fff" }}>{aeo}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+              What is AEO? A guide to answer engine optimisation.
+            </h1>
+            <p style={{ margin: "14px 0 0", fontSize: "15px", lineHeight: 1.6, color: T.soft, maxWidth: "62ch" }}>
+              AEO is getting a brand named inside the answer, rather than ranked in the links underneath it. Same
+              buyer, different surface, and a different thing to measure.
+            </p>
+          </div>
+
+          <div style={{ ...CARD, gridColumn: "span 5", padding: "24px" }}>
+            <div style={MICRO}>The short version</div>
+            <p style={{ margin: "10px 0 0", fontSize: "14px", lineHeight: 1.65, color: T.soft }}>
+              AEO (answer engine optimisation) is the practice of getting a brand named and cited inside the answer an
+              AI search system generates - on Google&apos;s AI Overview, ChatGPT, Perplexity and the rest - rather than
+              ranked in the list of links below it. Where SEO targets a position, AEO targets the citation. They are
+              measured differently and won differently, which is the whole reason it has its own name.
+            </p>
           </div>
         </div>
-      </section>
 
-      {/* Section 6 - FAQ */}
-      <section style={{ background: "#ffffff" }}>
-        <div className="mx-auto max-w-[1100px] px-6 py-24">
-          <H2>Frequently asked questions about AEO.</H2>
-          <div style={{ borderTop: "1px solid #B4B2A9" }}>
-            {faqs.map((faq) => (
-              <details
-                key={faq.q}
-                style={{ borderBottom: "1px solid #B4B2A9", padding: "1.5rem 0" }}
+        <Section
+          title="How AEO differs from SEO"
+          lede="Two surfaces, two measures. The confusing part is that one piece of work can move both."
+        >
+          <Body>
+            <p style={P}>
+              SEO targets the results page: the links and snippets that appear when someone runs a query. AEO targets
+              the generated response that sits above those links - Google&apos;s AI Overview, ChatGPT&apos;s answer,
+              Perplexity&apos;s summary. The buyer journey differs as a result. SEO assumes the buyer clicks a result
+              and lands on your site. AEO assumes they read the answer and may never click anything at all.
+            </p>
+            <p style={P}>
+              The measurements differ too. SEO is counted in keyword positions, organic traffic and conversions from
+              organic. AEO is counted in whether you were named in the answer, across a set of questions someone
+              actually asks. A first position and a citation are both worth having, but they are not the same finding,
+              and a report that averages them hides which one moved.
+            </p>
+            <p style={P}>
+              In practice the two overlap more than they compete. A placement is an ordinary editorial link as well as
+              a page an engine can read as a source, so a single article can do both jobs. We report them separately
+              rather than claiming one caused the other.
+            </p>
+            <p style={P}>
+              <a href="/how-it-works" style={LINK}>
+                How we run those campaigns
+              </a>
+            </p>
+          </Body>
+        </Section>
+
+        <Section
+          title="How engines decide who to name"
+          lede="What follows is what our scans record. Nobody outside these companies can see the mechanism itself."
+        >
+          <Body>
+            <p style={P}>
+              We cannot see inside an engine, and anyone who tells you they can is guessing. What we can see is the set
+              of pages an answer was assembled from, because every scan we run records them alongside the answer
+              itself. Read enough of those and a pattern is hard to miss: the answer is not an independent product
+              evaluation. It repeats a ranked list from a page the engine treats as a source for that topic, and the
+              brand near the top of that list is usually the brand the answer names.
+            </p>
+            <p style={P}>
+              Topical fit appears to count for more than size. The pages we find behind an answer are more often narrow
+              trade titles than the biggest domains in a sector. We would rather put it that way than dress it up as a
+              rule about how the engines are built, because the first is something we observed and the second is
+              something we would be inventing.
+            </p>
+            <p style={P}>
+              Age shows up as well. Citation rates drift down as an article gets older and newer pages take its place
+              in the source set, which is why the programme is a replacement cycle rather than a one-off campaign, and
+              why the charts we show clients have dips in them.
+            </p>
+          </Body>
+        </Section>
+
+        <Section
+          title="Can this be engineered on purpose?"
+          lede="Yes, and the mechanism is specific enough to write down. It is not a content-marketing recommendation."
+        >
+          <Body>
+            <p style={P}>
+              The work is placement on the pages an engine is already reading for a category. Identify those pages -
+              which is what the free scan does, by reading the answers and recording every source behind them - then
+              secure editorial placement on them, with the brand positioned where a ranked list actually gets quoted
+              from. Then structure your own pages so a reader arriving from the answer finds the same story.
+            </p>
+            <p style={P}>
+              What you can do yourself is the on-site half. What needs a specialist is identifying the right
+              publications and getting into them editorially rather than by buying a slot.
+            </p>
+            <p style={P}>
+              We publish one worked example with a client&apos;s name against it, and it carries the window it happened
+              over rather than a bare number.
+            </p>
+            <p style={P}>
+              <a href="/case-studies/vibe-retail" style={LINK}>
+                Read the Vibe Retail write-up
+              </a>
+            </p>
+          </Body>
+        </Section>
+
+        <Section
+          title="How long it takes"
+          lede="The honest answer has parts that move on different clocks, so we do not quote one number."
+        >
+          <Body>
+            <p style={P}>
+              A placement is live in weeks rather than months. Citation usually follows the next time the engine reads
+              the page, which is not a schedule anyone outside the engine controls. A Google position moves on its own
+              timetable again. We report the three separately rather than averaging them into a single figure that
+              hides which one changed.
+            </p>
+            <p style={P}>
+              The structural reason it can move at all quickly: a placement does not have to build standing from
+              nothing. It goes onto a page the engine is already reading. The standing is already there, and the
+              placement uses it rather than creating it.
+            </p>
+            <p style={P}>
+              The caveat is durability. Positions inside an answer shift as engines change what they read and as newer
+              pages displace older ones. Holding a citation needs monitoring and fresh placements, which is why this
+              runs as a retainer rather than a one-off engagement.
+            </p>
+          </Body>
+        </Section>
+
+        <Section
+          title="At a glance"
+          lede="The differences that change what you do, rather than every difference there is."
+        >
+          <div style={{ ...CARD, overflow: "hidden" }}>
+            <div
+              className="board-head"
+              style={{
+                ...GRID12,
+                padding: "13px 26px",
+                background: "#fbfbfc",
+                borderBottom: "1px solid " + T.line,
+              }}
+            >
+              <div style={{ ...MICRO, gridColumn: "span 4" }}>Difference</div>
+              <div style={{ ...MICRO, gridColumn: "span 4" }}>SEO</div>
+              <div style={{ ...MICRO, gridColumn: "span 4", color: T.accent }}>AEO</div>
+            </div>
+            {COMPARISON.map((c, i) => (
+              <div
+                key={c.row}
+                className="board-head"
+                style={{ ...GRID12, padding: "16px 26px", borderTop: i ? "1px solid " + T.hair : undefined }}
               >
+                <div style={{ gridColumn: "span 4", fontSize: "14px", fontWeight: 600, color: T.ink }}>{c.row}</div>
+                <div style={{ gridColumn: "span 4", fontSize: "14px", lineHeight: 1.6, color: T.soft }}>{c.seo}</div>
+                <div style={{ gridColumn: "span 4", fontSize: "14px", lineHeight: 1.6, color: T.ink }}>{c.aeo}</div>
+              </div>
+            ))}
+          </div>
+        </Section>
+
+        <Section title="Questions we get asked" lede="Answered here rather than on a call.">
+          <div style={{ ...CARD, overflow: "hidden" }}>
+            {FAQS.map((f) => (
+              <details key={f.q} className="faq-row" style={{ borderBottom: "1px solid " + T.hair }}>
                 <summary
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    gap: "1rem",
-                    cursor: "pointer",
-                    color: "#0D1B2A",
-                  }}
+                  className="board-head faq-summary"
+                  style={{ ...GRID12, padding: "17px 26px", cursor: "pointer" }}
                 >
-                  <span
-                    style={{
-                      fontFamily: "Georgia, 'Times New Roman', Times, serif",
-                      fontSize: "1.1rem",
-                      lineHeight: 1.3,
-                    }}
-                  >
-                    {faq.q}
-                  </span>
+                  <span style={{ gridColumn: "span 5", fontSize: "15px", fontWeight: 600, color: T.ink }}>{f.q}</span>
+                  <span style={{ gridColumn: "span 7", fontSize: "13.5px", color: T.faint }}>{f.hint}</span>
                 </summary>
-                <p
-                  style={{
-                    color: "#3D3D3A",
-                    lineHeight: 1.7,
-                    marginTop: "1rem",
-                    maxWidth: "52rem",
-                  }}
-                >
-                  {faq.a}
-                </p>
+                <div className="board-head" style={{ ...GRID12, padding: "0 26px 20px" }}>
+                  <p style={{ gridColumn: "6 / span 7", margin: 0, fontSize: "14.5px", lineHeight: 1.7, color: T.soft }}>
+                    {f.a}
+                  </p>
+                </div>
               </details>
             ))}
           </div>
-        </div>
-      </section>
+        </Section>
+      </main>
 
       <CtaSection />
     </>

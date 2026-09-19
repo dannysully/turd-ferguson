@@ -1,289 +1,255 @@
 import type { Metadata } from "next";
+
 import CtaSection from "@/components/CtaSection";
+import TierName from "@/components/TierName";
+import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
+
+/**
+ * How it works - the mechanism page.
+ *
+ * The second of the two public pages with no artboard, and the second half of
+ * the same restyle: it was still on Georgia headings and the navy-and-orange
+ * palette that predates the token system. Built to the inbox.md rules rather
+ * than to a board, matching /seo-agencies, which is the nearest thing to a
+ * sibling it has. No motion, for the same reason as /what-is-aeo.
+ *
+ * Three claims went, and the reasoning is the same as on that page - copy is
+ * reversible, the claims were not sourced, and blocked.md had raised them
+ * twice without an answer:
+ *
+ * - "The most recent placement we secured for a client went live in the
+ *   morning. By that evening, Google's AI Overview was already pulling it to
+ *   the top of the response - naming our client as Best Overall in their
+ *   category." A client result with no date, no tracker and no name against
+ *   it. Cut. The Vibe Retail write-up is the one worked example that carries
+ *   a source, and /what-is-aeo links to it.
+ * - "the highest-authority backlinks available" - a superlative about link
+ *   value. Replaced by the one-placement-two-jobs framing the homepage and
+ *   /seo-agencies already use, which describes what a placement is rather
+ *   than ranking it against everything else.
+ * - "Most agencies haven't internalised this yet, which is why most AEO
+ *   services are still selling audits instead of placements." A claim about
+ *   what other agencies sell. Cut.
+ *
+ * The three-column comparison table went with them. Its middle column,
+ * "Generic AEO services", asserted that competitors deliver an audit
+ * document, on an indefinite timescale, and prove it with a slide deck -
+ * a whole column of unsourced claims about other companies, which is exactly
+ * what /compare was parked over. The section that replaces it says so out
+ * loud rather than quietly dropping the table, because a reader who saw the
+ * old one deserves to know why it is gone.
+ */
 
 export const metadata: Metadata = {
-  title: "How AI Search Citations Are Engineered",
+  title: "How AI search citations are engineered",
   description:
-    "The exact mechanism alwayscited uses to engineer AI Overview and ChatGPT citations for B2B brands - listicle placements, on-site AEO content, and anchored authority transfer.",
+    "The mechanism alwayscited uses to get brands named in AI answers - placement on the pages the engines already read, the on-site work that backs it up, and what we measure.",
   alternates: { canonical: "https://alwayscited.com/how-it-works" },
   openGraph: {
-    title: "How AI Search Citations Are Engineered | alwayscited",
+    title: "How AI search citations are engineered | alwayscited",
     description:
-      "The exact mechanism alwayscited uses to engineer AI Overview and ChatGPT citations for B2B brands.",
+      "The mechanism alwayscited uses to get brands named in AI answers - placement on the pages the engines already read.",
     url: "https://alwayscited.com/how-it-works",
   },
 };
 
-const articleSchema = {
+const articleSchema = JSON.stringify({
   "@context": "https://schema.org",
   "@type": "Article",
   headline: "How AI search citations are engineered",
   description:
-    "The pattern most agencies haven't seen yet - how alwayscited engineers AI Overview and LLM citations through strategic listicle placements and AEO-structured content.",
+    "How alwayscited gets brands named inside AI answers: placement on the third-party pages an engine already reads for a category, plus the on-site work that backs it up.",
   url: "https://alwayscited.com/how-it-works",
   author: { "@type": "Organization", name: "alwayscited" },
-  publisher: {
-    "@type": "Organization",
-    name: "alwayscited",
-    url: "https://alwayscited.com",
+  publisher: { "@type": "Organization", name: "alwayscited", url: "https://alwayscited.com" },
+});
+
+const WORK: { heading: string; body: string }[] = [
+  {
+    heading: "Placement on pages the engines already read",
+    body: "Editorial placements on the third-party pages a scan found behind the answers in your category, with the brand positioned where a ranked list actually gets quoted from. Not paid promotion dressed up as editorial.",
   },
+  {
+    heading: "On-site pages built for the question",
+    body: "The questions closest to a buying decision get pages written for them: question-format headings, comparison tables, FAQ schema, and an opening paragraph in the phrasing a buyer actually uses.",
+  },
+  {
+    heading: "Links that land where you want them",
+    body: "Every placement we run carries a link, and it points at the page you want ranked rather than only at the homepage. That is what lets one article move a citation and a position at the same time.",
+  },
+];
+
+const P: React.CSSProperties = {
+  margin: 0,
+  fontSize: "14.5px",
+  lineHeight: 1.7,
+  color: T.soft,
+  maxWidth: "72ch",
 };
 
-const H = ({ children }: { children: React.ReactNode }) => (
-  <h2
-    style={{
-      fontFamily: "Georgia, 'Times New Roman', Times, serif",
-      color: "#0D1B2A",
-      fontSize: "clamp(1.6rem, 2.8vw, 2rem)",
-      lineHeight: 1.2,
-      marginBottom: "1.5rem",
-    }}
-  >
-    {children}
-  </h2>
-);
+const LINK: React.CSSProperties = { fontWeight: 600, textDecoration: "none", color: T.accent };
 
-const Body = ({ children }: { children: React.ReactNode }) => (
-  <p
-    style={{
-      color: "#3D3D3A",
-      fontSize: "1.0625rem",
-      lineHeight: 1.75,
-      maxWidth: "44rem",
-    }}
-  >
-    {children}
-  </p>
-);
+function Body({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ ...CARD, padding: "26px 30px", display: "flex", flexDirection: "column", gap: "14px" }}>
+      {children}
+    </div>
+  );
+}
+
+function Section({
+  title,
+  lede,
+  children,
+}: {
+  title: string;
+  lede: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section>
+      <div className="board-head" style={{ ...GRID12, marginBottom: "16px" }}>
+        <h2 style={{ ...H2, gridColumn: "span 4" }}>{title}</h2>
+        <p style={{ gridColumn: "span 8", margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>{lede}</p>
+      </div>
+      {children}
+    </section>
+  );
+}
 
 export default function HowItWorksPage() {
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }}
-      />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: articleSchema }} />
 
-      {/* Hero */}
-      <section style={{ background: "linear-gradient(160deg, #0D1B2A 0%, #152636 100%)" }}>
-        <div className="mx-auto max-w-[1100px] px-6 py-24 md:py-32">
-          <h1
-            style={{
-              fontFamily: "Georgia, 'Times New Roman', Times, serif",
-              color: "#ffffff",
-              fontSize: "clamp(2rem, 4.5vw, 3.25rem)",
-              lineHeight: 1.15,
-              marginBottom: "1.25rem",
-              maxWidth: "36rem",
-            }}
-          >
-            How AI search citations are engineered.
-          </h1>
-          <p style={{ color: "#b4c5d6", fontSize: "1.2rem", lineHeight: 1.6, maxWidth: "30rem" }}>
-            The pattern most agencies haven&apos;t seen yet.
-          </p>
+      <main
+        style={{
+          ...SHELL,
+          paddingTop: "44px",
+          paddingBottom: "44px",
+          display: "flex",
+          flexDirection: "column",
+          gap: "32px",
+        }}
+      >
+        <div className="board-head" style={{ ...GRID12, alignItems: "start" }}>
+          <div style={{ gridColumn: "span 7" }}>
+            <div style={MICRO}>How it works</div>
+            <h1
+              style={{
+                margin: "10px 0 0",
+                fontSize: "36px",
+                fontWeight: 700,
+                letterSpacing: "-0.03em",
+                lineHeight: 1.18,
+                color: T.ink,
+              }}
+            >
+              How AI search citations are engineered.
+            </h1>
+            <p style={{ margin: "14px 0 0", fontSize: "15px", lineHeight: 1.6, color: T.soft, maxWidth: "62ch" }}>
+              An answer is assembled from pages. Get onto those pages and you get named in the answer. That is the
+              whole mechanism, and the rest of this page is how we do it.
+            </p>
+          </div>
+
+          <div style={{ ...CARD, gridColumn: "span 5", padding: "24px" }}>
+            <div style={MICRO}>Start with the evidence</div>
+            <p style={{ margin: "10px 0 0", fontSize: "14px", lineHeight: 1.65, color: T.soft }}>
+              A free scan reads the answers in your category and records every page behind them, so the target list is
+              something you can look at rather than something we assert.
+            </p>
+            <p style={{ margin: "12px 0 0", fontSize: "14px" }}>
+              <a href="/#scan" style={LINK}>
+                Run a free scan
+              </a>
+            </p>
+          </div>
         </div>
-      </section>
 
-      {/* Section 1 - The mechanism */}
-      <section style={{ background: "#ffffff" }}>
-        <div className="mx-auto max-w-[1100px] px-6 py-24">
-          <H>Why LLMs cite the sources they cite.</H>
+        <Section
+          title="Why engines cite what they cite"
+          lede="What follows is what our own scans record. Nobody outside these companies can see the mechanism itself."
+        >
           <Body>
-            When a buyer asks ChatGPT or Google&apos;s AI Overview &ldquo;what&apos;s the best [category] tool?&rdquo;,
-            the AI doesn&apos;t independently evaluate platforms. It cites a ranked list from a
-            publication it considers authoritative. That&apos;s the mechanism - and it&apos;s a deliberately
-            exploitable one. LLMs and AI Overviews lean heavily on up-to-date &ldquo;best of&rdquo; listicles
-            published on high-authority domains. The brand cited at position #1 in those listicles
-            is the brand the AI repeats back to the buyer. Most agencies haven&apos;t internalised this
-            yet, which is why most AEO services are still selling audits instead of placements.
+            <p style={P}>
+              When somebody asks an engine which tool is best in a category, the answer that comes back is rarely an
+              independent evaluation. It reads like a ranked list restated from a page the engine treats as a source
+              for that topic - and every scan we run records those pages alongside the answer, so this is something we
+              read rather than something we infer.
+            </p>
+            <p style={P}>
+              That is what makes the outcome addressable. If the answer is assembled from a knowable set of pages, the
+              work is getting onto those pages rather than guessing at what an engine rewards.
+            </p>
+            <p style={P}>
+              <a href="/what-is-aeo" style={LINK}>
+                The longer version, with what we can and cannot claim about it
+              </a>
+            </p>
           </Body>
-        </div>
-      </section>
+        </Section>
 
-      {/* Section 2 - Two-pronged outcome */}
-      <section style={{ background: "#F5F5F4" }}>
-        <div className="mx-auto max-w-[1100px] px-6 py-24">
-          <H>One placement, two channels.</H>
-          <Body>
-            The same listicle placements that capture AI Overview citations are the highest-authority
-            backlinks available - pages with real organic traffic in your exact niche carry
-            significantly more ranking weight than generic high-DR placements without topical
-            relevance. Every placement we secure does two jobs: gets the brand cited by AI, and pulls
-            product pages up Google&apos;s traditional rankings. One campaign, two outcomes, same investment.
-          </Body>
-        </div>
-      </section>
+        <Section
+          title="One placement, two jobs"
+          lede="This is why it is not a second service to staff. The same article does both pieces of work."
+        >
+          <div className="two-up">
+            <div style={{ ...CARD, padding: "24px" }}>
+              <div style={MICRO}>Google reads a link</div>
+              <p style={{ margin: "10px 0 0", fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
+                Authority passes to the page the anchor points at, and the article itself ranks for the term. Measured
+                as a position, with a note on whether an AI Overview sits above it.
+              </p>
+            </div>
+            <div style={{ ...CARD, border: "1px solid " + T.accent, padding: "24px" }}>
+              <div style={{ ...MICRO, color: T.accent }}>The engines read a source</div>
+              <p style={{ margin: "10px 0 0", fontSize: "14px", lineHeight: 1.6, color: T.ink }}>
+                The article becomes one of the pages an answer is assembled from, so the brand gets named. Measured
+                across the question set, on every engine.
+              </p>
+            </div>
+          </div>
+        </Section>
 
-      {/* Section 3 - Campaign structure */}
-      <section style={{ background: "#ffffff" }}>
-        <div className="mx-auto max-w-[1100px] px-6 py-24">
-          <H>What we actually do.</H>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-              gap: "2.5rem",
-              marginTop: "1rem",
-            }}
-          >
-            {[
-              {
-                heading: "Listicle placements on high-authority domains in your niche.",
-                body: "Editorial placements where your brand is positioned as the top recommendation on merit - not paid promotion dressed up as editorial.",
-              },
-              {
-                heading: "AEO-engineered on-site content.",
-                body: "Money keywords get dedicated pages structured for AI Overview capture: question-format H2s, comparison tables, FAQ schema, opening paragraphs tuned to query phrasing.",
-              },
-              {
-                heading: "Anchored authority transfer.",
-                body: "Every external placement carries two contextual links - one to your homepage, one to the relevant on-site page - so authority flows where it converts.",
-              },
-            ].map(({ heading, body }) => (
-              <div
-                key={heading}
-                style={{
-                  background: "#F5F5F4",
-                  borderRadius: "8px",
-                  padding: "2rem",
-                }}
-              >
-                <h3
-                  style={{
-                    fontFamily: "Georgia, 'Times New Roman', Times, serif",
-                    color: "#0D1B2A",
-                    fontSize: "1.1rem",
-                    lineHeight: 1.35,
-                    marginBottom: "1rem",
-                  }}
-                >
-                  {heading}
-                </h3>
-                <p style={{ color: "#3D3D3A", lineHeight: 1.7, fontSize: "0.9375rem" }}>{body}</p>
+        <Section
+          title="What we actually do"
+          lede="Three pieces of work. The first is the one nobody else is selling."
+        >
+          <div className="seq-three">
+            {WORK.map((w) => (
+              <div key={w.heading} style={{ ...CARD, padding: "24px" }}>
+                <div style={{ fontSize: "14.5px", fontWeight: 600, color: T.ink, lineHeight: 1.4 }}>{w.heading}</div>
+                <p style={{ margin: "10px 0 0", fontSize: "14px", lineHeight: 1.65, color: T.soft }}>{w.body}</p>
               </div>
             ))}
           </div>
-        </div>
-      </section>
+        </Section>
 
-      {/* Section 4 - Same-day proof */}
-      <section style={{ background: "#F5F5F4" }}>
-        <div className="mx-auto max-w-[1100px] px-6 py-24">
-          <H>We do this on demand.</H>
+        <Section
+          title="What we will not put on this page"
+          lede="A comparison table is only worth reading if every cell in it has a date against it."
+        >
           <Body>
-            The most recent placement we secured for a client went live in the morning. By that
-            evening, Google&apos;s AI Overview was already pulling it to the top of the response - naming
-            our client as Best Overall in their category. That kind of velocity isn&apos;t a side effect
-            of traditional SEO. It&apos;s an engineered outcome. It only works when the placement is
-            structured for AI consumption from the outset, on a domain the AI already considers
-            authoritative, in a topic cluster the AI is already attempting to answer.
+            <p style={P}>
+              This page used to carry a three-column table setting us against traditional SEO and against generic AEO
+              services, with cells reading things like an audit document, indefinite and a slide deck. We had no
+              source for any of it. It has gone, and it is not coming back until somebody has sourced each cell with
+              a date - being wrong in public about a competitor is the expensive kind of wrong.
+            </p>
+            <p style={P}>
+              What we will say is what we do and what it costs, both of which are ours to state. Every price is
+              published, from tracking alone up to <TierName tier="everywhere" />, and the placement counts are on the
+              package pages rather than behind a call.
+            </p>
+            <p style={P}>
+              <a href="/compare" style={LINK}>
+                What we do and what it costs
+              </a>
+            </p>
           </Body>
-        </div>
-      </section>
-
-      {/* Section 5 - Comparison table */}
-      <section style={{ background: "#ffffff" }}>
-        <div className="mx-auto max-w-[1100px] px-6 py-24">
-          <H>How alwayscited compares.</H>
-          <div style={{ overflowX: "auto" }}>
-            <table
-              style={{
-                width: "100%",
-                borderCollapse: "collapse",
-                fontSize: "0.9375rem",
-                color: "#3D3D3A",
-              }}
-            >
-              <thead>
-                <tr style={{ borderBottom: "2px solid #0D1B2A" }}>
-                  <th
-                    style={{
-                      textAlign: "left",
-                      padding: "0.75rem 1rem 0.75rem 0",
-                      fontFamily: "Georgia, 'Times New Roman', Times, serif",
-                      color: "#0D1B2A",
-                      fontWeight: "normal",
-                      minWidth: "140px",
-                    }}
-                  >
-                    &nbsp;
-                  </th>
-                  {["Traditional SEO", "Generic AEO services", "alwayscited"].map((col) => (
-                    <th
-                      key={col}
-                      style={{
-                        textAlign: "left",
-                        padding: "0.75rem 1rem",
-                        fontFamily: "Georgia, 'Times New Roman', Times, serif",
-                        color: col === "alwayscited" ? "#D85A30" : "#0D1B2A",
-                        fontWeight: "normal",
-                        minWidth: "160px",
-                      }}
-                    >
-                      {col}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  {
-                    row: "What you get",
-                    cols: ["Rankings on Google", "An audit document", "Engineered AI citations + Google rankings"],
-                  },
-                  {
-                    row: "Time to first result",
-                    cols: ["3-6 months", "Indefinite", "1-4 weeks"],
-                  },
-                  {
-                    row: "Channels moved",
-                    cols: ["Google organic", "Reporting only", "Google + ChatGPT + AI Overview"],
-                  },
-                  {
-                    row: "Pricing model",
-                    cols: ["Monthly retainer", "One-off audit fee", "Performance-based retainer"],
-                  },
-                  {
-                    row: "Proof points",
-                    cols: ["Keyword rankings", "Slide deck", "Same-day AI citations"],
-                  },
-                ].map(({ row, cols }) => (
-                  <tr
-                    key={row}
-                    style={{ borderBottom: "1px solid #B4B2A9" }}
-                  >
-                    <td
-                      style={{
-                        padding: "1rem 1rem 1rem 0",
-                        fontFamily: "Georgia, 'Times New Roman', Times, serif",
-                        color: "#0D1B2A",
-                        fontWeight: "normal",
-                        fontSize: "0.875rem",
-                      }}
-                    >
-                      {row}
-                    </td>
-                    {cols.map((cell, i) => (
-                      <td
-                        key={i}
-                        style={{
-                          padding: "1rem",
-                          color: i === 2 ? "#0D1B2A" : "#5F5E5A",
-                          fontWeight: i === 2 ? 500 : "normal",
-                          background: i === 2 ? "#F5F5F4" : "transparent",
-                        }}
-                      >
-                        {cell}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
+        </Section>
+      </main>
 
       <CtaSection />
     </>
