@@ -547,6 +547,16 @@ export default function ResultView(p: {
 
   const qs = r.questions ?? [];
   const answeredQs = qs.filter((q) => q.answered > 0);
+  /**
+   * Counted over the questions that got an answer, and now shown over them too.
+   *
+   * The numerator has always excluded questions no engine answered - it has to,
+   * because a question nobody answered is neither named nor missing - but the
+   * denominator was every question asked. So a scan where four of fourteen went
+   * unanswered read "10 of 14" for a figure whose real denominator was ten, and
+   * the other way round a clean scan with four unanswered read "0 of 14" as
+   * though fourteen had been measured. Same measure on both sides of the "of".
+   */
   const blank = answeredQs.filter((q) => q.named === 0).length;
 
   const ranks = qs.map((q) => q.google_rank).filter((v): v is number => typeof v === "number");
@@ -630,10 +640,10 @@ export default function ResultView(p: {
             label="Questions with no mention"
             value={
               <>
-                {blank} <span style={unit}>{"of " + qs.length}</span>
+                {blank} <span style={unit}>{"of " + answeredQs.length}</span>
               </>
             }
-            note="Not named on any engine that answered"
+            note="Of the questions an engine answered at all. One nobody answered is neither named nor missing."
           />
         </div>
       </div>
