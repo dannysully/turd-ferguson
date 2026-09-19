@@ -455,7 +455,12 @@ export default function ScanFlow(p: {
           return;
         }
         if (data.status === "failed") {
-          setError(data.error ?? "We could not finish that check.");
+          // Our own sentence, not the one the pipeline threw. That text is
+          // written for whoever is fixing it and can name a table, a constraint
+          // or a vendor; the status route no longer sends it, and this is what
+          // it is replaced by. The action is the same either way, and it is on
+          // the screen they land back on.
+          setError("We could not finish that check. You can run it again.");
           setPhase("confirm");
           return;
         }
