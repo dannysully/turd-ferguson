@@ -49,3 +49,7 @@ next-env.d.ts
 # local data pulls — live client and staff names, and this repo is public
 /roadmap-raw.json
 /roadmap-mapped.json
+
+# machine-local agent permissions, never committed
+.claude/settings.local.json
+/docs/.tree-lock

@@ -259,6 +259,7 @@ export default async function AdminScansPage() {
                 <td style={td}>{when(r.created_at)}</td>
                 <td style={{ ...td, color: C.navy, fontWeight: 600 }}>{r.domain}</td>
                 <td style={td}>{r.topic ?? "-"}</td>
+                <td style={td}>{r.market ?? "-"}</td>
                 <td style={td}>
                   {(r.engines_answered ?? []).length}/{(r.engines ?? []).length}
                   {r.gated_status && r.gated_status !== "none" ? (

@@ -2,29 +2,67 @@
  * Shared closing CTA, used on the secondary pages.
  *
  * Critique 0.2: links are root-relative so they work off the homepage.
- * Critique 2.4: the previous copy described a consultative audit ("we'll map
+ * Critique 2.4: the previous copy described a consultative audit ("we will map
  * your category...") which contradicts the self-serve positioning. It now
  * points at the free scan first and pricing second.
+ *
+ * On the tokens as of 19 Sep 2026. It was the last public surface still on the
+ * pre-redesign navy, and it sat on two pages that have no board - so this is a
+ * restyle onto the token system rather than a redesign: same copy, same two
+ * actions, the card idiom the homepage closing scan already uses. The gradient
+ * orbs and the gradient-filled heading went with the palette; the rules are
+ * near-monochrome, no box shadows, and one gradient per page at most.
+ *
+ * "See pricing" pointed at /#pricing, which is not an id on the homepage and
+ * never has been - the packages section is #packages. It dropped the visitor at
+ * the top of the homepage instead. Fixed here.
  */
+import { CARD, GRID12, SHELL, T } from "@/config/tokens";
+
 export default function CtaSection() {
   return (
-    <section id="cta" style={{ background: "#0B1220", padding: "6rem 1.5rem", position: "relative", overflow: "hidden" }}>
-      <div className="gradient-orb" style={{ position: "absolute", width: "500px", height: "500px", background: "radial-gradient(circle, rgba(168,85,247,0.15) 0%, transparent 70%)", top: "-150px", left: "-100px", pointerEvents: "none" }} aria-hidden="true" />
-      <div className="gradient-orb" style={{ position: "absolute", width: "400px", height: "400px", background: "radial-gradient(circle, rgba(124,58,237,0.12) 0%, transparent 70%)", bottom: "-100px", right: "-80px", pointerEvents: "none", animationDelay: "-15s" }} aria-hidden="true" />
+    <section id="cta" style={{ ...SHELL, marginTop: "34px", marginBottom: "44px" }}>
+      <div className="board-head closing-scan" style={{ ...CARD, ...GRID12, alignItems: "center", padding: "34px 40px" }}>
+        <div style={{ gridColumn: "span 6" }}>
+          <h2 style={{ margin: 0, fontSize: "25px", fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.22, color: T.ink }}>
+            Prices are on the page. Start when you want.
+          </h2>
+          <p style={{ margin: "10px 0 0", fontSize: "14.5px", lineHeight: 1.6, color: T.soft }}>
+            Placement counts, what each tier includes and what it costs are all published. If you want to buy, you do
+            not need to speak to us first.
+          </p>
+        </div>
 
-      <div style={{ maxWidth: "640px", margin: "0 auto", textAlign: "center", position: "relative" }}>
-        <h2 style={{ fontWeight: 700, fontSize: "clamp(2rem, 4vw, 2.75rem)", color: "#ffffff", lineHeight: 1.15, letterSpacing: "-0.02em", marginBottom: "1.25rem" }}>
-          Prices are on the page.{" "}
-          <span style={{ background: "linear-gradient(135deg,#7C3AED,#A855F7)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
-            Start when you want.
-          </span>
-        </h2>
-        <p style={{ color: "#9CA3AF", fontSize: "1.0625rem", lineHeight: 1.65, marginBottom: "2.5rem" }}>
-          Placement counts, what each tier includes and what it costs are all published. If you want to buy, you do not need to speak to us first.
-        </p>
-        <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
-          <a href="/#scan" className="btn-primary">Run a free scan</a>
-          <a href="/#pricing" style={{ display: "inline-block", background: "transparent", color: "#ffffff", padding: "0.875rem 2rem", borderRadius: "12px", fontWeight: 600, fontSize: "1rem", textDecoration: "none", border: "1.5px solid rgba(255,255,255,0.2)" }}>
+        <div style={{ gridColumn: "span 6", display: "flex", gap: "10px", flexWrap: "wrap" }}>
+          <a
+            href="/#scan"
+            style={{
+              fontSize: "15px",
+              fontWeight: 600,
+              color: "#ffffff",
+              background: T.accent,
+              borderRadius: "10px",
+              padding: "13px 26px",
+              textDecoration: "none",
+              whiteSpace: "nowrap",
+            }}
+          >
+            Run a free scan
+          </a>
+          <a
+            href="/#packages"
+            style={{
+              fontSize: "15px",
+              fontWeight: 600,
+              color: T.ink,
+              background: T.surface,
+              border: `1px solid ${T.line}`,
+              borderRadius: "10px",
+              padding: "12px 25px",
+              textDecoration: "none",
+              whiteSpace: "nowrap",
+            }}
+          >
             See pricing
           </a>
         </div>
