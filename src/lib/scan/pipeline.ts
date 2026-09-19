@@ -9,10 +9,10 @@ import {
   generateQuestions,
   QUESTION_COUNT,
 } from "./anthropic";
-import { brandKey, pickDisplayName } from "./brand-name";
+import { brandKey, namesBrand, pickDisplayName } from "./brand-name";
 import { readEngine, readSearchVolumes, volumeKey } from "./dataforseo";
 import { type Market, normalizeDomain } from "./domain";
-import { type Engine, isEngine, namesBrand, type OrganicHit } from "./engines";
+import { type Engine, isEngine, type OrganicHit } from "./engines";
 import { classifySources } from "./sources";
 
 /**

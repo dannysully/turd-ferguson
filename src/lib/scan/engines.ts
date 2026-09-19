@@ -10,7 +10,12 @@
  * the model directly; that is a slightly different question and the UI says so.
  */
 
-import { normalizeDomain } from "./domain";
+// With the extension, so Node's own runner can load this module. It strips
+// types but does not resolve extensionless specifiers, and the header above
+// claims these parsers are testable against recorded responses - which was not
+// true of them while this line read "./domain". tsconfig allows the .ts
+// specifier and noEmit means none of it can reach a build artefact.
+import { normalizeDomain } from "./domain.ts";
 
 export const ENGINES = ["google_aio", "chatgpt", "gemini", "perplexity", "claude"] as const;
 export type Engine = (typeof ENGINES)[number];
@@ -197,6 +202,32 @@ export function parseGoogleAio(result: Record<string, unknown> | undefined | nul
   const refs = aio.references?.length ? aio.references : (aio.items ?? []).flatMap((el) => el.references ?? []);
   const citations = collectCitations(refs);
 
+  /**
+   * An Overview element with no prose in it is one we did not get, not one
+   * Google answered with nothing.
+   *
+   * The request sets `load_async_ai_overview`, so the expanded Overview is
+   * fetched in a second step on DataForSEO's side; when that step does not
+   * land, the element still arrives, carrying no `items` and so no text. That
+   * came back `answered: true` with an empty prose, and empty prose names
+   * nobody - so the scan recorded "the Overview appeared and did not mention
+   * you", which is a statement about Google, on the engine whose measured zero
+   * the free result leads with. It also fed `deriveOpportunities`, which reads
+   * an answer the brand was absent from as a page worth being placed on.
+   *
+   * Reported as the same shape as an Overview that never arrived, so it takes
+   * the one retry the caller already spends on that - and if the retry is
+   * empty too, the scan records no answer from this engine rather than an
+   * answer that says nothing. The two are kept apart in `raw` because only one
+   * of them is Google's doing.
+   *
+   * The other two parsers have had this check since they were written; this is
+   * the one that did not.
+   */
+  if (!prose.trim()) {
+    return { ...EMPTY, organic, raw: { claimed_but_absent: true, empty_overview: true } };
+  }
+
   return { answered: true, prose, citations, organic, raw: { reference_count: citations.length } };
 }
 
@@ -293,50 +324,11 @@ export const PARSERS: Record<Engine, (r: Record<string, unknown> | undefined | n
   claude: parseClaude,
 };
 
-/** Folded away only at the end of a name. See namesBrand. */
-const COMPANY_SUFFIX = /\s+(ltd|limited|inc|llc|plc|gmbh|co|company)$/;
-
 /**
- * Does the answer name the brand?
- *
- * Word-boundary matched, case insensitive, with company suffixes folded away.
- * Runs against prose only, never URLs.
- *
- * A suffix is only folded where it actually is one - at the end. It used to be
- * stripped wherever it appeared, which quietly turned three kinds of brand
- * into a common noun and then counted that noun as the brand being named:
- * "Inc Magazine" matched any answer containing "magazine", "Company Shop" any
- * answer containing "shop", and "Limited Edition Prints" matched a rival's
- * "edition prints". named_in is the number this product sells and the one in
- * the subject line of the report email, and every one of those errors pushed
- * it the flattering way - telling a buyer an engine named them when it had
- * not. It also mangled a legitimately hyphenated name: "Co-op" became "-op".
- *
- * Applied repeatedly, so "Acme Co Ltd" loses both and still reads as "acme".
- * Whitespace is collapsed first, so a name padded or double-spaced by the
- * model reaches the suffix test in the shape the test expects.
+ * `namesBrand` used to live here and is now in `./brand-name`, beside
+ * `brandKey` - the other half of the same job, and the one this file never
+ * had. It moved because it could not be tested where it was: this module
+ * imports `./domain` without a file extension, which Node's own runner cannot
+ * resolve, so the one function in the tree whose output is the number the
+ * product sells had no check at all. `brand-name.ts` imports nothing.
  */
-export function namesBrand(prose: string, brand: string): boolean {
-  if (!prose || !brand) return false;
-
-  let stripped = brand
-    .toLowerCase()
-    .replace(/[.,]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/^the\s+/, "");
-
-  for (let prev = ""; stripped !== prev; ) {
-    prev = stripped;
-    stripped = stripped.replace(COMPANY_SUFFIX, "").trim();
-  }
-
-  if (stripped.length < 2) return false;
-
-  const pattern = stripped
-    .split(/[\s-]+/)
-    .map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
-    .join("[\\s\\-]*");
-
-  return new RegExp(`(^|[^a-z0-9])${pattern}($|[^a-z0-9])`, "i").test(prose.toLowerCase());
-}

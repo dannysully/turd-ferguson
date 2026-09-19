@@ -58,3 +58,139 @@ export function pickDisplayName(variants: Map<string, number>): string {
   });
   return rows[0]?.[0] ?? "";
 }
+
+/** Folded away only at the end of a name. See namesBrand. */
+const COMPANY_SUFFIX = /\s+(ltd|limited|inc|llc|plc|gmbh|co|company)$/;
+
+/** A trailing full stop is punctuation around the name, never part of it. */
+const TRAILING_STOP = /\.+$/;
+
+/**
+ * A connector left dangling by the fold above, as in "Smith & Co., Ltd." ->
+ * "smith &". No name ends in one; this only ever appears because the word it
+ * joined has just been folded away.
+ */
+const DANGLING_CONNECTOR = /\s*(?:&|\+|\band)$/;
+
+/** The gap between two words of a brand: zero or more, because engines run names together. */
+const GAP = "[\\s\\-]*";
+
+/**
+ * What separates two words inside a brand, kept rather than discarded so the
+ * pattern can be built with the separators the name actually uses.
+ */
+const SEPARATORS = /([\s\-.+&]+)/;
+
+/**
+ * One gap in the pattern, built from the gap in the name.
+ *
+ * A full stop is optional where the name has one: engines write "Booking.com"
+ * and "Booking com" and "bookingcom", and the name is read off the site rather
+ * than off the answer, so neither spelling can be assumed.
+ *
+ * An ampersand or a plus is required where the name has one, with the spaces
+ * around it optional - which is what makes this agree with `brandKey` on its
+ * own worked example, "Snow + Rock" and "Snow+Rock" being one company.
+ *
+ * What none of them do is widen a plain space. A gap that accepted a full stop
+ * everywhere would match "Vibe Retail" against "improve the vibe. Retail
+ * buyers agree", and a false positive here tells a buyer an engine named them
+ * when it did not - the direction the suffix defect below already failed in
+ * once.
+ */
+function gapFor(run: string): string {
+  if (run.includes(".")) return `${GAP}\\.?${GAP}`;
+  const symbol = run.includes("+") ? "\\+" : run.includes("&") ? "&" : null;
+  return symbol ? `${GAP}${symbol}${GAP}` : GAP;
+}
+
+/**
+ * The brand as a regular expression source.
+ *
+ * Words therefore never contain a separator; the escape is for everything
+ * else a name can hold - "Which?", "Yahoo!".
+ */
+function brandPattern(name: string): string {
+  const parts = name.split(SEPARATORS);
+  let out = "";
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i];
+    if (!part) continue;
+    out += i % 2 === 0 ? part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") : gapFor(part);
+  }
+  return out;
+}
+
+/**
+ * Does the answer name the brand?
+ *
+ * Word-boundary matched, case insensitive, with company suffixes folded away.
+ * Runs against prose only, never URLs.
+ *
+ * A suffix is only folded where it actually is one - at the end. It used to be
+ * stripped wherever it appeared, which quietly turned three kinds of brand
+ * into a common noun and then counted that noun as the brand being named:
+ * "Inc Magazine" matched any answer containing "magazine", "Company Shop" any
+ * answer containing "shop", and "Limited Edition Prints" matched a rival's
+ * "edition prints". named_in is the number this product sells and the one in
+ * the subject line of the report email, and every one of those errors pushed
+ * it the flattering way - telling a buyer an engine named them when it had
+ * not. It also mangled a legitimately hyphenated name: "Co-op" became "-op".
+ *
+ * **A full stop inside the name is kept, and that is the second defect this
+ * function has had.** Every full stop used to be replaced by a space before
+ * the pattern was built, so "Booking.com" became the two words "booking" and
+ * "com" joined by a gap that matches whitespace and hyphens and nothing else -
+ * and the name then did not match its own spelling. Not a near miss: an engine
+ * writing "Booking.com" exactly as the site spells it was recorded as not
+ * having named the brand, on every answer, for every brand with a full stop in
+ * it. That is a large class here, because the brand is read off the site and
+ * ".com" is a name a company chooses. The damage ran both ways from one
+ * boolean: visibility read zero, and `deriveOpportunities` treats "cited for
+ * an answer the brand was absent from" as an opportunity, so the placement
+ * list filled up with every page on the report.
+ *
+ * Applied repeatedly, so "Acme Co Ltd" loses both and still reads as "acme",
+ * and "Smith & Co., Ltd." loses the trailing stop between each fold.
+ * Whitespace is collapsed first, so a name padded or double-spaced by the
+ * model reaches the suffix test in the shape the test expects.
+ */
+export function namesBrand(prose: string, brand: string): boolean {
+  if (!prose || !brand) return false;
+
+  let stripped = brand
+    .toLowerCase()
+    // A comma always separates. A full stop does not, so it survives to
+    // brandPattern - which is what tells "Booking.com" from "Acme Inc.".
+    .replace(/,/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/^the\s+/, "")
+    .replace(TRAILING_STOP, "")
+    .trim();
+
+  for (let prev = ""; stripped !== prev; ) {
+    prev = stripped;
+    stripped = stripped
+      .replace(COMPANY_SUFFIX, "")
+      .trim()
+      .replace(TRAILING_STOP, "")
+      .replace(DANGLING_CONNECTOR, "")
+      .trim();
+  }
+
+  /**
+   * Counted in letters and digits, not characters.
+   *
+   * With full stops no longer removed, a name that is punctuation and one
+   * letter - or punctuation alone - reaches here holding its separators, and
+   * an empty pattern makes the expression below `(^|[^a-z0-9])($|[^a-z0-9])`,
+   * which matches almost any prose. The guard is what stops a degenerate name
+   * reading as named everywhere.
+   */
+  if (stripped.replace(/[^a-z0-9]/g, "").length < 2) return false;
+
+  return new RegExp(`(^|[^a-z0-9])${brandPattern(stripped)}($|[^a-z0-9])`, "i").test(
+    prose.toLowerCase(),
+  );
+}
