@@ -42,19 +42,6 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Gradient text - signature style */
-.text-gradient {
-  background: linear-gradient(135deg, #7C3AED 0%, #A855F7 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* Gradient background */
-.bg-gradient-purple {
-  background: linear-gradient(135deg, #7C3AED 0%, #A855F7 100%);
-}
-
 /* Focus states */
 :focus-visible {
   outline: 2px solid #7C3AED;
@@ -69,36 +56,6 @@ details summary {
 }
 details summary::-webkit-details-marker {
   display: none;
-}
-
-/* Scroll fade-in animation */
-@keyframes fadeUp {
-  from {
-    opacity: 0;
-    transform: translateY(16px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.fade-up {
-  animation: fadeUp 0.3s ease forwards;
-}
-
-/* Hero responsive grid */
-.hero-grid {
-  grid-template-columns: 1fr 1fr;
-}
-
-@media (max-width: 768px) {
-  .hero-grid {
-    grid-template-columns: 1fr;
-  }
-  .hero-visual {
-    justify-content: center !important;
-  }
 }
 
 /* Hide desktop nav on mobile */
@@ -125,29 +82,6 @@ details summary::-webkit-details-marker {
 .tier-name { white-space: nowrap; font-weight: 700; }
 .tier-name__accent { color: var(--brand-purple); }
 
-/* Nav link hover */
-.nav-link {
-  color: #4B5563;
-  font-size: 0.9375rem;
-  font-weight: 500;
-  text-decoration: none;
-  transition: color 0.15s ease;
-}
-.nav-link:hover {
-  color: #7C3AED;
-}
-
-/* Footer link hover */
-.footer-link {
-  color: #9CA3AF;
-  font-size: 0.875rem;
-  text-decoration: none;
-  transition: color 0.15s ease;
-}
-.footer-link:hover {
-  color: #ffffff;
-}
-
 /* Screen-reader only */
 .sr-only {
   position: absolute;
@@ -161,159 +95,10 @@ details summary::-webkit-details-marker {
   border-width: 0;
 }
 
-/* ─── Card hover lift ─── */
-.card-hover {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-.card-hover:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 12px 24px rgba(11,18,32,0.12) !important;
-}
-
-/* ─── Gradient wash orbs (hero + CTA) ─── */
-@keyframes orbFloat {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(-24px, -16px) scale(1.04); }
-  66% { transform: translate(16px, 8px) scale(0.97); }
-}
-
-.gradient-orb {
-  position: absolute;
-  border-radius: 50%;
-  pointer-events: none;
-  will-change: transform;
-  animation: orbFloat 30s ease-in-out infinite;
-}
-
-/* ─── Staged reveal (Authority flow steps) ─── */
-@keyframes stageUp {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-.stage-hidden { opacity: 0; }
-.stage-visible { animation: stageUp 0.4s ease forwards; }
-
-/* ─── Comparison table column reveal ─── */
-.col-left {
-  opacity: 0;
-  transform: translateX(-14px);
-  transition: opacity 0.4s ease, transform 0.4s ease;
-}
-.col-right {
-  opacity: 0;
-  transform: translateX(14px);
-  transition: opacity 0.4s ease 0.4s, transform 0.4s ease 0.4s;
-}
-.col-left.col-visible,
-.col-right.col-visible {
-  opacity: 1;
-  transform: translateX(0);
-}
-
-/* ─── Link architecture arrow draw ─── */
-.link-arrow {
-  stroke-dasharray: 160;
-  stroke-dashoffset: 160;
-  transition: stroke-dashoffset 0.6s ease;
-}
-.link-arrow-delayed {
-  stroke-dasharray: 160;
-  stroke-dashoffset: 160;
-  transition: stroke-dashoffset 0.6s ease 0.2s;
-}
-.link-arrow.link-drawn,
-.link-arrow-delayed.link-drawn {
-  stroke-dashoffset: 0;
-}
-
-/* ─── Reduced motion overrides ─── */
-@media (prefers-reduced-motion: reduce) {
-  .gradient-orb { animation: none; }
-  .card-hover { transition: none; }
-  .stage-hidden { opacity: 1 !important; }
-  .stage-visible { animation: none; opacity: 1; transform: none; }
-  .col-left, .col-right { opacity: 1 !important; transform: none !important; transition: none !important; }
-  .link-arrow, .link-arrow-delayed { stroke-dashoffset: 0 !important; transition: none !important; }
-}
-
-/* ─── Responsive layout helpers ─── */
-@media (max-width: 900px) {
-  .hide-below-900 { display: none !important; }
-  .hero-two-col { grid-template-columns: 1fr !important; }
-}
-/* Four-tier pricing grid + dashboards comparison */
-@media (max-width: 1180px) {
-  .tier-grid { grid-template-columns: repeat(3, 1fr) !important; }
-}
-@media (max-width: 860px) {
-  .tier-grid { grid-template-columns: 1fr 1fr !important; }
-}
-@media (max-width: 560px) {
-  .tier-grid { grid-template-columns: 1fr !important; }
-}
-.trust-converge-stacked { display: none; }
-@media (max-width: 560px) {
-  .trust-routes { grid-template-columns: 1fr !important; gap: 0.75rem !important; }
-  /* Fixed-coordinate converging arrows cannot follow a stacked layout */
-  .trust-converge { display: none !important; }
-  .trust-converge-stacked {
-    display: flex !important;
-    justify-content: center;
-    padding: 0.5rem 0;
-  }
-  .trust-route-card {
-    flex-direction: row !important;
-    align-items: flex-start !important;
-    gap: 0.875rem !important;
-  }
-}
-@media (max-width: 768px) {
-  .comparison-grid { grid-template-columns: 1fr !important; }
-  .comparison-vs { padding-top: 0 !important; }
-  .hide-mobile { display: none !important; }
-  .stack-mobile { grid-template-columns: 1fr !important; }
-}
-
 /* ─── Scan checker ─── */
+/* The blur, and only the blur. It sits on the placement table alone: the
+   leaderboard and the source list are free since 20260919000000. */
 .scan-gated { filter: blur(6px); pointer-events: none; user-select: none; }
-.scan-step-dot { transition: background 0.25s ease, transform 0.25s ease; }
-.scan-step-active .scan-step-dot { transform: scale(1.15); }
-
-/* The step that is running turns continuously, unlike the brand mark's
-   intermittent 8s cycle: this one is a progress signal, so it must not have
-   long still stretches that read as a stall. */
-.scan-step-ast {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: scanStepSpin 1.6s linear infinite;
-}
-@keyframes scanStepSpin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .scan-step-dot { transition: none; }
-  .scan-step-active .scan-step-dot { transform: none; }
-  /* Still the asterisk, still purple, just not turning: the active row stays
-     identifiable by mark, colour and weight without any motion. */
-  .scan-step-ast { animation: none !important; transform: none !important; }
-}
-
-/* ─── /example walkthrough ─── */
-.walk { display: grid; grid-template-columns: 200px 1fr; gap: 3rem; align-items: start; }
-.walk-rail { position: sticky; top: 5rem; }
-.walk-steps { display: flex; flex-direction: column; gap: 4rem; min-width: 0; }
-.walk-step { display: grid; grid-template-columns: minmax(200px, 260px) 1fr; gap: 2rem; align-items: start; }
-.walk-screen { background: #F8F7FF; border: 1px solid #E5E7EB; border-radius: 20px; padding: 1.5rem; min-width: 0; }
-@media (max-width: 900px) {
-  .walk { grid-template-columns: 1fr; gap: 1.5rem; }
-  .walk-rail { position: static; }
-  .walk-rail ol { flex-direction: row !important; flex-wrap: wrap; gap: 0.25rem 0.5rem !important; }
-  .walk-step { grid-template-columns: 1fr; gap: 1rem; }
-}
-
 /* Purple CTA button */
 .btn-primary {
   display: inline-block;
