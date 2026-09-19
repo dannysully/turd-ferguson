@@ -83,6 +83,39 @@ const CSP = [
 
 const nextConfig: NextConfig = {
   /**
+   * Off because it was shipping a stale stylesheet to production.
+   *
+   * Next 16.3 puts content-addressed assets under /_next/static/immutable/,
+   * drops the ?dpl= deployment query from them and serves them
+   * `max-age=31536000, immutable`, on the promise that a given filename can
+   * only ever hold one set of bytes. Observed on production at e65d6eb, which
+   * is what this flag is being set for: the HTML was that commit's - the new
+   * classes were in it, and /api/version agreed - and the one stylesheet it
+   * loaded was /_next/static/immutable/chunks/0baq_3elvlaml.css, serving
+   * Last-Modified 12:27 with an Age of seven hours and none of that commit's
+   * rules in it. A query string does not reach past it either: the same URL
+   * with ?bust=1 returned the identical cached body. So the markup shipped and
+   * the CSS behind it did not, which is worse than neither shipping, because
+   * every check short of reading the served stylesheet says it worked.
+   *
+   * What is not established is why - whether Vercel skipped the upload for a
+   * path already in the shared namespace, or two builds truncated to the same
+   * hash, which is the collision the adapter docs warn about and give
+   * outputHashSalt for. Both are upstream of us and neither changes what to do
+   * here. The filename is content-addressed - verified by rebuilding with one
+   * real rule added and watching the hash move, after a first attempt with
+   * only a comment proved nothing because the minifier strips those.
+   *
+   * Cost of turning it off: assets carry ?dpl= again and a returning visitor
+   * re-downloads them after each deploy. On a site with almost no traffic that
+   * is not a cost. Getting the stylesheet you just shipped is not optional.
+   *
+   * Reverse by deleting this line, but only alongside a check that reads the
+   * served CSS rather than the HTML.
+   */
+  supportsImmutableAssets: false,
+
+  /**
    * /example is gone - Danny, 19 Sep 2026: "We no longer need example you
    * can remove this." It was live for weeks and may be linked from
    * somewhere neither of us can see, so it redirects rather than 404s.
