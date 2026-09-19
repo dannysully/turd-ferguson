@@ -107,10 +107,24 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
   const supplied: unknown[] = Array.isArray(body.topic_variants)
     ? body.topic_variants
     : ((scan.topic_variants as string[] | null) ?? []);
+  /**
+   * A variant that is the topic again is dropped, case-insensitively.
+   *
+   * Variants are lowercased here; the topic is whatever the visitor typed into
+   * the category field, where a capital is ordinary. So "B2B SEO agency" and
+   * the variant "b2b seo agency" were two different strings to the filter
+   * below and one chip too many on the screen: the clusters list carried both,
+   * while generateQuestions folded them onto one key and stamped every
+   * question with the lower-cased one. The chip carrying the visitor's own
+   * capitalisation then counted nothing and toggled nothing - a dead control
+   * on the first screen of the funnel, reading identically to the live one
+   * beside it.
+   */
+  const topicKey = topic.toLowerCase();
   const variants = supplied
     .filter((v): v is string => typeof v === "string")
     .map((v) => v.trim().toLowerCase())
-    .filter((v) => v.length >= 2 && v.length <= 80)
+    .filter((v) => v.length >= 2 && v.length <= 80 && v !== topicKey)
     .slice(0, TOPIC_VARIANT_COUNT);
 
   /**
@@ -198,7 +212,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
     market,
     // The chips, in the order the questions group under them: the broad
     // category first, then the narrowing the site gave us.
-    clusters: [topic, ...variants.filter((v) => v !== topic)],
+    clusters: [topic, ...variants],
     max: QUESTION_COUNT,
     questions,
   });
