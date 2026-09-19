@@ -62,6 +62,16 @@ export async function GET(req: Request) {
    * left the rest, on the one job whose whole purpose is keeping a retention
    * promise the privacy policy makes in public. Nothing here writes to
    * `scans`, so the ordered set does not shift underneath the paging.
+   *
+   * Ordered by the primary key rather than by created_at, which is the rule
+   * lib/supabase/page.ts states and this route was the one place breaking it.
+   * `range` is offset and limit, so the order has to be total: created_at is
+   * not unique, and two scans sharing a timestamp across a page boundary are
+   * ordered by whatever the planner chose for that request. A row can then
+   * land on both pages or on neither. Landing on both is harmless here, since
+   * the update is idempotent - landing on neither is a transcript kept past
+   * the retention window with nothing anywhere saying so, which is the single
+   * failure this job exists to prevent. Nothing reads these in date order.
    */
   const PAGE = 1000;
   const ids: string[] = [];
@@ -71,7 +81,7 @@ export async function GET(req: Request) {
       .select("id")
       .is("unlocked_at", null)
       .lt("created_at", cutoff)
-      .order("created_at", { ascending: true })
+      .order("id", { ascending: true })
       .range(from, from + PAGE - 1);
 
     if (sErr) {
