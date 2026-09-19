@@ -1,9 +1,41 @@
 import type { Metadata } from "next";
-import "@fontsource-variable/hanken-grotesk";
+import { Hanken_Grotesk } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { ld, siteGraph } from "@/config/schema";
+
+/**
+ * The brand face, self-hosted through next/font rather than the fontsource
+ * CSS import it replaces.
+ *
+ * The import only reached the browser through the app CSS chunk, so the
+ * discovery chain was HTML -> CSS -> parse -> woff2, with no preload at any
+ * step: the font started downloading after the stylesheet had been read.
+ * With font-display: swap that means every cold visit paints in system-ui
+ * and reflows when the real face lands - on all 21 pages.
+ *
+ * next/font emits a preload link for the subset named here, so the woff2 is
+ * requested from the HTML instead of after the CSS, and adjustFontFallback
+ * (on by default) writes a size-adjust fallback matched to Hanken's metrics,
+ * so the swap no longer moves the line boxes.
+ *
+ * `subsets` names what gets preloaded, not what gets declared: the build
+ * still emits all four @font-face blocks - cyrillic-ext, latin-ext,
+ * vietnamese and latin - each gated by unicode-range exactly as fontsource
+ * had them. So font bytes over the wire are unchanged; a British page
+ * fetched only the latin file before and still does. What is new is the
+ * preload and the fallback metrics, not a smaller download.
+ *
+ * This file owns the only <html> in the tree - there is no global-error.tsx -
+ * so --font-hanken is always defined where globals.css reads it.
+ */
+const hanken = Hanken_Grotesk({
+  subsets: ["latin"],
+  weight: "variable",
+  display: "swap",
+  variable: "--font-hanken",
+});
 
 export const metadata: Metadata = {
   title: {
@@ -28,8 +60,9 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const htmlClass = "h-full " + hanken.variable;
   return (
-    <html lang="en-GB" className="h-full">
+    <html lang="en-GB" className={htmlClass}>
       <body className="min-h-full flex flex-col">
         {/*
           The one Organization and WebSite node, emitted here so it reaches

@@ -22,8 +22,9 @@
   --accent: #7C3AED;
   --accent-hover: #6D28D9;
 
-  /* Font */
-  --font-sans: "Hanken Grotesk Variable", "Hanken Grotesk", system-ui, -apple-system, sans-serif;
+  /* Font. --font-hanken is set by next/font in app/layout.tsx, which owns
+     the only <html> in the tree, so it is defined wherever this resolves. */
+  --font-sans: var(--font-hanken), system-ui, -apple-system, sans-serif;
 }
 
 :root {
@@ -45,7 +46,7 @@ body {
      behind them is warm grey. Set here, never per section. */
   background: var(--bg);
   color: var(--ink);
-  font-family: "Hanken Grotesk Variable", "Hanken Grotesk", system-ui, sans-serif;
+  font-family: var(--font-hanken), system-ui, sans-serif;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
