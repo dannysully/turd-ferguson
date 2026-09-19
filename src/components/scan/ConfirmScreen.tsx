@@ -490,7 +490,17 @@ export default function ConfirmScreen(p: {
 
           {questions.map((q, i) => {
             const off = !isOwn(q) && dropped.has(q.cluster);
-            const position = kept.indexOf(q) + 1;
+            /**
+             * Not in `kept` is not the same as dropped.
+             *
+             * indexOf returns -1, and -1 + 1 is 0, so a question the visitor
+             * had just added numbered itself 0 until the first character was
+             * typed into it - a blank row fails the length test in `kept`. A
+             * dropped cluster draws a dash, which is a state; a row that is
+             * simply not counted yet draws nothing.
+             */
+            const at = kept.indexOf(q);
+            const position = at >= 0 ? at + 1 : "";
             const rowLabel = "Question " + (i + 1);
             const removeLabel = "Remove question " + (i + 1);
             return (
