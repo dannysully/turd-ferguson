@@ -213,32 +213,6 @@ details summary::-webkit-details-marker {
   animation: orbFloat 30s ease-in-out infinite;
 }
 
-/* ─── Hero authority flow ─── */
-@keyframes glowLineTravel {
-  0% { transform: translateX(-120px); opacity: 0; }
-  6% { opacity: 1; }
-  58% { transform: translateX(560px); opacity: 1; }
-  65% { opacity: 0; transform: translateX(560px); }
-  100% { transform: translateX(-120px); opacity: 0; }
-}
-
-.hero-flow-glow-line {
-  position: absolute;
-  top: 5px;
-  left: 32px;
-  width: 80px;
-  height: 3px;
-  border-radius: 2px;
-  background: linear-gradient(90deg, transparent 0%, #A855F7 50%, transparent 100%);
-  will-change: transform, opacity;
-  animation: glowLineTravel 5s ease-in-out infinite;
-  pointer-events: none;
-}
-
-@media (max-width: 540px) {
-  .hero-flow-wrapper { display: none; }
-}
-
 /* ─── Staged reveal (Authority flow steps) ─── */
 @keyframes stageUp {
   from { opacity: 0; transform: translateY(12px); }
@@ -281,38 +255,9 @@ details summary::-webkit-details-marker {
   stroke-dashoffset: 0;
 }
 
-/* ─── Citation orbit float animations ─── */
-@keyframes floatA {
-  0%, 100% { transform: translateY(0px); }
-  50%       { transform: translateY(-10px); }
-}
-@keyframes floatB {
-  0%, 100% { transform: translateY(-7px); }
-  50%       { transform: translateY(5px); }
-}
-@keyframes floatC {
-  0%, 100% { transform: translateY(0px); }
-  50%       { transform: translateY(9px); }
-}
-@keyframes floatD {
-  0%, 100% { transform: translateY(-5px); }
-  50%       { transform: translateY(7px); }
-}
-@keyframes centerGlow {
-  0%, 100% { box-shadow: 0 8px 32px rgba(124,58,237,0.35); }
-  50%       { box-shadow: 0 8px 48px rgba(124,58,237,0.5), 0 0 0 22px rgba(168,85,247,0); }
-}
-
-.float-a { animation: floatA 4s ease-in-out infinite; }
-.float-b { animation: floatB 5s ease-in-out infinite 0.5s; }
-.float-c { animation: floatC 4.5s ease-in-out infinite 1s; }
-.float-d { animation: floatD 5.5s ease-in-out infinite 0.25s; }
-.center-glow { animation: centerGlow 3s ease-in-out infinite; }
-
 /* ─── Reduced motion overrides ─── */
 @media (prefers-reduced-motion: reduce) {
   .gradient-orb { animation: none; }
-  .hero-flow-glow-line { animation: none; opacity: 0.5; transform: translateX(240px); }
   .card-hover { transition: none; }
   .stage-hidden { opacity: 1 !important; }
   .stage-visible { animation: none; opacity: 1; transform: none; }
@@ -591,5 +536,50 @@ details summary::-webkit-details-marker {
   /* The phone board centres nothing: the hero reads left-aligned at 390px. */
   #scan > div {
     text-align: left !important;
+  }
+}
+
+/* ── The one beat ────────────────────────────────────────────────
+
+   The brief allows the page one piece of motion, and the test is whether
+   removing it costs an argument or just some sparkle. The alwayscited charts
+   are the argument: two measures with different denominators moving on a
+   shared time axis. A line that draws left to right is that claim, shown.
+   Staggered table rows would have been sparkle, so they are not built.
+
+   Scroll-driven, with no JavaScript. Where view() timelines are not
+   supported the @supports block never applies and the chart renders solid,
+   which is the correct resting state rather than a degraded one. The same is
+   true under prefers-reduced-motion. pathLength normalises both polylines to
+   1 so one rule draws either of them regardless of their real length. */
+
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .chart-line {
+      stroke-dasharray: 1;
+      stroke-dashoffset: 1;
+      animation: chart-draw linear both;
+      animation-timeline: view();
+      animation-range: entry 25% cover 40%;
+    }
+
+    .chart-dot {
+      opacity: 0;
+      animation: chart-dot linear both;
+      animation-timeline: view();
+      animation-range: cover 38% cover 48%;
+    }
+  }
+}
+
+@keyframes chart-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes chart-dot {
+  to {
+    opacity: 1;
   }
 }

@@ -214,10 +214,10 @@ export default function TierJourney() {
               <text x="10" y="134" fontSize="11" fill={T.faint}>0%</text>
               <text x="10" y="79" fontSize="11" fill={T.faint}>25%</text>
               <text x="10" y="24" fontSize="11" fill={T.faint}>50%</text>
-              <polyline points="56,130 250.8,112.4 445.6,83.8 640.4,42 835.2,55.2 1030,44.2" fill="none" stroke={T.accent} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              <polyline className="chart-line" pathLength={1} points="56,130 250.8,112.4 445.6,83.8 640.4,42 835.2,55.2 1030,44.2" fill="none" stroke={T.accent} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
               <circle cx="56" cy="130" r="3.5" fill={T.accent} />
-              <circle cx="640.4" cy="42" r="3.5" fill={T.accent} />
-              <circle cx="1030" cy="44.2" r="3.5" fill={T.accent} />
+              <circle className="chart-dot" cx="640.4" cy="42" r="3.5" fill={T.accent} />
+              <circle className="chart-dot" cx="1030" cy="44.2" r="3.5" fill={T.accent} />
               <text x="640.4" y="32" fontSize="11" fill={T.soft} textAnchor="middle">40%</text>
               <text x="1030" y="34" fontSize="11" fill={T.soft} textAnchor="end">39%</text>
             </svg>
@@ -230,9 +230,9 @@ export default function TierJourney() {
               <text x="10" y="134" fontSize="11" fill={T.faint}>100</text>
               <text x="10" y="79" fontSize="11" fill={T.faint}>50</text>
               <text x="10" y="24" fontSize="11" fill={T.faint}>1</text>
-              <polyline points="56,130 250.8,105.6 445.6,67.8 640.4,46.7 835.2,36.7 1030,32.2" fill="none" stroke={T.ink} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              <polyline className="chart-line" pathLength={1} points="56,130 250.8,105.6 445.6,67.8 640.4,46.7 835.2,36.7 1030,32.2" fill="none" stroke={T.ink} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
               <circle cx="56" cy="130" r="3.5" fill={T.ink} />
-              <circle cx="1030" cy="32.2" r="3.5" fill={T.ink} />
+              <circle className="chart-dot" cx="1030" cy="32.2" r="3.5" fill={T.ink} />
               <text x="56" y="145" fontSize="11" fill={T.faint}>Apr</text>
               <text x="1030" y="145" fontSize="11" fill={T.faint} textAnchor="end">Sep</text>
               <text x="1030" y="24" fontSize="11" fill={T.ink} textAnchor="end">12th</text>
