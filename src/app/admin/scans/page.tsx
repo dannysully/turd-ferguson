@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { T } from "@/config/tokens";
 import { scanReadiness } from "@/lib/scan/readiness";
 import { supabaseAdmin, supabaseConfigured } from "@/lib/supabase/admin";
 
@@ -11,15 +12,26 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+/**
+ * The ops page on the shared tokens.
+ *
+ * This was the last object in the tree still defining its own palette - navy
+ * #0B1220 and a lilac tint, from before the redesign. It is a noindex ops page
+ * so nobody was going to notice, which is exactly why it sat there after the
+ * migration was called finished.
+ *
+ * Kept as a named alias rather than rewritten through forty call sites: the
+ * point is that there is one palette, not that this file spells it `T`.
+ */
 const C = {
-  navy: "#0B1220",
-  body: "#4B5563",
-  muted: "#9CA3AF",
-  border: "#E5E7EB",
-  soft: "#F8F7FF",
-  purple: "#7C3AED",
-  red: "#B91C1C",
-  green: "#047857",
+  navy: T.ink,
+  body: T.soft,
+  muted: T.faint,
+  border: T.line,
+  soft: T.bg,
+  purple: T.accent,
+  red: T.badFg,
+  green: T.goodFg,
 };
 
 type ScanRow = {

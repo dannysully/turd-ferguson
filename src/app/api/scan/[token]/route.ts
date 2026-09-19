@@ -6,9 +6,11 @@ export const dynamic = "force-dynamic";
 /**
  * The free result, step 04.
  *
- * This is the teaser and nothing more. The full leaderboard and the complete
- * source list are not in this payload at all - they are not fetched and hidden,
- * they are never sent. The blur in the UI is decoration over absent data.
+ * Since 20260919000000 this carries the whole leaderboard and every cited
+ * source, so both are free. What it still does not carry is the placement
+ * list, or what any engine said word for word - those are not fetched and
+ * hidden, they are never sent. The blur in the UI is decoration over absent
+ * data, and it is over the placement table alone.
  */
 export async function GET(_req: Request, ctx: { params: Promise<{ token: string }> }) {
   const { token } = await ctx.params;

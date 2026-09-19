@@ -54,11 +54,13 @@ export const ENGINE_SPECS: Record<Engine, EngineSpec> = {
  * out is not a credible read of the category, and a visitor who can see that
  * gap has been shown an incomplete answer, not a teaser.
  *
- * Nothing is gated by engine now. The email buys the full leaderboard and the
- * complete source list, which is the part with the commercial value in it:
- * knowing you are ninth matters less than knowing which twelve pages the
- * engines read to decide that. Claude stays out of the free scan entirely - at
- * $0.66 a run it is a subscription feature, not a lead magnet.
+ * Nothing is gated by engine now. The leaderboard and the complete source list
+ * went free with 20260919000000: a visitor who can see they are ninth, and see
+ * the twelve pages the engines read to decide it, has been shown the problem
+ * rather than a teaser of it. What the email buys is which of those pages they
+ * could be placed into, and the verbatim answers. Claude stays out of the free
+ * scan entirely - at $0.66 a run it is a subscription feature, not a lead
+ * magnet.
  *
  * These are defaults. app_settings.scan_engines_free and scan_engines_gated
  * override them at runtime, so the split can be changed without a deploy.

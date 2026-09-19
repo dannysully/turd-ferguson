@@ -34,7 +34,7 @@ function html(brand: string, link: string): string {
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f6f8;padding:32px 16px;">
     <tr><td align="center">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:12px;padding:32px;">
-        <tr><td style="font-size:18px;font-weight:600;color:#0B1220;padding-bottom:16px;">
+        <tr><td style="font-size:18px;font-weight:600;color:#0f1115;padding-bottom:16px;">
           One click and your ${escapeHtml(brand)} report opens
         </td></tr>
         <tr><td style="font-size:15px;line-height:1.55;color:#3d4451;padding-bottom:24px;">
@@ -114,7 +114,7 @@ function reportHtml(brand: string, link: string, missed: number, total: number):
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f6f8;padding:32px 16px;">
     <tr><td align="center">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:12px;padding:32px;">
-        <tr><td style="font-size:18px;font-weight:600;color:#0B1220;padding-bottom:16px;">
+        <tr><td style="font-size:18px;font-weight:600;color:#0f1115;padding-bottom:16px;">
           Your ${escapeHtml(brand)} report is ready
         </td></tr>
         <tr><td style="font-size:15px;line-height:1.55;color:#3d4451;padding-bottom:24px;">

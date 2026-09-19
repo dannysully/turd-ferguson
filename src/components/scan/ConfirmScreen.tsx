@@ -327,7 +327,7 @@ export default function ConfirmScreen(p: {
             {primaryLabel}
           </button>
           <p style={{ margin: "10px 0 0", fontSize: "12.5px", color: T.soft }}>
-            No email needed to start. We ask for one only when the sources unlock.
+            No email needed to start. The result is free in full - we ask for one only to open the placement list.
           </p>
           {error ? (
             <p role="alert" style={{ margin: "10px 0 0", fontSize: "12.5px", color: T.badFg }}>

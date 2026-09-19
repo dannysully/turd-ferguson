@@ -1,20 +1,15 @@
 @import "tailwindcss";
 
 @theme {
-  /* getcited color palette */
-  --color-purple-start: #7C3AED;
-  --color-purple-end: #A855F7;
-  --color-text-primary: #0B1220;
-  --color-text-secondary: #4B5563;
-  --color-bg-soft: #F8F7FF;
-  --color-border: #E5E7EB;
-
   /* Brand purple - the accent half of the logo lockup */
   --brand-purple: #7C3AED;
 
   /* The canvas tokens. Exact, not re-derived - see src/config/tokens.ts.
-     The rebuilt homepage boards use these; older sections still use the
-     navy/soft palette above until they are rebuilt. */
+     These are the only palette now. The pre-redesign navy block that used to
+     sit above - --color-text-primary #0B1220, --color-bg-soft #F8F7FF and four
+     others - is gone: nothing referenced them through var() and nothing used
+     the Tailwind utilities they generated, checked name by name before
+     removing rather than inferred from the comment that called them legacy. */
   --bg: #f6f6f7;
   --surface: #ffffff;
   --chip: #f4f4f6;
