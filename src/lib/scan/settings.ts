@@ -38,6 +38,32 @@ const FALLBACK: Settings = {
 };
 
 /**
+ * A stored value only replaces its default when it is the same kind of thing.
+ *
+ * jsonb holds whatever was typed into it, and the row is edited by hand in the
+ * Supabase table editor. `false` is a boolean there and `"false"` is a string,
+ * and the two look identical in the cell. Every number here survived that
+ * confusion by coercion - comparing against "200" compares as 200 - but the two
+ * booleans did not, and they are the two that matter:
+ *
+ * - `scans_enabled` as the string "false" is truthy, so the kill switch reads
+ *   as on and scans keep running. That switch exists to be thrown in a hurry,
+ *   by someone who will not then go and check that it took.
+ * - `require_email_verification` as the string "false" turns verification *on*,
+ *   which gates every report behind an email that DMARC is not published for
+ *   yet.
+ *
+ * Both fail silently and in the expensive direction, so a value of the wrong
+ * type is refused and logged rather than trusted. The engine lists are checked
+ * above, element by element, and never reach this.
+ */
+function sameShape(value: unknown, fallback: unknown): boolean {
+  if (typeof fallback === "boolean") return typeof value === "boolean";
+  if (typeof fallback === "number") return typeof value === "number" && Number.isFinite(value);
+  return false;
+}
+
+/**
  * Read fresh on every call, deliberately. Acceptance criterion 6 is that
  * flipping scans_enabled stops new scans within one request, so this must not
  * be cached in module scope or in the Next data cache.
@@ -59,7 +85,15 @@ export async function getSettings(): Promise<Settings> {
       out[key] = list.length || key === "scan_engines_gated" ? list : FALLBACK[key];
       continue;
     }
-    // jsonb comes back already parsed: true, 200, and so on.
+    // jsonb comes back already parsed: true, 200, and so on. Parsed is not the
+    // same as the right kind of thing, which is what sameShape is for.
+    if (!sameShape(row.value, FALLBACK[key])) {
+      console.warn(
+        "[scan] app_settings." + key + " is " + JSON.stringify(row.value) +
+          ", not a " + typeof FALLBACK[key] + "; using the default",
+      );
+      continue;
+    }
     (out as Record<string, unknown>)[key] = row.value;
   }
   return out;
