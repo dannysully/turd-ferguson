@@ -3,6 +3,7 @@ import { OG_IMAGE } from "@/config/og";
 import Link from "next/link";
 
 import { CARD, MICRO, SHELL, T } from "@/config/tokens";
+import { ORG_REF } from "@/config/schema";
 
 /**
  * The one case study, rebuilt on CaseStudy.dc.html.
@@ -41,11 +42,17 @@ const articleSchema = {
   "@context": "https://schema.org",
   "@type": "Article",
   headline: "One listicle placement, on a page already ranking for the category",
+  // Both windows, because that is what the page says. This field carried
+  // "in under eight weeks" over every figure on the page long after the
+  // visible copy had been split into an eight-week reading and a four-month
+  // one, and after the visibility figure had had its invented window taken
+  // off. A stale claim in the head is still a published claim - and on this
+  // site it is the copy a machine reads first.
   description:
-    "A US retail SaaS went from no AI search visibility to three AI Overview citations and page-one Google rankings in under eight weeks.",
+    "A US retail SaaS: three AI Overview citations, ChatGPT brand visibility from 0% to 25%, and the money keyword from #83 to #4 in eight weeks, reaching #1 four months in.",
   url: "https://alwayscited.com/case-studies/vibe-retail",
-  author: { "@type": "Organization", name: "alwayscited" },
-  publisher: { "@type": "Organization", name: "alwayscited", url: "https://alwayscited.com" },
+  author: ORG_REF,
+  publisher: ORG_REF,
 };
 
 const TO_CONFIRM = "TO CONFIRM";

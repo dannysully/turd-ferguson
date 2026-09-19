@@ -1,4 +1,5 @@
 import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
+import { ORG_REF, SITE_REF } from "@/config/schema";
 
 /**
  * FAQ and the closing scan - HomeFaq.dc.html.
@@ -69,6 +70,8 @@ export const FAQS: Faq[] = [
 const faqSchema = {
   "@context": "https://schema.org",
   "@type": "FAQPage",
+  isPartOf: SITE_REF,
+  publisher: ORG_REF,
   mainEntity: FAQS.map((f) => ({
     "@type": "Question",
     name: f.q,

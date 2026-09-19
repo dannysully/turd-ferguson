@@ -3,6 +3,7 @@ import { OG_IMAGE } from "@/config/og";
 
 import ContactForm from "@/components/ContactForm";
 import { CARD, MICRO, SHELL, T } from "@/config/tokens";
+import { ORG_REF, SITE_REF } from "@/config/schema";
 
 /**
  * Contact, from Contact.dc.html.
@@ -32,6 +33,9 @@ const contactSchema = {
   description:
     "Most questions are answered by running a free scan. Portfolio pricing, corrections and everything else, here.",
   url: "https://alwayscited.com/contact",
+  isPartOf: SITE_REF,
+  publisher: ORG_REF,
+  about: ORG_REF,
 };
 
 const ROUTES = [

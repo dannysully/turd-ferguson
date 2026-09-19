@@ -5,6 +5,7 @@ import Link from "next/link";
 import PostShell, { H2, P } from "@/components/PostShell";
 import { requirePost } from "@/config/posts";
 import { T } from "@/config/tokens";
+import { ORG_REF } from "@/config/schema";
 
 export const metadata: Metadata = {
   title: "How LLMs Pick Which Brands to Recommend",
@@ -32,12 +33,8 @@ const postSchema = {
     "The mechanics of LLM citation are simpler - and more exploitable - than most agencies realise.",
   url: "https://alwayscited.com/blog/how-llms-pick-which-brands-to-recommend",
   datePublished: "2026-04-30",
-  author: { "@type": "Organization", name: "alwayscited" },
-  publisher: {
-    "@type": "Organization",
-    name: "alwayscited",
-    url: "https://alwayscited.com",
-  },
+  author: ORG_REF,
+  publisher: ORG_REF,
 };
 
 const post = requirePost("how-llms-pick-which-brands-to-recommend");

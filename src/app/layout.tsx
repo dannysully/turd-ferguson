@@ -3,6 +3,7 @@ import "@fontsource-variable/hanken-grotesk";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { ld, siteGraph } from "@/config/schema";
 
 export const metadata: Metadata = {
   title: {
@@ -30,6 +31,13 @@ export default function RootLayout({
   return (
     <html lang="en-GB" className="h-full">
       <body className="min-h-full flex flex-col">
+        {/*
+          The one Organization and WebSite node, emitted here so it reaches
+          every route - including the ones no page component owns. Every
+          author, publisher and provider elsewhere on the site is a bare
+          @id reference back to it rather than another copy.
+        */}
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ld(siteGraph) }} />
         <Header />
         <main className="flex-1">{children}</main>
         <Footer />

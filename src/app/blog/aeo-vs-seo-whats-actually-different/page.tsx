@@ -5,6 +5,7 @@ import Link from "next/link";
 import PostShell, { H2, P } from "@/components/PostShell";
 import { requirePost } from "@/config/posts";
 import { T } from "@/config/tokens";
+import { ORG_REF } from "@/config/schema";
 
 export const metadata: Metadata = {
   title: "AEO vs SEO: What's Actually Different (and What Isn't)",
@@ -30,12 +31,8 @@ const postSchema = {
     "The clearest comparison of AEO and SEO you'll read this year - written by people who actually do both.",
   url: "https://alwayscited.com/blog/aeo-vs-seo-whats-actually-different",
   datePublished: "2026-04-30",
-  author: { "@type": "Organization", name: "alwayscited" },
-  publisher: {
-    "@type": "Organization",
-    name: "alwayscited",
-    url: "https://alwayscited.com",
-  },
+  author: ORG_REF,
+  publisher: ORG_REF,
 };
 
 const post = requirePost("aeo-vs-seo-whats-actually-different");

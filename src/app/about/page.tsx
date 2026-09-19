@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { OG_IMAGE } from "@/config/og";
 
-import TierName, { TIER_PLAIN } from "@/components/TierName";
+import TierName from "@/components/TierName";
+import { BRAND, ORG_REF, SITE_REF } from "@/config/schema";
 import { CARD, MICRO, SHELL, T } from "@/config/tokens";
 
 /**
@@ -14,13 +15,13 @@ import { CARD, MICRO, SHELL, T } from "@/config/tokens";
  */
 
 export const metadata: Metadata = {
-  title: "About " + TIER_PLAIN.cited + " | AI citation placements for agencies",
+  title: "About " + BRAND + " | AI citation placements for agencies",
   description:
     "An agency built the tool it wanted, then sold it to other agencies. Run by the senior team at Nomada Digital, a B2B search agency in York.",
   alternates: { canonical: "https://alwayscited.com/about" },
   openGraph: {
     images: OG_IMAGE,
-    title: "About " + TIER_PLAIN.cited,
+    title: "About " + BRAND,
     description:
       "An agency built the tool it wanted, then sold it to other agencies. Run by the senior team at Nomada Digital, York.",
     url: "https://alwayscited.com/about",
@@ -30,20 +31,13 @@ export const metadata: Metadata = {
 const aboutSchema = {
   "@context": "https://schema.org",
   "@type": "AboutPage",
-  name: "About " + TIER_PLAIN.cited,
+  name: "About " + BRAND,
   description:
     "An agency built the tool it wanted, then sold it to other agencies. Run by the senior team at Nomada Digital, a B2B search agency in York.",
   url: "https://alwayscited.com/about",
-  publisher: {
-    "@type": "Organization",
-    name: TIER_PLAIN.cited,
-    url: "https://alwayscited.com",
-    parentOrganization: {
-      "@type": "Organization",
-      name: "Nomada Digital",
-      url: "https://nomadadigital.co.uk",
-    },
-  },
+  isPartOf: SITE_REF,
+  publisher: ORG_REF,
+  about: ORG_REF,
 };
 
 const RULES = [

@@ -1,5 +1,6 @@
 import TierName from "@/components/TierName";
 import { CONTACT_URL, TIERS, type Tier } from "@/config/pricing";
+import { ld, ORG_REF, SITE_REF, SITE_URL } from "@/config/schema";
 import { CARD, MICRO, SHELL, T } from "@/config/tokens";
 
 /**
@@ -20,6 +21,69 @@ const GLOSS: Record<string, string> = {
   everywhere: "All of it, across a portfolio",
 };
 
+/**
+ * The four package pages were the only priced surfaces on the site with no
+ * structured data at all - which is an odd gap for a company that sells being
+ * readable to answer engines. "What does it cost" is the question a buyer
+ * actually asks one.
+ *
+ * Built from `pricing.ts` rather than written per page, so a price cannot be
+ * right in the card and stale in the markup. Three rules it follows:
+ *
+ * - **The name is `plainName`**, the TIER_PLAIN form, because JSON-LD is one
+ *   of the contexts that strips colour.
+ * - **The price is the one on the page.** `alwaystracked` reads "from $99/mo",
+ *   so it gets an AggregateOffer with a lowPrice rather than an Offer with a
+ *   flat price that the label itself contradicts.
+ * - **`alwayseverywhere` gets no offer.** Its price is "Book a call". An offer
+ *   node with no price says less than no offer node, and inventing one is the
+ *   thing we do not do.
+ *
+ * `description` is the page's own standfirst. Nothing here is a new claim.
+ */
+function serviceSchema(tier: Tier, standfirst: string) {
+  const url = SITE_URL + tier.href;
+  const offers =
+    tier.basePrice === null
+      ? undefined
+      : tier.priceLabel.startsWith("from")
+        ? {
+            "@type": "AggregateOffer",
+            priceCurrency: "USD",
+            lowPrice: tier.basePrice,
+            url,
+          }
+        : {
+            "@type": "Offer",
+            priceCurrency: "USD",
+            price: tier.basePrice,
+            url,
+            priceSpecification: {
+              "@type": "UnitPriceSpecification",
+              priceCurrency: "USD",
+              price: tier.basePrice,
+              // Monthly, stated in a field rather than only in the /mo of
+              // the label. MON is the UN/CEFACT code for a month.
+              billingDuration: 1,
+              billingIncrement: 1,
+              unitCode: "MON",
+            },
+          };
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "Service",
+    "@id": url + "#service",
+    name: tier.plainName,
+    url,
+    isPartOf: SITE_REF,
+    description: standfirst,
+    serviceType: "Answer engine optimisation",
+    provider: ORG_REF,
+    ...(offers ? { offers } : {}),
+  };
+}
+
 export default function PackagePage({
   tier,
   standfirst,
@@ -38,6 +102,10 @@ export default function PackagePage({
 }) {
   return (
     <section style={{ ...SHELL, paddingTop: "40px", display: "flex", flexDirection: "column", gap: "28px" }}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: ld(serviceSchema(tier, standfirst)) }}
+      />
       <div className="confirm-top">
         <div>
           <a href="/#packages" style={{ fontSize: "13px", fontWeight: 600, textDecoration: "none", color: T.accent }}>

@@ -4,6 +4,7 @@ import { OG_IMAGE } from "@/config/og";
 import CtaSection from "@/components/CtaSection";
 import TierName from "@/components/TierName";
 import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
+import { ORG_REF } from "@/config/schema";
 
 /**
  * How it works - the mechanism page.
@@ -62,8 +63,8 @@ const articleSchema = JSON.stringify({
   description:
     "How alwayscited gets brands named inside AI answers: placement on the third-party pages an engine already reads for a category, plus the on-site work that backs it up.",
   url: "https://alwayscited.com/how-it-works",
-  author: { "@type": "Organization", name: "alwayscited" },
-  publisher: { "@type": "Organization", name: "alwayscited", url: "https://alwayscited.com" },
+  author: ORG_REF,
+  publisher: ORG_REF,
 });
 
 const WORK: { heading: string; body: string }[] = [

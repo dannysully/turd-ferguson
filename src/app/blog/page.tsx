@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { formatPostDate, POSTS, type PostKind } from "@/config/posts";
 import { CARD, MICRO, SHELL, T } from "@/config/tokens";
+import { ORG_REF } from "@/config/schema";
 
 /**
  * The writing index, from BlogIndex.dc.html.
@@ -35,7 +36,7 @@ const blogSchema = {
   name: "alwayscited",
   description: "Notes on AI search, written for people who run agencies.",
   url: "https://alwayscited.com/blog",
-  publisher: { "@type": "Organization", name: "alwayscited", url: "https://alwayscited.com" },
+  publisher: ORG_REF,
 };
 
 function pill(active: boolean): React.CSSProperties {

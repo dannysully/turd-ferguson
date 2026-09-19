@@ -6,6 +6,7 @@ import { TIER_PLAIN } from "@/components/TierName";
 import { TIERS } from "@/config/pricing";
 import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
 import { ENGINES, ENGINE_SPECS, FREE_ENGINES } from "@/lib/scan/engines";
+import { ORG_REF } from "@/config/schema";
 
 /**
  * What is AEO - the guide page.
@@ -71,8 +72,8 @@ const articleSchema = jsonLd("Article", {
   description:
     "AEO (answer engine optimisation) is the practice of getting a brand named and cited inside the answer an AI search system generates, rather than ranked in the list of links underneath it.",
   url: "https://alwayscited.com/what-is-aeo",
-  author: { "@type": "Organization", name: "alwayscited" },
-  publisher: { "@type": "Organization", name: "alwayscited", url: "https://alwayscited.com" },
+  author: ORG_REF,
+  publisher: ORG_REF,
 });
 
 /** "a, b, c and d" - used for the engine lists, which come from config. */
