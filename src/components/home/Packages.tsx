@@ -17,6 +17,17 @@ import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
 
 const priceOf = (id: string) => TIERS.find((t) => t.id === id)?.basePrice ?? null;
 
+/**
+ * The basis under the price, read from pricing.ts rather than typed here.
+ *
+ * It was typed here, as a near-copy of `TIERS[0].priceBasis` with a different
+ * tail, which is the same duplication the price itself is deliberately not:
+ * the comment on `priceBasis` says the basis travels with the number so an
+ * agency cannot quote $99 and then find the price moves with prompt count.
+ * A second copy is exactly how it stops travelling with it.
+ */
+const basisOf = (id: string) => TIERS.find((t) => t.id === id)?.priceBasis;
+
 const money = (n: number) => `$${n.toLocaleString("en-US")}`;
 
 const li: React.CSSProperties = {
@@ -117,9 +128,9 @@ export default function Packages() {
             tier="tracked"
             under="The map. You do the placing"
             price={tracked !== null ? <>{money(tracked)}<span style={perMo}>/mo</span></> : "Talk to us"}
-            basis="20 questions, checked weekly. More questions or a tighter cadence moves the price - ask and we will quote it."
+            basis={basisOf("tracked")}
             items={[
-              "As many buying questions as you want tracked, across as many clusters, refreshed monthly",
+              "A locked question set across the clusters that matter to the account, so each reading is comparable with the last",
               "Every source behind every answer, and what kind of publication each one is",
               "So you know where you need placing, and on what sort of site",
               "You run the outreach",
