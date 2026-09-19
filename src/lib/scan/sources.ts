@@ -185,7 +185,27 @@ export async function classifySources(
     // One call per batch, not one per scan. The cost cap reads this, so an
     // undercount here would let a large scan spend more than the cap allows.
     anthropicCalls = judged.calls;
-    const byDomain = new Map(judged.sources.map((j) => [j.domain, j]));
+    /**
+     * Keyed through normalizeDomain rather than on the string the model
+     * returned, for the reason pipeline.ts keys the brand verdicts through
+     * brandKey: the prompt asks for each domain back exactly as given, and a
+     * prompt is not a guarantee.
+     *
+     * A miss here does not drop the domain, which would at least be visible.
+     * It falls to the default a few lines below - other, on_topic false, no
+     * note - which is a verdict nobody made, written for a domain the model in
+     * fact read and placed. That verdict then keeps the domain off the
+     * placement list, and because the row lands in scan_sources the gated pass
+     * finds it in `already` and never asks again. One capital letter, and a
+     * page a client could have been placed into is gone for the life of the
+     * scan with nothing anywhere saying so.
+     *
+     * normalizeDomain folds exactly the differences that are case, a www.
+     * prefix, a trailing dot or a scheme somebody pasted back in. The lookup
+     * side is already normalised: these domains come off scan_citations, which
+     * engines.ts wrote through the same function.
+     */
+    const byDomain = new Map(judged.sources.map((j) => [normalizeDomain(j.domain), j]));
     /**
      * Domains whose batch never came back get no row at all.
      *
