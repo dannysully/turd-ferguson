@@ -36,5 +36,9 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules"]
+  // `docs` is excluded because the compiler reading it made scratch files
+  // load-bearing on the push gate: a stray `docs/tmp-*.mts` pinned an old
+  // signature and broke `npx tsc --noEmit`, which is the thing that stops bad
+  // code shipping. Nothing under `docs` is ever imported by the app.
+  "exclude": ["node_modules", "docs"]
 }

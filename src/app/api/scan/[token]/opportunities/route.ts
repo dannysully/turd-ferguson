@@ -24,12 +24,20 @@ export const dynamic = "force-dynamic";
 export async function GET(_req: Request, ctx: { params: Promise<{ token: string }> }) {
   const { token } = await ctx.params;
 
-  const { data: scan } = await supabaseAdmin()
+  // The same rule the count below keeps, applied one statement earlier: a read
+  // that failed is not a scan that is not there. Without this the route already
+  // distinguished a failed count from a counted zero and then let a failed read
+  // answer as neither.
+  const { data: scan, error: readErr } = await supabaseAdmin()
     .from("scans")
     .select("id, status")
     .eq("public_token", token)
     .maybeSingle();
 
+  if (readErr) {
+    console.error("[scan] could not read the scan to count its opportunities: " + readErr.message);
+    return Response.json({ error: "read_failed" }, { status: 502, headers: { "cache-control": "no-store" } });
+  }
   if (!scan) return Response.json({ error: "not_found" }, { status: 404 });
 
   // Before the scan finishes there is nothing to count, and counting it early

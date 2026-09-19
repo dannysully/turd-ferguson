@@ -22,17 +22,25 @@ export async function POST(_req: Request, ctx: { params: Promise<{ token: string
   const { token } = await ctx.params;
   const db = supabaseAdmin();
 
-  const { data: scan } = await db
+  // A read that failed is not a token that does not exist.
+  const { data: scan, error: scanErr } = await db
     .from("scans")
     .select("id, domain, brand_name")
     .eq("public_token", token)
     .maybeSingle();
 
+  if (scanErr) {
+    console.warn("[scan] could not read the scan to resend its verification: " + scanErr.message);
+    return Response.json(
+      { error: "read_failed", message: "We could not reach the checker. Try again shortly." },
+      { status: 502 },
+    );
+  }
   if (!scan) return Response.json({ error: "not_found" }, { status: 404 });
 
   // The most recent address to ask for this scan, and only if it is still
   // waiting: a verified lead has nothing to resend.
-  const { data: lead } = await db
+  const { data: lead, error: leadErr } = await db
     .from("leads")
     .select("id, email, verify_token, verify_sent_at, verified_at")
     .eq("scan_id", scan.id)
@@ -41,6 +49,22 @@ export async function POST(_req: Request, ctx: { params: Promise<{ token: string
     .limit(1)
     .maybeSingle();
 
+  /**
+   * A read that failed is not an absence of anything to send.
+   *
+   * `nothing_pending` is a statement about this scan - nobody is waiting on a
+   * verification - and it is what the button on the pending panel is answered
+   * with. A failed read said the same thing to somebody looking at that panel
+   * with their own address printed on it, which is a direct contradiction of
+   * what is on their screen.
+   */
+  if (leadErr) {
+    console.warn("[scan] could not read the pending lead for " + scan.id + ": " + leadErr.message);
+    return Response.json(
+      { error: "read_failed", message: "We could not reach the checker. Try again shortly." },
+      { status: 502 },
+    );
+  }
   if (!lead) return Response.json({ error: "nothing_pending" }, { status: 409 });
 
   const sentAt = lead.verify_sent_at ? Date.parse(lead.verify_sent_at as string) : 0;

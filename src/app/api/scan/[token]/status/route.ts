@@ -28,12 +28,24 @@ export const dynamic = "force-dynamic";
 export async function GET(_req: Request, ctx: { params: Promise<{ token: string }> }) {
   const { token } = await ctx.params;
 
-  const { data } = await supabaseAdmin()
+  // A read that failed is not a token that does not exist. The poll treats any
+  // answer without a status as "try the next tick", so this changes nothing the
+  // visitor sees - but a database fault was being recorded as a 404, which is
+  // the signal somebody debugging this route would read first and the one that
+  // would send them looking for a bad token.
+  const { data, error: readErr } = await supabaseAdmin()
     .from("scans")
     .select("status, step, gated_status")
     .eq("public_token", token)
     .maybeSingle();
 
+  if (readErr) {
+    console.warn("[scan] could not read the scan status: " + readErr.message);
+    return Response.json(
+      { error: "read_failed" },
+      { status: 502, headers: { "cache-control": "no-store" } },
+    );
+  }
   if (!data) return Response.json({ error: "not_found" }, { status: 404 });
 
   return Response.json(

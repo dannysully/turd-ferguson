@@ -131,12 +131,49 @@ type Spend = { dfsCalls: number; dfsCost: number; anthropicCalls: number };
  * attempt's cost with its own, so reads that had been paid for twice counted
  * once.
  */
-async function billedOnto(scanId: string, spend: Spend) {
-  const { data: current } = await supabaseAdmin()
+/**
+ * A read that failed must not be added to as though it returned zero.
+ *
+ * The error was discarded, so a database that did not answer became
+ * `0 + this pass's spend` - and because the caller writes that total back, the
+ * cost already recorded by the earlier pass was erased. The function written to
+ * stop a retry overwriting the first attempt's cost did exactly that whenever
+ * its own read failed.
+ *
+ * It matters beyond tidiness: `spentSince` and `anthropicCallsSince` sum these
+ * columns to enforce the day's ceilings, and a ceiling that reads a total which
+ * has had earlier spend erased from it under-reports - which is the one
+ * direction a ceiling must not fail in, and the busier the day the more of it
+ * there is to erase.
+ *
+ * So a failed read omits the columns rather than guessing at them. This pass's
+ * spend is then missing from the row, which the log says out loud, and what was
+ * already measured survives. Losing an addition is recoverable; erasing a
+ * record is not.
+ *
+ * The better fix is a database-side increment - `update scans set dfs_cost =
+ * dfs_cost + $1` through an RPC, the way note_preview_call already reserves -
+ * because that needs no read at all and also closes the case this cannot: two
+ * passes reading the same total concurrently and each writing its own sum back.
+ * That is additive DDL and therefore ours to do; it is written up in worklog.md
+ * as the next job on this path rather than bolted onto a fix that had to ship.
+ */
+async function billedOnto(
+  scanId: string,
+  spend: Spend,
+): Promise<{ dfs_calls: number; dfs_cost: number; anthropic_calls: number } | Record<string, never>> {
+  const { data: current, error } = await supabaseAdmin()
     .from("scans")
     .select("dfs_calls, dfs_cost, anthropic_calls")
     .eq("id", scanId)
     .single();
+  if (error) {
+    console.warn(
+      "[scan] could not read the spend already on " + scanId +
+        ", so this pass's spend is not recorded rather than overwriting it: " + error.message,
+    );
+    return {};
+  }
   return {
     dfs_calls: (current?.dfs_calls ?? 0) + spend.dfsCalls,
     dfs_cost: Number(current?.dfs_cost ?? 0) + spend.dfsCost,
@@ -565,11 +602,29 @@ export async function runScan(scanId: string): Promise<void> {
      * different set from the one the visitor approved - and they would have no
      * way of knowing, because the report only ever shows what was asked.
      */
-    const { data: confirmedRows } = await db
+    const { data: confirmedRows, error: confirmedErr } = await db
       .from("scan_questions")
       .select("id, idx, question")
       .eq("scan_id", scanId)
       .order("idx", { ascending: true });
+
+    /**
+     * A read that failed is not a scan with no questions confirmed.
+     *
+     * The error was discarded, so a database that did not answer became an
+     * empty list, and an empty list is the signal for the branch below: write a
+     * fresh set and ask that instead. That is the one thing the comment above
+     * says must not happen - the visitor pruned a set on the confirm screen,
+     * and the report only ever shows what was asked, so a scan that quietly
+     * substituted its own questions is not detectable from the outside by
+     * anyone. It also pays for a question set nobody asked for.
+     *
+     * Failing the scan is the honest end. The screen offers a re-run, the
+     * confirmed rows are still on the table, and the next attempt reads them.
+     */
+    if (confirmedErr) {
+      throw new Error("could not read the confirmed questions: " + confirmedErr.message);
+    }
 
     let ordered = confirmedRows ?? [];
 
@@ -788,18 +843,42 @@ export async function runGatedScan(scanId: string): Promise<void> {
 
     // Spend from both passes accumulates on the same row, so the admin page and
     // the daily cost cap see the true cost of this scan.
-    const { data: current } = await db
+    const { data: current, error: currentErr } = await db
       .from("scans")
       .select("engines_answered")
       .eq("id", scanId)
       .single();
+
+    /**
+     * A read that failed must not become an empty list here.
+     *
+     * engines_answered is a union with what is already on the row, and the error
+     * was discarded - so a read that did not answer collapsed to `[]` and the
+     * update wrote the gated engines *over* the free pass's. The report renders
+     * this column, so an unlocked scan would have told the reader that the
+     * engines they watched answer during the run had not answered at all, on the
+     * one report somebody gave an address for.
+     *
+     * Omitted rather than guessed. Leaving the column alone keeps what the free
+     * pass measured and loses only this pass's addition, which the log names;
+     * writing the union of a list we could not read would publish a fact we do
+     * not have.
+     */
+    if (currentErr) {
+      console.warn(
+        "[scan] could not read engines_answered for " + scanId + ", leaving it as the free pass left it: " +
+          currentErr.message,
+      );
+    }
 
     await db
       .from("scans")
       .update({
         gated_status: "complete",
         gated_completed_at: new Date().toISOString(),
-        engines_answered: [...new Set([...(current?.engines_answered ?? []), ...read.answered])],
+        ...(currentErr
+          ? {}
+          : { engines_answered: [...new Set([...(current?.engines_answered ?? []), ...read.answered])] }),
         // Set, never cleared. The gated pass re-reads the same questions on two
         // more engines; it cannot recover names a failed batch lost on the free
         // pass, so a clean second pass is not evidence the leaderboard is whole.

@@ -52,12 +52,22 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
 
   const db = supabaseAdmin();
 
-  const { data: scan } = await db
+  // A read that failed is not a token that does not exist. This is the moment
+  // the address is handed over, so "we do not hold that scan" is both false and
+  // the end of the visit; "try again" is true and costs them one more click.
+  const { data: scan, error: readErr } = await db
     .from("scans")
     .select(SCAN_UNLOCK_COLUMNS)
     .eq("public_token", token)
     .maybeSingle();
 
+  if (readErr) {
+    console.warn("[scan] could not read the scan to unlock it: " + readErr.message);
+    return Response.json(
+      { error: "read_failed", message: "We could not reach the checker. Try again." },
+      { status: 502 },
+    );
+  }
   if (!scan) return Response.json({ error: "not_found" }, { status: 404 });
   if (scan.status !== "complete") {
     return Response.json({ error: "not_ready", status: scan.status }, { status: 409 });

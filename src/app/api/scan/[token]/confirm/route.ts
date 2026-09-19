@@ -64,12 +64,23 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
   }
 
   const db = supabaseAdmin();
-  const { data: scan } = await db
+  // A read that failed is not a token that does not exist - the same rule the
+  // preview route keeps one screen earlier. 404 tells a visitor their scan link
+  // is wrong, which is the one message that makes somebody close the tab, and
+  // it is the wrong one when the database simply did not answer.
+  const { data: scan, error: readErr } = await db
     .from("scans")
     .select("id, status, market")
     .eq("public_token", token)
     .maybeSingle();
 
+  if (readErr) {
+    console.warn("[scan] could not read the scan to confirm it: " + readErr.message);
+    return Response.json(
+      { error: "read_failed", message: "We could not reach the checker. Try again." },
+      { status: 502 },
+    );
+  }
   if (!scan) return Response.json({ error: "not_found" }, { status: 404 });
   if (scan.status === "complete") {
     return Response.json({ status: "complete" });

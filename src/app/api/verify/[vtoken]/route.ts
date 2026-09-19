@@ -29,22 +29,45 @@ export async function GET(_req: Request, ctx: { params: Promise<{ vtoken: string
 
   const db = supabaseAdmin();
 
-  const { data: lead } = await db
+  /**
+   * A read that failed is not a link that does not exist.
+   *
+   * Both reads below discarded their error, so a database that did not answer
+   * arrived here as `!lead` or `!scan` and redirected to `verify=invalid` -
+   * "that link does not match a report we hold ... run a scan below and we will
+   * send you a fresh one". That is a false statement, it is terminal, and it is
+   * made to the one visitor who has already given us an address and clicked the
+   * link to prove it. Their report exists; we simply could not read it.
+   *
+   * `verify=failed` is the sentence this file already has for exactly this
+   * shape - the one the UnlockNotStamped branch uses, which says to click the
+   * link again in a moment because it will still work. That is true of a failed
+   * read and false of a truncated token, and the two must not share a message.
+   */
+  const { data: lead, error: leadErr } = await db
     .from("leads")
     .select("id, email, scan_id, account_id, verified_at")
     .eq("verify_token", vtoken)
     .maybeSingle();
 
+  if (leadErr) {
+    console.error("[scan] could not read the lead for a verify link: " + leadErr.message);
+    return NextResponse.redirect(`${site}/scan?verify=failed`, { status: 302 });
+  }
   if (!lead || !lead.scan_id) {
     return NextResponse.redirect(`${site}/scan?verify=invalid`, { status: 302 });
   }
 
-  const { data: scan } = await db
+  const { data: scan, error: scanErr } = await db
     .from("scans")
     .select(SCAN_UNLOCK_COLUMNS)
     .eq("id", lead.scan_id)
     .maybeSingle();
 
+  if (scanErr) {
+    console.error("[scan] could not read the scan behind a verify link: " + scanErr.message);
+    return NextResponse.redirect(`${site}/scan?verify=failed`, { status: 302 });
+  }
   if (!scan) {
     return NextResponse.redirect(`${site}/scan?verify=invalid`, { status: 302 });
   }
@@ -71,12 +94,25 @@ export async function GET(_req: Request, ctx: { params: Promise<{ vtoken: string
      * else verified this lead first, and there is nothing left for this request
      * to do but show the report.
      */
-    const { data: claimed } = await db
+    const { data: claimed, error: claimErr } = await db
       .from("leads")
       .update({ verified_at: new Date().toISOString() })
       .eq("id", lead.id)
       .is("verified_at", null)
       .select("id");
+    /**
+     * A claim that errored is not a claim somebody else won.
+     *
+     * No rows back means the race was lost and the report is the right place to
+     * send them. A failed write means nothing was claimed by anyone, so the
+     * same redirect handed them a report that is still gated, with no unlock
+     * behind it and nothing on the screen saying why - and the retry that would
+     * fix it is the one thing they were not told to do.
+     */
+    if (claimErr) {
+      console.error("[scan] could not claim the lead for " + scan.id + ": " + claimErr.message);
+      return NextResponse.redirect(`${site}/scan?verify=failed`, { status: 302 });
+    }
     if (!claimed?.length) return NextResponse.redirect(target, { status: 302 });
   } else {
     /**

@@ -25,7 +25,7 @@ export default async function ScanTokenPage({ params }: { params: Promise<{ toke
   const { token } = await params;
 
   const db = supabaseAdmin();
-  const { data: scan } = await db
+  const { data: scan, error: scanErr } = await db
     .from("scans")
     .select(
       "id, brand_name, domain, positioning, topic, topic_variants, market, status, engines, gated_engines, gated_status, unlocked_at",
@@ -33,6 +33,22 @@ export default async function ScanTokenPage({ params }: { params: Promise<{ toke
     .eq("public_token", token)
     .maybeSingle();
 
+  /**
+   * A read that failed is not a scan that does not exist.
+   *
+   * The error was discarded, so a database that did not answer rendered the 404
+   * page - "this is not a page we have" - to somebody following the link to
+   * their own report from their own inbox. It is a false statement and a
+   * terminal one: nothing on that page suggests the link is worth clicking
+   * again, and the scan is sitting there intact.
+   *
+   * Thrown rather than handled here, because error.tsx is already written for
+   * exactly this: it leads on "trying again is worth doing first - most of what
+   * fails here is a read that timed out", offers the retry, and prints the
+   * digest that ties the visitor's screen to the line in the log. notFound()
+   * stays for a token that genuinely matches nothing.
+   */
+  if (scanErr) throw new Error("could not read the scan behind a report link: " + scanErr.message);
   if (!scan) notFound();
 
   /**

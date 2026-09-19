@@ -20,12 +20,24 @@ export async function GET(_req: Request, ctx: { params: Promise<{ token: string 
   const { token } = await ctx.params;
   const db = supabaseAdmin();
 
-  const { data: scan } = await db
+  // The rule the comment below already states, applied to the read that decides
+  // whether there is a report at all. A failed read here answered 404, and 404
+  // on this route is indistinguishable from a scan that never existed - on the
+  // one request whose whole job is to serve a report somebody has paid an email
+  // address for.
+  const { data: scan, error: readErr } = await db
     .from("scans")
     .select("id, unlocked_at, gated_engines, gated_status")
     .eq("public_token", token)
     .maybeSingle();
 
+  if (readErr) {
+    console.warn("[scan] could not read the scan for its report: " + readErr.message);
+    return Response.json(
+      { error: "read_failed", message: "We could not reach the checker. Try again." },
+      { status: 502 },
+    );
+  }
   if (!scan) return Response.json({ error: "not_found" }, { status: 404 });
   if (!scan.unlocked_at) return Response.json({ error: "locked" }, { status: 403 });
 

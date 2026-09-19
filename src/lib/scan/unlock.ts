@@ -135,7 +135,17 @@ export async function completeUnlock(
 ): Promise<{ gatedStarted: boolean; gatedEngines: string[] }> {
   const db = supabaseAdmin();
 
-  const { data: clientDomain } = await db
+  /**
+   * Not fatal, and said rather than implied.
+   *
+   * A failed upsert leaves client_domain_id null below, and the unlock still
+   * happens - which is the right order of priorities, because the visitor's
+   * report matters more than the join row. What it must not do is fail
+   * silently: this is the only link between an account and the domain it
+   * unlocked, so a lost one is a lead whose domain nothing records, and
+   * nothing anywhere said so.
+   */
+  const { data: clientDomain, error: clientDomainErr } = await db
     .from("client_domains")
     .upsert(
       {
@@ -149,6 +159,13 @@ export async function completeUnlock(
     )
     .select("id")
     .single();
+
+  if (clientDomainErr) {
+    console.warn(
+      "[scan] could not attach a client domain to " + scan.id + ", unlocking without one: " +
+        clientDomainErr.message,
+    );
+  }
 
   /**
    * The stamp, and why its result is read.
