@@ -566,3 +566,42 @@ details summary::-webkit-details-marker {
     margin-bottom: 20px;
   }
 }
+
+/* White label: surface / branding / notes on the 12-column grid. */
+.wl-row {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  column-gap: 24px;
+}
+.wl-row > * {
+  grid-column: span 4;
+}
+.wl-terms {
+  display: flex;
+}
+.wl-term {
+  flex-grow: 1;
+  flex-basis: 0;
+}
+@media (max-width: 860px) {
+  .wl-row {
+    grid-template-columns: 1fr;
+    row-gap: 4px;
+  }
+  .wl-row > * {
+    grid-column: 1 / -1;
+  }
+  .wl-row:first-of-type {
+    display: none;
+  }
+  .wl-terms {
+    display: block;
+  }
+  .wl-term {
+    border-left: 0 !important;
+    border-top: 1px solid var(--line);
+  }
+  .wl-term:first-child {
+    border-top: 0;
+  }
+}

@@ -11,15 +11,14 @@ import { T } from "@/config/tokens";
  * The topbar, from the boards.
  *
  * The board's nav is Packages, Compare, White label, Blog. Compare has a
- * board (Compare.dc.html) but no page on the site yet, so it is not linked -
- * a nav item that 404s is worse than one that is missing. Packages and white
- * label point at the homepage sections that now hold that content, and the
- * rest go to pages that exist.
+ * board but no page - every competitor cell in it is unverified, so it is
+ * not something to publish unreviewed - and it is not linked. Packages still
+ * points at the homepage section; white label now has its own page.
  */
 
 const navLinks = [
   { href: "/#packages", label: "Packages" },
-  { href: "/#white-label", label: "White label" },
+  { href: "/white-label", label: "White label" },
   { href: "/how-it-works", label: "How it works" },
   { href: "/blog", label: "Blog" },
 ];

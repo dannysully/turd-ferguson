@@ -22,7 +22,7 @@ import { GRID12, MICRO, T } from "@/config/tokens";
 const PRODUCT: [string, string][] = [
   ["Free scan", "/#scan"],
   ["Packages", "/#packages"],
-  ["White label", "/#white-label"],
+  ["White label", "/white-label"],
   ["Worked example", "/example"],
 ];
 
