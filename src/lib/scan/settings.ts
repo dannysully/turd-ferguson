@@ -23,9 +23,15 @@ export type Settings = {
   require_email_verification: boolean;
   /** How long an unclaimed scan keeps the prose the engines returned. */
   response_retention_days: number;
+  /**
+   * How many times one scan link may put mail in somebody inbox in a rolling
+   * day. The unlock route takes an address from the caller and sends to it, so
+   * without a ceiling one token is an open relay for our own branding.
+   */
+  unlock_emails_per_day: number;
 };
 
-const FALLBACK: Settings = {
+export const SETTINGS_FALLBACK: Settings = {
   scans_enabled: true,
   daily_scan_cap: 200,
   ip_scans_per_day: 3,
@@ -35,6 +41,7 @@ const FALLBACK: Settings = {
   daily_cost_cap_usd: 60,
   require_email_verification: false,
   response_retention_days: 7,
+  unlock_emails_per_day: 5,
 };
 
 /**
@@ -72,7 +79,7 @@ export async function getSettings(): Promise<Settings> {
   const { data, error } = await supabaseAdmin().from("app_settings").select("key, value");
   if (error) throw new Error(`could not read app_settings: ${error.message}`);
 
-  const out = { ...FALLBACK };
+  const out = { ...SETTINGS_FALLBACK };
   for (const row of data ?? []) {
     const key = row.key as keyof Settings;
     if (!(key in out)) continue;
@@ -82,15 +89,15 @@ export async function getSettings(): Promise<Settings> {
       // this row must not send a request to an endpoint that does not exist.
       const list = Array.isArray(row.value) ? row.value.filter(isEngine) : [];
       // The gated set may legitimately be empty; the free set may not.
-      out[key] = list.length || key === "scan_engines_gated" ? list : FALLBACK[key];
+      out[key] = list.length || key === "scan_engines_gated" ? list : SETTINGS_FALLBACK[key];
       continue;
     }
     // jsonb comes back already parsed: true, 200, and so on. Parsed is not the
     // same as the right kind of thing, which is what sameShape is for.
-    if (!sameShape(row.value, FALLBACK[key])) {
+    if (!sameShape(row.value, SETTINGS_FALLBACK[key])) {
       console.warn(
         "[scan] app_settings." + key + " is " + JSON.stringify(row.value) +
-          ", not a " + typeof FALLBACK[key] + "; using the default",
+          ", not a " + typeof SETTINGS_FALLBACK[key] + "; using the default",
       );
       continue;
     }
