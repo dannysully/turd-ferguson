@@ -46,7 +46,7 @@ function Step({ n, tier, price, lead, body, dark }: {
     <div className="board-head" style={{ ...GRID12, padding: dark ? 0 : "24px 26px 20px" }}>
       <div style={{ gridColumn: "span 4" }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: "10px", flexWrap: "wrap" }}>
-          <span style={{ ...MICRO, color: dark ? T.faint : T.faint }}>Step {n}</span>
+          <span style={{ ...MICRO, color: dark ? T.faint : T.soft }}>Step {n}</span>
           <span style={{ fontSize: "18px", fontWeight: 700, letterSpacing: "-0.022em", color: dark ? "#ffffff" : T.ink }}>
             <TierName tier={tier} />
           </span>
@@ -143,7 +143,7 @@ export default function TierJourney() {
                 <div style={cellNote}>{r.engines}</div>
               </div>
             ))}
-            <p style={{ margin: 0, padding: "12px 26px", fontSize: "12.5px", color: T.faint }}>
+            <p style={{ margin: 0, padding: "12px 26px", fontSize: "12.5px", color: T.soft }}>
               Example data. A real scan carries the verbatim answer and the full source list behind every row.
             </p>
           </div>
@@ -211,9 +211,9 @@ export default function TierJourney() {
               <line x1="56" y1="130" x2="1050" y2="130" stroke={T.line} strokeWidth="1" />
               <line x1="56" y1="75" x2="1050" y2="75" stroke={T.hair} strokeWidth="1" />
               <line x1="56" y1="20" x2="1050" y2="20" stroke={T.hair} strokeWidth="1" />
-              <text x="10" y="134" fontSize="11" fill={T.faint}>0%</text>
-              <text x="10" y="79" fontSize="11" fill={T.faint}>25%</text>
-              <text x="10" y="24" fontSize="11" fill={T.faint}>50%</text>
+              <text x="10" y="134" fontSize="11" fill={T.soft}>0%</text>
+              <text x="10" y="79" fontSize="11" fill={T.soft}>25%</text>
+              <text x="10" y="24" fontSize="11" fill={T.soft}>50%</text>
               <polyline className="chart-line" pathLength={1} points="56,130 250.8,112.4 445.6,83.8 640.4,42 835.2,55.2 1030,44.2" fill="none" stroke={T.accent} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
               <circle cx="56" cy="130" r="3.5" fill={T.accent} />
               <circle className="chart-dot" cx="640.4" cy="42" r="3.5" fill={T.accent} />
@@ -227,18 +227,18 @@ export default function TierJourney() {
               <line x1="56" y1="130" x2="1050" y2="130" stroke={T.line} strokeWidth="1" />
               <line x1="56" y1="75" x2="1050" y2="75" stroke={T.hair} strokeWidth="1" />
               <line x1="56" y1="20" x2="1050" y2="20" stroke={T.hair} strokeWidth="1" />
-              <text x="10" y="134" fontSize="11" fill={T.faint}>100</text>
-              <text x="10" y="79" fontSize="11" fill={T.faint}>50</text>
-              <text x="10" y="24" fontSize="11" fill={T.faint}>1</text>
+              <text x="10" y="134" fontSize="11" fill={T.soft}>100</text>
+              <text x="10" y="79" fontSize="11" fill={T.soft}>50</text>
+              <text x="10" y="24" fontSize="11" fill={T.soft}>1</text>
               <polyline className="chart-line" pathLength={1} points="56,130 250.8,105.6 445.6,67.8 640.4,46.7 835.2,36.7 1030,32.2" fill="none" stroke={T.ink} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
               <circle cx="56" cy="130" r="3.5" fill={T.ink} />
               <circle className="chart-dot" cx="1030" cy="32.2" r="3.5" fill={T.ink} />
-              <text x="56" y="145" fontSize="11" fill={T.faint}>Apr</text>
-              <text x="1030" y="145" fontSize="11" fill={T.faint} textAnchor="end">Sep</text>
+              <text x="56" y="145" fontSize="11" fill={T.soft}>Apr</text>
+              <text x="1030" y="145" fontSize="11" fill={T.soft} textAnchor="end">Sep</text>
               <text x="1030" y="24" fontSize="11" fill={T.ink} textAnchor="end">12th</text>
             </svg>
 
-            <p style={{ margin: "14px 0 0", fontSize: "13px", lineHeight: 1.6, color: T.faint }}>
+            <p style={{ margin: "14px 0 0", fontSize: "13px", lineHeight: 1.6, color: T.soft }}>
               Example data, drawn to the same rules as a client dashboard: the August dip is real decay as the placed
               articles age, not a reporting artefact. A gap longer than three weeks between readings would be drawn
               dashed.

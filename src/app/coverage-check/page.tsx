@@ -142,14 +142,14 @@ export default function CoverageCheckPage() {
                 What the campaign is about
               </label>
               <input id="cc-topic" style={field} placeholder="[the thing you announced]" disabled />
-              <p style={{ margin: "6px 0 0", fontSize: "12.5px", color: T.faint, lineHeight: 1.5 }}>
+              <p style={{ margin: "6px 0 0", fontSize: "12.5px", color: T.soft, lineHeight: 1.5 }}>
                 A capability or a claim, not a headline. &ldquo;Same-day settlement&rdquo;, not &ldquo;Brand announces
                 exciting news&rdquo;.
               </p>
             </div>
             <div>
               <span style={{ ...MICRO, display: "block", marginBottom: "6px" }}>
-                Coverage <span style={{ fontWeight: 400, color: T.faint }}>optional</span>
+                Coverage <span style={{ fontWeight: 400, color: T.soft }}>optional</span>
               </span>
               <div style={{ border: `1px dashed #d6d8dd`, borderRadius: "12px", padding: "14px", textAlign: "center", background: "#fbfbfc" }}>
                 <span style={{ fontSize: "13px", color: T.soft }}>A CSV of the URLs you placed</span>
@@ -209,7 +209,7 @@ export default function CoverageCheckPage() {
               <div style={{ fontSize: "12.5px", lineHeight: 1.5, color: T.soft }}>{q.why}</div>
             </div>
           ))}
-          <p style={{ margin: 0, padding: "13px 26px", fontSize: "12.5px", color: T.faint, borderTop: `1px solid ${T.hair}` }}>
+          <p style={{ margin: 0, padding: "13px 26px", fontSize: "12.5px", color: T.soft, borderTop: `1px solid ${T.hair}` }}>
             Three engines, five questions, fifteen answers. Every source kept.
           </p>
         </div>

@@ -20,6 +20,19 @@ export const T = {
   washLine: "#e3d8fd",
   ink: "#0f1115",
   soft: "#6f7480",
+  /**
+   * Not for text on a light ground. Measured against the boards own grounds,
+   * faint is 2.54 on #ffffff and 2.35 on #f6f6f7, against the 4.5 AA asks for
+   * body text - roughly half. It was carrying prose in 19 files, including
+   * four footnotes on /legal and the methodology line under the homepage
+   * chart.
+   *
+   * The value is unchanged, because the boards drew it and tokens here are
+   * exact. What changed is what may use it: rules, dividers, non-text marks,
+   * genuinely disabled controls, and text on the dark grounds - where it is
+   * the right choice at 7.44 on #0f1115 and soft would be a worse 4.04.
+   * Light-ground text uses soft.
+   */
   faint: "#9ca3af",
   accent: "#7C3AED",
   accentHover: "#6D28D9",

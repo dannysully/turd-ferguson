@@ -562,10 +562,19 @@ details summary::-webkit-details-marker {
 }
 
 /* The tier band in the waiting sequence. The tier that is not being talked
-   about is dimmed rather than removed, so the four stay visible as a set.
-   Scoped like .on-dark: TierName is still the only thing colouring a lockup. */
-.tier-quiet .tier-name { color: var(--faint); }
-.tier-quiet .tier-name__accent { color: #c4b5fd; }
+   about is quietened rather than removed, so the four stay visible as a set.
+   Scoped like .on-dark: TierName is still the only thing colouring a lockup.
+
+   The quiet state is monochrome, not a paler purple. It used to be --faint
+   with a #c4b5fd accent half, which measured 2.35 and 1.71 against the ground
+   - the two lowest contrast figures anywhere on the site, on the one band
+   whose whole job is keeping all four tiers legible at once. No purple both
+   reads as quiet and clears 4.5, so the active tier is told apart by its white
+   pill and accent border instead, and the accent half of a quiet lockup simply
+   goes grey with the rest of the word. That also suits the rule that colour is
+   never the only way to tell two tiers apart - the word still does it. */
+.tier-quiet .tier-name { color: var(--soft); }
+.tier-quiet .tier-name__accent { color: var(--soft); }
 
 /* ── The scan result: the tables from Flow2Free and Flow3Report ── */
 

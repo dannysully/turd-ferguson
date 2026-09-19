@@ -107,7 +107,7 @@ export default function Error({
           >
             {error.digest}
           </p>
-          <p style={{ margin: "7px 0 0", fontSize: "13px", lineHeight: 1.6, color: T.faint }}>
+          <p style={{ margin: "7px 0 0", fontSize: "13px", lineHeight: 1.6, color: T.soft }}>
             It is a hash of the error itself, so it matches our server log and contains nothing you typed.
           </p>
         </div>

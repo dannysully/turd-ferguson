@@ -279,7 +279,7 @@ function ActShareOfVoice() {
           </div>
         ))}
       </div>
-      <p style={{ margin: "18px 0 0", fontSize: "13px", color: T.faint }}>
+      <p style={{ margin: "18px 0 0", fontSize: "13px", color: T.soft }}>
         Share of AI answers naming each brand, across your tracked question set. Example data.
       </p>
     </div>
@@ -437,7 +437,7 @@ function SerpPanel(p: { keyword: string; count: string; from: number; to: number
         </div>
       </div>
       <div style={{ padding: "9px 16px 13px" }}>
-        <div style={{ fontSize: "11px", color: T.faint }}>{p.count}</div>
+        <div style={{ fontSize: "11px", color: T.soft }}>{p.count}</div>
         <div style={{ marginTop: "7px", display: "flex", flexDirection: "column", gap: "3px" }}>
           {p.rows.map((r, n) => (
             <div
@@ -462,7 +462,7 @@ function SerpPanel(p: { keyword: string; count: string; from: number; to: number
                   }}
                 />
                 <span style={{ fontSize: "11px", color: r.you ? T.ink : T.soft }}>{r.site}</span>
-                <span style={{ fontSize: "11px", color: T.faint }}>{r.path}</span>
+                <span style={{ fontSize: "11px", color: T.soft }}>{r.path}</span>
                 <div style={{ flexGrow: 1 }} />
                 {r.you ? (
                   <span style={{ ...pill(T.surface, T.accent), border: "1px solid " + T.accent }}>
@@ -520,12 +520,12 @@ function ActBothMeasures() {
       <div className="seq-even">
         <div className="seq-in" style={{ border: "1px solid " + T.line, borderRadius: "14px", padding: "18px 20px" }}>
           <div style={MICRO}>AI share of voice</div>
-          <div style={{ fontSize: "13px", color: T.faint, marginTop: "3px" }}>
+          <div style={{ fontSize: "13px", color: T.soft, marginTop: "3px" }}>
             prompt: best crm software providers
           </div>
           <div style={{ marginTop: "16px", display: "flex", alignItems: "baseline", gap: "12px" }}>
-            <span style={{ fontSize: "34px", fontWeight: 700, letterSpacing: "-0.035em", color: T.faint }}>8%</span>
-            <span style={{ fontSize: "16px", color: T.faint }}>to</span>
+            <span style={{ fontSize: "34px", fontWeight: 700, letterSpacing: "-0.035em", color: T.soft }}>8%</span>
+            <span style={{ fontSize: "16px", color: T.soft }}>to</span>
             <span style={{ fontSize: "34px", fontWeight: 700, letterSpacing: "-0.035em", color: T.accent }}>31%</span>
           </div>
           <div style={{ marginTop: "14px", height: "22px", background: T.chip, borderRadius: "4px", overflow: "hidden" }}>
@@ -691,7 +691,7 @@ function ActEverywhere() {
       <div className="seq-four">
         {LADDER.map((l, n) => (
           <div key={l.step + n} className={"seq-in" + (n ? n + 1 : "")} style={l.on ? accented : soft}>
-            <div style={{ ...MICRO, color: l.on ? T.accent : T.faint }}>{l.step}</div>
+            <div style={{ ...MICRO, color: l.on ? T.accent : T.soft }}>{l.step}</div>
             <div style={{ fontSize: "15px", fontWeight: 700, letterSpacing: "-0.022em", marginTop: "7px" }}>
               {l.tier ? <TierName tier={l.tier} /> : l.label}
             </div>
@@ -839,7 +839,7 @@ export default function HeroSequence({ headingRef, ...p }: {
             );
           })}
           <div style={{ flexGrow: 1 }} />
-          <span style={{ fontSize: "12px", color: T.faint }}>{act + 1 + " of " + ACTS.length}</span>
+          <span style={{ fontSize: "12px", color: T.soft }}>{act + 1 + " of " + ACTS.length}</span>
         </div>
 
         <div style={{ padding: "22px 32px 26px" }}>

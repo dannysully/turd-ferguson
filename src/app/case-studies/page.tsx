@@ -133,7 +133,7 @@ export default function CaseStudiesPage() {
         </div>
       </Link>
 
-      <p style={{ margin: 0, fontSize: "13px", color: T.faint, lineHeight: 1.6 }}>
+      <p style={{ margin: 0, fontSize: "13px", color: T.soft, lineHeight: 1.6 }}>
         Nothing on this page is modelled or projected. Where a reading came from a third-party tracker rather than our
         own run, the case study says which.
       </p>

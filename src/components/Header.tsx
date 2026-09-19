@@ -61,9 +61,9 @@ export default function Header() {
 
         <nav className="nav-links" style={{ display: "flex", alignItems: "center", gap: "20px" }} aria-label="Main navigation">
           {navLinks.map((link) => (
-            <a key={link.href} href={link.href} style={linkStyle}>
+            <Link key={link.href} href={link.href} style={linkStyle}>
               {link.label}
-            </a>
+            </Link>
           ))}
           <Link
             href="/#scan"
@@ -99,9 +99,9 @@ export default function Header() {
           <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "1rem" }}>
             {navLinks.map((link) => (
               <li key={link.href}>
-                <a href={link.href} style={linkStyle} onClick={() => setOpen(false)}>
+                <Link href={link.href} style={linkStyle} onClick={() => setOpen(false)}>
                   {link.label}
-                </a>
+                </Link>
               </li>
             ))}
             <li>

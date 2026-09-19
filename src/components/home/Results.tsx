@@ -116,7 +116,7 @@ export default function Results() {
           &ldquo;The goal is not to get a link. The goal is to be inside the source that the buyer, Google, and AI all
           agree to trust.&rdquo;
         </p>
-        <p style={{ margin: "12px 0 0", fontSize: "13px", color: T.faint }}>- alwayscited methodology</p>
+        <p style={{ margin: "12px 0 0", fontSize: "13px", color: T.soft }}>- alwayscited methodology</p>
       </div>
     </section>
   );

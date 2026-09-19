@@ -160,7 +160,7 @@ export default function AboutPage() {
           {/* The board carries [CONFIRM which names go on a public page before
               this ships]. Four invented names would be a worse answer than a
               visible gap, so the roles are real and the names wait. */}
-          <p style={{ margin: "12px 0 0", fontSize: "12.5px", color: T.faint }}>
+          <p style={{ margin: "12px 0 0", fontSize: "12.5px", color: T.soft }}>
             Roles rather than names until Danny confirms which go on a public page.
           </p>
         </section>

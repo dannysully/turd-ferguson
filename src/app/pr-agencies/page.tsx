@@ -177,7 +177,7 @@ export default function PrAgenciesPage() {
                       opacity: c.live ? 1 : 0.7,
                     }}
                   >
-                    <div style={{ fontSize: "12px", color: T.faint }}>{c.outlet}</div>
+                    <div style={{ fontSize: "12px", color: T.soft }}>{c.outlet}</div>
                     <div style={{ fontSize: "13px", color: T.ink, marginTop: "2px", lineHeight: 1.35 }}>{c.title}</div>
                   </div>
                 ))}

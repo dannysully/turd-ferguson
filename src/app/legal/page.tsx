@@ -176,19 +176,19 @@ export default function LegalPage() {
                       alignItems: "baseline",
                       gap: "8px",
                       fontSize: "13.5px",
-                      color: T.faint,
+                      color: T.soft,
                       padding: "7px 11px",
                     }}
                   >
                     {d.label}
-                    <span style={{ fontSize: "11.5px", color: T.faint }}>not yet published</span>
+                    <span style={{ fontSize: "11.5px", color: T.soft }}>not yet published</span>
                   </span>
                 )}
               </li>
             ))}
           </ul>
 
-          <p style={{ margin: "16px 0 0", fontSize: "12.5px", lineHeight: 1.6, color: T.faint }}>
+          <p style={{ margin: "16px 0 0", fontSize: "12.5px", lineHeight: 1.6, color: T.soft }}>
             On this page:{" "}
             {SECTIONS.map((sec, i) => (
               <span key={sec.id}>
@@ -200,7 +200,7 @@ export default function LegalPage() {
             ))}
             .
           </p>
-          <p style={{ margin: "20px 0 0", fontSize: "12.5px", lineHeight: 1.6, color: T.faint }}>
+          <p style={{ margin: "20px 0 0", fontSize: "12.5px", lineHeight: 1.6, color: T.soft }}>
             Drafted as a structure, not as legal advice. It needs a solicitor before it can be relied on - this site
             processes personal data of UK and EU residents.
           </p>
@@ -211,7 +211,7 @@ export default function LegalPage() {
           <h1 style={{ margin: "8px 0 0", fontSize: "32px", fontWeight: 700, letterSpacing: "-0.03em", color: T.ink }}>
             What we collect, and what we do with it
           </h1>
-          <p style={{ margin: "10px 0 0", fontSize: "13px", color: T.faint, lineHeight: 1.7 }}>
+          <p style={{ margin: "10px 0 0", fontSize: "13px", color: T.soft, lineHeight: 1.7 }}>
             Nomada Digital Ltd &middot; <Gap>company number</Gap> &middot; <Gap>registered address</Gap> &middot;{" "}
             <Gap>ICO registration number</Gap> &middot; <Gap>the date this was last reviewed by someone qualified</Gap>
           </p>

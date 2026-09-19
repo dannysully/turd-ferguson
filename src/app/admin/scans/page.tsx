@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 const C = {
   navy: T.ink,
   body: T.soft,
-  muted: T.faint,
+  muted: T.soft,
   border: T.line,
   soft: T.bg,
   purple: T.accent,

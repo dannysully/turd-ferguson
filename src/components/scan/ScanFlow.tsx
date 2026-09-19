@@ -688,7 +688,7 @@ export default function ScanFlow(p: {
                   >
                     {busy ? "Unlocking" : "Send me the full report"}
                   </button>
-                  <p style={{ fontSize: "0.75rem", color: T.faint, marginTop: "0.75rem", lineHeight: 1.5 }}>
+                  <p style={{ fontSize: "0.75rem", color: T.soft, marginTop: "0.75rem", lineHeight: 1.5 }}>
                     One scan, no charge. Ongoing tracking comes with a plan.
                   </p>
                 </form>

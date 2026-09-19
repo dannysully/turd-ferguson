@@ -211,9 +211,9 @@ export default function PackagePage({
             {notIncluded.upgradeTo && notIncluded.href ? (
               <>
                 {" "}
-                <a href={notIncluded.href} style={{ color: T.accent, fontWeight: 600, textDecoration: "none" }}>
+                <Link href={notIncluded.href} style={{ color: T.accent, fontWeight: 600, textDecoration: "none" }}>
                   {notIncluded.upgradeTo}
-                </a>
+                </Link>
                 .
               </>
             ) : null}

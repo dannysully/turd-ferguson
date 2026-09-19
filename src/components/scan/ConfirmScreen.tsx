@@ -80,7 +80,7 @@ const quietBtn: React.CSSProperties = {
   fontFamily: "inherit",
   fontSize: "13px",
   lineHeight: 1,
-  color: T.faint,
+  color: T.soft,
   background: "none",
   border: 0,
   cursor: "pointer",
@@ -262,7 +262,7 @@ export default function ConfirmScreen(p: {
             wrong too - so it is worth ten seconds now.
           </p>
           {p.positioning ? (
-            <p style={{ margin: "12px 0 0", fontSize: "13px", lineHeight: 1.6, color: T.faint, maxWidth: "62ch" }}>
+            <p style={{ margin: "12px 0 0", fontSize: "13px", lineHeight: 1.6, color: T.soft, maxWidth: "62ch" }}>
               From the site: {p.positioning}
             </p>
           ) : null}
@@ -396,7 +396,7 @@ export default function ConfirmScreen(p: {
                       padding: "1px 8px",
                       borderRadius: "999px",
                       background: on ? T.surface : T.chip,
-                      color: on ? T.accent : T.faint,
+                      color: on ? T.accent : T.soft,
                     }}
                   >
                     {n}
@@ -443,7 +443,7 @@ export default function ConfirmScreen(p: {
             const removeLabel = "Remove question " + (i + 1);
             return (
               <div key={i} className="q-row" style={{ borderBottom: "1px solid " + T.hair, opacity: off ? 0.4 : 1 }}>
-                <div style={{ fontSize: "13px", color: T.faint }}>{off ? "-" : position}</div>
+                <div style={{ fontSize: "13px", color: T.soft }}>{off ? "-" : position}</div>
                 <div>
                   <input
                     ref={i === questions.length - 1 ? lastRef : undefined}

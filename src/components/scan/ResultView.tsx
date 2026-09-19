@@ -149,7 +149,7 @@ function QuestionRow(p: { q: ScanQuestion; brand: string; detailed: boolean }) {
     <div className={p.detailed ? "res-qrow res-qrow--full" : "res-qrow"}>
       <div style={{ fontSize: "13.5px", color: T.ink }}>
         {q.question}
-        <span style={{ display: "block", ...MICRO, marginTop: "3px", color: T.faint }}>
+        <span style={{ display: "block", ...MICRO, marginTop: "3px", color: T.soft }}>
           {q.kind}
           {typeof q.google_rank === "number" ? " - Google " + ordinal(q.google_rank) : ""}
           {transcript.length ? " - read what they said" : ""}
@@ -345,7 +345,7 @@ function ShareOfVoice(p: { r: RunScanResponse }) {
             );
           })}
         </div>
-        <p style={{ margin: "14px 0 0", fontSize: "12.5px", color: T.faint }}>
+        <p style={{ margin: "14px 0 0", fontSize: "12.5px", color: T.soft }}>
           {"Mentions across the answers these engines gave, " + (rows.length > 12 ? "top 12 of " + rows.length + " brands." : rows.length + " brands in all.")}
         </p>
       </div>

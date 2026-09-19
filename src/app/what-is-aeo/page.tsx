@@ -405,7 +405,7 @@ export default function WhatIsAEOPage() {
                   style={{ ...GRID12, padding: "17px 26px", cursor: "pointer" }}
                 >
                   <span style={{ gridColumn: "span 5", fontSize: "15px", fontWeight: 600, color: T.ink }}>{f.q}</span>
-                  <span style={{ gridColumn: "span 7", fontSize: "13.5px", color: T.faint }}>{f.hint}</span>
+                  <span style={{ gridColumn: "span 7", fontSize: "13.5px", color: T.soft }}>{f.hint}</span>
                 </summary>
                 <div className="board-head" style={{ ...GRID12, padding: "0 26px 20px" }}>
                   <p style={{ gridColumn: "6 / span 7", margin: 0, fontSize: "14.5px", lineHeight: 1.7, color: T.soft }}>

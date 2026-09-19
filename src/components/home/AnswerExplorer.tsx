@@ -197,7 +197,7 @@ export default function AnswerExplorer() {
             Example data
           </span>
           <div style={{ flexGrow: 1 }} />
-          <span style={{ fontSize: "12px", color: T.faint }}>Choose a question</span>
+          <span style={{ fontSize: "12px", color: T.soft }}>Choose a question</span>
         </div>
 
         <div className="answer-explorer">

@@ -94,9 +94,9 @@ export default function Footer() {
         <Column title="Product">
           {PRODUCT.map(([label, href]) => (
             <li key={label}>
-              <a href={href} style={link}>
+              <Link href={href} style={link}>
                 {label}
-              </a>
+              </Link>
             </li>
           ))}
         </Column>
@@ -142,14 +142,14 @@ export default function Footer() {
             gap: "18px",
             flexWrap: "wrap",
             fontSize: "12.5px",
-            color: T.faint,
+            color: T.soft,
           }}
         >
           <span>&copy; {new Date().getFullYear()} Nomada Digital Ltd</span>
           {/* The board's bottom bar has Privacy and Terms. Privacy exists now;
               terms of service are not drafted, so that link waits rather than
               pointing at a page with no terms on it. */}
-          <Link href="/legal" style={{ color: T.faint, textDecoration: "none" }}>
+          <Link href="/legal" style={{ color: T.soft, textDecoration: "none" }}>
             Privacy
           </Link>
           <div style={{ flexGrow: 1 }} />
