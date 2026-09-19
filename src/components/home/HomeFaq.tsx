@@ -1,3 +1,4 @@
+import { QUESTIONS } from "@/config/scan-shape";
 import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
 import { ORG_REF, SITE_REF, ld } from "@/config/schema";
 import Link from "next/link";
@@ -117,8 +118,8 @@ export default function HomeFaq() {
               Pick a domain and find out.
             </h2>
             <p style={{ margin: "10px 0 0", fontSize: "14.5px", lineHeight: 1.6, color: T.soft }}>
-              Up to 14 questions across the clusters you keep, with every source behind every answer. It takes a few
-              minutes and we email you when it is done.
+              {"Up to " + QUESTIONS + " questions across the clusters you keep, with every source behind every answer." +
+                " It takes a few minutes and we email you when it is done."}
             </p>
           </div>
 

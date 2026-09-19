@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
+import { QUESTIONS } from "@/config/scan-shape";
 import { CARD, MICRO, T } from "@/config/tokens";
 import type { Market } from "@/lib/scan";
 
@@ -31,7 +32,19 @@ const INTENT: Record<string, string> = {
   custom: "Yours",
 };
 
-const MAX_QUESTIONS = 14;
+/**
+ * The cap this screen enforces, and the one the server enforces, are the same
+ * number and now come from the same place.
+ *
+ * /api/scan/[token]/confirm stops at QUESTION_COUNT - `if (out.length >=
+ * QUESTION_COUNT) break` - and drops the rest without a word, because the cap
+ * has to be enforced where the money is spent rather than trusted from here.
+ * A 14 typed on this line is a second copy of that number with nothing holding
+ * it in step: lower QUESTIONS and this screen still offers fourteen, still
+ * prints "14 of a possible 14" under the button, and the server silently
+ * discards the overflow the visitor was just told they could keep.
+ */
+const MAX_QUESTIONS = QUESTIONS;
 
 const fieldStyle: React.CSSProperties = {
   width: "100%",
