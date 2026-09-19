@@ -119,35 +119,12 @@ details summary::-webkit-details-marker {
 }
 
 /* ─── Brand mark: six-point asterisk ─── */
-/* Intermittent rotation, as on nomadadigital.co.uk: one full turn in the first
-   10% of an 8s cycle (0.8s), then still for the remaining 7.2s. */
-.brand-mark__ast {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: brandMarkSpin 8s linear infinite;
-}
-@keyframes brandMarkSpin {
-  0%   { transform: rotate(0deg); }
-  10%  { transform: rotate(360deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* Hovering the lockup takes it to a continuous spin until the pointer leaves. */
-.brand-lockup:hover .brand-mark__ast {
-  animation: brandMarkSpinFast 0.8s linear infinite;
-}
-@keyframes brandMarkSpinFast {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .brand-mark__ast,
-  .brand-lockup:hover .brand-mark__ast {
-    animation: none !important;
-    transform: none !important;
-  }
-}
+/* Static. It used to turn once every 8s, and on hover continuously.
+   The boards draw a plain three-line asterisk, and the brief gives each page
+   one beat tied to its own content - a logo turning forever in the chrome is
+   ambient decoration that never resolves, and being in the header it is on
+   screen the whole time somebody reads. The page's one beat is the chart
+   draw. */
 
 /* ─── Tier names ─── */
 .tier-name { white-space: nowrap; font-weight: 700; }
@@ -263,8 +240,6 @@ details summary::-webkit-details-marker {
   .stage-visible { animation: none; opacity: 1; transform: none; }
   .col-left, .col-right { opacity: 1 !important; transform: none !important; transition: none !important; }
   .link-arrow, .link-arrow-delayed { stroke-dashoffset: 0 !important; transition: none !important; }
-  .float-a, .float-b, .float-c, .float-d { animation: none !important; transform: none !important; }
-  .center-glow { animation: none !important; }
 }
 
 /* ─── Responsive layout helpers ─── */
@@ -581,5 +556,13 @@ details summary::-webkit-details-marker {
 @keyframes chart-dot {
   to {
     opacity: 1;
+  }
+}
+
+@media (max-width: 860px) {
+  /* The legal sidebar becomes a list above the document rather than a rail. */
+  .legal-nav {
+    grid-column: 1 / -1 !important;
+    margin-bottom: 20px;
   }
 }

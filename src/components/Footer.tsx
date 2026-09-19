@@ -12,9 +12,11 @@ import { GRID12, MICRO, T } from "@/config/tokens";
  *
  * The board's middle column is "For: SEO agencies, PR agencies". Both have
  * boards but neither has a page yet, so that column carries the four tier
- * pages instead, which exist and are worth linking. Privacy and Terms are
- * left out for the same reason - Legal.dc.html is a board, not a route, and
- * a footer full of 404s is worse than a shorter footer.
+ * pages instead, which exist and are worth linking.
+ *
+ * Privacy now points at /legal. Terms still does not: terms of service are
+ * not drafted, and a link labelled Terms that opens a privacy policy is
+ * worse than no link.
  */
 
 const PRODUCT: [string, string][] = [
@@ -127,6 +129,12 @@ export default function Footer() {
           }}
         >
           <span>&copy; {new Date().getFullYear()} Nomada Digital Ltd</span>
+          {/* The board's bottom bar has Privacy and Terms. Privacy exists now;
+              terms of service are not drafted, so that link waits rather than
+              pointing at a page with no terms on it. */}
+          <Link href="/legal" style={{ color: T.faint, textDecoration: "none" }}>
+            Privacy
+          </Link>
           <div style={{ flexGrow: 1 }} />
           <span>hello@alwayscited.com</span>
         </div>

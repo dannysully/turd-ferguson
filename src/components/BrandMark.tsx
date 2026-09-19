@@ -11,8 +11,8 @@ import { T } from "@/config/tokens";
  * stroke, and the design rules allow one gradient per page at most - spending
  * it on the logo, on every page, is not where it earns anything.
  *
- * The rotation lives in globals.css (.brand-mark__ast) so it can be disabled
- * under prefers-reduced-motion and sped up on hover of a .brand-lockup parent.
+ * Static. It used to rotate on a loop; the boards draw it plain, and the one
+ * beat this page gets belongs to the charts, not to the chrome.
  *
  * Sizing follows the Nomada lockup, where the asterisk's ink is about 1.15x
  * the wordmark's ascender height - an accent beside the word, not a badge in
