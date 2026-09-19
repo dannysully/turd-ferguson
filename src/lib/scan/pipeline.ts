@@ -506,10 +506,36 @@ export async function runScan(scanId: string): Promise<void> {
     const engines = (scan.engines ?? []).filter(isEngine);
     if (!engines.length) throw new Error("no engines were selected for this scan");
 
-    await db
+    /**
+     * Claim the row rather than announce it.
+     *
+     * The confirm route already claims queued with a filtered update, so this
+     * is defence in depth rather than a live race - but it is the difference
+     * between "the one caller is careful" and "a second pass cannot start".
+     * The next caller added will not know it has to claim first, and the
+     * failure is silent and expensive: two pipelines on one scan id bill every
+     * engine read twice and write a second set of answers and citations, which
+     * inflates the leaderboard and every source count derived from it.
+     *
+     * .select() is what makes it readable. PostgREST answers an UPDATE that
+     * matched no rows with a 2xx, so without it a lost claim and a won one are
+     * the same result - the same trap that was fixed in the unlock path.
+     *
+     * Nothing has been billed at this point, so returning here costs nothing
+     * and must not mark the scan failed: the run that won the claim is still
+     * going, and this one has no business writing a status over it.
+     */
+    const { data: claimed, error: claimErr } = await db
       .from("scans")
       .update({ status: "running", step: "questions", started_at: new Date().toISOString() })
-      .eq("id", scanId);
+      .eq("id", scanId)
+      .eq("status", "queued")
+      .select("id");
+    if (claimErr) throw new Error(`could not claim scan ${scanId}: ${claimErr.message}`);
+    if (!claimed?.length) {
+      console.warn(`[scan] ${scanId} is not queued, so this pass is a duplicate and stops here`);
+      return;
+    }
 
     // --- Step 1: "Building the questions buyers ask" ---
     /**
@@ -695,7 +721,21 @@ export async function runGatedScan(scanId: string): Promise<void> {
       .order("idx", { ascending: true });
     if (!questionRows?.length) throw new Error("the free pass left no questions to re-ask");
 
-    await db.from("scans").update({ gated_status: "running" }).eq("id", scanId);
+    // The same claim as the free pass, and for the same reason. The unlock path
+    // claims queued before it gets here, so this is the second lock rather than
+    // the first - but a gated pass re-asks every question on every gated
+    // engine, so a duplicate is dozens of reads paid for twice.
+    const { data: gatedClaimed, error: gatedClaimErr } = await db
+      .from("scans")
+      .update({ gated_status: "running" })
+      .eq("id", scanId)
+      .eq("gated_status", "queued")
+      .select("id");
+    if (gatedClaimErr) throw new Error(`could not claim the gated pass for ${scanId}: ${gatedClaimErr.message}`);
+    if (!gatedClaimed?.length) {
+      console.warn(`[scan] ${scanId} gated pass is not queued, so this pass is a duplicate and stops here`);
+      return;
+    }
 
     const read = await readAndStore({
       scanId,
