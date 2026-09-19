@@ -90,7 +90,9 @@ function knownKind(domain: string): { kind: SourceKind; note: string } | null {
  * a competitor's site is recognised as one even when its name is not in the
  * domain.
  */
-export async function classifySources(scanId: string): Promise<{ anthropicCalls: number; classified: number }> {
+export async function classifySources(
+  scanId: string,
+): Promise<{ anthropicCalls: number; classified: number; unassessed: number }> {
   const db = supabaseAdmin();
 
   type CitedRow = { source_domain: string; url: string | null; title: string | null };
@@ -134,7 +136,7 @@ export async function classifySources(scanId: string): Promise<{ anthropicCalls:
   const domains = [...new Set(cited.map((r) => r.source_domain))].filter(
     (d) => d && !already.has(d),
   );
-  if (!domains.length) return { anthropicCalls: 0, classified: 0 };
+  if (!domains.length) return { anthropicCalls: 0, classified: 0, unassessed: 0 };
 
   const own = normalizeDomain(scan.domain as string);
   // The pages behind each domain, so the classifier can tell a ski feature
@@ -171,6 +173,7 @@ export async function classifySources(scanId: string): Promise<{ anthropicCalls:
   }
 
   let anthropicCalls = 0;
+  let unassessed = 0;
   if (unknown.length) {
     const competitors = [...new Set(brands.filter((b) => !b.is_subject).map((b) => b.brand))];
     const judged = await classifySourceDomains({
@@ -183,11 +186,31 @@ export async function classifySources(scanId: string): Promise<{ anthropicCalls:
     // undercount here would let a large scan spend more than the cap allows.
     anthropicCalls = judged.calls;
     const byDomain = new Map(judged.sources.map((j) => [j.domain, j]));
+    /**
+     * Domains whose batch never came back get no row at all.
+     *
+     * Writing the default verdict for these was the defect. other with
+     * on_topic false is what the classifier says about a domain it read and
+     * could not place, so a failed batch stored fifty settled judgements
+     * nobody had made. Two things followed: the placement list, which is the
+     * part a visitor trades an email for, lost those domains and nothing said
+     * so; and the rows landed in already, so the second pass skipped them and
+     * the invented verdict stuck for the life of the scan.
+     *
+     * No row keeps every invariant. deriveOpportunities drops a domain with
+     * no kind, so an unassessed one still cannot reach the list by accident.
+     * The free source table renders it with a null kind, which is true. And
+     * the second pass finds it missing from already and tries again.
+     */
+    const lost = new Set(judged.unassessed);
+    unassessed = lost.size;
     for (const d of unknown) {
+      if (lost.has(d)) continue;
       const j = byDomain.get(d);
-      // A domain the model dropped is "other" with no note, never a crash.
-      // on_topic defaults to false for a dropped row: an unassessed domain
-      // should not reach an opportunity list by accident.
+      // A domain the model dropped from a batch that did come back is other
+      // with no note, never a crash: the classifier read it and placed
+      // nothing. That is a verdict, and on_topic false keeps it off the
+      // opportunity list the way it always did.
       rows.push({
         scan_id: scanId,
         domain: d,
@@ -198,7 +221,15 @@ export async function classifySources(scanId: string): Promise<{ anthropicCalls:
     }
   }
 
+  if (unassessed) {
+    console.warn(
+      "[scan] " + scanId + " sources: " + unassessed +
+        " domain(s) went unassessed and were left for the next pass",
+    );
+  }
+
+  if (!rows.length) return { anthropicCalls, classified: 0, unassessed };
   const { error } = await db.from("scan_sources").upsert(rows, { onConflict: "scan_id,domain" });
   if (error) throw new Error(`could not store the source kinds: ${error.message}`);
-  return { anthropicCalls, classified: rows.length };
+  return { anthropicCalls, classified: rows.length, unassessed };
 }

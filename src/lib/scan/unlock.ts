@@ -32,17 +32,38 @@ export type UnlockableScan = {
 export const SCAN_UNLOCK_COLUMNS =
   "id, public_token, domain, brand_name, topic, market, status, account_id, gated_engines, gated_status";
 
-/** Finds or creates the account behind an address. */
+/**
+ * Finds or creates the account behind an address.
+ *
+ * Matched with eq on a lowercased address rather than ilike. ilike takes a SQL
+ * LIKE pattern and an email address is not one: an underscore matches any
+ * single character, so a stored a_b@x.com matched anything submitted as
+ * aXb@x.com and handed that visitor the other persons account row. Percent and
+ * asterisk are wildcards on the same path. All three are legal in an address
+ * and all three pass the routes regex, so this needed no malformed input to
+ * happen - an underscore was enough, and underscores are common.
+ *
+ * Nothing reads account_id back to a visitor today, so what this produced was
+ * wrong attribution rather than disclosure: the scan, and the client_domains
+ * row under it, were attached to somebody elses account. It stops being only
+ * attribution the day there is an account view.
+ *
+ * eq is a safe replacement because this function is the only thing that
+ * inserts into accounts, and it now lowercases on the way in as well as on the
+ * way out - so the stored form and the compared form cannot drift.
+ */
 export async function resolveAccount(email: string, existingId: string | null): Promise<string | null> {
   if (existingId) return existingId;
   const db = supabaseAdmin();
 
-  const { data: existing } = await db.from("accounts").select("id").ilike("email", email).maybeSingle();
+  const address = email.trim().toLowerCase();
+
+  const { data: existing } = await db.from("accounts").select("id").eq("email", address).maybeSingle();
   if (existing) return existing.id as string;
 
   const { data: created, error } = await db
     .from("accounts")
-    .insert({ email, agency_domain: email.split("@")[1] })
+    .insert({ email: address, agency_domain: address.split("@")[1] })
     .select("id")
     .single();
   if (error || !created) return null;

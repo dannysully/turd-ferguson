@@ -43,6 +43,16 @@ function anthropic(): Anthropic {
  *
  * Anything else - a bad request, a bad key - is thrown at once, because a
  * retry cannot fix it.
+ *
+ * Also wrapped: the three batched calls that run after every engine read has
+ * already been paid for - brand extraction, brand judgement and source
+ * classification. All three sit inside a never-fatal catch, so a 529 there
+ * does not fail the scan the way it would here. It quietly shortens the
+ * leaderboard or the placement list instead, which is the failure worth
+ * retrying hardest rather than the one worth retrying least.
+ *
+ * The cost is bounded: about 5.5s per failed batch, batches per scan run to
+ * single figures, and the whole run is already capped at five minutes.
  */
 async function withRetry<T>(fn: () => Promise<T>, waits = [1500, 4000]): Promise<T> {
   let lastErr: unknown;
@@ -375,7 +385,7 @@ async function extractBrandBatch(
   batch: string[],
   context: { topic: string; brand: string },
 ): Promise<{ brand: string; mentions: number }[]> {
-  const res = await anthropic().messages.parse({
+  const res = await withRetry(() => anthropic().messages.parse({
     model: MODEL,
     /**
      * The same 8,000 as before, and it means something different now.
@@ -411,7 +421,7 @@ async function extractBrandBatch(
           .join("\n\n"),
       },
     ],
-  });
+  }));
 
   return res.parsed_output?.brands ?? [];
 }
@@ -489,7 +499,7 @@ async function judgeBrandBatch(
   input: { topic: string; brand: string; positioning: string | null },
   names: string[],
 ): Promise<z.infer<typeof BrandJudgement>["brands"]> {
-  const res = await anthropic().messages.parse({
+  const res = await withRetry(() => anthropic().messages.parse({
     model: MODEL,
     // Headroom per row, so the ceiling is a function of the batch.
     max_tokens: Math.min(8000, 600 + names.length * 60),
@@ -541,7 +551,7 @@ async function judgeBrandBatch(
           .join("\n"),
       },
     ],
-  });
+  }));
 
   return res.parsed_output?.brands ?? [];
 }
@@ -595,13 +605,21 @@ export async function classifySourceDomains(input: {
   competitors: string[];
   /** One entry per domain, carrying the pages the engines actually cited. */
   domains: { domain: string; pages: { url: string | null; title: string | null }[] }[];
-}): Promise<{ sources: z.infer<typeof SourceJudgement>["sources"]; calls: number }> {
-  if (!input.domains.length) return { sources: [], calls: 0 };
+}): Promise<{ sources: z.infer<typeof SourceJudgement>["sources"]; calls: number; unassessed: string[] }> {
+  if (!input.domains.length) return { sources: [], calls: 0, unassessed: [] };
 
   const batches: (typeof input.domains)[] = [];
   for (let i = 0; i < input.domains.length; i += CLASSIFY_BATCH) {
     batches.push(input.domains.slice(i, i + CLASSIFY_BATCH));
   }
+
+  /**
+   * Domains whose batch failed outright, returned by name rather than counted.
+   * The two facts sources.ts has to tell apart are: the model read this domain
+   * and could not place it, and we never got an answer about this domain at
+   * all. Only the first of those belongs in the database as a verdict.
+   */
+  const unassessed: string[] = [];
 
   const sources: z.infer<typeof SourceJudgement>["sources"] = [];
   let calls = 0;
@@ -609,19 +627,21 @@ export async function classifySourceDomains(input: {
     try {
       sources.push(...(await classifyBatch(input, batch)));
     } catch (err) {
-      // One bad batch must not cost the other four their classification.
+      // One bad batch must not cost the other four their classification, and
+      // its domains must not fall through to a default verdict downstream.
+      unassessed.push(...batch.map((d) => d.domain));
       console.warn("[scan] a source batch failed to classify:", err instanceof Error ? err.message : err);
     }
     calls += 1;
   }
-  return { sources, calls };
+  return { sources, calls, unassessed };
 }
 
 async function classifyBatch(
   input: { topic: string; brand: string; competitors: string[] },
   domains: { domain: string; pages: { url: string | null; title: string | null }[] }[],
 ): Promise<z.infer<typeof SourceJudgement>["sources"]> {
-  const res = await anthropic().messages.parse({
+  const res = await withRetry(() => anthropic().messages.parse({
     model: MODEL,
     // Headroom per row, so the ceiling scales with the batch rather than
     // being a number somebody picked once.
@@ -677,7 +697,7 @@ async function classifyBatch(
         ].join("\n"),
       },
     ],
-  });
+  }));
 
   return res.parsed_output?.sources ?? [];
 }
