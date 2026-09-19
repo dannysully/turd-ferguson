@@ -92,6 +92,19 @@ function knownKind(domain: string): { kind: SourceKind; note: string } | null {
  */
 export async function classifySources(
   scanId: string,
+  /**
+   * Where the model calls are billed, as they are made rather than on the way
+   * out.
+   *
+   * This function can throw after it has paid: storing the rows is the last
+   * thing it does, and a failed upsert used to take the whole count with it.
+   * The pipeline wraps both of its calls in never-fatal, so those calls were
+   * made, swallowed and billed to nothing, and the day ceiling counted them as
+   * zero - the same defect 20f8a84 closed on the start route.
+   *
+   * Still returned as anthropicCalls, so the ordinary path reads as it did.
+   */
+  billed: { calls: number } = { calls: 0 },
 ): Promise<{ anthropicCalls: number; classified: number; unassessed: number }> {
   const db = supabaseAdmin();
 
@@ -136,7 +149,7 @@ export async function classifySources(
   const domains = [...new Set(cited.map((r) => r.source_domain))].filter(
     (d) => d && !already.has(d),
   );
-  if (!domains.length) return { anthropicCalls: 0, classified: 0, unassessed: 0 };
+  if (!domains.length) return { anthropicCalls: billed.calls, classified: 0, unassessed: 0 };
 
   const own = normalizeDomain(scan.domain as string);
   // The pages behind each domain, so the classifier can tell a ski feature
@@ -172,19 +185,21 @@ export async function classifySources(
     unknown.push(d);
   }
 
-  let anthropicCalls = 0;
   let unassessed = 0;
   if (unknown.length) {
     const competitors = [...new Set(brands.filter((b) => !b.is_subject).map((b) => b.brand))];
-    const judged = await classifySourceDomains({
-      topic: (scan.topic as string | null) ?? "",
-      brand: (scan.brand_name as string | null) ?? (scan.domain as string),
-      competitors,
-      domains: unknown.map((d) => ({ domain: d, pages: pagesBy.get(d) ?? [] })),
-    });
-    // One call per batch, not one per scan. The cost cap reads this, so an
-    // undercount here would let a large scan spend more than the cap allows.
-    anthropicCalls = judged.calls;
+    const judged = await classifySourceDomains(
+      {
+        topic: (scan.topic as string | null) ?? "",
+        brand: (scan.brand_name as string | null) ?? (scan.domain as string),
+        competitors,
+        domains: unknown.map((d) => ({ domain: d, pages: pagesBy.get(d) ?? [] })),
+      },
+      billed,
+    );
+    // One call per batch, not one per scan, and counted on the accumulator as
+    // each request goes out. The cost cap reads this, so an undercount here
+    // would let a large scan spend more than the cap allows.
     /**
      * Keyed through normalizeDomain rather than on the string the model
      * returned, for the reason pipeline.ts keys the brand verdicts through
@@ -248,8 +263,8 @@ export async function classifySources(
     );
   }
 
-  if (!rows.length) return { anthropicCalls, classified: 0, unassessed };
+  if (!rows.length) return { anthropicCalls: billed.calls, classified: 0, unassessed };
   const { error } = await db.from("scan_sources").upsert(rows, { onConflict: "scan_id,domain" });
   if (error) throw new Error(`could not store the source kinds: ${error.message}`);
-  return { anthropicCalls, classified: rows.length, unassessed };
+  return { anthropicCalls: billed.calls, classified: rows.length, unassessed };
 }

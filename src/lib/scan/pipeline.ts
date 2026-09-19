@@ -644,12 +644,17 @@ export async function runScan(scanId: string): Promise<void> {
 
     // What kind of site each source is: competitor, review site, somewhere an
     // article could be placed. One call, and never a reason to fail the scan.
+    // Billed onto the accumulator as the requests go out. classifySources
+    // stores its rows last and throws if that fails, so a count read off the
+    // return value was lost exactly when the catch below swallowed it - calls
+    // made, paid for, and invisible to the day ceiling.
+    const sourceCalls = { calls: 0 };
     try {
-      const kinds = await classifySources(scanId);
-      spend.anthropicCalls += kinds.anthropicCalls;
+      await classifySources(scanId, sourceCalls);
     } catch (err) {
       console.warn(`[scan] source kinds skipped for ${scanId}:`, err instanceof Error ? err.message : err);
     }
+    spend.anthropicCalls += sourceCalls.calls;
 
     await db
       .from("scans")
@@ -752,11 +757,15 @@ export async function runGatedScan(scanId: string): Promise<void> {
     });
 
     // The second pass cites sources the first did not. Label the new ones.
+    const gatedSourceCalls = { calls: 0 };
     try {
-      spend.anthropicCalls += (await classifySources(scanId)).anthropicCalls;
+      await classifySources(scanId, gatedSourceCalls);
     } catch (err) {
       console.warn(`[scan] source kinds skipped for ${scanId}:`, err instanceof Error ? err.message : err);
     }
+    // Same reason as the free pass: the count has to survive the throw the
+    // catch above is here to absorb.
+    spend.anthropicCalls += gatedSourceCalls.calls;
 
     // Spend from both passes accumulates on the same row, so the admin page and
     // the daily cost cap see the true cost of this scan.

@@ -636,7 +636,7 @@ export async function classifySourceDomains(input: {
   competitors: string[];
   /** One entry per domain, carrying the pages the engines actually cited. */
   domains: { domain: string; pages: { url: string | null; title: string | null }[] }[];
-}): Promise<{ sources: z.infer<typeof SourceJudgement>["sources"]; calls: number; unassessed: string[] }> {
+}, billed: { calls: number } = { calls: 0 }): Promise<{ sources: z.infer<typeof SourceJudgement>["sources"]; calls: number; unassessed: string[] }> {
   if (!input.domains.length) return { sources: [], calls: 0, unassessed: [] };
 
   const batches: (typeof input.domains)[] = [];
@@ -653,7 +653,11 @@ export async function classifySourceDomains(input: {
   const unassessed: string[] = [];
 
   const sources: z.infer<typeof SourceJudgement>["sources"] = [];
-  const billed = { calls: 0 };
+  // Billed onto the caller's accumulator as the requests go out, the way
+  // generateQuestions is. classifySources can still throw after this returns -
+  // storing the rows is the last thing it does - and a count that only exists
+  // in the return value dies with the exception, leaving the calls paid for
+  // and recorded nowhere.
   for (const batch of batches) {
     try {
       sources.push(...(await classifyBatch(input, batch, billed)));
