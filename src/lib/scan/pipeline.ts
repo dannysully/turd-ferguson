@@ -15,8 +15,26 @@ import { type Market, normalizeDomain } from "./domain";
 import { type Engine, isEngine, namesBrand, type OrganicHit } from "./engines";
 import { classifySources } from "./sources";
 
-/** Whole-run ceiling. Past this the scan is marked failed rather than left hanging. */
-const RUN_TIMEOUT_MS = 5 * 60 * 1000;
+/**
+ * Whole-run ceiling. Past this the scan is marked failed rather than left
+ * hanging - which is what it says, and at five minutes it could not do.
+ *
+ * Every route that starts a pass declares maxDuration = 300, so the platform
+ * stops the invocation at five minutes too. A ceiling equal to the one above
+ * it never fires: the function was killed mid-read first, the catch that
+ * writes status failed never ran, and the scan sat at running with a step it
+ * would never leave. The result screen polls that status every 2.5 seconds
+ * with no end, so the visitor got a spinner that says "this one is taking a
+ * while" and then nothing, for ever.
+ *
+ * Thirty seconds of headroom is far more than the failure path needs - it is
+ * one read and one write - but the pass can only notice the deadline between
+ * jobs, so the margin also has to cover a read that is already in flight.
+ * That is what the budget passed to readEngine is for: no single read is
+ * allowed to outlive the deadline any more, so the gap between the deadline
+ * passing and the pass throwing is bounded rather than up to 130 seconds.
+ */
+const RUN_TIMEOUT_MS = 4.5 * 60 * 1000;
 
 /**
  * How many engine reads run at once. Each read is one billed call and some
@@ -155,6 +173,13 @@ async function readAndStore(input: {
   engines: Engine[];
   questions: StoredQuestion[];
   checkDeadline: () => void;
+  /**
+   * What is left of the run. Passed down to every read so none of them can
+   * outlive the deadline: the pass can only test the clock between jobs, so
+   * without this the gap between the deadline passing and the pass giving up
+   * is however long the read already in flight decides to take.
+   */
+  remainingMs: () => number;
   /** Called once the reads are in and the citation work begins, so the screen
    *  can move off "reading" rather than sitting on it for the whole run. */
   onSources?: () => Promise<void>;
@@ -168,7 +193,7 @@ async function readAndStore(input: {
   leaderboardPartial: boolean;
 }> {
   const db = supabaseAdmin();
-  const { scanId, spend, domain, brand, topic, positioning, market, engines, questions, checkDeadline, onSources } =
+  const { scanId, spend, domain, brand, topic, positioning, market, engines, questions, checkDeadline, onSources, remainingMs } =
     input;
 
   // Every question against every engine, flattened so one queue paces the lot.
@@ -186,7 +211,7 @@ async function readAndStore(input: {
 
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        const read = await readEngine(engine, q.question, market);
+        const read = await readEngine(engine, q.question, market, remainingMs());
         spend.dfsCalls += 1;
         spend.dfsCost += read.cost;
 
@@ -230,7 +255,26 @@ async function readAndStore(input: {
     throw new Error(answers.find((a) => a.error)?.error ?? "no engine could be reached");
   }
 
-  const { error: aErr } = await db.from("scan_answers").insert(
+  /**
+   * Upserted rather than inserted, and the conflict target is the constraint
+   * that was making a retry impossible.
+   *
+   * scan_answers is unique on (question_id, engine). A pass that stored its
+   * answers and then threw - on the deadline, on the citation insert, on the
+   * leaderboard write - leaves the scan failed with those rows still on it.
+   * The result screen sends that visitor back to confirm with the error, and
+   * the confirm route lets a failed scan through by design. So the second run
+   * re-asked every question on every engine, paid for all of it, and then died
+   * on a duplicate key with "could not store the answers" - and so did the
+   * third. The one thing a visitor could do about a failed scan could never
+   * work, and it billed a full set of reads every time they tried it.
+   *
+   * Replacing is the right meaning rather than a way around the constraint:
+   * the row is one engine answer to one question, this pass has just re-read
+   * it, and the new read is the current one. The constraint stays and still
+   * does its job, which is one answer per question per engine.
+   */
+  const { error: aErr } = await db.from("scan_answers").upsert(
     answers.map((a) => ({
       scan_id: scanId,
       question_id: a.questionId,
@@ -243,6 +287,7 @@ async function readAndStore(input: {
       // free pass happens before an email exists. The purge sweep reclaims it.
       response_text: a.prose || null,
     })),
+    { onConflict: "question_id,engine" },
   );
   if (aErr) throw new Error(`could not store the answers: ${aErr.message}`);
 
@@ -264,6 +309,16 @@ async function readAndStore(input: {
       position: c.position,
     })),
   );
+  /**
+   * Citations have no unique key, so a retried pass adds to what the failed
+   * one left rather than replacing it. Every reader already dedupes them on
+   * (source_domain, question_id, engine) - scan_teaser selects distinct,
+   * buildUnlockPayload keys a counted set, deriveOpportunities keys
+   * seenAnswer - so no count doubles. What does survive is a source the
+   * abandoned read cited and the current answers do not, which is why this is
+   * a question in blocked.md rather than a delete taken here: clearing a
+   * scan own rows is still a delete, and that line is Danny to draw.
+   */
   if (citations.length) {
     const { error: cErr } = await db.from("scan_citations").insert(citations);
     if (cErr) throw new Error(`could not store the sources: ${cErr.message}`);
@@ -430,6 +485,7 @@ export async function runScan(scanId: string): Promise<void> {
   const checkDeadline = () => {
     if (Date.now() > deadline) throw new Error("the scan took too long and was stopped");
   };
+  const remainingMs = () => deadline - Date.now();
 
   // Accumulated as it is billed rather than totalled at the end, so the catch
   // below writes what this scan actually cost even when it never finished.
@@ -520,6 +576,7 @@ export async function runScan(scanId: string): Promise<void> {
       engines,
       questions: ordered,
       checkDeadline,
+      remainingMs,
       onSources: async () => {
         await db.from("scans").update({ step: "sources" }).eq("id", scanId);
       },
@@ -608,6 +665,7 @@ export async function runGatedScan(scanId: string): Promise<void> {
   const checkDeadline = () => {
     if (Date.now() > deadline) throw new Error("the deeper check took too long and was stopped");
   };
+  const remainingMs = () => deadline - Date.now();
 
   // This pass re-asks every question on two more engines, so a failure part
   // way through can be dozens of reads that were paid for. Accumulated here
@@ -650,6 +708,7 @@ export async function runGatedScan(scanId: string): Promise<void> {
       engines,
       questions: questionRows,
       checkDeadline,
+      remainingMs,
     });
 
     // The second pass cites sources the first did not. Label the new ones.

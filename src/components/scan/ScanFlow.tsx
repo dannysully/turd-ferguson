@@ -119,6 +119,24 @@ const POLL_MS = 2500;
  * average run completed, which taught people the message means nothing.
  */
 const SLOW_MS = 150_000;
+/**
+ * When to stop waiting altogether.
+ *
+ * Nothing on the server can move a scan after this. Every route that runs a
+ * pass declares maxDuration = 300, and the pipeline now gives up at 270 and
+ * writes status failed, so a scan still reading at six minutes is not slow -
+ * it is a function that was killed with the row left at running, and the row
+ * will stay that way for ever. This poll had no end, so that visitor sat on a
+ * progress bar for as long as they were willing to, and the one message they
+ * got said it was taking a while.
+ *
+ * Landing them back on confirm is the honest end, and a second run works now
+ * that a retried pass can store its answers over the ones the failed pass
+ * left. The copy does not promise their edits survived, because the screen is
+ * unmounted on the way to running and comes back written afresh - see
+ * worklog.md, which is a separate job on the same path.
+ */
+const STUCK_MS = 6 * 60 * 1000;
 
 function track(event: string, props: Record<string, unknown> = {}) {
   if (typeof window === "undefined") return;
@@ -415,6 +433,11 @@ export default function ScanFlow(p: {
     let stop = false;
 
     const slowTimer = setTimeout(() => setSlow(true), SLOW_MS);
+    const stuckTimer = setTimeout(() => {
+      stop = true;
+      setError("That check stopped before it finished. You can run it again.");
+      setPhase("confirm");
+    }, STUCK_MS);
 
     async function poll() {
       if (stop) return;
@@ -446,6 +469,7 @@ export default function ScanFlow(p: {
     return () => {
       stop = true;
       clearTimeout(slowTimer);
+      clearTimeout(stuckTimer);
     };
   }, [phase, p.token, loadTeaser]);
 

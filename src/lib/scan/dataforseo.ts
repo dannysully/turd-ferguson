@@ -146,10 +146,35 @@ function request(engine: Engine, question: string, market: Market): { path: stri
   }
 }
 
-/** Ask one engine one question. Cost is whatever DataForSEO billed for the task. */
-export async function readEngine(engine: Engine, question: string, market: Market): Promise<EngineResult> {
+/**
+ * The shorter of what this engine needs and what the run has left, floored so a
+ * budget that has already run out still makes one honest attempt rather than
+ * aborting on a zero and recording an error nobody can read.
+ */
+function budget(timeoutMs: number, remainingMs: number | undefined): number {
+  if (typeof remainingMs !== "number") return timeoutMs;
+  return Math.max(5_000, Math.min(timeoutMs, remainingMs));
+}
+
+/**
+ * Ask one engine one question. Cost is whatever DataForSEO billed for the task.
+ *
+ * budgetMs is what is left of the whole run. The per-engine timeouts here go up
+ * to 130 seconds because that is what the scrapers document, and a read started
+ * near the end of a run would happily spend all of it - past the pipeline
+ * deadline, past the platform ceiling, and into a function that gets killed
+ * with the scan still marked running. So the shorter of the two wins, and a
+ * read that cannot finish inside what is left is abandoned rather than allowed
+ * to outlive the run it belongs to.
+ */
+export async function readEngine(
+  engine: Engine,
+  question: string,
+  market: Market,
+  budgetMs?: number,
+): Promise<EngineResult> {
   const { path, body, timeoutMs } = request(engine, question, market);
-  const raw = await post(path, body, timeoutMs);
+  const raw = await post(path, body, budget(timeoutMs, budgetMs));
   const task = firstTask(raw);
   const cost = typeof task.cost === "number" ? task.cost : 0;
   return { ...PARSERS[engine](task.result?.[0]), cost };

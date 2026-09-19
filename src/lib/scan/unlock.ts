@@ -66,8 +66,37 @@ export async function resolveAccount(email: string, existingId: string | null): 
     .insert({ email: address, agency_domain: address.split("@")[1] })
     .select("id")
     .single();
-  if (error || !created) return null;
-  return created.id as string;
+
+  /**
+   * A failed insert here is usually a race, not a failure, and it used to be
+   * read as one.
+   *
+   * The select above and this insert are two requests, so two unlocks of the
+   * same new address at once both found no row and both inserted. The loser
+   * hit accounts_email_key, got an error, and returned null - and the route
+   * turns a null into a 500 and the message "account_failed". So a visitor who
+   * double-clicked the unlock button, or whose mail scanner fetched the verify
+   * link as they clicked it, handed over their email address and was shown a
+   * hard error for an unlock that had in fact just succeeded.
+   *
+   * Two requests arriving together on this path is ordinary rather than
+   * exotic: it is the same pattern that made the gated claim, the verify link
+   * and the confirm route each need a claim they could read back.
+   *
+   * So the unique index is the arbiter and losing to it is a normal outcome:
+   * read the row the winner wrote. Only an address that is neither insertable
+   * nor findable is a real failure, and that one now says so in the log rather
+   * than arriving at the route as an indistinguishable null.
+   */
+  if (created) return created.id as string;
+
+  const { data: raced } = await db.from("accounts").select("id").eq("email", address).maybeSingle();
+  if (raced) return raced.id as string;
+
+  console.warn(
+    "[scan] could not resolve an account: " + (error?.message ?? "no row and no error"),
+  );
+  return null;
 }
 
 /**
