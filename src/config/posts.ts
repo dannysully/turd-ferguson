@@ -9,6 +9,11 @@
  * and they are kept as it has them.
  */
 
+import type { Metadata } from "next";
+
+import { OG_IMAGE } from "./og";
+import { BRAND, ORG_REF, SITE_URL } from "./schema";
+
 export type PostKind = "Findings" | "Method" | "Running an agency";
 
 export type Post = {
@@ -80,6 +85,75 @@ export function requirePost(slug: string): Post {
   const post = postBySlug(slug);
   if (!post) throw new Error("no post registered for the slug " + slug);
   return post;
+}
+
+/**
+ * Where the post lives. Built from the slug rather than typed, because it was
+ * typed three times per post - the canonical, the Open Graph url and the
+ * structured-data url - and three hand-copied URLs are three chances for a
+ * renamed slug to leave one of them pointing at a 404.
+ */
+export function postUrl(post: Post): string {
+  return SITE_URL + "/blog/" + post.slug;
+}
+
+/**
+ * The metadata that is a fact about the post rather than a piece of copy.
+ *
+ * The registry above exists so the index, the post header and the structured
+ * data cannot drift apart, and for the h1 it worked. The title tag never went
+ * through it. All three posts retyped their own, and all three retyped it in
+ * title case, so the page said "How LLMs pick which brands to recommend" and
+ * the tab, the SERP result and the share card said "How LLMs Pick Which
+ * Brands to Recommend". Sentence case is the rule on every other title on the
+ * site and on the h1 six lines below the one that broke it.
+ *
+ * The descriptions stay arguments. They are copy, the SERP one and the share
+ * one differ on purpose, and nothing else on the site holds a second copy of
+ * either - so they are not a drift risk and do not belong in the registry.
+ */
+export function postMetadata(
+  post: Post,
+  copy: { description: string; ogDescription: string },
+): Metadata {
+  return {
+    title: post.title,
+    description: copy.description,
+    alternates: { canonical: postUrl(post) },
+    // OG_IMAGE because openGraph merges shallowly - see config/og.ts.
+    openGraph: {
+      images: OG_IMAGE,
+      title: post.title + " | " + BRAND,
+      description: copy.ogDescription,
+      url: postUrl(post),
+    },
+  };
+}
+
+/**
+ * The BlogPosting node.
+ *
+ * `headline` was the fourth spelling of the title: sentence case, but with a
+ * trailing clause no heading on the page carried, so the structured data
+ * announced a different article from the one it was attached to. On a site
+ * that sells being the entity an answer engine recognises, that is the exact
+ * drift we tell clients to fix.
+ *
+ * `datePublished` was the other retyped fact. The registry date is what the
+ * index sorts on, so the two could disagree about when a post was published
+ * and only one of them would move it up the page.
+ */
+export function blogPostingSchema(post: Post, description: string) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: post.title,
+    description,
+    url: postUrl(post),
+    datePublished: post.date,
+    author: ORG_REF,
+    publisher: ORG_REF,
+  };
 }
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];

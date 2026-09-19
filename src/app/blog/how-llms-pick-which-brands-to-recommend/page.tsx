@@ -1,43 +1,24 @@
 import type { Metadata } from "next";
-import { OG_IMAGE } from "@/config/og";
 import Link from "next/link";
 
 import PostShell, { H2, P } from "@/components/PostShell";
-import { requirePost } from "@/config/posts";
+import { blogPostingSchema, postMetadata, requirePost } from "@/config/posts";
 import { T } from "@/config/tokens";
-import { ORG_REF, ld } from "@/config/schema";
-
-export const metadata: Metadata = {
-  title: "How LLMs Pick Which Brands to Recommend",
-  description:
-    "What we find behind an AI product recommendation in the campaigns we run: a small set of editorial sources, and the brands listed at the top of them.",
-  alternates: {
-    canonical:
-      "https://alwayscited.com/blog/how-llms-pick-which-brands-to-recommend",
-  },
-  openGraph: {
-    images: OG_IMAGE,
-    title: "How LLMs Pick Which Brands to Recommend | alwayscited",
-    description:
-      "The mechanics of LLM citation are simpler - and more exploitable - than most agencies realise.",
-    url: "https://alwayscited.com/blog/how-llms-pick-which-brands-to-recommend",
-  },
-};
-
-const postSchema = {
-  "@context": "https://schema.org",
-  "@type": "BlogPosting",
-  headline:
-    "How LLMs pick which brands to recommend (and what it means for your visibility)",
-  description:
-    "The mechanics of LLM citation are simpler - and more exploitable - than most agencies realise.",
-  url: "https://alwayscited.com/blog/how-llms-pick-which-brands-to-recommend",
-  datePublished: "2026-04-30",
-  author: ORG_REF,
-  publisher: ORG_REF,
-};
+import { ld } from "@/config/schema";
 
 const post = requirePost("how-llms-pick-which-brands-to-recommend");
+
+export const metadata: Metadata = postMetadata(post, {
+  description:
+    "What we find behind an AI product recommendation in the campaigns we run: a small set of editorial sources, and the brands listed at the top of them.",
+  ogDescription:
+    "The mechanics of LLM citation are simpler - and more exploitable - than most agencies realise.",
+});
+
+const postSchema = blogPostingSchema(
+  post,
+  "The mechanics of LLM citation are simpler - and more exploitable - than most agencies realise.",
+);
 
 const STANDFIRST =
   "The mechanics of LLM citation are simpler, and more exploitable, than most agencies realise.";

@@ -1,42 +1,24 @@
 import type { Metadata } from "next";
-import { OG_IMAGE } from "@/config/og";
 import Link from "next/link";
 
 import PostShell, { H2, P } from "@/components/PostShell";
-import { requirePost } from "@/config/posts";
+import { blogPostingSchema, postMetadata, requirePost } from "@/config/posts";
 import { T } from "@/config/tokens";
-import { ORG_REF, ld } from "@/config/schema";
-
-export const metadata: Metadata = {
-  title: "Why Most AEO Audits Are a Waste of Money",
-  description:
-    "The agency industry has a new product to sell, and most of it is a report you do not need. Why a standalone AEO audit is the wrong thing to be sold.",
-  alternates: {
-    canonical:
-      "https://alwayscited.com/blog/why-most-aeo-audits-are-a-waste-of-money",
-  },
-  openGraph: {
-    images: OG_IMAGE,
-    title: "Why Most AEO Audits Are a Waste of Money | alwayscited",
-    description:
-      "The agency industry has a new product to sell. Most of it is a report you don't need.",
-    url: "https://alwayscited.com/blog/why-most-aeo-audits-are-a-waste-of-money",
-  },
-};
-
-const postSchema = {
-  "@context": "https://schema.org",
-  "@type": "BlogPosting",
-  headline: "Why most AEO audits are a waste of money",
-  description:
-    "The agency industry has a new product to sell, and most of it is a report you do not need. Why a standalone AEO audit is the wrong thing to be sold.",
-  url: "https://alwayscited.com/blog/why-most-aeo-audits-are-a-waste-of-money",
-  datePublished: "2026-04-30",
-  author: ORG_REF,
-  publisher: ORG_REF,
-};
+import { ld } from "@/config/schema";
 
 const post = requirePost("why-most-aeo-audits-are-a-waste-of-money");
+
+export const metadata: Metadata = postMetadata(post, {
+  description:
+    "The agency industry has a new product to sell, and most of it is a report you do not need. Why a standalone AEO audit is the wrong thing to be sold.",
+  ogDescription:
+    "The agency industry has a new product to sell. Most of it is a report you don't need.",
+});
+
+const postSchema = blogPostingSchema(
+  post,
+  "The agency industry has a new product to sell, and most of it is a report you do not need. Why a standalone AEO audit is the wrong thing to be sold.",
+);
 
 const STANDFIRST =
   "The agency industry has a new product to sell. Most of it is a report nobody acts on.";
