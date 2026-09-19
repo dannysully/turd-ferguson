@@ -35,7 +35,21 @@ export async function requestScan(input: {
   }
 
   try {
-    await new Resend(key).emails.send({
+    /**
+     * The SDK does not throw for a rejected send.
+     *
+     * A non-2xx, an unparseable error body and a failed fetch all resolve
+     * with a null data and an error object, so the catch below covers almost
+     * nothing and awaiting the call was never the same as checking it. An
+     * unverified sending domain, a rate limit or a suppressed recipient came
+     * back here as success, and this returned ok to a visitor whose request
+     * had gone nowhere and whom nobody was going to email.
+     *
+     * The comment at the top of this file says no silent success, and this
+     * was the one path in the tree that had one: the contact action and both
+     * scan emails read the returned error already.
+     */
+    const dispatch = await new Resend(key).emails.send({
       from: process.env.SCAN_FROM_EMAIL ?? "alwayscited <onboarding@resend.dev>",
       to: process.env.CONTACT_EMAIL_DESTINATION ?? "hello@alwayscited.com",
       replyTo: email,
@@ -48,6 +62,10 @@ export async function requestScan(input: {
         "Sent from the domain field while the live scan is switched off.",
       ].join("\n"),
     });
+    if (dispatch.error) {
+      console.error("[waitlist] send rejected", dispatch.error);
+      return { ok: false, message: "We could not record that just now. Please email hello@alwayscited.com." };
+    }
   } catch (e) {
     console.error("[waitlist] send failed", e);
     return { ok: false, message: "We could not record that just now. Please email hello@alwayscited.com." };
