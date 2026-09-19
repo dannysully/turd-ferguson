@@ -22,7 +22,7 @@ export type Post = {
   readMinutes: number;
 };
 
-export const POSTS: Post[] = [
+const REGISTERED: Post[] = [
   {
     slug: "how-llms-pick-which-brands-to-recommend",
     title: "How LLMs pick which brands to recommend",
@@ -51,6 +51,19 @@ export const POSTS: Post[] = [
     readMinutes: 5,
   },
 ];
+
+/**
+ * Newest first, sorted here rather than trusted to the order above.
+ *
+ * The index takes the first entry as its lead card and lists the rest under
+ * it, so the order of this array was the running order of the blog. Nothing
+ * enforced it: a fourth post typed at the bottom would have published under
+ * three older ones, and the only thing that would have said so is somebody
+ * looking at the page. All three carry the same date today, so this changes
+ * nothing now and is here for the post after them - ties keep the order they
+ * are written in, which is what a stable sort gives.
+ */
+export const POSTS: Post[] = [...REGISTERED].sort((a, b) => b.date.localeCompare(a.date));
 
 export function postBySlug(slug: string): Post | undefined {
   return POSTS.find((p) => p.slug === slug);
