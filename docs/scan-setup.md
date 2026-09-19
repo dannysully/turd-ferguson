@@ -1,8 +1,13 @@
 # Turning the free scan on
 
 Phase 1 is built and deployed, but it stays dormant until the environment is
-configured. Until then the homepage falls back to the fixture-backed checker,
-so nothing is broken in the meantime.
+configured. Until then the hero shows a request form instead of the live
+checker - `scanReadiness()` in `lib/scan/readiness.ts` decides which, and
+`/admin/scans` lists anything missing.
+
+The fixture-backed checker this used to describe is gone: `ee34ad6` removed
+it and the SCAN_SOURCE switch with it. Fixtures now belong to `/example`
+alone.
 
 ## 1. The Supabase project
 
@@ -13,6 +18,12 @@ row-level security on every one, no policies anywhere, and `scan_teaser`
 installed as the single public read path.
 
 `SUPABASE_URL` is `https://bhvjmlrekrwlrabpysja.supabase.co`.
+
+**Three migrations have landed since**, and this document describes the state
+at phase 1 rather than today: `20260917000000` added response text and email
+verification, `20260918000000` added `scan_sources`, the Google rank and a
+replacement `scan_teaser`, and `20260918100000` added `on_topic`. A fourth,
+`20260919000000`, is committed and **not applied** - see `docs/blocked.md`.
 
 ### A note on the key format
 
@@ -74,7 +85,15 @@ which is below the 90 second target for a full run.
 A scan runs in two passes over the **same fourteen questions**, so the engines
 are comparable with each other.
 
-The free pass, before any email:
+**The split below is not what ships today.** `3586cbf` moved Perplexity into
+the free pass and Claude out of the gated one, so `FREE_ENGINES` is now four
+engines and `GATED_ENGINES` is empty - an email currently unlocks the
+leaderboard, the sources and the placement list rather than more engines.
+Whether that or the split below is the intent is a product decision sitting
+in `docs/blocked.md`. The per-call costs underneath were measured against the
+live API and are unchanged by it.
+
+The free pass as originally configured, before any email:
 
 | Engine | Endpoint | Per call | Per scan |
 |---|---|---|---|

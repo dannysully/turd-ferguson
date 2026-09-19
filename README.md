@@ -1,88 +1,81 @@
-# AlwaysCited — alwayscited.com
+# alwayscited
 
-The AI Search Agency website. Built with Next.js (App Router), TypeScript, Tailwind CSS v4.
+The AI search visibility product and its site. Next.js App Router,
+TypeScript, Tailwind v4, Supabase, deployed on Vercel.
 
-## Setup
+The brand is always written lowercase, including at the start of a sentence.
+The four tiers are `alwaystracked`, `alwaysmentioned`, `alwayscited` and
+`alwayseverywhere`, each one lowercase word, rendered through the `TierName`
+component. See AGENTS.md - it is the operating manual for this repo and takes
+precedence over anything here.
+
+## Running it
 
 ```bash
-# Install dependencies
 npm install
-
-# Copy env file and fill in values
-cp .env.example .env.local
-
-# Run dev server
+cp .env.example .env.local   # then fill it in
 npm run dev
 ```
 
-## Environment variables
+The bar before every push, because the branch deploys straight to production:
 
-| Variable | Required | Description |
-|---|---|---|
-| `CONTACT_EMAIL_DESTINATION` | No (has default) | Email address to receive contact form submissions |
-| `RESEND_API_KEY` | Yes (for form to send) | Resend API key — get one at resend.com |
-| `NEXT_PUBLIC_SITE_URL` | No (has default) | Production URL, used in sitemaps and canonical tags |
-
-## Wiring up the contact form
-
-The contact form logs submissions to console by default. To actually send emails:
-
-1. Install Resend: `npm install resend`
-2. Add `RESEND_API_KEY` to `.env.local`
-3. Edit `src/app/contact/actions.ts` — uncomment the Resend send block and remove the `console.log`
-
-## Deployment
-
-This project is ready for one-click Vercel deployment.
-
-1. Push to GitHub (or GitLab / Bitbucket)
-2. Connect repo in the Vercel dashboard
-3. Add environment variables in Vercel project settings
-4. Deploy
-
-No `vercel.json` is needed — Next.js App Router projects work out of the box on Vercel.
-
-## Pre-launch checklist
-
-Before going live, replace or confirm the following placeholder content:
-
-### Content
-- [ ] **Contact email**: confirm `hello@alwayscited.com` is correct — appears in `Footer.tsx`, `ContactForm.tsx`, `actions.ts`, and `.env.example`
-- [ ] **Client testimonial**: add real testimonial in `src/app/case-studies/vibe-retail/page.tsx` (marked `CLIENT TESTIMONIAL — to be confirmed before publication`)
-- [ ] **Case study screenshots**: replace three `ImagePlaceholder` slots in the case study with real screenshots (AI Overview screenshots, Ahrefs traffic chart, Ahrefs keyword table) — each marked `IMAGE: drop screenshot here before publication`
-
-### Brand
-- [ ] **Logo**: add a real logo asset and update the text-only "AlwaysCited" wordmark in `Header.tsx`; update `logo` URL in the Organization schema in `src/app/page.tsx`
-- [ ] **Social profiles**: add LinkedIn, X (Twitter), and other social URLs in `Footer.tsx` and the `sameAs` array in the Organization schema
-- [ ] **Favicon**: replace `src/app/favicon.ico` with the real brand favicon
-- [ ] **OG image**: create a 1200x630 OG image and add it to metadata in `src/app/layout.tsx`
-
-### Technical
-- [ ] **Canonical URLs**: confirm `https://alwayscited.com` is the correct production domain across all pages (search codebase for `alwayscited.com`)
-- [ ] **Resend integration**: wire up email sending in `src/app/contact/actions.ts`
-
-## Site structure
-
-```
-/                         Home
-/how-it-works             Methodology page
-/what-is-aeo              Cornerstone AEO explainer (highest-priority AEO page)
-/case-studies/vibe-retail Anonymised client case study
-/blog                     Blog index
-/blog/how-llms-pick-...   Blog post 1
-/blog/aeo-vs-seo-...      Blog post 2
-/blog/why-most-aeo-...    Blog post 3
-/about                    About page
-/contact                  Contact form
-/robots.txt               Auto-generated (all AI crawlers allowed)
-/sitemap.xml              Auto-generated
+```bash
+npx tsc --noEmit && npm run build
 ```
 
-## AEO notes — the site is itself an AEO target
+## The scan
 
-- `FAQPage` JSON-LD schema on home and `/what-is-aeo`
-- `Article`/`BlogPosting`/`Organization` schema on every page
-- Question-format H2s throughout
-- Comparison tables with semantic `<table>` markup on `/how-it-works` and `/what-is-aeo`
-- All major AI crawlers explicitly allowed in `robots.txt` (GPTBot, ClaudeBot, PerplexityBot, Google-Extended, anthropic-ai)
-- Opening paragraphs on key pages are verbatim from the brief — tuned for AI Overview query matching
+A visitor enters a domain. The site is read, a language model writes the
+buying questions, and each question is put to every engine in the free set.
+What comes back is stored as measurements - whether the engine answered,
+whether it named the brand, and every source it cited - plus the verbatim
+answer, which is reclaimed after seven days if nobody claims the scan.
+
+`src/lib/scan/` holds the pipeline. `pipeline.ts` runs it, `engines.ts` says
+which engines and how to parse each one, `unlock.ts` derives what the email
+gate is holding, and `settings.ts` reads the live caps from `app_settings` on
+every request so they can be changed without a deploy.
+
+Two things about it that have cost real time are written up in AGENTS.md: the
+domain cache, and how a silent failure in classification can ship a
+half-built report. Read those before changing anything in `lib/scan`.
+
+Environment variables are documented in `.env.example`, and turning the scan
+on for the first time is documented in `docs/scan-setup.md`.
+
+## The site
+
+| Route | What it is |
+|---|---|
+| `/` | The homepage, rebuilt from the design canvas |
+| `/scan`, `/scan/[token]` | The scan funnel and a result by its public token |
+| `/example` | The seven-step walkthrough on fixture data, labelled illustrative |
+| `/alwaystracked` … `/alwayseverywhere` | One page per tier |
+| `/white-label`, `/seo-agencies`, `/pr-agencies` | Agency pages |
+| `/legal` | Privacy policy |
+| `/how-it-works`, `/what-is-aeo`, `/blog`, `/about`, `/contact` | Content |
+| `/case-studies/vibe-retail` | The one case study |
+| `/admin/scans` | Basic-auth admin: spend, volume, readiness |
+
+`src/config/tokens.ts` holds the design tokens and is the source for anything
+rebuilt from the canvas. Sections still using a local `C` palette have not
+been rebuilt yet.
+
+`src/config/pricing.ts` is the single source for prices. No page types a
+price literal - they all read it from there, so a change moves every surface
+at once.
+
+## The site is itself an AEO target
+
+FAQPage and Article schema, question-format headings, real `<table>` markup
+for comparisons, and every AI crawler allowed in `robots.txt`. The homepage's
+FAQ schema is generated from the same array the page renders, so the markup
+and the visible answers cannot drift apart.
+
+## Still open
+
+Tracked properly in `docs/state.md`, which is the handover, and in the
+design canvas. The short version: the scan flow rework, the coverage
+benchmark (Phase 2, not built), weekly tracking (Phase 3, not built), a
+comparison page that needs competitor facts with dates on them, and terms of
+service.
