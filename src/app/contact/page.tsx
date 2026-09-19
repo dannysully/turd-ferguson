@@ -3,7 +3,7 @@ import { OG_IMAGE } from "@/config/og";
 
 import ContactForm from "@/components/ContactForm";
 import { CARD, MICRO, SHELL, T } from "@/config/tokens";
-import { ORG_REF, SITE_REF } from "@/config/schema";
+import { ORG_REF, SITE_REF, ld } from "@/config/schema";
 
 /**
  * Contact, from Contact.dc.html.
@@ -58,7 +58,7 @@ export default function ContactPage() {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(contactSchema) }}
+        dangerouslySetInnerHTML={{ __html: ld(contactSchema) }}
       />
       <section style={{ ...SHELL, paddingTop: "48px" }}>
         <div className="page-split">

@@ -5,7 +5,7 @@ import Link from "next/link";
 import PostShell, { H2, P } from "@/components/PostShell";
 import { requirePost } from "@/config/posts";
 import { T } from "@/config/tokens";
-import { ORG_REF } from "@/config/schema";
+import { ORG_REF, ld } from "@/config/schema";
 
 export const metadata: Metadata = {
   title: "AEO vs SEO: What's Actually Different (and What Isn't)",
@@ -52,7 +52,7 @@ const SECTIONS = [
 export default function Post() {
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(postSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ld(postSchema) }} />
       <PostShell post={post} standfirst={STANDFIRST} sections={SECTIONS}>
       <P>
         AEO (Answer Engine Optimisation) and SEO (Search Engine Optimisation) are often

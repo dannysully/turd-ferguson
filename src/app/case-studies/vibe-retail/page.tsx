@@ -3,7 +3,7 @@ import { OG_IMAGE } from "@/config/og";
 import Link from "next/link";
 
 import { CARD, MICRO, SHELL, T } from "@/config/tokens";
-import { ORG_REF } from "@/config/schema";
+import { ORG_REF, ld } from "@/config/schema";
 
 /**
  * The one case study, rebuilt on CaseStudy.dc.html.
@@ -118,7 +118,7 @@ const OVERVIEWS: [string, string][] = [
 export default function CaseStudyPage() {
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ld(articleSchema) }} />
 
       <div style={{ ...SHELL, paddingTop: "40px", display: "flex", flexDirection: "column", gap: "26px" }}>
         <div className="confirm-top">

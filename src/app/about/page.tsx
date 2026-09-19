@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { OG_IMAGE } from "@/config/og";
 
 import TierName from "@/components/TierName";
-import { BRAND, ORG_REF, SITE_REF } from "@/config/schema";
+import { BRAND, ORG_REF, SITE_REF, ld } from "@/config/schema";
 import { CARD, MICRO, SHELL, T } from "@/config/tokens";
 
 /**
@@ -69,7 +69,7 @@ const TEAM = [
 export default function AboutPage() {
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(aboutSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ld(aboutSchema) }} />
 
       <section style={{ ...SHELL, paddingTop: "44px", display: "flex", flexDirection: "column", gap: "30px" }}>
         <div className="confirm-top">

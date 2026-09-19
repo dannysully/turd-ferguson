@@ -6,7 +6,7 @@ import { TIER_PLAIN } from "@/components/TierName";
 import { TIERS } from "@/config/pricing";
 import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
 import { ENGINES, ENGINE_SPECS, FREE_ENGINES } from "@/lib/scan/engines";
-import { ORG_REF } from "@/config/schema";
+import { ORG_REF, ld } from "@/config/schema";
 
 /**
  * What is AEO - the guide page.
@@ -64,7 +64,7 @@ export const metadata: Metadata = {
 
 /** One place that knows the JSON-LD envelope, so no block repeats it. */
 function jsonLd(type: string, body: Record<string, unknown>): string {
-  return JSON.stringify({ "@context": "https://schema.org", "@type": type, ...body });
+  return ld({ "@context": "https://schema.org", "@type": type, ...body });
 }
 
 const articleSchema = jsonLd("Article", {

@@ -4,7 +4,7 @@ import Link from "next/link";
 
 import { formatPostDate, POSTS, type PostKind } from "@/config/posts";
 import { CARD, MICRO, SHELL, T } from "@/config/tokens";
-import { ORG_REF } from "@/config/schema";
+import { ORG_REF, ld } from "@/config/schema";
 
 /**
  * The writing index, from BlogIndex.dc.html.
@@ -66,7 +66,7 @@ export default async function BlogIndexPage({
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(blogSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ld(blogSchema) }} />
 
       <section style={{ ...SHELL, paddingTop: "44px", display: "flex", flexDirection: "column", gap: "26px" }}>
         <div className="board-head confirm-head">

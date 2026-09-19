@@ -91,6 +91,20 @@ export const siteGraph = {
 };
 
 /** Serialise a node for a script tag of type application/ld+json. */
+/**
+ * Serialise a JSON-LD node for a <script> tag.
+ *
+ * The escape is the whole point. JSON.stringify will happily emit the
+ * characters "</script>" inside a string value, which closes the tag early
+ * and turns anything after it into markup - the standard way a JSON-LD block
+ * becomes an injection. Escaping < to its unicode form is still valid JSON
+ * and still parses to the same object, so it costs nothing.
+ *
+ * Nothing untrusted reaches this today: every caller builds its node from
+ * static config, not from a crawled site or a visitor. This is here so that
+ * stops being load-bearing the first time someone renders a brand name into
+ * a schema node.
+ */
 export function ld(node: unknown): string {
-  return JSON.stringify(node);
+  return JSON.stringify(node).replace(/</g, "\\u003c");
 }

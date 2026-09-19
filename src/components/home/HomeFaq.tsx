@@ -1,5 +1,5 @@
 import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
-import { ORG_REF, SITE_REF } from "@/config/schema";
+import { ORG_REF, SITE_REF, ld } from "@/config/schema";
 
 /**
  * FAQ and the closing scan - HomeFaq.dc.html.
@@ -82,7 +82,7 @@ const faqSchema = {
 export default function HomeFaq() {
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ld(faqSchema) }} />
 
       <section id="faq" style={{ ...SHELL, marginTop: "44px" }}>
         <div className="board-head" style={{ ...GRID12, marginBottom: "16px" }}>

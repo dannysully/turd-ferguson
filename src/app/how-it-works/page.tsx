@@ -4,7 +4,7 @@ import { OG_IMAGE } from "@/config/og";
 import CtaSection from "@/components/CtaSection";
 import TierName from "@/components/TierName";
 import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
-import { ORG_REF } from "@/config/schema";
+import { ORG_REF, ld } from "@/config/schema";
 
 /**
  * How it works - the mechanism page.
@@ -56,7 +56,7 @@ export const metadata: Metadata = {
   },
 };
 
-const articleSchema = JSON.stringify({
+const articleSchema = ld({
   "@context": "https://schema.org",
   "@type": "Article",
   headline: "How AI search citations are engineered",
