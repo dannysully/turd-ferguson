@@ -221,7 +221,26 @@ async function getText(url: string, signal: AbortSignal, trusted: string): Promi
 
     // The cap is on bytes, so a multi-byte character straddling it decodes to
     // one replacement character at the very end of 200KB of prose.
-    return { ok: true, html: decodeBody(await bodyUpTo(res.body, PAGE_BYTE_CAP), type) };
+    //
+    // Wrapped, because the headers arriving is not the body arriving. The only
+    // try/catch in here was around fetch(), which resolves as soon as the
+    // status line is in - so a site that answered inside the budget and was
+    // still streaming when the 8 second controller fired rejected inside
+    // bodyUpTo and threw straight out of readSite.
+    //
+    // Checked rather than reasoned: a fetch aborted after its headers have
+    // arrived rejects at reader.read(), not at fetch(). readSite's whole
+    // contract is that it throws UnreachableDomain, and the start route splits
+    // its five 422s from the 502 on exactly that - so the escape turned the
+    // slow site the `timeout` reason exists to name into "read_failed", which
+    // is the code that means the language model was the problem. It also
+    // logged through describeAnthropicError and wrote a model-call debit for a
+    // call that was never made.
+    try {
+      return { ok: true, html: decodeBody(await bodyUpTo(res.body, PAGE_BYTE_CAP), type) };
+    } catch {
+      return FAILED_NETWORK;
+    }
   }
 }
 
@@ -323,15 +342,28 @@ export async function readSite(domain: string): Promise<string> {
       firstFailure ??= got;
     }
 
-    if (!html) throw failureFor(domain, controller.signal, firstFailure);
+    // `html === null` rather than `!html`, because "" is a page that answered.
+    // A 200 carrying text/html and an empty body took the falsy branch, and
+    // with no failure recorded against it failureFor fell through to `dns` -
+    // "Nothing answered at yourdomain.com. Check the address and try again."
+    // Something did answer; there was nothing in it. That is `too_thin`, which
+    // the length check below reaches now that "" gets there.
+    if (html === null) throw failureFor(domain, controller.signal, firstFailure);
 
     const parts = [toProse(html)];
     const links = sameHostLinks(html, domain, base);
 
     // Remaining pages share whatever is left of the budget, in parallel.
-    const extra = await Promise.all(links.map((u) => getText(u, controller.signal, domain)));
+    //
+    // allSettled, because these are best effort and the loop below already
+    // says so by testing `ok`. Under Promise.all a single rejection discarded
+    // the homepage prose that had already been read and failed the whole scan
+    // - and it fired on exactly the sites where the extra pages are worth
+    // most, the ones whose homepage ate enough of the budget to leave these
+    // mid-body when the controller fired.
+    const extra = await Promise.allSettled(links.map((u) => getText(u, controller.signal, domain)));
     for (const page of extra) {
-      if (page.ok) parts.push(toProse(page.html));
+      if (page.status === "fulfilled" && page.value.ok) parts.push(toProse(page.value.html));
     }
 
     const text = parts.filter(Boolean).join("\n\n").slice(0, 60_000);
