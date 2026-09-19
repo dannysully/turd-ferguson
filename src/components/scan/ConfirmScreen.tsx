@@ -172,8 +172,29 @@ export default function ConfirmScreen(p: {
   });
 
   const stale = Boolean(writtenFor && (writtenFor.topic.trim() !== topic.trim() || writtenFor.market !== market));
-  const kept = questions.filter((q) => !dropped.has(q.cluster) && q.question.trim().length >= 4);
+  /**
+   * A cluster chip governs the questions we wrote, and nothing else.
+   *
+   * A question the visitor adds is stamped with the current category as its
+   * cluster, so dropping that cluster silently took their own question out of
+   * the run with it: typed into the table, counted in no total, and never
+   * asked. Nothing on the screen said so - the row sat there at full opacity
+   * while the footer count ignored it.
+   *
+   * Their questions are theirs. The chip is a way of dropping a batch we
+   * guessed at, so it applies to the rows it guessed and leaves the rest.
+   */
+  const isOwn = (q: PreviewQuestion) => q.kind === "custom";
+  const kept = questions.filter((q) => (isOwn(q) || !dropped.has(q.cluster)) && q.question.trim().length >= 4);
   const keptClusters = new Set(kept.map((q) => q.cluster));
+  /**
+   * Counted off what would actually run, not off the rows on screen. The
+   * footer says "N of a possible 14" from `kept`, so a visitor who dropped a
+   * cluster read "10 of a possible 14" under a button that refused an
+   * eleventh, because the four dropped rows were still being counted against
+   * the limit the sentence had just told them they were under.
+   */
+  const atMax = kept.length >= MAX_QUESTIONS;
   const needsWriting = stale || !writtenFor;
   const canAct = topic.trim().length >= 2 && !writing && !p.running && (needsWriting || kept.length > 0);
 
@@ -371,7 +392,7 @@ export default function ConfirmScreen(p: {
           </div>
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
             {clusters.map((c) => {
-              const n = questions.filter((q) => q.cluster === c).length;
+              const n = questions.filter((q) => !isOwn(q) && q.cluster === c).length;
               const on = !dropped.has(c) && n > 0;
               return (
                 <button
@@ -437,7 +458,7 @@ export default function ConfirmScreen(p: {
           ) : null}
 
           {questions.map((q, i) => {
-            const off = dropped.has(q.cluster);
+            const off = !isOwn(q) && dropped.has(q.cluster);
             const position = kept.indexOf(q) + 1;
             const rowLabel = "Question " + (i + 1);
             const removeLabel = "Remove question " + (i + 1);
@@ -479,15 +500,15 @@ export default function ConfirmScreen(p: {
             <button
               type="button"
               onClick={add}
-              disabled={questions.length >= MAX_QUESTIONS}
+              disabled={atMax}
               style={{
                 fontFamily: "inherit",
                 fontSize: "13px",
                 fontWeight: 600,
-                color: questions.length >= MAX_QUESTIONS ? T.faint : T.accent,
+                color: atMax ? T.faint : T.accent,
                 background: "none",
                 border: 0,
-                cursor: questions.length >= MAX_QUESTIONS ? "default" : "pointer",
+                cursor: atMax ? "default" : "pointer",
                 padding: 0,
               }}
             >
