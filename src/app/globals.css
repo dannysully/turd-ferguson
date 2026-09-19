@@ -605,3 +605,54 @@ details summary::-webkit-details-marker {
     border-top: 0;
   }
 }
+
+/* PR agencies: coverage, the flow, and the answers it feeds. */
+.coverage-flow {
+  display: grid;
+  grid-template-columns: 1fr 120px 1fr;
+  column-gap: 20px;
+  align-items: start;
+}
+@media (max-width: 860px) {
+  .coverage-flow {
+    grid-template-columns: 1fr;
+    row-gap: 16px;
+  }
+  /* The connector only means anything beside two columns. */
+  .coverage-flow__svg {
+    display: none !important;
+  }
+}
+
+.three-up {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+@media (max-width: 860px) {
+  .three-up {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* The page's one beat: which coverage feeds an answer and which stops.
+   Only the connectors move - the cards hold text and nothing that holds
+   text starts invisible. Same view() approach as the homepage charts, so
+   with no support or reduced motion the lines are simply drawn. */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .flow-line {
+      stroke-dasharray: 1;
+      stroke-dashoffset: 1;
+      animation: chart-draw linear both;
+      animation-timeline: view();
+      animation-range: entry 30% cover 45%;
+    }
+    .flow-line--2 {
+      animation-range: entry 35% cover 50%;
+    }
+    .flow-line--3 {
+      animation-range: entry 40% cover 55%;
+    }
+  }
+}

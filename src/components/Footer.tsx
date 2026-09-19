@@ -10,9 +10,9 @@ import { GRID12, MICRO, T } from "@/config/tokens";
  * Light now, not navy - the boards put it on the page ground with a hairline
  * above it, and it was the last large navy surface on the site.
  *
- * The board's middle column is "For: SEO agencies, PR agencies". Both have
- * boards but neither has a page yet, so that column carries the four tier
- * pages instead, which exist and are worth linking.
+ * The board's "For" column is back now that /seo-agencies and /pr-agencies
+ * exist. The tier column is not in the board but is useful and harmless, so
+ * the brand block plus four columns of two fills the twelve exactly.
  *
  * Privacy now points at /legal. Terms still does not: terms of service are
  * not drafted, and a link labelled Terms that opens a privacy policy is
@@ -27,6 +27,12 @@ const PRODUCT: [string, string][] = [
 ];
 
 const TIER_PAGES: TierKey[] = ["tracked", "mentioned", "cited", "everywhere"];
+
+/** The board's "For" column, which now has pages behind it. */
+const FOR: [string, string][] = [
+  ["SEO agencies", "/seo-agencies"],
+  ["PR agencies", "/pr-agencies"],
+];
 
 const COMPANY: [string, string][] = [
   ["About", "/about"],
@@ -99,6 +105,16 @@ export default function Footer() {
             <li key={tier}>
               <Link href={`/always${tier}`} style={link}>
                 <TierName tier={tier} />
+              </Link>
+            </li>
+          ))}
+        </Column>
+
+        <Column title="For">
+          {FOR.map(([label, href]) => (
+            <li key={label}>
+              <Link href={href} style={link}>
+                {label}
               </Link>
             </li>
           ))}
