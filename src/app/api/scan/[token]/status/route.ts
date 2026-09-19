@@ -1,3 +1,4 @@
+import { isFreePassDead, isGatedPassDead } from "@/lib/scan/stall";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -35,7 +36,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ token: string 
   // would send them looking for a bad token.
   const { data, error: readErr } = await supabaseAdmin()
     .from("scans")
-    .select("status, step, gated_status")
+    .select("status, step, gated_status, started_at, queued_at, unlocked_at")
     .eq("public_token", token)
     .maybeSingle();
 
@@ -48,12 +49,35 @@ export async function GET(_req: Request, ctx: { params: Promise<{ token: string 
   }
   if (!data) return Response.json({ error: "not_found" }, { status: 404 });
 
+  /**
+   * A pass the platform killed is reported as failed, not as still running.
+   *
+   * This route answered the column verbatim, and the column is the one thing a
+   * killed pass leaves wrong: `running` for ever, with a step it will never
+   * leave. So the poll kept telling the browser the scan was in progress, and
+   * the only thing that ever ended it was ScanFlow's own six-minute timer.
+   *
+   * `failed` is what this row honestly is - past the 300s ceiling nothing
+   * server-side can move it - and it is a status the flow already handles: it
+   * lands the visitor back on confirm with "you can run it again", which the
+   * confirm route now accepts.
+   *
+   * Read-only on purpose. A poll running every 2.5 seconds is the wrong place
+   * to put a write, and it does not need one: the row itself is corrected by
+   * the stall sweep in /api/cron/reap-stalled-scans, or by the confirm route
+   * the moment the visitor takes the offer. This says what is true now.
+   */
+  const status = isFreePassDead(data) ? "failed" : data.status;
+  const gatedStatus = isGatedPassDead(data) ? "failed" : data.gated_status;
+
   return Response.json(
     {
-      status: data.status,
-      step: data.step,
+      status,
+      // A dead pass has no meaningful step, and sending the one it died on
+      // would draw the progress bar part-filled under a failure message.
+      step: status === "failed" ? null : data.step,
       // Polled again after unlock, while the email-gated engines run.
-      gated_status: data.gated_status,
+      gated_status: gatedStatus,
     },
     { headers: { "cache-control": "no-store" } },
   );

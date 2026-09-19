@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import ScanFlow from "@/components/scan/ScanFlow";
 import { isMarket } from "@/lib/scan/domain";
+import { isFreePassDead, isGatedPassDead } from "@/lib/scan/stall";
 import { buildUnlockPayload, opportunityShape, type UnlockPayload } from "@/lib/scan/unlock";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
@@ -28,7 +29,7 @@ export default async function ScanTokenPage({ params }: { params: Promise<{ toke
   const { data: scan, error: scanErr } = await db
     .from("scans")
     .select(
-      "id, brand_name, domain, positioning, topic, topic_variants, market, status, engines, gated_engines, gated_status, unlocked_at",
+      "id, brand_name, domain, positioning, topic, topic_variants, market, status, engines, gated_engines, gated_status, unlocked_at, started_at, queued_at",
     )
     .eq("public_token", token)
     .maybeSingle();
@@ -127,8 +128,25 @@ export default async function ScanTokenPage({ params }: { params: Promise<{ toke
    * the gated engines had not run, on the one screen the email exists to
    * deliver, and never took it back.
    */
-  const gatedStatus = (scan.gated_status as string | null) ?? "none";
+  const gatedStatus = isGatedPassDead(scan) ? "failed" : ((scan.gated_status as string | null) ?? "none");
   const market = isMarket(scan.market) ? scan.market : "UK";
+
+  /**
+   * A pass the platform killed renders as failed, not as still running.
+   *
+   * ScanFlow picks its opening phase from this prop: queued or running puts the
+   * visitor straight onto the progress screen. Passing the column verbatim
+   * meant a row left at `running` by a killed function did that on first load
+   * and again on every reload - a fresh six-minute wait each time, on a row
+   * nothing server-side would ever move, with the six-minute timer the only
+   * thing that ever ended it.
+   *
+   * `failed` opens on confirm with the offer to run it again, which the confirm
+   * route now accepts. Same judgement, same helper, same answer as the status
+   * poll - they disagreed about a stalled scan otherwise, and the one a visitor
+   * saw depended on whether they had loaded the page or polled it.
+   */
+  const status = isFreePassDead(scan) ? "failed" : (scan.status as string);
 
   return (
     <ScanFlow
@@ -139,7 +157,7 @@ export default async function ScanTokenPage({ params }: { params: Promise<{ toke
       topic={topic}
       market={market}
       variants={variants}
-      status={scan.status as string}
+      status={status}
       engines={engines}
       initialTeaser={teaser}
       initialFull={full}

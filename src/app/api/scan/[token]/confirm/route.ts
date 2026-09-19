@@ -3,6 +3,7 @@ import { after } from "next/server";
 import { QUESTION_COUNT, QUESTION_KINDS } from "@/lib/scan/anthropic";
 import { isMarket } from "@/lib/scan/domain";
 import { runScan } from "@/lib/scan/pipeline";
+import { isFreePassDead, reapStalledFreePass } from "@/lib/scan/stall";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 /** What the confirm screen sends back: the set, minus whatever was dropped. */
@@ -70,7 +71,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
   // it is the wrong one when the database simply did not answer.
   const { data: scan, error: readErr } = await db
     .from("scans")
-    .select("id, status, market")
+    .select("id, status, market, started_at, queued_at")
     .eq("public_token", token)
     .maybeSingle();
 
@@ -85,8 +86,49 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
   if (scan.status === "complete") {
     return Response.json({ status: "complete" });
   }
-  if (scan.status === "running" || scan.status === "queued") {
-    return Response.json({ status: scan.status });
+
+  /**
+   * A pass the platform killed has to be closed before this one can start.
+   *
+   * The guard below rejects `queued` and `running`, and the compare-and-swap
+   * further down excludes them too - both correctly, because a live pass must
+   * not be duplicated. But a pass that was killed mid-flight leaves the row at
+   * one of those two states with nothing server-side able to move it, and then
+   * this route answers `{ status: "running" }` with a 200. ScanFlow reads
+   * `res.ok`, goes back to the progress screen and waits its six minutes again.
+   *
+   * So the honest end the progress screen offers - "That check stopped before
+   * it finished. You can run it again" - was a loop for the exact state it
+   * exists to handle. Every reload of /scan/[token] restarted the same six
+   * minutes as well, because the page renders the column verbatim.
+   *
+   * `isFreePassDead` is only true past the platform's own 300s ceiling, so
+   * there is no live pass to race: nothing can move that row any more. The reap
+   * is a compare-and-swap of its own and scoped to this scan, and once it lands
+   * the status is `failed`, which the guard and the swap below both already
+   * accept. Nothing else in this route changes.
+   *
+   * Not fatal. A reap that cannot write leaves the row where it was, which is
+   * where it already was - so the visitor gets the status answer they got
+   * before rather than an error on top of it.
+   */
+  let status = scan.status as string;
+  if (isFreePassDead(scan)) {
+    try {
+      const { ids } = await reapStalledFreePass(db, { scanId: scan.id as string });
+      if (ids.length) {
+        status = "failed";
+        console.warn(
+          "[scan] " + scan.id + " was left at " + scan.status + " by a killed pass, so it was closed to be re-run",
+        );
+      }
+    } catch (err) {
+      console.error("[scan] could not close the stalled pass on " + scan.id + ":", err);
+    }
+  }
+
+  if (status === "running" || status === "queued") {
+    return Response.json({ status });
   }
 
   const market = isMarket(body.market) ? body.market : scan.market;
@@ -126,6 +168,13 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
       status: "queued",
       step: null,
       error: null,
+      /**
+       * Dates the queued state so a pass killed before it could claim the row
+       * can be told from one that is about to. Without it 'queued' was the one
+       * unfinished state with no stamp, and an undatable row cannot be closed
+       * safely - see the migration, which explains why created_at will not do.
+       */
+      queued_at: new Date().toISOString(),
       ...(variants ? { topic_variants: variants } : {}),
     })
     .eq("id", scan.id)
