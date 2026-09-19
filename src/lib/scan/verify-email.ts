@@ -112,10 +112,23 @@ export async function sendVerificationEmail(input: {
     return false;
   }
 
-  await supabaseAdmin()
+  // The message has gone by this point, so this failing does not make the send
+  // untrue and must not turn a delivered email into a reported failure. What it
+  // costs is the sixty-second cooldown in /api/scan/[token]/resend, which reads
+  // this column and treats a null as "never sent" - so a lost stamp is a second
+  // copy of the same message one click later. The volume ceiling on that route
+  // counts through note_verify_send rather than this column, so that one holds
+  // either way; this is the rate limit, not the cap.
+  const { error: stampErr } = await supabaseAdmin()
     .from("leads")
     .update({ verify_sent_at: new Date().toISOString() })
     .eq("id", input.leadId);
+  if (stampErr) {
+    console.warn(
+      `[scan] sent the verification mail for lead ${input.leadId} but could not stamp it, ` +
+        `so the resend cooldown will read it as never sent: ${stampErr.message}`,
+    );
+  }
 
   return true;
 }

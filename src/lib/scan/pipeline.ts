@@ -157,6 +157,62 @@ type Spend = { dfsCalls: number; dfsCost: number; anthropicCalls: number };
  * unhandled one. A false is logged, and the caller's catch gets one more go at
  * it.
  */
+/**
+ * A write whose failure is the end of the scan, with one retry and a log that
+ * names what was lost.
+ *
+ * `c68db3b` swept the reads that answered as facts. These are the same defect
+ * facing the other way: a PostgREST write returns its failure in `error` rather
+ * than throwing, so an update whose result is discarded cannot be told from one
+ * that landed - and the four that end a pass are the ones where that is not a
+ * cosmetic difference.
+ *
+ * A scan whose `status: "complete"` write is lost has done every read, paid for
+ * every one of them and stored every answer, and says `running` for ever. The
+ * screen waits six minutes and then honestly sends the visitor back to confirm
+ * to run it again - so a single dropped write turns a finished scan into a
+ * second full scan, billed again, for a result already sitting in the table.
+ *
+ * The gated pass is worse, because there is no second run to fall back on. Its
+ * claim is `.eq("gated_status", "queued")`, so a row left at `running` can never
+ * be picked up again by anything - and that is the pass somebody gave an email
+ * address for.
+ *
+ * Retried once because the failure this is most likely to see is a blip on a
+ * single statement rather than a database that has gone away, and the whole
+ * cost of the scan is already spent by the time we get here: one more attempt is
+ * the cheapest thing in this function by several orders of magnitude. Logged at
+ * `error` rather than `warn` when both attempts fail, because unlike everything
+ * else in this file that degrades, this one strands a visitor.
+ *
+ * Never throws. Both callers are already at an exit and one of them is a catch.
+ */
+async function endWrite(
+  scanId: string,
+  what: string,
+  run: () => PromiseLike<{ error: { message: string } | null }>,
+): Promise<void> {
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const { error } = await run();
+      if (!error) return;
+      if (attempt === 2) {
+        console.error(
+          `[scan] could not write ${what} for ${scanId} after two attempts, so the row is ` +
+            `stuck where the pass left it: ${error.message}`,
+        );
+      }
+    } catch (err) {
+      if (attempt === 2) {
+        console.error(
+          `[scan] could not write ${what} for ${scanId} after two attempts, so the row is ` +
+            `stuck where the pass left it: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+  }
+}
+
 async function billSpend(scanId: string, spend: Spend): Promise<boolean> {
   // Nothing billed, nothing to record - and a round trip to add zero is still a
   // round trip that can fail and warn about it.
@@ -352,9 +408,22 @@ async function readAndStore(input: {
 
   // The Google read is a full SERP, so the subject's organic position came back
   // with every Overview. Keeping it is free. Only a measured value is written.
+  //
+  // A rank that fails to store is a blank cell on the report rather than a wrong
+  // one, so this does not stop the scan - but the blank is indistinguishable
+  // from a question the subject does not rank for at all, which is a real
+  // finding, so the difference has to exist somewhere and the log is it.
   for (const a of answers) {
     if (a.engine !== "google_aio" || a.googleRank === undefined) continue;
-    await db.from("scan_questions").update({ google_rank: a.googleRank }).eq("id", a.questionId);
+    const { error: rankErr } = await db
+      .from("scan_questions")
+      .update({ google_rank: a.googleRank })
+      .eq("id", a.questionId);
+    if (rankErr) {
+      console.warn(
+        `[scan] could not store the Google rank for question ${a.questionId}: ${rankErr.message}`,
+      );
+    }
   }
 
   const citations = answers.flatMap((a) =>
@@ -663,7 +732,13 @@ export async function runScan(scanId: string): Promise<void> {
     }
 
     // --- Step 2: "Reading what the engines answered" ---
-    await db.from("scans").update({ step: "reading" }).eq("id", scanId);
+    // A lost step marker is not a lost scan - the run carries on and finishes.
+    // What it costs is the progress screen, which sits on the previous step for
+    // the whole of the longest part of the run and so reads as a stall. Warned
+    // rather than retried: it is cosmetic per scan, but every scan going quiet
+    // at the same step is a signal, and a discarded error makes that invisible.
+    const { error: stepErr } = await db.from("scans").update({ step: "reading" }).eq("id", scanId);
+    if (stepErr) console.warn(`[scan] could not set the reading step for ${scanId}: ${stepErr.message}`);
     // --- Step 3: "Finding the sources they cited" ---
     // readAndStore raises this itself, the moment the reads are in and the
     // citation work starts. Setting it here would be a lie: the reads are the
@@ -681,7 +756,13 @@ export async function runScan(scanId: string): Promise<void> {
       checkDeadline,
       remainingMs,
       onSources: async () => {
-        await db.from("scans").update({ step: "sources" }).eq("id", scanId);
+        const { error: srcStepErr } = await db
+          .from("scans")
+          .update({ step: "sources" })
+          .eq("id", scanId);
+        if (srcStepErr) {
+          console.warn(`[scan] could not set the sources step for ${scanId}: ${srcStepErr.message}`);
+        }
       },
     });
 
@@ -699,10 +780,18 @@ export async function runScan(scanId: string): Promise<void> {
       const sv = await readSearchVolumes(ordered.map((q) => q.question), market);
       spend.dfsCost += sv.cost;
       for (const q of ordered) {
-        await db
+        const { error: volErr } = await db
           .from("scan_questions")
           .update({ search_volume: sv.volumes.get(volumeKey(q.question)) ?? null })
           .eq("id", q.id);
+        // Thrown into the catch below rather than handled here, because that
+        // catch is the thing written to make this failure visible and a
+        // PostgREST write reports its failure in `error` instead of throwing.
+        // So the half of this block that could fail silently was the half the
+        // catch could not see: the read was covered and the twelve writes
+        // underneath it were not, and every one of them leaving the column null
+        // is precisely the page the comment below says must not be ambiguous.
+        if (volErr) throw new Error(`could not store the volume for question ${q.id}: ${volErr.message}`);
       }
     } catch (err) {
       // Search volume is a column, not a reason to fail the scan - but it has
@@ -741,29 +830,36 @@ export async function runScan(scanId: string): Promise<void> {
     // which is the direction a ceiling must not fail in.
     spendPersisted = await billSpend(scanId, spend);
 
-    await db
-      .from("scans")
-      .update({
-        status: "complete",
-        step: null,
-        completed_at: new Date().toISOString(),
-        engines_answered: read.answered,
-        leaderboard_partial: read.leaderboardPartial,
-      })
-      .eq("id", scanId);
+    await endWrite(scanId, "the completed status", () =>
+      db
+        .from("scans")
+        .update({
+          status: "complete",
+          step: null,
+          completed_at: new Date().toISOString(),
+          engines_answered: read.answered,
+          leaderboard_partial: read.leaderboardPartial,
+        })
+        .eq("id", scanId),
+    );
   } catch (err) {
     const message = describeAnthropicError(err);
     // The guard stops a throw raised after the bill above from billing twice,
     // and a bill that failed up there gets one more attempt here.
     if (!spendPersisted) await billSpend(scanId, spend);
-    await supabaseAdmin()
-      .from("scans")
-      .update({
-        status: "failed",
-        step: null,
-        error: message.slice(0, 500),
-      })
-      .eq("id", scanId);
+    // If this one is lost the scan says running rather than failed, so the
+    // message describing what went wrong never reaches the screen that is
+    // waiting to show it.
+    await endWrite(scanId, "the failed status", () =>
+      supabaseAdmin()
+        .from("scans")
+        .update({
+          status: "failed",
+          step: null,
+          error: message.slice(0, 500),
+        })
+        .eq("id", scanId),
+    );
   }
 }
 
@@ -800,7 +896,12 @@ export async function runGatedScan(scanId: string): Promise<void> {
 
     const engines = (scan.gated_engines ?? []).filter(isEngine);
     if (!engines.length) {
-      await db.from("scans").update({ gated_status: "complete" }).eq("id", scanId);
+      // Nothing to run, but the row still has to say so. Lost, it leaves the
+      // gated pass at running for ever with no work left to move it, and the
+      // screen tells somebody who gave an address that engines are still going.
+      await endWrite(scanId, "the completed gated status", () =>
+        db.from("scans").update({ gated_status: "complete" }).eq("id", scanId),
+      );
       return;
     }
 
@@ -885,20 +986,22 @@ export async function runGatedScan(scanId: string): Promise<void> {
     // Before the status write, for the reason given on the free pass's call.
     spendPersisted = await billSpend(scanId, spend);
 
-    await db
-      .from("scans")
-      .update({
-        gated_status: "complete",
-        gated_completed_at: new Date().toISOString(),
-        ...(currentErr
-          ? {}
-          : { engines_answered: [...new Set([...(current?.engines_answered ?? []), ...read.answered])] }),
-        // Set, never cleared. The gated pass re-reads the same questions on two
-        // more engines; it cannot recover names a failed batch lost on the free
-        // pass, so a clean second pass is not evidence the leaderboard is whole.
-        ...(read.leaderboardPartial ? { leaderboard_partial: true } : {}),
-      })
-      .eq("id", scanId);
+    await endWrite(scanId, "the completed gated status", () =>
+      db
+        .from("scans")
+        .update({
+          gated_status: "complete",
+          gated_completed_at: new Date().toISOString(),
+          ...(currentErr
+            ? {}
+            : { engines_answered: [...new Set([...(current?.engines_answered ?? []), ...read.answered])] }),
+          // Set, never cleared. The gated pass re-reads the same questions on two
+          // more engines; it cannot recover names a failed batch lost on the free
+          // pass, so a clean second pass is not evidence the leaderboard is whole.
+          ...(read.leaderboardPartial ? { leaderboard_partial: true } : {}),
+        })
+        .eq("id", scanId),
+    );
   } catch (err) {
     const message = describeAnthropicError(err);
     // What this pass had already paid for when it failed. Without it a failed
@@ -906,13 +1009,15 @@ export async function runGatedScan(scanId: string): Promise<void> {
     // expensive pass - every question again, on two more engines. The guard
     // stops a throw raised after the bill above from billing the day twice.
     if (!spendPersisted) await billSpend(scanId, spend);
-    await supabaseAdmin()
-      .from("scans")
-      .update({
-        gated_status: "failed",
-        gated_error: message.slice(0, 500),
-      })
-      .eq("id", scanId);
+    await endWrite(scanId, "the failed gated status", () =>
+      supabaseAdmin()
+        .from("scans")
+        .update({
+          gated_status: "failed",
+          gated_error: message.slice(0, 500),
+        })
+        .eq("id", scanId),
+    );
   }
 }
 
