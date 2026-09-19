@@ -24,7 +24,13 @@ const pill: React.CSSProperties = {
   color: T.ink,
 };
 
-export default function HeroSection({ initialDomain = "" }: { initialDomain?: string }) {
+export default function HeroSection({
+  initialDomain = "",
+  notice = null,
+}: {
+  initialDomain?: string;
+  notice?: string | null;
+}) {
   // No background is set here: body carries the page ground, so every board
   // sits on #f6f6f7 and the white cards read as surfaces.
   return (
@@ -82,6 +88,28 @@ export default function HeroSection({ initialDomain = "" }: { initialDomain?: st
           Free scan, then editorial placements in the pages the engines actually cite. White-label for agencies, and
           the same if you are the brand.
         </p>
+
+        {/* Above the field rather than below it: it is the reason they are on
+            this page, and it explains why the report they expected is not. */}
+        {notice ? (
+          <p
+            role="status"
+            style={{
+              margin: "22px auto 0",
+              maxWidth: "400px",
+              textAlign: "left",
+              background: T.badBg,
+              border: `1px solid ${T.badLine}`,
+              borderRadius: "12px",
+              padding: "11px 13px",
+              fontSize: "14px",
+              lineHeight: 1.55,
+              color: T.badFg,
+            }}
+          >
+            {notice}
+          </p>
+        ) : null}
 
         <div style={{ margin: "26px auto 0", maxWidth: "400px", textAlign: "left" }}>
           {scanReady() ? <LiveScanChecker initialDomain={initialDomain} /> : <RequestScanForm initialDomain={initialDomain} />}
