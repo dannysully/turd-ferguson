@@ -38,8 +38,18 @@ export function proxy(request: NextRequest) {
   const creds = decodeBasicAuth(request.headers.get("authorization") ?? "");
   if (!creds) return challenge();
 
-  const ok =
-    constantTimeEqual(creds.user, user) && constantTimeEqual(creds.password, password);
+  /**
+   * Both halves are compared, every time.
+   *
+   * && short-circuits, so a wrong user name returned before the password was
+   * looked at - a timing signal that says which of the two is wrong, on the one
+   * page that has to stay shut. The reason these two calls do not exit early on
+   * the first differing character is defeated by an operator that exits early
+   * on the first differing field.
+   */
+  const userOk = constantTimeEqual(creds.user, user);
+  const passwordOk = constantTimeEqual(creds.password, password);
+  const ok = userOk && passwordOk;
 
   return ok ? NextResponse.next() : challenge();
 }
