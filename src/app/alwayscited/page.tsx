@@ -8,7 +8,7 @@ const tier = TIERS.find((t) => t.id === "cited")!;
 export const metadata: Metadata = {
   title: "alwayscited | AI citations and rankings for agencies",
   description:
-    "Editorial placements in the sources AI engines cite, plus schema work and link insertions that go after the Google position directly. $2,495 a month, priced per topic.",
+    "Editorial placements in the sources AI engines cite, plus schema work and link insertions aimed at the Google position. $2,495 a month, priced per topic.",
   openGraph: { url: "https://alwayscited.com/alwayscited", images: OG_IMAGE },
   alternates: { canonical: "https://alwayscited.com/alwayscited" },
 };

@@ -9,7 +9,7 @@ import { T } from "@/config/tokens";
 export const metadata: Metadata = {
   title: "Why Most AEO Audits Are a Waste of Money",
   description:
-    "The agency industry has a new product to sell. Most of it is a report you don't need. If you're being pitched an AEO audit as a standalone deliverable, you're being sold the wrong thing.",
+    "The agency industry has a new product to sell, and most of it is a report you do not need. Why a standalone AEO audit is the wrong thing to be sold.",
   alternates: {
     canonical:
       "https://alwayscited.com/blog/why-most-aeo-audits-are-a-waste-of-money",
@@ -28,7 +28,7 @@ const postSchema = {
   "@type": "BlogPosting",
   headline: "Why most AEO audits are a waste of money",
   description:
-    "The agency industry has a new product to sell. Most of it is a report you don't need. If you're being pitched an AEO audit as a standalone deliverable, you're being sold the wrong thing.",
+    "The agency industry has a new product to sell, and most of it is a report you do not need. Why a standalone AEO audit is the wrong thing to be sold.",
   url: "https://alwayscited.com/blog/why-most-aeo-audits-are-a-waste-of-money",
   datePublished: "2026-04-30",
   author: { "@type": "Organization", name: "alwayscited" },

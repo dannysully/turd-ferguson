@@ -9,7 +9,7 @@ import { T } from "@/config/tokens";
 export const metadata: Metadata = {
   title: "AEO vs SEO: What's Actually Different (and What Isn't)",
   description:
-    "AEO and SEO are overlapping channels with different target surfaces, measurement frameworks, and time horizons. The clearest comparison you'll read this year - written by people who actually do both.",
+    "AEO and SEO are overlapping channels with different target surfaces, measurement and time horizons. What actually differs and what does not, from people who do both.",
   alternates: {
     canonical: "https://alwayscited.com/blog/aeo-vs-seo-whats-actually-different",
   },

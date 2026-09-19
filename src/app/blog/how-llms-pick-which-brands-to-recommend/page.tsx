@@ -9,7 +9,7 @@ import { T } from "@/config/tokens";
 export const metadata: Metadata = {
   title: "How LLMs Pick Which Brands to Recommend",
   description:
-    "When a B2B buyer asks ChatGPT for a product recommendation, the LLM doesn't independently evaluate vendors. It cites editorial sources - and returns the brand at the top. Here's the mechanism.",
+    "What we find behind an AI product recommendation in the campaigns we run: a small set of editorial sources, and the brands listed at the top of them.",
   alternates: {
     canonical:
       "https://alwayscited.com/blog/how-llms-pick-which-brands-to-recommend",
@@ -72,11 +72,10 @@ export default function Post() {
       <P>
         LLMs aren&apos;t trained to be product evaluators. They&apos;re trained to be probability
         machines that return the most likely useful answer based on patterns in their training
-        data. When asked for a recommendation, the most reliable pattern is to surface what
-        authoritative publications already recommend. Citing established editorial sources is
-        also legally and reputationally safer for the LLM provider than independent vendor
-        evaluation - a factual error in a recommendation can create liability, whereas citing
-        a named publication surfaces that publication as the source.
+        data. When asked for a recommendation, what we see
+        them surface is what authoritative publications already recommend. Why that is the
+        pattern is not something we can read from the outside, so we are not going to put a
+        reason on it.
       </P>
       <P>
         The result is that LLMs converge on a small set of trusted source publications per
@@ -91,9 +90,9 @@ export default function Post() {
         LLMs preferentially cite sources with three characteristics. First: topical authority
         - pages with real organic traffic in the relevant category. A page that ranks for
         &ldquo;best retail POS systems&rdquo; because it genuinely drives clicks from that query is
-        different from a page that ranks on domain authority alone. The AI can distinguish
-        between these, because the training data includes engagement signals that reflect
-        whether a page is actually being read.
+        different from a page that ranks on domain authority alone. The pages we find behind an
+        answer are more often the first kind than the second. That is a pattern in our own
+        scans, not a rule we can see inside the engine.
       </P>
       <P>
         Second: editorial format. Listicles, comparisons, &ldquo;best of&rdquo; rankings - with a clear

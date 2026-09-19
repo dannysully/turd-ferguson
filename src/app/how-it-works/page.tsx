@@ -44,7 +44,7 @@ import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
 export const metadata: Metadata = {
   title: "How AI search citations are engineered",
   description:
-    "The mechanism alwayscited uses to get brands named in AI answers - placement on the pages the engines already read, the on-site work that backs it up, and what we measure.",
+    "How we get brands named in AI answers: placement on the pages the engines already read, the on-site work that backs it up, and what we measure.",
   alternates: { canonical: "https://alwayscited.com/how-it-works" },
   openGraph: {
     images: OG_IMAGE,

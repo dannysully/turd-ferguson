@@ -7,7 +7,7 @@ import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
 export const metadata: Metadata = {
   title: "White label for agencies",
   description:
-    "Where the white-label line sits: which surfaces carry your branding, which carry ours, and the one place our name appears. Monthly, no minimum term, and we never contact your client.",
+    "Where the white-label line sits: which surfaces carry your branding, which carry ours, and the one place our name appears. Monthly, and we never contact your client.",
   openGraph: { url: "https://alwayscited.com/white-label", images: OG_IMAGE },
   alternates: { canonical: "https://alwayscited.com/white-label" },
 };
