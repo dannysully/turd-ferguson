@@ -398,6 +398,25 @@ function LockedRows() {
   );
 }
 
+/**
+ * No page to be placed into, said once and used on both sides of the gate.
+ *
+ * It used to exist only on the unlocked side. Locked, the same scan drew the
+ * blurred skeleton and a gate offering a list - so a visitor gave an address
+ * for rows that were never there, and the report then told them so. The gate
+ * and the report have to agree before the address is given, not after.
+ */
+function NoPlacements() {
+  return (
+    <div style={{ ...CARD, padding: "22px 26px" }}>
+      <p style={{ margin: 0, fontSize: "14px", lineHeight: 1.65, color: T.soft }}>
+        None this time. Every page the engines cited for these questions either already names you, is a competitor
+        own site, or is somewhere an article cannot run. That is a finding, not a gap in the scan.
+      </p>
+    </div>
+  );
+}
+
 function PlacementTable(p: { r: RunScanResponse }) {
   const rows = p.r.opportunities ?? [];
   return (
@@ -488,8 +507,16 @@ export default function ResultView(p: {
   totalSources: number;
   unlocked: boolean;
   gate: React.ReactNode;
+  /**
+   * The count route has already answered zero, so the gate must not blur a
+   * table that has no rows behind it. Undefined means not known yet, which is
+   * a different thing and keeps the blur.
+   */
+  noPlacements?: boolean;
 }) {
   const r = p.r;
+  /** A counted zero on either side of the gate. Not "not counted yet". */
+  const emptyList = p.unlocked ? !(r.opportunities && r.opportunities.length) : Boolean(p.noPlacements);
   const answers = r.engines.reduce((a, e) => a + e.answered, 0);
   const named = r.engines.reduce((a, e) => a + e.named, 0);
   const missing = answers - named;
@@ -632,7 +659,8 @@ export default function ResultView(p: {
       <SourceTable r={r} domain={p.domain} detailed={p.unlocked} total={p.totalSources} />
       <ShareOfVoice r={r} />
 
-      {/* The placement list */}
+      {/* The placement list. `emptyList` is a counted zero on either side of
+          the gate, and is deliberately not the same as "not counted yet". */}
       <section id="plan">
         <Head title="Pages feeding the answers you are missing from">
           The pages above, filtered to the ones feeding answers no engine named you in, and where an article can
@@ -648,13 +676,13 @@ export default function ResultView(p: {
               </div>
             </div>
           ) : (
-            <div style={{ ...CARD, padding: "22px 26px" }}>
-              <p style={{ margin: 0, fontSize: "14px", lineHeight: 1.65, color: T.soft }}>
-                None this time. Every page the engines cited for these questions either already names you, is a
-                competitor own site, or is somewhere an article cannot run. That is a finding, not a gap in the scan.
-              </p>
-            </div>
+            <NoPlacements />
           )
+        ) : p.noPlacements ? (
+          <div>
+            <NoPlacements />
+            <div style={{ ...CARD, padding: "24px", marginTop: "16px", maxWidth: "560px" }}>{p.gate}</div>
+          </div>
         ) : (
           <div style={{ ...CARD, position: "relative", overflow: "hidden" }}>
             <LockedRows />
@@ -673,11 +701,13 @@ export default function ResultView(p: {
           </div>
         )}
 
-        <p style={{ margin: "14px 0 0", fontSize: "13.5px", lineHeight: 1.65, color: T.soft }}>
-          This list is also the <TierName tier="mentioned" /> brief. We approach the pages on it, and where inclusion
-          is not editorially possible we find the contextually equivalent page and write the content that gets you in.
-          You get told which ones those were.
-        </p>
+        {emptyList ? null : (
+          <p style={{ margin: "14px 0 0", fontSize: "13.5px", lineHeight: 1.65, color: T.soft }}>
+            This list is also the <TierName tier="mentioned" /> brief. We approach the pages on it, and where
+            inclusion is not editorially possible we find the contextually equivalent page and write the content that
+            gets you in. You get told which ones those were.
+          </p>
+        )}
 
         {p.unlocked ? (
           <div style={{ marginTop: "14px", display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>

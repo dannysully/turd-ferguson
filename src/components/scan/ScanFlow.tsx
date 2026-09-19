@@ -318,6 +318,17 @@ export default function ScanFlow(p: {
     questions?: FullPayload["questions"];
     opportunities?: ScanOpportunity[];
   } | null;
+  /**
+   * How many placements are behind the gate, counted on the server for a
+   * finished scan that is still locked.
+   *
+   * Same reason initialTeaser exists: the gate leads on this number, and
+   * fetching it from the browser meant the first paint drew a blurred table
+   * and generic copy which then changed under the reader. Null is "not
+   * counted", which the client still resolves for itself; 0 is a counted
+   * zero and is not the same thing.
+   */
+  initialOppCount?: number | null;
 }) {
   const [phase, setPhase] = useState<Phase>(
     p.status === "complete" ? "result" : p.status === "queued" || p.status === "running" ? "running" : "confirm",
@@ -339,7 +350,7 @@ export default function ScanFlow(p: {
    * its own, from a route that returns counts and nothing else, so a locked
    * screen can say what it is holding without the domains ever reaching it.
    */
-  const [oppCount, setOppCount] = useState<number | null>(null);
+  const [oppCount, setOppCount] = useState<number | null>(p.initialOppCount ?? null);
 
   const [email, setEmail] = useState("");
   const [emailErr, setEmailErr] = useState("");
@@ -638,13 +649,35 @@ export default function ScanFlow(p: {
           ? "Step 3 of 3 - report"
           : "Step 2 of 3 - result";
 
-  const gateHeading = oppCount
-    ? oppCount + (oppCount === 1 ? " page" : " pages") + " you could be placed into"
-    : gatedEngines.length
-      ? "Unlock the full report, plus " + engineNames
-      : // Not "see who is winning" any more - the leaderboard is on the page
-        // above this gate. Only the placement half is still behind it.
-        "Where you could get placed";
+  /**
+   * Nothing to place them into, and we knew it before the address was asked
+   * for.
+   *
+   * oppCount is 0 once the count route has answered and null until it has, and
+   * 0 is falsy - so a scan with no derivable placements fell through to the
+   * copy below and promised a list the unlock then renders as "none this
+   * time". The gate and the report disagreed, and the gate was the one taking
+   * the email address.
+   *
+   * This is the ordinary case rather than an edge. Of the five completed scans
+   * in production that have never been unlocked, three derive zero
+   * opportunities - including one whose brand is named in every answer, which
+   * is the best possible result and the emptiest possible list.
+   *
+   * The report still holds something real: what each engine said word for
+   * word, and the per-question breakdown. So the gate stays and sells that.
+   */
+  const noPlacements = oppCount === 0;
+
+  const gateHeading = noPlacements
+    ? "The rest of the report"
+    : oppCount
+      ? oppCount + (oppCount === 1 ? " page" : " pages") + " you could be placed into"
+      : gatedEngines.length
+        ? "Unlock the full report, plus " + engineNames
+        : // Not "see who is winning" any more - the leaderboard is on the page
+          // above this gate. Only the placement half is still behind it.
+          "Where you could get placed";
 
   /* The count leads when we have it: a gate that names what is behind it is
      worth crossing, and a blurred table with no number is just a blurred
@@ -655,26 +688,31 @@ export default function ScanFlow(p: {
      full source list were behind this gate until 20260919000000 made them free,
      and a gate promising something the reader has already scrolled past is
      worse than no gate. What the address buys is the placement list. */
-  const gateBody = oppCount
-    ? (oppCount === 1 ? "One page is" : oppCount + " pages are") +
-      " already feeding the answers you are missing from, and " +
-      (oppCount === 1 ? "it is" : "they are") +
-      " somewhere an article can run. Ranked by how many answers a placement would put you into, with the" +
-      " questions behind each one" +
-      (gatedEngines.length ? ", and the same questions put through " + engineNames : "") +
+  const gateBody = noPlacements
+    ? "There is no placement list on this one, so what the address buys is the transcript: what each engine said" +
+      " word for word, question by question, and every page it cited for each" +
+      (gatedEngines.length ? ", plus the same questions put through " + engineNames : "") +
       "."
-    : gatedEngines.length
-      ? "We will run the same " +
-        (result?.brand.of ?? 14) +
-        " questions through " +
-        engineNames +
-        " as well, and show you which of the " +
-        sourceCount +
-        " pages above are ones you could be placed into."
-      : "Which of the " +
-        sourceCount +
-        " pages above are feeding answers you are missing from, and which of those are somewhere an article can" +
-        " realistically run. That is the half of this you can act on.";
+    : oppCount
+      ? (oppCount === 1 ? "One page is" : oppCount + " pages are") +
+        " already feeding the answers you are missing from, and " +
+        (oppCount === 1 ? "it is" : "they are") +
+        " somewhere an article can run. Ranked by how many answers a placement would put you into, with the" +
+        " questions behind each one" +
+        (gatedEngines.length ? ", and the same questions put through " + engineNames : "") +
+        "."
+      : gatedEngines.length
+        ? "We will run the same " +
+          (result?.brand.of ?? 14) +
+          " questions through " +
+          engineNames +
+          " as well, and show you which of the " +
+          sourceCount +
+          " pages above are ones you could be placed into."
+        : "Which of the " +
+          sourceCount +
+          " pages above are feeding answers you are missing from, and which of those are somewhere an article can" +
+          " realistically run. That is the half of this you can act on.";
 
   return (
     <div>
@@ -779,6 +817,7 @@ export default function ScanFlow(p: {
             domain={p.domain}
             totalSources={sourceCount}
             unlocked={Boolean(full)}
+            noPlacements={noPlacements}
             gate={
               pendingEmail ? (
                 <VerifyPending email={pendingEmail} note={resendNote} busy={busy} onResend={onResend} />

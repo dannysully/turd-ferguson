@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 
 import ScanFlow from "@/components/scan/ScanFlow";
 import { isMarket } from "@/lib/scan/domain";
-import { buildUnlockPayload, type UnlockPayload } from "@/lib/scan/unlock";
+import { buildUnlockPayload, opportunityShape, type UnlockPayload } from "@/lib/scan/unlock";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 /**
@@ -65,6 +65,32 @@ export default async function ScanTokenPage({ params }: { params: Promise<{ toke
     }
   }
 
+  /**
+   * What the gate is holding, counted here rather than from the browser.
+   *
+   * The gate leads on this number, and a zero is as much a finding as a
+   * fourteen: a scan with nothing to place into must not blur a table and ask
+   * for an address for rows that are not there. Counting it on the client meant
+   * the first paint always drew the blur and the promise, then corrected
+   * itself - so the reader saw the wrong version first, and a reader who never
+   * ran the script saw only the wrong version.
+   *
+   * Only for a finished scan that is still locked. Unlocked scans have the
+   * rows themselves in `full`, and an unfinished one has nothing to count.
+   *
+   * Never fatal. The gate reads perfectly well without a number - it falls
+   * back to the copy that does not name one - so a failure here degrades to
+   * the client fetch rather than taking the page down.
+   */
+  let oppCount: number | null = null;
+  if (complete && !unlocked) {
+    try {
+      oppCount = (await opportunityShape(scan.id as string)).count;
+    } catch (err) {
+      console.error(`[scan] could not count opportunities for ${scan.id}:`, err);
+    }
+  }
+
   const brand = (scan.brand_name as string | null) ?? null;
   const positioning = (scan.positioning as string | null) ?? null;
   const topic = (scan.topic as string | null) ?? "";
@@ -88,6 +114,7 @@ export default async function ScanTokenPage({ params }: { params: Promise<{ toke
       initialFull={full}
       unlocked={unlocked}
       gatedEngines={gated}
+      initialOppCount={oppCount}
     />
   );
 }
