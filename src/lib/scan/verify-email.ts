@@ -3,6 +3,7 @@ import "server-only";
 import { Resend } from "resend";
 
 import { T } from "@/config/tokens";
+import { headerSafe } from "@/lib/email-header";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 /**
@@ -49,9 +50,6 @@ function escapeHtml(s: string): string {
  * but the string is ours to hand over clean and it costs one pass.
  * Collapsing all whitespace takes CR and LF with it.
  */
-function headerSafe(s: string): string {
-  return s.replace(/\s+/g, " ").trim().slice(0, 120);
-}
 
 /**
  * The email palette, taken from the design tokens rather than retyped.

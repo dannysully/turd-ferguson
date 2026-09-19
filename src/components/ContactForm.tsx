@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import Link from "next/link";
 
+import { CONTACT_LIMITS } from "@/config/contact";
 import { submitContactForm, type ContactFormState } from "@/app/contact/actions";
 import { T } from "@/config/tokens";
 
@@ -24,6 +25,22 @@ const inputStyle: React.CSSProperties = {
   border: "1px solid " + T.line,
   borderRadius: "10px",
   padding: "11px 13px",
+};
+
+/**
+ * Off-screen rather than display:none, because a bot that skips hidden inputs
+ * is exactly the one worth catching. tabIndex and aria-hidden keep it away
+ * from the keyboard and from a screen reader, and autoComplete plus the two
+ * password-manager hints keep a browser from filling it on a real visitor.
+ * submitContactForm logs it if it ever fires, so a false positive is
+ * discoverable instead of a silently eaten enquiry.
+ */
+const honeypotStyle: React.CSSProperties = {
+  position: "absolute",
+  left: "-9999px",
+  width: "1px",
+  height: "1px",
+  overflow: "hidden",
 };
 
 const labelStyle: React.CSSProperties = {
@@ -53,7 +70,15 @@ export default function ContactForm() {
       <label htmlFor="c-name" style={labelStyle}>
         Name
       </label>
-      <input id="c-name" name="name" type="text" required autoComplete="name" style={inputStyle} />
+      <input
+        id="c-name"
+        name="name"
+        type="text"
+        required
+        maxLength={CONTACT_LIMITS.name}
+        autoComplete="name"
+        style={inputStyle}
+      />
 
       <label htmlFor="c-email" style={{ ...labelStyle, marginTop: "16px" }}>
         Work email
@@ -71,12 +96,40 @@ export default function ContactForm() {
       <label htmlFor="c-agency" style={{ ...labelStyle, marginTop: "16px" }}>
         Agency
       </label>
-      <input id="c-agency" name="company" type="text" autoComplete="organization" style={inputStyle} />
+      <input
+        id="c-agency"
+        name="company"
+        type="text"
+        maxLength={CONTACT_LIMITS.company}
+        autoComplete="organization"
+        style={inputStyle}
+      />
 
       <label htmlFor="c-msg" style={{ ...labelStyle, marginTop: "16px" }}>
         What do you need
       </label>
-      <textarea id="c-msg" name="message" rows={4} required style={{ ...inputStyle, resize: "vertical" }} />
+      <textarea
+        id="c-msg"
+        name="message"
+        rows={4}
+        required
+        maxLength={CONTACT_LIMITS.message}
+        style={{ ...inputStyle, resize: "vertical" }}
+      />
+
+      <div style={honeypotStyle} aria-hidden="true">
+        <label htmlFor="c-website">Website</label>
+        <input
+          id="c-website"
+          name="website"
+          type="text"
+          tabIndex={-1}
+          autoComplete="off"
+          defaultValue=""
+          data-1p-ignore
+          data-lpignore="true"
+        />
+      </div>
 
       {state.status === "error" ? (
         <p role="alert" style={{ margin: "12px 0 0", fontSize: "13px", color: T.badFg }}>

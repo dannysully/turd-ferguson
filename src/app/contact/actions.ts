@@ -2,11 +2,18 @@
 
 import { Resend } from "resend";
 
+import { CONTACT_LIMITS as LIMITS } from "@/config/contact";
+import { headerSafe } from "@/lib/email-header";
+
 /**
  * Contact form submission. This previously logged to the server console behind
  * a TODO, which silently dropped every enquiry while the whole site pointed
  * its CTAs here. It now sends, and reports an error rather than a false
  * success when sending is not configured.
+ *
+ * Every value below is typed by a stranger into a form with no captcha, so it
+ * is treated as hostile: the subject goes through headerSafe, and each field
+ * is bounded before it is put in a message.
  */
 
 const CONTACT_EMAIL_DESTINATION =
@@ -36,6 +43,43 @@ export async function submitContactForm(
     return { status: "error", message: "Please enter a valid email address." };
   }
 
+  /**
+   * The honeypot.
+   *
+   * This action has always read a `website` field that the form has never
+   * rendered, so it reported "not given" on every enquiry ever sent. The form
+   * renders it now, hidden, and a filled one is an automated submission: no
+   * human can see the field, let alone type in it.
+   *
+   * It answers the bot with a success rather than an error, because an error
+   * tells whoever is probing which field gave them away.
+   *
+   * It is logged. A hidden field that silently eats a real enquiry is exactly
+   * the failure mode that looks identical to working, so if a browser ever
+   * autofills this despite the guards, the evidence is in the function log
+   * rather than nowhere.
+   */
+  if (website) {
+    console.warn("[contact] honeypot filled, not sending", { email, website });
+    return { status: "success" };
+  }
+
+  if (name.length > LIMITS.name) {
+    return { status: "error", message: "That name is longer than we can send. Please shorten it." };
+  }
+  if (company && company.length > LIMITS.company) {
+    return { status: "error", message: "That agency name is longer than we can send. Please shorten it." };
+  }
+  if (message.length > LIMITS.message) {
+    return {
+      status: "error",
+      message:
+        "That message is over " +
+        LIMITS.message +
+        " characters. Send the short version and we will ask for the rest.",
+    };
+  }
+
   const key = process.env.RESEND_API_KEY;
   if (!key) {
     return {
@@ -51,7 +95,7 @@ export async function submitContactForm(
       from: FROM,
       to: CONTACT_EMAIL_DESTINATION,
       replyTo: email,
-      subject: `Contact form: ${name}`,
+      subject: headerSafe(`Contact form: ${name}`),
       text: [
         `Name:    ${name}`,
         `Email:   ${email}`,
