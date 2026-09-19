@@ -7,19 +7,29 @@ import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
  * because the design files did not happen to include it would be a
  * commercial change dressed up as a design one.
  *
- * The Vibe Retail figures are NOT touched. "#83 to #4" is what the site has
- * published; a second figure exists in the design notes and neither carries
- * a date, so the number stays exactly as it is and is not restated anywhere
- * else until someone produces a dated reading. It is in blocked.md.
+ * The Vibe Retail figures now carry their windows. The #1 reading has a
+ * dated source at last: Danny attested it on 19 Sep 2026 as the account
+ * owner, which is what the figure was missing. It is shown as a four-month
+ * reading beside the eight-week one rather than replacing it - the campaign
+ * produced #4 in eight weeks and the keyword carried on climbing, and
+ * collapsing the two would claim #1 in eight weeks, which is not what
+ * happened.
  *
  * Two things did go: the "listicle went live in the morning" paragraph
  * appeared twice on this page, word for word, and the Nomada provenance line
  * is now at the end of the packages board.
  */
 
+/**
+ * Each figure carries its own window, because they are readings from
+ * different dates and collapsing them would imply the #1 arrived in eight
+ * weeks. The eight-week numbers are what the campaign produced; the #1 is a
+ * later reading, attested by Danny as the account owner on 19 Sep 2026.
+ */
 const FACTS = [
-  { label: "Money keyword", val: "#83 to #4" },
-  { label: "AI visibility across the full question set", val: "0% to 25%" },
+  { label: "Money keyword, at eight weeks", val: "#83 to #4" },
+  { label: "Money keyword, at four months", val: "#83 to #1" },
+  { label: "AI visibility across the full question set, eight weeks", val: "0% to 25%" },
   { label: "AI Overview citations on commercial questions", val: "3" },
 ];
 
@@ -32,12 +42,13 @@ export default function Results() {
           <h2 style={{ ...H2, marginTop: "8px" }}>One placement, one morning.</h2>
         </div>
         <p style={{ gridColumn: "span 8", margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
-          One campaign, one placement, measured over the eight weeks after it went live.
+          One campaign, one placement. The eight-week readings are what it produced; the money keyword kept
+          climbing after that.
         </p>
       </div>
 
       <div style={{ ...CARD, padding: "24px 26px" }}>
-        <p style={{ ...MICRO, color: T.accent, margin: 0 }}>Vibe Retail · US retail SaaS · eight weeks</p>
+        <p style={{ ...MICRO, color: T.accent, margin: 0 }}>Vibe Retail · US retail SaaS</p>
 
         <div style={{ marginTop: "14px" }}>
           {FACTS.map((f) => (

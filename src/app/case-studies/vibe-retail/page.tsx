@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Case Study: US Retail SaaS - AI Overview Top Citations in Under Eight Weeks",
     description:
-      "Three AI Overview top citations. 0 → 14% ChatGPT visibility in one week. #83 → #4 on the money keyword. Same-day citation engineering.",
+      "Three AI Overview top citations. 0 → 14% ChatGPT visibility in one week. The money keyword went #83 → #4 in eight weeks and reached #1 within four months. Same-day citation engineering.",
     url: "https://alwayscited.com/case-studies/vibe-retail",
   },
 };
@@ -150,7 +150,8 @@ export default function CaseStudyPage() {
             {[
               { stat: "3", label: "AI Overview top citations on commercial-intent retail POS queries" },
               { stat: "0 → 14%", label: "AI visibility across the full prompt set, one week of tracking" },
-              { stat: "#83 → #4", label: "Movement on the client's primary money keyword" },
+              { stat: "#83 → #4", label: "The client's primary money keyword, at eight weeks" },
+              { stat: "#83 → #1", label: "The same keyword four months in, as the placements kept working" },
               { stat: "Same-day", label: "Time from listicle going live to AI Overview citing the brand as Best Overall" },
             ].map(({ stat, label }) => (
               <div
@@ -468,7 +469,8 @@ export default function CaseStudyPage() {
               client&apos;s core money keyword from position{" "}
               <strong style={{ color: "#0D1B2A" }}>#83 to #4</strong> on Google for &ldquo;cloud based pos
               system for retail,&rdquo; with eleven additional commercial-intent variations now ranking
-              between positions 4 and 17. One investment, two channels moved.
+              between positions 4 and 17. One investment, two channels moved. Four months in, that
+              keyword had reached <strong style={{ color: "#0D1B2A" }}>#1</strong>.
             </Prose>
           </div>
 
