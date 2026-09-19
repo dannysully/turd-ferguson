@@ -225,14 +225,22 @@ function toResult(t: Teaser, domain: string, full: FullPayload | null): RunScanR
  * It names the address, because the commonest failure is a typo nobody can see
  * once the form has gone, and it offers a resend, because with verification in
  * front of the result a message that does not arrive is the whole visit lost.
+ *
+ * What it must not promise is the leaderboard or the source list. Both became
+ * free at 20260919000000 and are on the page behind this panel. The gate copy
+ * lower down was corrected for that and this panel was not, so the screen that
+ * appears the moment an address is given was still selling what the reader had
+ * already scrolled past. The address buys the placement list and the verbatim
+ * answers, which is what the verification email itself says.
  */
 function VerifyPending(p: { email: string; note: string; busy: boolean; onResend: () => void }) {
   return (
     <div>
       <p style={{ fontSize: "0.9375rem", fontWeight: 700, color: T.ink, margin: "0 0 0.5rem" }}>Check your inbox</p>
       <p style={{ fontSize: "0.875rem", color: T.soft, margin: "0 0 1rem", lineHeight: 1.6 }}>
-        The full report is one click away. We have sent a link to <strong style={{ color: T.ink }}>{p.email}</strong> -
-        opening it unlocks the leaderboard and every source, on this device or any other.
+        The placement list is one click away. We have sent a link to <strong style={{ color: T.ink }}>{p.email}</strong> -
+        opening it shows which pages you could be placed into and what each engine said word for word, on
+        this device or any other.
       </p>
       <p style={{ fontSize: "0.8125rem", color: T.soft, margin: "0 0 0.75rem", lineHeight: 1.6 }}>
         Nothing yet? It can take a minute, and it is worth a look in spam.
@@ -279,6 +287,12 @@ export default function ScanFlow(p: {
   gatedEngines: string[];
   /** The result, read on the server for a scan that has already finished. */
   initialTeaser?: Teaser | null;
+  /**
+   * Whether the server found this scan unlocked. Distinct from initialFull
+   * being present: the report can fail to build for a scan that is unlocked,
+   * and the two used to be indistinguishable from in here.
+   */
+  unlocked?: boolean;
   /** The unlocked half, read on the server for a scan that has been unlocked. */
   initialFull?: {
     brands?: FullPayload["brands"];
@@ -327,22 +341,39 @@ export default function ScanFlow(p: {
   }, [p.token]);
 
   // ---- arriving at a finished scan ----
-  // The teaser always loads. The full payload only exists once this scan has
-  // been unlocked, and a 403 there is the ordinary case rather than a failure:
-  // it means the visitor gets the gate, which is correct.
+  // Only what the server did not already supply. A 403 on the report is still
+  // treated as the ordinary case rather than a failure, because the server can
+  // report a scan as unlocked that the route then disagrees about.
   useEffect(() => {
-    if (phase !== "result" || teaser) return;
+    if (phase !== "result") return;
+    /**
+     * Both halves are normally rendered into the page on the server, so this
+     * is the recovery path for the two ways that can come up short: a teaser
+     * the RPC would not return, and - on a scan the server has told us is
+     * unlocked - a report whose build threw.
+     *
+     * The second condition is the one that was missing. The guard read "or
+     * teaser", so a server-rendered teaser short-circuited the whole effect
+     * and the report was never asked for again: a visitor who had given their
+     * address was shown the gate as though they never had.
+     */
+    const needTeaser = !teaser;
+    const needFull = Boolean(p.unlocked) && !full;
+    if (!needTeaser && !needFull) return;
     let stop = false;
 
     (async () => {
-      try {
-        const t = await loadTeaser();
-        if (stop) return;
-        setTeaser(t);
-      } catch {
-        if (!stop) setError("We could not load that result.");
-        return;
+      if (needTeaser) {
+        try {
+          const t = await loadTeaser();
+          if (stop) return;
+          setTeaser(t);
+        } catch {
+          if (!stop) setError("We could not load that result.");
+          return;
+        }
       }
+      if (!needFull) return;
 
       try {
         const res = await fetch("/api/scan/" + p.token + "/full", { cache: "no-store" });
@@ -376,7 +407,7 @@ export default function ScanFlow(p: {
     return () => {
       stop = true;
     };
-  }, [phase, teaser, loadTeaser, p.token, p.gatedEngines]);
+  }, [phase, teaser, full, p.unlocked, loadTeaser, p.token, p.gatedEngines]);
 
   // ---- the run: poll the real status, never a fake timer ----
   useEffect(() => {

@@ -86,26 +86,41 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
     .filter((v) => v.length >= 2 && v.length <= 80)
     .slice(0, TOPIC_VARIANT_COUNT);
 
+  // The attempts, billed as they go out.
+  //
+  // The comment that used to sit inside this try said the route had no scan
+  // row to bill them onto. It has one, and updates it a few lines below. A
+  // flat +1 let CALL_CEILING pass up to three times the calls it is written to
+  // allow - on a public route with nothing else bounding it - and recorded
+  // nothing at all when the last retry threw, which is the case it exists for.
+  const billed = { calls: 0 };
+
+  /** Puts what was billed on the row, through whichever exit this takes. */
+  const recordSpend = async () => {
+    if (!billed.calls) return;
+    await db
+      .from("scans")
+      .update({ anthropic_calls: (scan.anthropic_calls ?? 0) + billed.calls })
+      .eq("id", scan.id);
+  };
+
   // Annotated rather than left to evolve, because the assignment below is a
   // destructuring one and an inferred `any` here would take the type off
   // everything the response is built from.
   let questions: GeneratedQuestion[];
   try {
-    // Only the set is wanted here. This route previews the questions and
-    // stores nothing, so it has no scan row to bill the attempts onto - the
-    // comment above about daily_cost_cap_usd covering DataForSEO spend only
-    // is the reason that is tolerated rather than an oversight.
     ({ questions } = await generateQuestions({
       topic,
       topicVariants: variants,
       market,
       brand: scan.brand_name ?? scan.domain,
       positioning: scan.positioning,
-    }));
+    }, billed));
   } catch (err) {
     // Logged rather than swallowed. This is the only step between a visitor
     // and their scan, and a silent 502 here looks identical to a slow network.
     console.warn("[scan] could not write the questions for " + scan.id + ": " + describeAnthropicError(err));
+    await recordSpend();
     return Response.json(
       { error: "write_failed", message: "We could not write the questions just now. Try again." },
       { status: 502 },
@@ -115,10 +130,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
   // Counted whether or not the visitor goes on to run them. The admin page and
   // the ceiling above both read this, and a call that happened is a cost that
   // happened.
-  await db
-    .from("scans")
-    .update({ anthropic_calls: (scan.anthropic_calls ?? 0) + 1 })
-    .eq("id", scan.id);
+  await recordSpend();
 
   return Response.json({
     topic,

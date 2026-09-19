@@ -128,11 +128,19 @@ export async function POST(req: Request) {
     });
   }
 
+  // What the brand read actually billed, rather than a flat one. withRetry
+  // makes up to three requests and Anthropic bills each; the rewrite ceiling
+  // in /questions is counted off this column and so is the admin cost figure,
+  // so a scan that retried here used to get two free rewrites it had paid for.
+  //
+  // A read that throws is billed to nothing, and that one is not fixable here:
+  // the scan row does not exist until below, so there is no row to put it on.
+  const billed = { calls: 0 };
   // 4 and 5. Read the site, then one language model call to name the brand.
   let read;
   try {
     const siteText = await readSite(domain);
-    read = await readBrand(siteText);
+    read = await readBrand(siteText, billed);
   } catch (err) {
     if (err instanceof UnreachableDomain) {
       return fail(422, "unreachable", `We could not read ${domain}. Check the address and try again.`);
@@ -163,7 +171,7 @@ export async function POST(req: Request) {
       // mid-scan cannot leave a result claiming engines it never read.
       engines: settings.scan_engines_free,
       gated_engines: settings.scan_engines_gated,
-      anthropic_calls: 1,
+      anthropic_calls: billed.calls,
     })
     .select("public_token")
     .single();

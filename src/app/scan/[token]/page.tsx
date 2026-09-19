@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 
 import ScanFlow from "@/components/scan/ScanFlow";
 import { isMarket } from "@/lib/scan/domain";
-import { buildUnlockPayload } from "@/lib/scan/unlock";
+import { buildUnlockPayload, type UnlockPayload } from "@/lib/scan/unlock";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 /**
@@ -44,7 +44,26 @@ export default async function ScanTokenPage({ params }: { params: Promise<{ toke
    */
   const complete = scan.status === "complete";
   const teaser = complete ? (await db.rpc("scan_teaser", { p_token: token })).data : null;
-  const full = complete && scan.unlocked_at ? await buildUnlockPayload(scan.id as string) : null;
+  const unlocked = complete && !!scan.unlocked_at;
+
+  /**
+   * A read that fails is not a report with nothing in it.
+   *
+   * /full wraps this same call for exactly that reason, so a database fault
+   * reaches the screen as a failure rather than as an empty report. Rendering
+   * it here bypassed the wrapper: an unlocked visitor following the link in
+   * their email got a 500 instead of their report, on the one path that link
+   * actually takes. It degrades to the client fetch now, which has the message
+   * for it and a refresh behind it.
+   */
+  let full: UnlockPayload | null = null;
+  if (unlocked) {
+    try {
+      full = await buildUnlockPayload(scan.id as string);
+    } catch (err) {
+      console.error(`[scan] could not render the report for ${scan.id}:`, err);
+    }
+  }
 
   const brand = (scan.brand_name as string | null) ?? null;
   const positioning = (scan.positioning as string | null) ?? null;
@@ -67,6 +86,7 @@ export default async function ScanTokenPage({ params }: { params: Promise<{ toke
       engines={engines}
       initialTeaser={teaser}
       initialFull={full}
+      unlocked={unlocked}
       gatedEngines={gated}
     />
   );

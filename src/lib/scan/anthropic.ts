@@ -111,9 +111,15 @@ const BrandRead = z.object({
 });
 export type BrandRead = z.infer<typeof BrandRead>;
 
-export async function readBrand(siteText: string): Promise<BrandRead> {
+export async function readBrand(siteText: string, billed?: { calls: number }): Promise<BrandRead> {
   // Retried for the same reason the question set is: this is the first thing a
   // visitor does, and a 529 here reads to them as "your site cannot be read".
+  //
+  // The counter is passed through now. A retry is a second request and
+  // Anthropic bills it like one, and this was the one withRetry site with no
+  // sink for the count: the scan row recorded a flat 1 however many attempts
+  // went out. The run this retry exists for is exactly the run whose cost went
+  // unrecorded, and daily_cost_cap_usd is read off that column.
   const res = await withRetry(() => anthropic().messages.parse({
     model: MODEL,
     max_tokens: 4000,
@@ -149,7 +155,7 @@ export async function readBrand(siteText: string): Promise<BrandRead> {
       "Set confidence to low when the site does not make the category clear.",
     ].join("\n"),
     messages: [{ role: "user", content: `Website text:\n\n${siteText}` }],
-  }));
+  }), billed);
 
   const out = res.parsed_output;
   if (!out) throw new Error("could not read the brand from that site");
@@ -219,13 +225,14 @@ export async function generateQuestions(input: {
   market: Market;
   brand: string;
   positioning: string | null;
-}): Promise<{ questions: GeneratedQuestion[]; calls: number }> {
+}, billed: { calls: number } = { calls: 0 }): Promise<{ questions: GeneratedQuestion[]; calls: number }> {
   const marketName = input.market === "UK" ? "the United Kingdom" : "the United States";
   const year = currentYear();
-  // Up to three requests behind one question set. The caller used to record
-  // this as a flat one, and as nothing at all when it threw on the last of
-  // them.
-  const billed = { calls: 0 };
+  // Up to three requests behind one question set, and the count belongs to
+  // the caller now. It was returned only on the way out, so the attempts a
+  // set had already been billed for died with it whenever the last one threw -
+  // the same defect a78a2b6 closed on the engine passes. A caller that hands
+  // in an accumulator can bill through either exit.
 
   // The variants are what stop fourteen questions being fourteen rewordings of
   // one phrase. Without them the set collapses onto the broad category and the

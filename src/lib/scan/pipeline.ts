@@ -473,14 +473,22 @@ export async function runScan(scanId: string): Promise<void> {
     let ordered = confirmedRows ?? [];
 
     if (!ordered.length) {
-      const generated = await generateQuestions({
-        topic: scan.topic,
-        topicVariants: scan.topic_variants ?? [],
-        market,
-        brand,
-        positioning: scan.positioning,
-      });
-      spend.anthropicCalls += generated.calls;
+      // Billed onto the accumulator as the requests go out, not returned on the
+      // way through. withRetry makes up to three, and a set that threw on the
+      // last of them used to record none of the ones already paid for.
+      const qBilled = { calls: 0 };
+      let generated;
+      try {
+        generated = await generateQuestions({
+          topic: scan.topic,
+          topicVariants: scan.topic_variants ?? [],
+          market,
+          brand,
+          positioning: scan.positioning,
+        }, qBilled);
+      } finally {
+        spend.anthropicCalls += qBilled.calls;
+      }
       checkDeadline();
 
       const rows = generated.questions.map(function (q, i) {
