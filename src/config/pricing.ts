@@ -44,8 +44,6 @@ export type Tier = {
   positioning: string;
   /** The package page this tier links to. */
   href: string;
-  /** True where the sector selector adjusts this tier's price. */
-  sectorPriced: boolean;
   includes: string[];
   cta: { label: string; href: string };
   emphasis?: boolean;
@@ -64,7 +62,6 @@ export const TIERS: Tier[] = [
     priceLabel: "from $99/mo",
     priceBasis: "20 questions, checked weekly. More questions or a tighter cadence moves the price.",
     positioning: "Know what your coverage did",
-    sectorPriced: false,
     href: "/alwaystracked",
     includes: [
       "Ongoing AI visibility tracking",
@@ -82,7 +79,6 @@ export const TIERS: Tier[] = [
     basePrice: 995,
     priceLabel: "$995/mo",
     positioning: "Get named when AI recommends",
-    sectorPriced: true,
     href: "/alwaysmentioned",
     includes: [
       "3 placements a month on one topic",
@@ -98,7 +94,6 @@ export const TIERS: Tier[] = [
     basePrice: 2495,
     priceLabel: "$2,495/mo",
     positioning: "Get cited, and rank for it",
-    sectorPriced: true,
     href: "/alwayscited",
     includes: [
       "Schema work on your pages",
@@ -115,7 +110,6 @@ export const TIERS: Tier[] = [
     basePrice: null,
     priceLabel: "Book a call",
     positioning: "Every market, every brand, every surface",
-    sectorPriced: false,
     href: "/alwayseverywhere",
     includes: [
       `Everything in ${TIER_PLAIN.cited}`,
@@ -128,41 +122,28 @@ export const TIERS: Tier[] = [
 
 
 /**
- * Sector pricing - outstanding on D4 (sector list, and the alwaysmentioned and
- * alwayscited price for each).
+ * Sector pricing - removed, not forgotten. Still outstanding on D4 (the sector
+ * list, and the alwaysmentioned and alwayscited price for each).
  *
- * Shape required, one entry per sector:
- *   { id: "invoice-factoring", label: "Invoice factoring",
- *     prices: { mentioned: 1295, cited: 2995 } }
+ * This file used to carry `Sector`, an empty `SECTORS`, `formatUsd`,
+ * `priceFor` and a `sectorPriced` flag on every tier, all of it feeding
+ * `SectorPricing.tsx`. That component went in the redesign, and nothing has
+ * imported any of it since - so what was left was a types-and-helpers block
+ * whose doc comment told the next reader that "the selector below renders
+ * only once this is populated". There is no selector below. A comment that
+ * sends somebody looking for a component that was deleted costs more than the
+ * code it documents.
  *
- * Intentionally empty: inventing a price is not an option, so the selector
- * below renders only once this is populated. Critique 1.8 reads the selector as
- * "never built" - it is built and gated on this data, which is the same thing
- * from the outside until D4 lands.
+ * The decision it was really recording is the part worth keeping, so it is
+ * stated here instead: **per-sector prices are not known and are not to be
+ * invented.** Until Danny supplies the sector list with a price for
+ * alwaysmentioned and alwayscited in each, every tier shows its base price
+ * and no sector selector exists anywhere on the site.
+ *
+ * Bringing it back is a small job against a populated list - one entry per
+ * sector, `{ id, label, prices: { mentioned, cited } }` - plus a resolver that
+ * keeps a label saying more than its number ("from $99/mo") rather than
+ * rebuilding the string from `basePrice` and silently dropping the "from".
+ * That last detail is the one bug the old `priceFor` had already been fixed
+ * for, and it is recorded here so it is not rediscovered the hard way.
  */
-export type Sector = {
-  id: string;
-  label: string;
-  prices: { mentioned: number; cited: number };
-};
-
-export const SECTORS: Sector[] = [];
-
-/** Whole USD, no decimals - matches the base tier presentation. */
-export function formatUsd(amount: number): string {
-  return `$${amount.toLocaleString("en-US")}`;
-}
-
-/**
- * Resolve a tier's displayed price for the selected sector. Falls back to the
- * base price when no sector is chosen or the tier is sector-independent.
- */
-export function priceFor(tier: Tier, sector: Sector | null): string {
-  if (tier.basePrice === null) return tier.priceLabel;
-  // A tier whose label says more than the number - "from $99/mo" - keeps its
-  // label. Rebuilding the string from basePrice silently dropped the "from".
-  if (!sector || !tier.sectorPriced) return tier.priceLabel;
-  const sectorPrice =
-    tier.id === "mentioned" ? sector.prices.mentioned : sector.prices.cited;
-  return `${formatUsd(sectorPrice)}/mo`;
-}
