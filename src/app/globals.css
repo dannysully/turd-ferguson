@@ -849,3 +849,15 @@ details > summary { list-style: none; }
 @media (max-width: 860px) {
   .post-shell { grid-template-columns: 1fr; row-gap: 26px; }
 }
+
+/* Package deliverables: what on four columns, the detail on eight. */
+.deliverable {
+  display: grid;
+  grid-template-columns: 4fr 8fr;
+  column-gap: 24px;
+  padding: 16px 26px;
+  align-items: baseline;
+}
+@media (max-width: 860px) {
+  .deliverable { grid-template-columns: 1fr; row-gap: 6px; }
+}

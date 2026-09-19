@@ -38,7 +38,7 @@ const FOR: [string, string][] = [
 
 const COMPANY: [string, string][] = [
   ["About", "/about"],
-  ["Evidence", "/case-studies/vibe-retail"],
+  ["Evidence", "/case-studies"],
   ["Blog", "/blog"],
   ["Contact", "/contact"],
 ];

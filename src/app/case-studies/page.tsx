@@ -1,0 +1,124 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+
+import { CARD, MICRO, SHELL, T } from "@/config/tokens";
+
+/**
+ * The evidence index, from CaseStudies.dc.html.
+ *
+ * One study, because there is one. The board draws three more rows of
+ * [CASE STUDY TITLE] and [HEADLINE FIGURE]; a page that invents two more
+ * clients to look busier is the one thing an evidence page cannot do.
+ *
+ * The card carries the keyword figure only. The board pairs it with an AI
+ * visibility number and a citation count; the visibility figure is published
+ * in two contradictory forms elsewhere on this site with no dated reading
+ * behind either, so it is not restated here. See docs/blocked.md.
+ */
+
+export const metadata: Metadata = {
+  title: "What the work actually moved | alwayscited",
+  description:
+    "Short case studies, and every figure says what it was measured against and when. Clients are named only where the agency has agreed to it.",
+  alternates: { canonical: "https://alwayscited.com/case-studies" },
+  openGraph: {
+    title: "What the work actually moved | alwayscited",
+    description: "Short case studies, and every figure says what it was measured against and when.",
+    url: "https://alwayscited.com/case-studies",
+  },
+};
+
+export default function CaseStudiesPage() {
+  return (
+    <section style={{ ...SHELL, paddingTop: "44px", display: "flex", flexDirection: "column", gap: "26px" }}>
+      <div className="board-head confirm-head">
+        <div>
+          <div style={MICRO}>Evidence</div>
+          <h1 style={{ margin: "8px 0 0", fontSize: "27px", fontWeight: 700, letterSpacing: "-0.03em", color: T.ink }}>
+            What the work actually moved
+          </h1>
+        </div>
+        <p style={{ margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
+          Short, and every figure says what it was measured against and when. Clients are named only where the agency
+          has agreed to it, which is why this one is a sector rather than a brand.
+        </p>
+      </div>
+
+      <Link
+        href="/case-studies/vibe-retail"
+        style={{ ...CARD, display: "block", padding: "28px 30px", textDecoration: "none" }}
+      >
+        <div className="confirm-top">
+          <div>
+            <div style={{ ...MICRO, color: T.accent }}>US retail SaaS - eight weeks</div>
+            <h2
+              style={{
+                margin: "10px 0 0",
+                fontSize: "23px",
+                fontWeight: 700,
+                letterSpacing: "-0.03em",
+                lineHeight: 1.24,
+                color: T.ink,
+              }}
+            >
+              One listicle placement, on a page already ranking for the category
+            </h2>
+            <p style={{ margin: "10px 0 0", fontSize: "14px", lineHeight: 1.6, color: T.soft, maxWidth: "62ch" }}>
+              The article went live in the morning. By that evening the AI Overview for the category was citing it as
+              a source.
+            </p>
+          </div>
+          <div
+            style={{
+              display: "flex",
+              background: T.bg,
+              border: "1px solid " + T.line,
+              borderRadius: "14px",
+              overflow: "hidden",
+              alignSelf: "start",
+              flexWrap: "wrap",
+            }}
+          >
+            <div style={{ flexGrow: 1, flexBasis: 0, padding: "18px 20px" }}>
+              <div style={{ fontSize: "12.5px", color: T.soft }}>Money keyword</div>
+              <div
+                style={{
+                  fontSize: "27px",
+                  fontWeight: 700,
+                  letterSpacing: "-0.035em",
+                  lineHeight: 1.15,
+                  marginTop: "2px",
+                  color: T.ink,
+                }}
+              >
+                #83 to #4
+              </div>
+              <div style={{ fontSize: "12px", color: T.soft, marginTop: "5px" }}>Over eight weeks</div>
+            </div>
+            <div style={{ flexGrow: 1, flexBasis: 0, padding: "18px 20px", borderLeft: "1px solid " + T.line }}>
+              <div style={{ fontSize: "12.5px", color: T.soft }}>The same keyword</div>
+              <div
+                style={{
+                  fontSize: "27px",
+                  fontWeight: 700,
+                  letterSpacing: "-0.035em",
+                  lineHeight: 1.15,
+                  marginTop: "2px",
+                  color: T.ink,
+                }}
+              >
+                #83 to #1
+              </div>
+              <div style={{ fontSize: "12px", color: T.soft, marginTop: "5px" }}>Four months in</div>
+            </div>
+          </div>
+        </div>
+      </Link>
+
+      <p style={{ margin: 0, fontSize: "13px", color: T.faint, lineHeight: 1.6 }}>
+        Nothing on this page is modelled or projected. Where a reading came from a third-party tracker rather than our
+        own run, the case study says which.
+      </p>
+    </section>
+  );
+}
