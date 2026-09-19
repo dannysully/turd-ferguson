@@ -18,9 +18,20 @@ import { ENGINE_SPECS, FREE_ENGINES } from "@/lib/scan/engines";
  */
 
 /**
- * Kept in step with QUESTION_COUNT in lib/scan/anthropic.ts, which is
- * server-only and pulls the Anthropic SDK along behind it - not something a
- * marketing page should import in order to print a number.
+ * How many questions a scan asks, defined here and nowhere else.
+ *
+ * It lived here and in lib/scan/anthropic.ts, as 14 in both, with a comment
+ * on this line asking whoever changed one to remember the other. That file is
+ * server-only and pulls the Anthropic SDK along behind it, so a marketing page
+ * cannot import it to print a number - hence the copy. The fix is the other
+ * direction: this module is already the client-safe one, so the number sits
+ * here and anthropic.ts re-exports it as QUESTION_COUNT.
+ *
+ * What the duplicate risked is the whole point of this file. The prompt asks
+ * the model for exactly QUESTION_COUNT questions and the response schema
+ * validates on it; the homepage, HomeFaq and /about print QUESTIONS. Change
+ * the pipeline on its own and every page on the site quotes a number the
+ * product has stopped doing, with nothing failing to say so.
  */
 export const QUESTIONS = 14;
 

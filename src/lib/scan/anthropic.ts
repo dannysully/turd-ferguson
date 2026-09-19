@@ -4,6 +4,8 @@ import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 
+import { QUESTIONS } from "@/config/scan-shape";
+
 import type { Market } from "./domain";
 
 const MODEL = "claude-opus-5";
@@ -164,7 +166,23 @@ export async function readBrand(siteText: string, billed?: { calls: number }): P
 
 // ------------------------------------------------------------ question build
 
-export const QUESTION_COUNT = 14;
+/**
+ * How many questions a scan asks.
+ *
+ * The number itself lives in config/scan-shape.ts and is re-exported under
+ * this name so every server caller keeps working. It was declared in both
+ * files, as 14 twice, with a comment in the other one asking whoever changed
+ * it to remember this copy - which is the arrangement that already went wrong
+ * once with the engine list, and cost the homepage a worked example naming an
+ * engine the scan had stopped reading.
+ *
+ * This is the more expensive direction of the same mistake. The prompt asks
+ * for exactly QUESTION_COUNT questions and the schema validates on it, while
+ * the homepage, the FAQ and /about print QUESTIONS. Changing the pipeline
+ * alone would leave every marketing page on the site quoting a number the
+ * product no longer does, and nothing anywhere would fail.
+ */
+export const QUESTION_COUNT = QUESTIONS;
 
 const QuestionKind = z.enum(["category", "positioning", "sector", "outcome", "comparison"]);
 /** The kinds a stored question may carry. Anything else came from a visitor. */
