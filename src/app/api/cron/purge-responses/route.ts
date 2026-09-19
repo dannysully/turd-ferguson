@@ -43,19 +43,37 @@ export async function GET(req: Request) {
   }
   const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000).toISOString();
 
-  // Unclaimed means never unlocked. Once verification is on, unlocked_at is
-  // only ever set by a proven address, so this stays the right test.
-  const { data: stale, error: sErr } = await db
-    .from("scans")
-    .select("id")
-    .is("unlocked_at", null)
-    .lt("created_at", cutoff);
+  /**
+   * Unclaimed means never unlocked. Once verification is on, unlocked_at is
+   * only ever set by a proven address, so this stays the right test.
+   *
+   * PostgREST caps a select at its configured maximum, 1000 rows by default,
+   * and says so nowhere in the response: a short answer and a truncated one
+   * look identical. Unpaged, this cleared the first thousand stale scans and
+   * left the rest, on the one job whose whole purpose is keeping a retention
+   * promise the privacy policy makes in public. Nothing here writes to
+   * `scans`, so the ordered set does not shift underneath the paging.
+   */
+  const PAGE = 1000;
+  const ids: string[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error: sErr } = await db
+      .from("scans")
+      .select("id")
+      .is("unlocked_at", null)
+      .lt("created_at", cutoff)
+      .order("created_at", { ascending: true })
+      .range(from, from + PAGE - 1);
 
-  if (sErr) {
-    return NextResponse.json({ error: `could not read scans: ${sErr.message}` }, { status: 502 });
+    if (sErr) {
+      return NextResponse.json({ error: `could not read scans: ${sErr.message}` }, { status: 502 });
+    }
+
+    const page = data ?? [];
+    ids.push(...page.map((r) => r.id as string));
+    if (page.length < PAGE) break;
   }
 
-  const ids = (stale ?? []).map((r) => r.id as string);
   if (ids.length === 0) {
     return NextResponse.json({ ok: true, cutoff, scans: 0, answers_cleared: 0 });
   }
