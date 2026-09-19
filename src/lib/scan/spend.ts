@@ -4,7 +4,43 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { selectAll } from "@/lib/supabase/page";
 
 /**
- * What the scans created since `since` have cost at DataForSEO.
+ * The PostgREST filter for scans whose spend belongs to the window starting
+ * at `since`.
+ *
+ * Not `created_at >= since`, which is what both ceilings below used to ask,
+ * and which made them blind to the most expensive thing this system does.
+ *
+ * Spend lands on the scan row, but it is not all spent when that row is made.
+ * The gated pass is the biggest single spender here - every question again on
+ * every gated engine, plus a brand extraction per engine and a source
+ * classification - and it runs when the visitor clicks the link in the
+ * verification email, which is whenever they get round to reading their mail.
+ * A scan started on Monday and verified on Wednesday bills Wednesday's reads
+ * onto Monday's row, and a window of `created_at >= now - 24h` cannot see a
+ * penny of it. Once a scan is a day old its gated pass is free as far as both
+ * ceilings can tell, however many of them are unlocked at once.
+ *
+ * So a scan counts if it was started in the window or if either of its passes
+ * finished in it. One that straddles the boundary is counted whole in both
+ * windows rather than split between them: these are ceilings, over-counting
+ * costs a visitor a scan they could have had, and under-counting is how a
+ * day's budget gets spent twice.
+ *
+ * What this does not close, said rather than implied: a pass still in flight
+ * has no completion stamp yet, so its spend is invisible until it lands. That
+ * is a window the length of one pass rather than for ever, and the count cap
+ * and the per-IP cap sit in front of the same route.
+ */
+function activeWindow(since: string): string {
+  return (
+    "created_at.gte." + since +
+    ",completed_at.gte." + since +
+    ",gated_completed_at.gte." + since
+  );
+}
+
+/**
+ * What the scans active since `since` have cost at DataForSEO.
  *
  * Both callers used to sum an unpaged select, which PostgREST caps at 1000
  * rows without saying so. A spend cap that reads a truncated set fails open -
@@ -24,7 +60,7 @@ export async function spentSince(
 ): Promise<number> {
   const db = supabaseAdmin();
   const rows = await selectAll<{ dfs_cost: number | string | null }>((from, to) => {
-    const q = db.from("scans").select("dfs_cost").gte("created_at", since);
+    const q = db.from("scans").select("dfs_cost").or(activeWindow(since));
     return (opts.excludeTrackingRuns ? q.eq("is_tracking_run", false) : q)
       .order("id", { ascending: true })
       .range(from, to);
@@ -33,7 +69,7 @@ export async function spentSince(
 }
 
 /**
- * Model calls billed onto the scans created since `since`.
+ * Model calls billed onto the scans active since `since`.
  *
  * daily_cost_cap_usd bounds DataForSEO spend and nothing bounded Anthropic
  * spend at all. The two are not interchangeable: the engine reads are what
@@ -52,7 +88,8 @@ export async function spentSince(
  * than a visitor's allowance, and a tracking run spends it like anything
  * else.
  *
- * Paged for the same reason spentSince is: PostgREST caps a select at 1000
+ * Windowed through activeWindow for the reason written above it, and paged
+ * for the same reason spentSince is: PostgREST caps a select at 1000
  * rows and says so nowhere, and a ceiling that reads a truncated set
  * under-reports exactly when the day is busy enough to matter.
  *
@@ -70,7 +107,7 @@ export async function anthropicCallsSince(since: string): Promise<number> {
       db
         .from("scans")
         .select("anthropic_calls")
-        .gte("created_at", since)
+        .or(activeWindow(since))
         .order("id", { ascending: true })
         .range(from, to),
     ),
