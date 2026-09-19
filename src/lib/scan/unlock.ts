@@ -200,19 +200,44 @@ export async function completeUnlock(
     const answers = (rows ?? []) as Array<{ question_id: string; answered: boolean; brand_named: boolean }>;
     const questions = (qs ?? []) as Array<{ id: string }>;
 
-    // "Answered by someone, named by nobody" - the same figure the screen
-    // leads on. A question no engine answered is not a miss, it is a silence.
-    const missed = questions.filter((q) => {
-      const forQuestion = answers.filter((a) => a.question_id === q.id);
-      return forQuestion.some((a) => a.answered) && !forQuestion.some((a) => a.brand_named);
-    }).length;
+    /**
+     * Both measures, because the message sends both and they are not the same
+     * number.
+     *
+     * The subject is counted over answers, which is the figure the report's own
+     * h1 leads on - one engine's reply to one question. The body is counted
+     * over questions, where a miss means every engine that replied left the
+     * brand out. Until now only the question pair was computed and the subject
+     * printed it under the word "answers", so a four-engine scan told a buyer
+     * "9 of 14 AI answers" for a set of 56 answers, and the page they clicked
+     * through to said something else.
+     *
+     * brand_named is only ever set on a row that answered - readAndStore writes
+     * `read.answered && namesBrand(...)` - so the subtraction cannot go
+     * negative.
+     */
+    const totalAnswers = answers.filter((a) => a.answered).length;
+    const namedAnswers = answers.filter((a) => a.brand_named).length;
+
+    // "Answered by someone, named by nobody". A question no engine answered is
+    // not a miss, it is a silence - so it is outside both halves of this pair.
+    const byQuestion = questions.map((q) => answers.filter((a) => a.question_id === q.id));
+    const answeredQuestions = byQuestion.filter((rs) => rs.some((a) => a.answered)).length;
+    const missedQuestions = byQuestion.filter(
+      (rs) => rs.some((a) => a.answered) && !rs.some((a) => a.brand_named),
+    ).length;
 
     await sendReportReadyEmail({
       email,
       brand: scan.brand_name ?? scan.domain,
       publicToken: scan.public_token,
-      missed,
-      total: questions.length,
+      counts: {
+        missedAnswers: totalAnswers - namedAnswers,
+        totalAnswers,
+        missedQuestions,
+        answeredQuestions,
+        askedQuestions: questions.length,
+      },
     });
   });
 

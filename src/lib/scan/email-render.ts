@@ -147,15 +147,63 @@ export function verifyHtml(p: Palette, font: string, brand: string, link: string
 }
 
 /**
+ * What the report email is allowed to count, and over what.
+ *
+ * Five numbers rather than two, because the message was sending one pair and
+ * describing it two different ways. The subject said "9 of 14 AI answers did
+ * not name Vibe Retail" off a pair counted over *questions* - so on a
+ * four-engine scan the true answer figures were 38 of 56, and the subject line
+ * a buyer reads first disagreed with the h1 of the page it links to while
+ * claiming to be the same measure.
+ *
+ * The two units are both worth sending and neither substitutes for the other:
+ * an answer is one engine's reply to one question, and a question is missed
+ * only when every engine that replied left the brand out.
+ */
+export type ReportCounts = {
+  /** Answers (question x engine) that came back without the brand in them. */
+  missedAnswers: number;
+  /** Answers that came back at all. The denominator for missedAnswers. */
+  totalAnswers: number;
+  /** Questions some engine answered where none of them named the brand. */
+  missedQuestions: number;
+  /** Questions at least one engine answered. The denominator for missedQuestions. */
+  answeredQuestions: number;
+  /** Questions put to the engines, answered or not. */
+  askedQuestions: number;
+};
+
+/**
  * The headline is the sharpest number this product produces, so it is built
  * once and used by both the HTML and the plain-text part. The text part used
  * to drop it, which meant a client showing text only got the blandest
  * version of the one thing worth saying.
+ *
+ * The denominator is the questions an engine answered, not the questions we
+ * asked. The numerator never counted a question nobody answered - it cannot,
+ * because a question with no reply is neither named nor missing - so counting
+ * the denominator over everything asked made the two halves of one sentence
+ * different measures. A scan where four of fourteen went unanswered read "9 of
+ * the 14" for a figure whose real denominator was ten. That is the same defect
+ * already fixed on the metric tile the reader lands on; the email kept the old
+ * shape and is the copy a buyer sees first.
  */
-export function reportHeadline(brand: string, missed: number, total: number): string {
-  return missed > 0
-    ? `${missed} of the ${total} questions we asked came back without ${brand} in the answer.`
-    : `We put ${total} buying-intent questions to the engines your buyers use.`;
+export function reportHeadline(brand: string, c: ReportCounts): string {
+  return c.missedQuestions > 0
+    ? `${c.missedQuestions} of the ${c.answeredQuestions} questions an engine answered came back without ${brand} in the answer.`
+    : `We put ${c.askedQuestions} buying-intent questions to the engines your buyers use.`;
+}
+
+/**
+ * The subject line, which is the only part of this message most people read.
+ *
+ * Counted over answers so that it is the same sentence, with the same two
+ * numbers, as the h1 of the report it opens.
+ */
+export function reportSubject(brand: string, c: ReportCounts): string {
+  return c.missedAnswers > 0
+    ? `${c.missedAnswers} of ${c.totalAnswers} AI answers did not name ${brand}`
+    : `Your ${brand} report`;
 }
 
 export function reportHtml(
@@ -163,8 +211,7 @@ export function reportHtml(
   font: string,
   brand: string,
   link: string,
-  missed: number,
-  total: number,
+  counts: ReportCounts,
 ): string {
   const b = escapeHtml(brand);
   return shell(p, font, {
@@ -173,10 +220,9 @@ export function reportHtml(
      * Not the headline, which is what this was until the message was first
      * rendered on 19 Sep 2026.
      *
-     * The subject on this send is already the number - "9 of 14 AI answers did
+     * The subject on this send is already the number - "38 of 56 AI answers did
      * not name Vibe Retail" - and the preview line sat beside it in the inbox
-     * saying "9 of the 14 questions we asked came back without Vibe Retail in
-     * the answer." Two lines, one fact, and the second bought nothing.
+     * restating it. Two lines, one fact, and the second bought nothing.
      *
      * That is the same failure the preheader was added to fix, one level up:
      * it was fixed against the heading and reintroduced against the subject.
@@ -187,7 +233,7 @@ export function reportHtml(
     preheader: "The pages you could be placed into, ranked, and every answer word for word.",
     heading: `Your ${b} report is ready`,
     body:
-      reportHeadline(b, missed, total) +
+      reportHeadline(b, counts) +
       " The report adds the pages you could be placed into, ranked by how many " +
       "answers a placement would win, and what each engine said word for word.",
     cta: { href: link, label: "Open your report" },

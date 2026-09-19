@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { constantTimeEqual } from "@/lib/constant-time";
 import { getSettings } from "@/lib/scan/settings";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { selectAll } from "@/lib/supabase/page";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -56,41 +57,50 @@ export async function GET(req: Request) {
    * Unclaimed means never unlocked. Once verification is on, unlocked_at is
    * only ever set by a proven address, so this stays the right test.
    *
-   * PostgREST caps a select at its configured maximum, 1000 rows by default,
-   * and says so nowhere in the response: a short answer and a truncated one
-   * look identical. Unpaged, this cleared the first thousand stale scans and
-   * left the rest, on the one job whose whole purpose is keeping a retention
-   * promise the privacy policy makes in public. Nothing here writes to
-   * `scans`, so the ordered set does not shift underneath the paging.
+   * Read through `selectAll`, which is the loop this route used to hand-roll.
+   * The hand-rolled one stopped on the first page shorter than 1000 - sound
+   * only while `db-max-rows` is at least 1000, which is a project setting
+   * nothing in this repo can read. Its own comment said, correctly, that a
+   * short answer and a truncated one look identical, and then it treated a
+   * short answer as the end of the table. At a ceiling of 500 this job cleared
+   * 500 stale scans a night and reported success, however many were waiting:
+   * the failure is a transcript kept past the retention window with nothing
+   * anywhere saying so, on the one job whose whole purpose is keeping a
+   * promise the privacy policy makes in public.
+   *
+   * `selectAll` advances by the rows that came back and stops on an empty page,
+   * so the ceiling's value cannot affect the result. That fix landed in
+   * `6ab14f9` for the reads under the paid report, and page.ts names this route
+   * as the place the defect was found first - it was the one caller left still
+   * doing it by hand.
    *
    * Ordered by the primary key rather than by created_at, which is the rule
-   * lib/supabase/page.ts states and this route was the one place breaking it.
-   * `range` is offset and limit, so the order has to be total: created_at is
-   * not unique, and two scans sharing a timestamp across a page boundary are
-   * ordered by whatever the planner chose for that request. A row can then
-   * land on both pages or on neither. Landing on both is harmless here, since
-   * the update is idempotent - landing on neither is a transcript kept past
-   * the retention window with nothing anywhere saying so, which is the single
-   * failure this job exists to prevent. Nothing reads these in date order.
+   * page.ts states. `range` is offset and limit, so the order has to be total:
+   * created_at is not unique, and two scans sharing a timestamp across a page
+   * boundary are ordered by whatever the planner chose for that request. A row
+   * can then land on both pages or on neither. Landing on both is harmless
+   * here, since the update is idempotent - landing on neither is the failure
+   * above. Nothing here writes to `scans`, so the set does not shift underneath
+   * the paging, and nothing reads these in date order.
    */
-  const PAGE = 1000;
-  const ids: string[] = [];
-  for (let from = 0; ; from += PAGE) {
-    const { data, error: sErr } = await db
-      .from("scans")
-      .select("id")
-      .is("unlocked_at", null)
-      .lt("created_at", cutoff)
-      .order("id", { ascending: true })
-      .range(from, from + PAGE - 1);
-
-    if (sErr) {
-      return NextResponse.json({ error: `could not read scans: ${sErr.message}` }, { status: 502 });
-    }
-
-    const page = data ?? [];
-    ids.push(...page.map((r) => r.id as string));
-    if (page.length < PAGE) break;
+  let ids: string[];
+  try {
+    const stale = await selectAll<{ id: string }>((from, to) =>
+      db
+        .from("scans")
+        .select("id")
+        .is("unlocked_at", null)
+        .lt("created_at", cutoff)
+        .order("id", { ascending: true })
+        .range(from, to),
+    );
+    ids = stale.map((r) => r.id);
+  } catch (err) {
+    // selectAll throws where the old loop returned an error object, and this
+    // job answering 200 on a read it could not complete is the same silence as
+    // stopping short of the table.
+    const message = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: `could not read scans: ${message}` }, { status: 502 });
   }
 
   if (ids.length === 0) {

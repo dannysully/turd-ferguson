@@ -4,9 +4,11 @@ import { test } from "node:test";
 import { T } from "../../config/tokens.ts";
 import {
   type Palette,
+  type ReportCounts,
   escapeHtml,
   reportHeadline,
   reportHtml,
+  reportSubject,
   verifyHtml,
 } from "./email-render.ts";
 
@@ -39,6 +41,27 @@ const FONT = "-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-ser
 
 const LINK = "https://alwayscited.com/scan/abc123";
 
+/**
+ * A real shape: fourteen questions on four engines, two of which nobody
+ * answered. It is deliberately a scan where all five numbers differ, because
+ * the defect this fixture exists for was two of them being the same pair.
+ */
+const COUNTS: ReportCounts = {
+  missedAnswers: 38,
+  totalAnswers: 56,
+  missedQuestions: 9,
+  answeredQuestions: 12,
+  askedQuestions: 14,
+};
+
+const NOTHING_MISSED: ReportCounts = {
+  missedAnswers: 0,
+  totalAnswers: 56,
+  missedQuestions: 0,
+  answeredQuestions: 14,
+  askedQuestions: 14,
+};
+
 /** Counts `<tag` against `</tag`, ignoring the mso conditional comments. */
 function balance(html: string, tag: string): [number, number] {
   const open = html.match(new RegExp(`<${tag}[\\s>]`, "g")) ?? [];
@@ -64,8 +87,8 @@ function assertWellFormed(html: string, label: string) {
 
 test("both messages render well-formed markup", () => {
   assertWellFormed(verifyHtml(E, FONT, "Vibe Retail", LINK), "verify");
-  assertWellFormed(reportHtml(E, FONT, "Vibe Retail", LINK, 9, 14), "report");
-  assertWellFormed(reportHtml(E, FONT, "Vibe Retail", LINK, 0, 14), "report, nothing missed");
+  assertWellFormed(reportHtml(E, FONT, "Vibe Retail", LINK, COUNTS), "report");
+  assertWellFormed(reportHtml(E, FONT, "Vibe Retail", LINK, NOTHING_MISSED), "report, nothing missed");
 });
 
 test("no colour outside the palette reaches the inbox", () => {
@@ -77,7 +100,7 @@ test("no colour outside the palette reaches the inbox", () => {
   const allowed = new Set(Object.values(E).map((c) => c.toLowerCase()));
   for (const html of [
     verifyHtml(E, FONT, "Vibe Retail", LINK),
-    reportHtml(E, FONT, "Vibe Retail", LINK, 9, 14),
+    reportHtml(E, FONT, "Vibe Retail", LINK, COUNTS),
   ]) {
     // Not preceded by &, or the run of &#8203; padding the preview line reads
     // as a colour called #8203. The first version of this test failed on
@@ -99,7 +122,7 @@ test("a brand is escaped exactly once", () => {
 });
 
 test("a brand cannot close a tag or open a script", () => {
-  const html = reportHtml(E, FONT, `</title><script>alert(1)</script>`, LINK, 3, 10);
+  const html = reportHtml(E, FONT, `</title><script>alert(1)</script>`, LINK, COUNTS);
   assert.doesNotMatch(html, /<script>/);
   assert.match(html, /&lt;script&gt;/);
   // The heading, the title and the preview line all interpolate the brand, so
@@ -117,17 +140,38 @@ test("the preview line is not the heading again", () => {
   assert.match(verify, /Confirming your address opens the placements/);
   assert.match(verify, /One click and your Vibe Retail report opens/);
 
-  const report = reportHtml(E, FONT, "Vibe Retail", LINK, 9, 14);
+  const report = reportHtml(E, FONT, "Vibe Retail", LINK, COUNTS);
   assert.match(report, /Your Vibe Retail report is ready/);
   // And it is not the subject again either. sendReportReadyEmail sends
-  // "9 of 14 AI answers did not name Vibe Retail" as the subject, so a preview
+  // "38 of 56 AI answers did not name Vibe Retail" as the subject, so a preview
   // line carrying the same count restates it rather than adding to it - which
   // is what it did until the message was first rendered.
   assert.match(report, /The pages you could be placed into, ranked/);
   const preheader = report.match(/font-size:1px;line-height:1px;[^>]*>([^<]*)</)?.[1] ?? "";
-  assert.doesNotMatch(preheader, /9 of the 14/);
+  assert.doesNotMatch(preheader, /\d+ of (the )?\d+/);
   // The number still leads the body, which is where it does work.
-  assert.match(report, /9 of the 14 questions we asked came back without Vibe Retail/);
+  assert.match(report, /9 of the 12 questions an engine answered came back without Vibe Retail/);
+});
+
+test("the subject counts answers and the body counts questions", () => {
+  // The defect: one pair of numbers, counted over questions, printed in the
+  // subject under the word "answers". On a four-engine scan the subject said
+  // "9 of 14 AI answers" where the answers were 38 of 56 - and the h1 of the
+  // page the link opens says the answer figure, so the two disagreed.
+  assert.equal(
+    reportSubject("Vibe Retail", COUNTS),
+    "38 of 56 AI answers did not name Vibe Retail",
+  );
+  assert.match(reportHeadline("Vibe Retail", COUNTS), /^9 of the 12 questions/);
+
+  // Nothing missed at the answer level is the only thing that drops the number
+  // from the subject. A scan can miss no whole question and still have answers
+  // that left the brand out, and that subject is still worth sending.
+  assert.equal(reportSubject("Vibe Retail", NOTHING_MISSED), "Your Vibe Retail report");
+  assert.equal(
+    reportSubject("Vibe Retail", { ...NOTHING_MISSED, missedAnswers: 18 }),
+    "18 of 56 AI answers did not name Vibe Retail",
+  );
 });
 
 test("the link is in the button and in the fallback", () => {
@@ -135,7 +179,7 @@ test("the link is in the button and in the fallback", () => {
   // so the address is also printed. Both messages, both places.
   for (const html of [
     verifyHtml(E, FONT, "Vibe Retail", LINK),
-    reportHtml(E, FONT, "Vibe Retail", LINK, 9, 14),
+    reportHtml(E, FONT, "Vibe Retail", LINK, COUNTS),
   ]) {
     assert.match(html, new RegExp(`href="${LINK}"`));
     assert.match(html, /paste this into your browser/);
@@ -157,15 +201,20 @@ test("the headline the html shows is the headline the text part shows", () => {
   // The text part used to drop the number entirely, so a client showing text
   // only got the blandest version of the one thing worth saying.
   assert.equal(
-    reportHeadline("Vibe Retail", 9, 14),
-    "9 of the 14 questions we asked came back without Vibe Retail in the answer.",
+    reportHeadline("Vibe Retail", COUNTS),
+    "9 of the 12 questions an engine answered came back without Vibe Retail in the answer.",
   );
   assert.equal(
-    reportHeadline("Vibe Retail", 0, 14),
+    reportHeadline("Vibe Retail", NOTHING_MISSED),
     "We put 14 buying-intent questions to the engines your buyers use.",
   );
   // Nothing missed must not read as "0 of the 14".
-  assert.doesNotMatch(reportHeadline("Vibe Retail", 0, 14), /^0 of/);
+  assert.doesNotMatch(reportHeadline("Vibe Retail", NOTHING_MISSED), /^0 of/);
+  // Both halves of the sentence are the same measure. The denominator is the
+  // questions an engine answered, never every question asked - 9 of 12 here,
+  // where the old shape printed "9 of the 14" for a figure whose real
+  // denominator was twelve.
+  assert.doesNotMatch(reportHeadline("Vibe Retail", COUNTS), /of the 14/);
 });
 
 test("escapeHtml covers the five", () => {

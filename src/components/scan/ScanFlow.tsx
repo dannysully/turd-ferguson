@@ -50,6 +50,22 @@ type TeaserSource = {
   note?: string | null;
 };
 
+/**
+ * A question row as the teaser actually sends it.
+ *
+ * `google_rank` is optional here and required on `ScanQuestion`, and that gap
+ * is the whole defect: the RPC did not select the column until 20260919210000,
+ * so every teaser said the key was there and none of them carried it. Declaring
+ * the teaser's own shape means a deploy reading an older RPC typechecks as what
+ * it is - a row with no rank - rather than borrowing the contract's promise.
+ *
+ * `answers` is absent for the same kind of reason: the verbatim answers are
+ * what the address buys and never reach a teaser.
+ */
+type TeaserQuestion = Omit<ScanQuestion, "google_rank" | "answers"> & {
+  google_rank?: number | null;
+};
+
 type Teaser = {
   brand: string | null;
   topic: string | null;
@@ -79,14 +95,23 @@ type Teaser = {
   all_sources: TeaserSource[] | null;
   total_sources: number;
   /** The questions asked, with tallies. Free - see Prompts in ResultDashboard. */
-  questions: ScanQuestion[] | null;
+  questions: TeaserQuestion[] | null;
 };
 
 type FullPayload = {
   brands: { brand: string; mentions: number; is_subject: boolean }[];
   sources: { source: string; mentions: number; ai_search_volume: number | null; urls: string[]; kind?: string | null; note?: string | null }[];
-  /** Per-question engine detail, including what each one actually said. */
-  questions?: { idx: number; engines: EngineAnswer[] }[];
+  /**
+   * Per-question engine detail, including what each one actually said.
+   *
+   * `google_rank` is here because the merge below used to take `engines` and
+   * nothing else off these rows. buildUnlockPayload has always sent the rank
+   * and this type did not name it, so it was dropped on the way into state and
+   * the two places that render it - the "- Google 3rd" note on a question row
+   * and the "Best Google position" tile on the unlocked report - had never once
+   * shown a value.
+   */
+  questions?: { idx: number; google_rank?: number | null; engines: EngineAnswer[] }[];
   /** The gated finding: pages feeding answers the brand is absent from. */
   opportunities?: ScanOpportunity[];
   gated_engines?: string[];
@@ -242,9 +267,20 @@ function toResult(t: Teaser, domain: string, full: FullPayload | null): RunScanR
       note: s.note ?? null,
     })),
     history: [],
+    /**
+     * The rank comes from whichever side of the gate carried it.
+     *
+     * Tested for the key rather than for a value, because null here is a
+     * measurement - "not in Google's top twenty" - and folding it into the
+     * fallback with `??` would let an older teaser's silence overwrite it. Only
+     * a key that is genuinely absent falls through to the unlock payload, and
+     * when neither has one the field stays null, which both renderers read as
+     * nothing to show.
+     */
     questions: (t.questions ?? []).map((q) => {
       const detail = full?.questions?.find((d) => d.idx === q.idx);
-      return detail ? { ...q, answers: detail.engines } : q;
+      const google_rank = "google_rank" in q ? (q.google_rank ?? null) : (detail?.google_rank ?? null);
+      return detail ? { ...q, google_rank, answers: detail.engines } : { ...q, google_rank };
     }),
     opportunities: full?.opportunities ?? undefined,
     gated: !full,

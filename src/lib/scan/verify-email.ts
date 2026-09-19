@@ -6,8 +6,10 @@ import { T } from "@/config/tokens";
 import { headerSafe } from "@/lib/email-header";
 import {
   type Palette,
+  type ReportCounts,
   reportHeadline,
   reportHtml,
+  reportSubject,
   verifyHtml,
 } from "@/lib/scan/email-render";
 import { supabaseAdmin } from "@/lib/supabase/admin";
@@ -135,8 +137,7 @@ export async function sendReportReadyEmail(input: {
   email: string;
   brand: string;
   publicToken: string;
-  missed: number;
-  total: number;
+  counts: ReportCounts;
 }): Promise<void> {
   const key = process.env.RESEND_API_KEY;
   if (!key) {
@@ -145,19 +146,15 @@ export async function sendReportReadyEmail(input: {
   }
 
   const link = `${siteUrl()}/scan/${input.publicToken}`;
-  const subject = headerSafe(
-    input.missed > 0
-      ? `${input.missed} of ${input.total} AI answers did not name ${input.brand}`
-      : `Your ${input.brand} report`,
-  );
+  const subject = headerSafe(reportSubject(input.brand, input.counts));
 
   try {
     const { error } = await new Resend(key).emails.send({
       from: process.env.SCAN_FROM_EMAIL ?? "alwayscited <onboarding@resend.dev>",
       to: input.email,
       subject,
-      html: reportHtml(E, FONT, input.brand, link, input.missed, input.total),
-      text: `${reportHeadline(input.brand, input.missed, input.total)}\n\nOpen your report: ${link}\n\nThe link works on any device and does not expire.`,
+      html: reportHtml(E, FONT, input.brand, link, input.counts),
+      text: `${reportHeadline(input.brand, input.counts)}\n\nOpen your report: ${link}\n\nThe link works on any device and does not expire.`,
     });
     if (error) console.error("[scan] report email rejected", error);
   } catch (err) {
