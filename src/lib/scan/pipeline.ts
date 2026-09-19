@@ -93,14 +93,57 @@ function rankOf(organic: OrganicHit[] | undefined, subject: string): number | nu
 type StoredQuestion = { id: string; idx: number; question: string };
 
 /**
+ * What a pass has billed so far.
+ *
+ * Deliberately mutable and owned by the caller. A pass that throws has still
+ * spent whatever it spent up to the throw, and `daily_cost_cap_usd` reads
+ * `dfs_cost` off the scan row - so the total has to survive the throw and
+ * reach that column, which a return value cannot do.
+ */
+type Spend = { dfsCalls: number; dfsCost: number; anthropicCalls: number };
+
+/**
+ * The three spend columns, with this pass's spend added to what is already on
+ * the row.
+ *
+ * One rule for every exit: a pass adds what it billed, whether it returned or
+ * threw. Added rather than set because three runs write these columns - the
+ * free pass, the gated pass, and the free pass again when a visitor confirms a
+ * second time after a failed one. A set let that retry overwrite the first
+ * attempt's cost with its own, so reads that had been paid for twice counted
+ * once.
+ */
+async function billedOnto(scanId: string, spend: Spend) {
+  const { data: current } = await supabaseAdmin()
+    .from("scans")
+    .select("dfs_calls, dfs_cost, anthropic_calls")
+    .eq("id", scanId)
+    .single();
+  return {
+    dfs_calls: (current?.dfs_calls ?? 0) + spend.dfsCalls,
+    dfs_cost: Number(current?.dfs_cost ?? 0) + spend.dfsCost,
+    anthropic_calls: (current?.anthropic_calls ?? 0) + spend.anthropicCalls,
+  };
+}
+
+/**
  * Ask every engine every question, store the answers, the citations and the
  * per-engine leaderboard. Shared by the free pass and the email-gated pass so
  * both phases measure the same way over the same questions.
  *
- * Returns what it spent and which engines produced at least one answer.
+ * Returns which engines produced at least one answer. What it spent goes onto
+ * `input.spend` as it is billed, never into the return value: every read here
+ * is paid for the moment it is made, and this function can throw after dozens
+ * of them - on the deadline, or on a failed insert. Returning the total meant
+ * a scan that failed at read 40 of 60 recorded a cost of zero, and the cap
+ * that sums those costs let the next visitor start another one. A cap that
+ * under-reports the day fails open, which is the one direction it must not
+ * fail in.
  */
 async function readAndStore(input: {
   scanId: string;
+  /** Incremented in place as each call is billed. See `Spend`. */
+  spend: Spend;
   /** The subject's domain, for its Google rank. */
   domain: string;
   brand: string;
@@ -116,9 +159,6 @@ async function readAndStore(input: {
    *  can move off "reading" rather than sitting on it for the whole run. */
   onSources?: () => Promise<void>;
 }): Promise<{
-  dfsCalls: number;
-  dfsCost: number;
-  anthropicCalls: number;
   answered: Engine[];
   /**
    * A model batch failed while the leaderboard was being built, so names are
@@ -128,12 +168,8 @@ async function readAndStore(input: {
   leaderboardPartial: boolean;
 }> {
   const db = supabaseAdmin();
-  const { scanId, domain, brand, topic, positioning, market, engines, questions, checkDeadline, onSources } =
+  const { scanId, spend, domain, brand, topic, positioning, market, engines, questions, checkDeadline, onSources } =
     input;
-
-  let dfsCalls = 0;
-  let dfsCost = 0;
-  let anthropicCalls = 0;
 
   // Every question against every engine, flattened so one queue paces the lot.
   const jobs = questions.flatMap((q) => engines.map((engine) => ({ q, engine })));
@@ -151,8 +187,8 @@ async function readAndStore(input: {
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
         const read = await readEngine(engine, q.question, market);
-        dfsCalls += 1;
-        dfsCost += read.cost;
+        spend.dfsCalls += 1;
+        spend.dfsCost += read.cost;
 
         // Google claiming an Overview that did not arrive is worth one retry.
         const claimedButAbsent =
@@ -251,7 +287,7 @@ async function readAndStore(input: {
       return { engine, extracted: out.brands, calls: out.calls, failedBatches: out.failedBatches };
     }),
   );
-  anthropicCalls += extractions.reduce((n, r) => n + (r?.calls ?? 0), 0);
+  spend.anthropicCalls += extractions.reduce((n, r) => n + (r?.calls ?? 0), 0);
 
   // extractBrands swallows a bad batch now rather than failing the run, so the
   // count is the only way a partial leaderboard shows up. The trade is
@@ -305,7 +341,7 @@ async function readAndStore(input: {
   let failedJudgements = 0;
   if (displayFor.size) {
     const judged = await classifyBrands({ topic, brand, positioning, names: [...displayFor.values()] });
-    anthropicCalls += judged.calls;
+    spend.anthropicCalls += judged.calls;
     // Keyed through brandKey, not on the returned string. The prompt asks for
     // the name back exactly as given, but a model that returns "Screaming
     // frog" for "Screaming Frog" would miss the lookup and silently drop a
@@ -376,9 +412,6 @@ async function readAndStore(input: {
    * direction a number on a marketing report must not be wrong in.
    */
   return {
-    dfsCalls,
-    dfsCost,
-    anthropicCalls,
     answered,
     leaderboardPartial: failedExtractions > 0 || failedJudgements > 0,
   };
@@ -398,7 +431,10 @@ export async function runScan(scanId: string): Promise<void> {
     if (Date.now() > deadline) throw new Error("the scan took too long and was stopped");
   };
 
-  let spend = { dfsCalls: 0, dfsCost: 0, anthropicCalls: 0 };
+  // Accumulated as it is billed rather than totalled at the end, so the catch
+  // below writes what this scan actually cost even when it never finished.
+  const spend: Spend = { dfsCalls: 0, dfsCost: 0, anthropicCalls: 0 };
+  let spendPersisted = false;
 
   try {
     const { data: scan, error } = await db
@@ -444,10 +480,10 @@ export async function runScan(scanId: string): Promise<void> {
         brand,
         positioning: scan.positioning,
       });
-      spend.anthropicCalls += 1;
+      spend.anthropicCalls += generated.calls;
       checkDeadline();
 
-      const rows = generated.map(function (q, i) {
+      const rows = generated.questions.map(function (q, i) {
         return { scan_id: scanId, idx: i, question: q.question, kind: q.kind };
       });
       const { data: questionRows, error: qErr } = await db
@@ -467,6 +503,7 @@ export async function runScan(scanId: string): Promise<void> {
     // long part and the screen would show the last step for the whole of it.
     const read = await readAndStore({
       scanId,
+      spend,
       domain: scan.domain,
       brand,
       topic: scan.topic,
@@ -479,11 +516,6 @@ export async function runScan(scanId: string): Promise<void> {
         await db.from("scans").update({ step: "sources" }).eq("id", scanId);
       },
     });
-    spend = {
-      dfsCalls: spend.dfsCalls + read.dfsCalls,
-      dfsCost: spend.dfsCost + read.dfsCost,
-      anthropicCalls: spend.anthropicCalls + read.anthropicCalls,
-    };
 
     // One call for the whole set. A missing volume stays null, never zero.
     //
@@ -536,11 +568,10 @@ export async function runScan(scanId: string): Promise<void> {
         completed_at: new Date().toISOString(),
         engines_answered: read.answered,
         leaderboard_partial: read.leaderboardPartial,
-        dfs_calls: spend.dfsCalls,
-        dfs_cost: spend.dfsCost,
-        anthropic_calls: spend.anthropicCalls,
+        ...(await billedOnto(scanId, spend)),
       })
       .eq("id", scanId);
+    spendPersisted = true;
   } catch (err) {
     const message = describeAnthropicError(err);
     await supabaseAdmin()
@@ -549,9 +580,7 @@ export async function runScan(scanId: string): Promise<void> {
         status: "failed",
         step: null,
         error: message.slice(0, 500),
-        dfs_calls: spend.dfsCalls,
-        dfs_cost: spend.dfsCost,
-        anthropic_calls: spend.anthropicCalls,
+        ...(spendPersisted ? {} : await billedOnto(scanId, spend)),
       })
       .eq("id", scanId);
   }
@@ -571,6 +600,12 @@ export async function runGatedScan(scanId: string): Promise<void> {
   const checkDeadline = () => {
     if (Date.now() > deadline) throw new Error("the deeper check took too long and was stopped");
   };
+
+  // This pass re-asks every question on two more engines, so a failure part
+  // way through can be dozens of reads that were paid for. Accumulated here
+  // and written on the way out through either exit.
+  const spend: Spend = { dfsCalls: 0, dfsCost: 0, anthropicCalls: 0 };
+  let spendPersisted = false;
 
   try {
     const { data: scan, error } = await db
@@ -598,6 +633,7 @@ export async function runGatedScan(scanId: string): Promise<void> {
 
     const read = await readAndStore({
       scanId,
+      spend,
       domain: scan.domain,
       brand: scan.brand_name ?? scan.domain,
       topic: scan.topic ?? "",
@@ -609,9 +645,8 @@ export async function runGatedScan(scanId: string): Promise<void> {
     });
 
     // The second pass cites sources the first did not. Label the new ones.
-    let kindCalls = 0;
     try {
-      kindCalls = (await classifySources(scanId)).anthropicCalls;
+      spend.anthropicCalls += (await classifySources(scanId)).anthropicCalls;
     } catch (err) {
       console.warn(`[scan] source kinds skipped for ${scanId}:`, err instanceof Error ? err.message : err);
     }
@@ -620,7 +655,7 @@ export async function runGatedScan(scanId: string): Promise<void> {
     // the daily cost cap see the true cost of this scan.
     const { data: current } = await db
       .from("scans")
-      .select("dfs_calls, dfs_cost, anthropic_calls, engines_answered")
+      .select("engines_answered")
       .eq("id", scanId)
       .single();
 
@@ -634,16 +669,23 @@ export async function runGatedScan(scanId: string): Promise<void> {
         // more engines; it cannot recover names a failed batch lost on the free
         // pass, so a clean second pass is not evidence the leaderboard is whole.
         ...(read.leaderboardPartial ? { leaderboard_partial: true } : {}),
-        dfs_calls: (current?.dfs_calls ?? 0) + read.dfsCalls,
-        dfs_cost: Number(current?.dfs_cost ?? 0) + read.dfsCost,
-        anthropic_calls: (current?.anthropic_calls ?? 0) + read.anthropicCalls + kindCalls,
+        ...(await billedOnto(scanId, spend)),
       })
       .eq("id", scanId);
+    spendPersisted = true;
   } catch (err) {
     const message = describeAnthropicError(err);
+    // What this pass had already paid for when it failed. Without it a failed
+    // gated pass was free as far as the cap could see, and this is the
+    // expensive pass - every question again, on two more engines. The guard
+    // stops a throw raised after the update above from billing the day twice.
     await supabaseAdmin()
       .from("scans")
-      .update({ gated_status: "failed", gated_error: message.slice(0, 500) })
+      .update({
+        gated_status: "failed",
+        gated_error: message.slice(0, 500),
+        ...(spendPersisted ? {} : await billedOnto(scanId, spend)),
+      })
       .eq("id", scanId);
   }
 }

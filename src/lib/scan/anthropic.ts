@@ -54,10 +54,25 @@ function anthropic(): Anthropic {
  * The cost is bounded: about 5.5s per failed batch, batches per scan run to
  * single figures, and the whole run is already capped at five minutes.
  */
-async function withRetry<T>(fn: () => Promise<T>, waits = [1500, 4000]): Promise<T> {
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  /**
+   * Incremented once per attempt, before the attempt is made.
+   *
+   * A retry is a second request and Anthropic bills it like one, so a counter
+   * that only ever hears about the attempt that worked reports a scan as
+   * cheaper than it was. Counted before the await for the same reason the
+   * DataForSEO call in the pipeline is: by the time this throws, the request
+   * has already gone out. The three-529s-in-one-session run this retry exists
+   * for is exactly the run whose cost went unrecorded.
+   */
+  billed?: { calls: number },
+  waits = [1500, 4000],
+): Promise<T> {
   let lastErr: unknown;
   for (let attempt = 0; attempt <= waits.length; attempt++) {
     try {
+      if (billed) billed.calls += 1;
       return await fn();
     } catch (err) {
       lastErr = err;
@@ -204,9 +219,13 @@ export async function generateQuestions(input: {
   market: Market;
   brand: string;
   positioning: string | null;
-}): Promise<GeneratedQuestion[]> {
+}): Promise<{ questions: GeneratedQuestion[]; calls: number }> {
   const marketName = input.market === "UK" ? "the United Kingdom" : "the United States";
   const year = currentYear();
+  // Up to three requests behind one question set. The caller used to record
+  // this as a flat one, and as nothing at all when it threw on the last of
+  // them.
+  const billed = { calls: 0 };
 
   // The variants are what stop fourteen questions being fourteen rewordings of
   // one phrase. Without them the set collapses onto the broad category and the
@@ -276,7 +295,7 @@ export async function generateQuestions(input: {
         ].join("\n"),
       },
     ],
-  }));
+  }), billed);
 
   const out = res.parsed_output;
   if (!out?.questions?.length) throw new Error("could not build the question set");
@@ -287,11 +306,14 @@ export async function generateQuestions(input: {
   // render as a chip that matches nothing the buyer recognises.
   const known = [input.topic, ...variants];
   const byKey = new Map(known.map((v) => [v.trim().toLowerCase(), v]));
-  return out.questions.slice(0, QUESTION_COUNT).map((q) => ({
-    ...q,
-    question: freshenYears(q.question, year),
-    cluster: byKey.get((q.cluster ?? "").trim().toLowerCase()) ?? input.topic,
-  }));
+  return {
+    questions: out.questions.slice(0, QUESTION_COUNT).map((q) => ({
+      ...q,
+      question: freshenYears(q.question, year),
+      cluster: byKey.get((q.cluster ?? "").trim().toLowerCase()) ?? input.topic,
+    })),
+    calls: billed.calls,
+  };
 }
 
 // ----------------------------------------------------------- brand extraction
@@ -364,11 +386,13 @@ export async function extractBrands(
   if (current.length) batches.push(current);
 
   const brands: { brand: string; mentions: number }[] = [];
-  let calls = 0;
+  // Attempts, not batches. A batch that 529s twice and lands on the third is
+  // three requests on the bill and was one on this counter.
+  const billed = { calls: 0 };
   let failedBatches = 0;
   for (const batch of batches) {
     try {
-      brands.push(...(await extractBrandBatch(batch, context)));
+      brands.push(...(await extractBrandBatch(batch, context, billed)));
     } catch (err) {
       // One bad batch must not cost the scan its leaderboard, and must not
       // cost it the engine reads already paid for. Counted and returned so
@@ -376,14 +400,14 @@ export async function extractBrands(
       failedBatches += 1;
       console.warn("[scan] a prose batch failed to extract:", err instanceof Error ? err.message : err);
     }
-    calls += 1;
   }
-  return { brands, calls, failedBatches };
+  return { brands, calls: billed.calls, failedBatches };
 }
 
 async function extractBrandBatch(
   batch: string[],
   context: { topic: string; brand: string },
+  billed: { calls: number },
 ): Promise<{ brand: string; mentions: number }[]> {
   const res = await withRetry(() => anthropic().messages.parse({
     model: MODEL,
@@ -421,7 +445,7 @@ async function extractBrandBatch(
           .join("\n\n"),
       },
     ],
-  }));
+  }), billed);
 
   return res.parsed_output?.brands ?? [];
 }
@@ -477,11 +501,11 @@ export async function classifyBrands(input: {
   }
 
   const brands: z.infer<typeof BrandJudgement>["brands"] = [];
-  let calls = 0;
+  const billed = { calls: 0 };
   let failedBatches = 0;
   for (const batch of batches) {
     try {
-      brands.push(...(await judgeBrandBatch(input, batch)));
+      brands.push(...(await judgeBrandBatch(input, batch, billed)));
     } catch (err) {
       // One bad batch must not cost the others their judgement. Counted and
       // returned, not just logged: the caller decides what an unjudged name
@@ -490,14 +514,14 @@ export async function classifyBrands(input: {
       failedBatches += 1;
       console.warn("[scan] a brand batch failed to classify:", err instanceof Error ? err.message : err);
     }
-    calls += 1;
   }
-  return { brands, calls, failedBatches };
+  return { brands, calls: billed.calls, failedBatches };
 }
 
 async function judgeBrandBatch(
   input: { topic: string; brand: string; positioning: string | null },
   names: string[],
+  billed: { calls: number },
 ): Promise<z.infer<typeof BrandJudgement>["brands"]> {
   const res = await withRetry(() => anthropic().messages.parse({
     model: MODEL,
@@ -551,7 +575,7 @@ async function judgeBrandBatch(
           .join("\n"),
       },
     ],
-  }));
+  }), billed);
 
   return res.parsed_output?.brands ?? [];
 }
@@ -622,24 +646,24 @@ export async function classifySourceDomains(input: {
   const unassessed: string[] = [];
 
   const sources: z.infer<typeof SourceJudgement>["sources"] = [];
-  let calls = 0;
+  const billed = { calls: 0 };
   for (const batch of batches) {
     try {
-      sources.push(...(await classifyBatch(input, batch)));
+      sources.push(...(await classifyBatch(input, batch, billed)));
     } catch (err) {
       // One bad batch must not cost the other four their classification, and
       // its domains must not fall through to a default verdict downstream.
       unassessed.push(...batch.map((d) => d.domain));
       console.warn("[scan] a source batch failed to classify:", err instanceof Error ? err.message : err);
     }
-    calls += 1;
   }
-  return { sources, calls, unassessed };
+  return { sources, calls: billed.calls, unassessed };
 }
 
 async function classifyBatch(
   input: { topic: string; brand: string; competitors: string[] },
   domains: { domain: string; pages: { url: string | null; title: string | null }[] }[],
+  billed: { calls: number },
 ): Promise<z.infer<typeof SourceJudgement>["sources"]> {
   const res = await withRetry(() => anthropic().messages.parse({
     model: MODEL,
@@ -697,7 +721,7 @@ async function classifyBatch(
         ].join("\n"),
       },
     ],
-  }));
+  }), billed);
 
   return res.parsed_output?.sources ?? [];
 }

@@ -1,6 +1,7 @@
 import {
   describeAnthropicError,
   generateQuestions,
+  type GeneratedQuestion,
   QUESTION_COUNT,
   TOPIC_VARIANT_COUNT,
 } from "@/lib/scan/anthropic";
@@ -85,15 +86,22 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
     .filter((v) => v.length >= 2 && v.length <= 80)
     .slice(0, TOPIC_VARIANT_COUNT);
 
-  let questions;
+  // Annotated rather than left to evolve, because the assignment below is a
+  // destructuring one and an inferred `any` here would take the type off
+  // everything the response is built from.
+  let questions: GeneratedQuestion[];
   try {
-    questions = await generateQuestions({
+    // Only the set is wanted here. This route previews the questions and
+    // stores nothing, so it has no scan row to bill the attempts onto - the
+    // comment above about daily_cost_cap_usd covering DataForSEO spend only
+    // is the reason that is tolerated rather than an oversight.
+    ({ questions } = await generateQuestions({
       topic,
       topicVariants: variants,
       market,
       brand: scan.brand_name ?? scan.domain,
       positioning: scan.positioning,
-    });
+    }));
   } catch (err) {
     // Logged rather than swallowed. This is the only step between a visitor
     // and their scan, and a silent 502 here looks identical to a slow network.
