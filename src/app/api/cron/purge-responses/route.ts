@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { constantTimeEqual } from "@/lib/constant-time";
 import { getSettings } from "@/lib/scan/settings";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
@@ -28,7 +29,15 @@ const CHUNK = 500;
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
   if (!secret) return NextResponse.json({ error: "CRON_SECRET is not set" }, { status: 503 });
-  if (req.headers.get("authorization") !== `Bearer ${secret}`) {
+  /**
+   * Constant-time, to match the admin proxy next door rather than differ from
+   * it for no stated reason. Timing analysis across a network on a bearer
+   * token is not a practical attack and this is not claimed as a fix for one;
+   * what it fixes is two secret comparisons in one codebase that did not look
+   * alike, which is how the weaker one survives a reading.
+   */
+  const offered = req.headers.get("authorization") ?? "";
+  if (!constantTimeEqual(offered, `Bearer ${secret}`)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
