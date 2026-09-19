@@ -3,7 +3,7 @@ import { OG_IMAGE } from "@/config/og";
 import Link from "next/link";
 
 import CtaSection from "@/components/CtaSection";
-import { TIER_PLAIN } from "@/components/TierName";
+import { TierText, TIER_PLAIN } from "@/components/TierName";
 import { TIERS } from "@/config/pricing";
 import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
 import { ENGINES, ENGINE_SPECS, FREE_ENGINES } from "@/lib/scan/engines";
@@ -104,9 +104,11 @@ function firstClause(s: string): string {
  * The prices come from pricing.ts so this page cannot contradict the pricing
  * card, which is exactly what the old copy did.
  *
- * Tier names are TIER_PLAIN rather than <TierName>: these strings render into
- * the page and are also serialised into the FAQPage schema below, and JSON-LD
- * is one of the plain-text contexts that must strip the colour.
+ * Tier names stay TIER_PLAIN in the string itself, because it is serialised
+ * into the FAQPage schema below and JSON-LD is one of the contexts that strips
+ * colour. The answer is rendered through TierText on the way to the page, so
+ * the visible copy still gets the lockup - one string, both contexts, nothing
+ * to drift.
  */
 const priceAnswer = [
   "Ours are published rather than quoted.",
@@ -404,7 +406,7 @@ export default function WhatIsAEOPage() {
                 </summary>
                 <div className="board-head" style={{ ...GRID12, padding: "0 26px 20px" }}>
                   <p style={{ gridColumn: "6 / span 7", margin: 0, fontSize: "14.5px", lineHeight: 1.7, color: T.soft }}>
-                    {f.a}
+                    <TierText>{f.a}</TierText>
                   </p>
                 </div>
               </details>
