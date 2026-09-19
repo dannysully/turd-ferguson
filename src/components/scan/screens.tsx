@@ -1,44 +1,30 @@
 "use client";
 
-import { TIER_PLAIN } from "@/components/TierName";
-import { CONTACT_URL } from "@/config/pricing";
-import type { HistoryPoint, Market, RunScanResponse, SourceEntry } from "@/lib/scan";
-import type { CoveragePiece, Tracking } from "@/lib/scan/illustrative";
+import type { Market } from "@/lib/scan";
 import { T } from "@/config/tokens";
 
-import ResultDashboard, { Finding, Prompts, fmtDate } from "./ResultDashboard";
-
 /**
- * The checker's screens as stateless components. The /example walkthrough
- * renders each one frozen at a step with fixed data.
+ * The two screens that come before a scan has a token: the domain field, and
+ * the topic form the no-credentials fallback uses.
  *
- * These were shared with ScanChecker, which composed them with live state.
- * That checker is gone, but these are not /example's alone: LiveScanChecker
- * and RequestScanForm render them too, which is the point - the walkthrough
- * and the live funnel are the same markup.
+ * Everything else that lived here - the running screen, the result, the
+ * coverage and tracking walkthroughs - belonged to /example, which Danny
+ * removed on 19 September 2026. The flow's own screens are ConfirmScreen,
+ * HeroSequence and ResultView, built from the boards.
+ *
+ * The C palette object went with them. It was the pre-redesign navy set,
+ * latterly mapped key by key onto the tokens; nothing maps now, these read
+ * T directly, and the token migration is finished.
  *
  * readOnly renders the screen non-interactive but styled exactly as live.
  */
 
-/**
- * The checker's palette, mapped onto the canvas tokens.
- *
- * The key names are kept - navy, body, soft, border, muted - because dozens
- * of call sites use them, but the values are the tokens now: navy is ink
- * #0f1115, soft is the page ground #f6f6f7, border is the hairline #ececee.
- * Renaming the keys is part of the scan flow rework, which redesigns these
- * screens properly; this is the colour half, which the homepage needed
- * because the hero renders these screens.
- */
-export const C = { navy: T.ink, purple: T.accent, body: T.soft, soft: T.bg, border: T.line, white: T.surface, muted: T.faint, red: T.badFg };
-
-export const field: React.CSSProperties = { width: "100%", padding: "0.875rem 1rem", fontSize: "1rem", color: C.navy, background: C.white, border: `1.5px solid ${C.border}`, borderRadius: "12px", fontFamily: "inherit", outline: "none" };
+export const field: React.CSSProperties = { width: "100%", padding: "0.875rem 1rem", fontSize: "1rem", color: T.ink, background: T.surface, border: `1.5px solid ${T.line}`, borderRadius: "12px", fontFamily: "inherit", outline: "none" };
 /* A micro-label, per the boards: 12px/600 on soft, sentence case. */
 export const label: React.CSSProperties = { display: "block", fontSize: "12px", fontWeight: 600, letterSpacing: "0.002em", color: T.soft, marginBottom: "7px" };
 export const btn: React.CSSProperties = { border: "none", cursor: "pointer", padding: "0.875rem 2rem" };
-const quiet: React.CSSProperties = { background: "none", border: "none", color: C.body, fontSize: "0.875rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", padding: "0.875rem 0" };
+const quiet: React.CSSProperties = { background: "none", border: "none", color: T.soft, fontSize: "0.875rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", padding: "0.875rem 0" };
 
-export const STEPS = ["Building the questions buyers ask", "Reading what the engines answered", "Finding the sources they cited"];
 
 const ro = (readOnly?: boolean) => (readOnly ? { readOnly: true, tabIndex: -1, "aria-readonly": true as const } : {});
 
@@ -61,7 +47,7 @@ export function DomainScreen(p: {
           {p.busy ? "Checking" : "Check"}
         </button>
       </div>
-      {p.error && <p id={`${id}-err`} style={{ fontSize: "0.8125rem", color: C.red, marginTop: "0.5rem" }}>{p.error}</p>}
+      {p.error && <p id={`${id}-err`} style={{ fontSize: "0.8125rem", color: T.badFg, marginTop: "0.5rem" }}>{p.error}</p>}
     </form>
   );
 }
@@ -78,8 +64,8 @@ export function TopicScreen(p: {
   const canRun = p.topic.trim() && (p.brand || (p.brandName ?? "").trim());
   return (
     <form onSubmit={p.onSubmit ?? ((e) => e.preventDefault())} noValidate>
-      <h2 ref={p.headingRef} tabIndex={-1} style={{ fontSize: "1rem", fontWeight: 700, color: C.navy, margin: "0 0 1rem", outline: "none", lineHeight: 1.45 }}>
-        {p.brand ? <>We read <span style={{ color: C.purple }}>{p.brand}</span> from the domain.</> : "Tell us what to check."}
+      <h2 ref={p.headingRef} tabIndex={-1} style={{ fontSize: "1rem", fontWeight: 700, color: T.ink, margin: "0 0 1rem", outline: "none", lineHeight: 1.45 }}>
+        {p.brand ? <>We read <span style={{ color: T.accent }}>{p.brand}</span> from the domain.</> : "Tell us what to check."}
       </h2>
       {!p.brand && (
         <>
@@ -89,7 +75,7 @@ export function TopicScreen(p: {
       )}
       <label htmlFor={`${id}-topic`} style={label}>
         What keyword are you targeting?{" "}
-        <span style={{ fontWeight: 400, color: C.muted }}>This informs the questions we check.</span>
+        <span style={{ fontWeight: 400, color: T.faint }}>This informs the questions we check.</span>
       </label>
       <input id={`${id}-topic`} value={p.topic} onChange={(e) => p.onTopic?.(e.target.value)} placeholder="b2b seo agency" style={{ ...field, marginBottom: "0.75rem" }} {...ro(p.readOnly)} />
       <fieldset style={{ border: "none", padding: 0, margin: "0 0 0.75rem" }}>
@@ -97,13 +83,13 @@ export function TopicScreen(p: {
         <div style={{ display: "flex", gap: "0.5rem" }}>
           {(["UK", "US"] as Market[]).map((m) => (
             <button key={m} type="button" onClick={() => p.onMarket?.(m)} aria-pressed={p.market === m} disabled={p.readOnly} tabIndex={p.readOnly ? -1 : undefined}
-              style={{ padding: "0.5rem 1.125rem", fontSize: "0.875rem", fontWeight: 600, fontFamily: "inherit", color: p.market === m ? C.white : C.navy, background: p.market === m ? C.purple : C.white, border: `1.5px solid ${p.market === m ? C.purple : C.border}`, borderRadius: "10px", cursor: p.readOnly ? "default" : "pointer" }}>
+              style={{ padding: "0.5rem 1.125rem", fontSize: "0.875rem", fontWeight: 600, fontFamily: "inherit", color: p.market === m ? T.surface : T.ink, background: p.market === m ? T.accent : T.surface, border: `1.5px solid ${p.market === m ? T.accent : T.line}`, borderRadius: "10px", cursor: p.readOnly ? "default" : "pointer" }}>
               {m}
             </button>
           ))}
         </div>
       </fieldset>
-      <p style={{ fontSize: "0.8125rem", color: C.body, lineHeight: 1.6, marginBottom: "1.25rem" }}>
+      <p style={{ fontSize: "0.8125rem", color: T.soft, lineHeight: 1.6, marginBottom: "1.25rem" }}>
         Write it the way a buyer would say it, not the way you would pitch it. It decides every question we ask.
       </p>
       <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap" }}>
@@ -114,332 +100,9 @@ export function TopicScreen(p: {
   );
 }
 
-/* ── 3. Running: three named steps, never a bare spinner ── */
-/**
- * The in-progress marker: the Nomada six-point asterisk, turning.
- *
- * A step that is working has to look like it is working. The done state is a
- * filled tick and the waiting state is a flat dot, so motion is what separates
- * "running" from "stuck" - which is the whole complaint this answers. The spin
- * lives in globals.css so prefers-reduced-motion can stop it without taking
- * the mark away: colour and weight still mark the active row.
- */
-function StepAsterisk() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 32 32" fill="none" aria-hidden="true" style={{ display: "block", flexShrink: 0 }}>
-      <g className="scan-step-ast" stroke={C.purple} strokeWidth="4.5" strokeLinecap="round">
-        <line x1="16" y1="4.5" x2="16" y2="27.5" />
-        <line x1="6.041" y1="10.25" x2="25.959" y2="21.75" />
-        <line x1="25.959" y1="10.25" x2="6.041" y2="21.75" />
-      </g>
-    </svg>
-  );
-}
 
-export function RunningScreen(p: { brandLabel: string; progress: number; slow?: boolean; headingRef?: React.Ref<HTMLHeadingElement> }) {
-  return (
-    <div>
-      <h2 ref={p.headingRef} tabIndex={-1} style={{ fontSize: "1rem", fontWeight: 700, color: C.navy, margin: "0 0 1rem", outline: "none" }}>Checking {p.brandLabel}</h2>
-      <ol style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-        {STEPS.map((s, i) => {
-          const state = i < p.progress ? "done" : i === p.progress ? "active" : "todo";
-          return (
-            <li key={s} className={state === "active" ? "scan-step-active" : undefined} style={{ display: "flex", alignItems: "center", gap: "0.75rem", fontSize: "0.9375rem", color: state === "todo" ? C.muted : C.navy, fontWeight: state === "active" ? 600 : 500 }}>
-              {state === "active" ? (
-                <StepAsterisk />
-              ) : (
-                <span className="scan-step-dot" aria-hidden="true" style={{ width: 18, height: 18, borderRadius: "50%", flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", background: state === "done" ? C.purple : C.border }}>
-                  {state === "done" && <svg width="9" height="7" viewBox="0 0 9 7" fill="none"><path d="M1 3.5l2.5 2.5 5-5" stroke="#fff" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" /></svg>}
-                </span>
-              )}
-              {s}
-            </li>
-          );
-        })}
-      </ol>
-      <p style={{ fontSize: "0.8125rem", color: C.muted, marginTop: "1rem" }}>
-        {p.slow
-          ? "This is taking longer than usual. Still working on it."
-          : "This usually takes about a minute. We are asking every engine every question, so it is worth the wait."}
-      </p>
-    </div>
-  );
-}
 
-/* ── 4 and 5. Result: finding ungated; the rest blurred behind the gate or open ── */
-/**
- * What to do about the result, once they can see all of it.
- *
- * One action, not a price list. The scan answers "where do I stand"; the
- * question it leaves is "so what do I do", and that is a conversation, not a
- * checkout - nobody buys a placement programme off a results page. The offer
- * is therefore the walkthrough, made concrete by naming a source from their
- * own result, and the self-serve tier sits underneath as a plain sentence for
- * the people who only want the numbers.
- */
-function NextStepCta(p: { result: RunScanResponse }) {
-  const top = p.result.sources.find((s) => s.domain)?.domain;
-  return (
-    <div
-      style={{
-        marginTop: "1.5rem",
-        background: "rgba(124,58,237,0.05)",
-        border: "1px solid rgba(124,58,237,0.2)",
-        borderRadius: "16px",
-        padding: "1.5rem",
-      }}
-    >
-      <p style={{ fontSize: "1.0625rem", fontWeight: 700, color: C.navy, margin: "0 0 0.5rem", letterSpacing: "-0.01em" }}>
-        Now the useful bit: where your first placement goes
-      </p>
-      <p style={{ fontSize: "0.9375rem", color: C.body, margin: "0 0 1.25rem", lineHeight: 1.6 }}>
-        The sources above are the pages these engines already trust on {p.result.topic}
-        {top ? <> - {top} among them</> : null}. Book twenty minutes and we will take this
-        result apart with you: which source we would go after first, what it takes to get
-        placed there, and how you would know it worked. Take the plan away and run it
-        yourself, or hand it to us.
-      </p>
-      <a
-        href={CONTACT_URL}
-        className="btn-primary"
-        style={{ ...btn, display: "inline-block", textDecoration: "none", fontWeight: 600 }}
-      >
-        Book a 20-minute walkthrough
-      </a>
-      <p style={{ fontSize: "0.8125rem", color: C.muted, margin: "1rem 0 0", lineHeight: 1.6 }}>
-        Only want to watch the numbers move?{" "}
-        <a href="/alwaystracked" style={{ color: C.purple, fontWeight: 600 }}>
-          {TIER_PLAIN.tracked}
-        </a>{" "}
-        tracks this every week from $99 a month.
-      </p>
-    </div>
-  );
-}
 
-export function ResultScreen(p: { result: RunScanResponse; gated: boolean; compact?: boolean; gate?: React.ReactNode; headingRef?: React.Ref<HTMLHeadingElement> }) {
-  const r = p.result;
-  return (
-    <div>
-      <h2 ref={p.headingRef} tabIndex={-1} className="sr-only">Results</h2>
-      <div style={{ marginBottom: "1.5rem" }}><Finding r={r} /></div>
-      {/* Outside the gate on purpose: the questions are the evidence, and an
-          unconvinced visitor needs them before they will trade an address. */}
-      <div style={{ marginBottom: "1.5rem" }}><Prompts r={r} /></div>
-      {p.gated ? (
-        <div style={{ position: "relative" }}>
-          <div className="scan-gated" aria-hidden="true"><ResultDashboard r={r} sourceLimit={p.compact ? 4 : 8} /></div>
-          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
-            <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: "16px", padding: "1.5rem", boxShadow: "0 12px 40px rgba(11,18,32,0.14)", width: "100%", maxWidth: "440px" }}>
-              {p.gate}
-            </div>
-          </div>
-        </div>
-      ) : (
-        <>
-          <ResultDashboard r={r} />
-          <NextStepCta result={r} />
-        </>
-      )}
-    </div>
-  );
-}
 
-/* ── 6a. Coverage upload: the screen before matching ── */
-export function CoverageUploadScreen(p: { file: { name: string; rows: number } }) {
-  const tab = (t: string, on: boolean) => (
-    <span key={t} style={{ padding: "0.4rem 0.875rem", fontSize: "0.8125rem", fontWeight: 600, borderRadius: "8px", color: on ? C.white : C.body, background: on ? C.navy : "transparent" }}>{t}</span>
-  );
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "0.875rem" }}>
-      <div style={{ display: "inline-flex", gap: "0.25rem", padding: "0.25rem", background: C.white, border: `1px solid ${C.border}`, borderRadius: "10px", alignSelf: "flex-start" }} role="tablist" aria-label="Upload method">
-        {tab("Drag and drop", true)}{tab("Upload CSV", false)}{tab("Paste URLs", false)}
-      </div>
 
-      <div style={{ border: `2px dashed rgba(124,58,237,0.45)`, background: "rgba(124,58,237,0.04)", borderRadius: "16px", padding: "2rem 1.5rem", textAlign: "center" }}>
-        <svg width="36" height="36" viewBox="0 0 36 36" fill="none" aria-hidden="true" style={{ margin: "0 auto 0.75rem", display: "block" }}>
-          <path d="M18 24V9M11 16l7-7 7 7" stroke={C.purple} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M6 24v4a3 3 0 0 0 3 3h18a3 3 0 0 0 3-3v-4" stroke={C.purple} strokeWidth="2" strokeLinecap="round" />
-        </svg>
-        <p style={{ fontWeight: 700, color: C.navy, margin: "0 0 0.375rem", fontSize: "1rem" }}>Drop your coverage here</p>
-        <p style={{ fontSize: "0.8125rem", color: C.body, margin: 0, lineHeight: 1.6, maxWidth: "440px", marginInline: "auto" }}>
-          A CSV with a <code style={{ fontFamily: "monospace", fontSize: "0.75rem", background: C.white, padding: "0.1rem 0.35rem", borderRadius: 4 }}>url</code> column, or one URL per line. We resolve redirects and match every URL against the sources the engines cited.
-        </p>
-      </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", background: C.white, border: `1px solid ${C.border}`, borderRadius: "12px", padding: "0.75rem 1rem" }}>
-        <span aria-hidden="true" style={{ width: 22, height: 22, borderRadius: "50%", background: "rgba(34,197,94,0.15)", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="#22C55E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-        </span>
-        <div style={{ minWidth: 0 }}>
-          <p style={{ fontSize: "0.875rem", fontWeight: 600, color: C.navy, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.file.name}</p>
-          <p style={{ fontSize: "0.75rem", color: C.muted, margin: 0 }}>{p.file.rows} rows · columns found: url, title, published, status</p>
-        </div>
-      </div>
-
-      <p style={{ fontSize: "0.8125rem", color: C.body, margin: 0, lineHeight: 1.6 }}>
-        Mark a piece <strong style={{ color: C.navy }}>upcoming</strong> and we record a baseline reading before it publishes, so it has a real before.
-      </p>
-      <button type="button" className="btn-primary" style={{ ...btn, alignSelf: "flex-start" }} disabled tabIndex={-1}>Match against cited sources</button>
-    </div>
-  );
-}
-
-/* ── 6b. Coverage after matching ── */
-export function CoverageScreen(p: { pieces: CoveragePiece[]; owners: SourceEntry[]; readAt: string }) {
-  const card: React.CSSProperties = { background: C.white, border: `1px solid ${C.border}`, borderRadius: "16px", padding: "1.25rem" };
-  const cited = p.pieces.filter((x) => x.cited);
-  /* Upcoming pieces first: the baseline-before-publish state is the one worth showing */
-  const notCited = p.pieces.filter((x) => !x.cited).sort((a, b) => Number(b.status === "upcoming") - Number(a.status === "upcoming"));
-  const themes = Array.from(new Set(p.pieces.map((x) => x.theme))).map((t) => ({
-    theme: t, total: p.pieces.filter((x) => x.theme === t).length, cited: p.pieces.filter((x) => x.theme === t && x.cited).length,
-  }));
-  const badge = (text: string, tone: "green" | "grey" | "amber") => (
-    <span style={{ fontSize: "0.65rem", fontWeight: 600, padding: "0.15rem 0.5rem", borderRadius: "999px", whiteSpace: "nowrap",
-      color: tone === "green" ? "#15803D" : tone === "amber" ? "#B45309" : C.body,
-      background: tone === "green" ? "rgba(34,197,94,0.12)" : tone === "amber" ? "rgba(245,158,11,0.12)" : "#F3F4F6" }}>{text}</span>
-  );
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.75rem" }} className="stack-mobile">
-        {[[p.pieces.length, "pieces uploaded"], [cited.length, "cited by the engines"], [notCited.length, "not cited"]].map(([n, l]) => (
-          <div key={String(l)} style={card}>
-            <p style={{ fontSize: "1.75rem", fontWeight: 700, color: C.navy, letterSpacing: "-0.03em", lineHeight: 1, margin: "0 0 0.25rem", fontVariantNumeric: "tabular-nums" }}>{n}</p>
-            <p style={{ fontSize: "0.75rem", color: C.body, margin: 0 }}>{l}</p>
-          </div>
-        ))}
-      </div>
-
-      <div style={card}>
-        <p style={{ fontSize: "0.8125rem", fontWeight: 700, color: C.navy, margin: "0 0 0.75rem" }}>The pieces doing the work</p>
-        <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column" }}>
-          {cited.map((x) => (
-            <li key={x.title} style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "0.75rem", alignItems: "start", padding: "0.625rem 0", borderTop: `1px solid ${C.border}` }}>
-              <div style={{ minWidth: 0 }}>
-                <p style={{ fontSize: "0.875rem", fontWeight: 600, color: C.navy, margin: "0 0 0.2rem", lineHeight: 1.4 }}>{x.title}</p>
-                <p style={{ fontSize: "0.75rem", color: C.muted, margin: 0 }}>{x.domain} · {fmtDate(x.published)} · {x.theme}</p>
-              </div>
-              <div style={{ display: "flex", gap: "0.375rem", flexWrap: "wrap", justifyContent: "flex-end" }}>
-                {badge("cited", "green")}{badge(x.hasLink ? "with link" : "no link", "grey")}
-              </div>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <div style={card}>
-        <p style={{ fontSize: "0.8125rem", fontWeight: 700, color: C.navy, margin: "0 0 0.75rem" }}>Not cited <span style={{ color: C.muted, fontWeight: 500 }}>· {notCited.length}</span></p>
-        <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column" }}>
-          {notCited.slice(0, 6).map((x) => (
-            <li key={x.title} style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "0.75rem", alignItems: "center", padding: "0.5rem 0", borderTop: `1px solid ${C.border}` }}>
-              <p style={{ fontSize: "0.8125rem", color: C.body, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{x.title} <span style={{ color: C.muted }}>· {x.domain}</span></p>
-              <div style={{ display: "flex", gap: "0.375rem" }}>
-                {x.status === "upcoming" ? badge("upcoming · baseline recorded", "amber") : badge(x.theme, "grey")}
-              </div>
-            </li>
-          ))}
-        </ul>
-        {notCited.length > 6 && <p style={{ fontSize: "0.75rem", color: C.muted, margin: "0.625rem 0 0" }}>and {notCited.length - 6} more</p>}
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }} className="stack-mobile">
-        <div style={card}>
-          <p style={{ fontSize: "0.8125rem", fontWeight: 700, color: C.navy, margin: "0 0 0.625rem" }}>By theme</p>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8125rem" }}>
-            <tbody>
-              {themes.map((t) => (
-                <tr key={t.theme} style={{ borderTop: `1px solid ${C.border}` }}>
-                  <td style={{ padding: "0.4rem 0", color: C.navy }}>{t.theme}</td>
-                  <td style={{ padding: "0.4rem 0", textAlign: "right", color: C.body, fontVariantNumeric: "tabular-nums" }}>{t.cited} of {t.total} cited</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div style={card}>
-          <p style={{ fontSize: "0.8125rem", fontWeight: 700, color: C.navy, margin: "0 0 0.625rem" }}>Sources that own the commercial questions</p>
-          <ol style={{ margin: 0, paddingLeft: "1.25rem", display: "flex", flexDirection: "column", gap: "0.3rem" }}>
-            {p.owners.map((s) => <li key={s.domain} style={{ fontSize: "0.8125rem", color: C.navy }}>{s.domain} <span style={{ color: C.muted }}>· {s.mentions}</span></li>)}
-          </ol>
-          <p style={{ fontSize: "0.7rem", color: C.muted, margin: "0.625rem 0 0" }}>read {fmtDate(p.readAt)}</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ── 7. Tracking: four weeks on, the report you send a client ── */
-export function TrackingScreen(p: { brand: string; topic: string; market: Market; tracking: Tracking; baseline: HistoryPoint[] }) {
-  const t = p.tracking;
-  const card: React.CSSProperties = { background: C.white, border: `1px solid ${C.border}`, borderRadius: "16px", padding: "1.25rem" };
-  const ord = (n: number) => { const s = ["th", "st", "nd", "rd"], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); };
-  const maxSov = Math.max(...t.weekly.map((w) => w.shareOfVoice), 1);
-  const up = t.after.namedIn - t.before.namedIn;
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-      {/* Report header - white label */}
-      <div style={{ ...card, display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "0.875rem", minWidth: 0 }}>
-          <div aria-label="Your agency logo" style={{ width: 44, height: 44, borderRadius: 10, border: `1.5px dashed ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.6rem", color: C.muted, textAlign: "center", lineHeight: 1.2, flexShrink: 0 }}>your<br />logo</div>
-          <div style={{ minWidth: 0 }}>
-            <p style={{ fontSize: "0.9375rem", fontWeight: 700, color: C.navy, margin: 0 }}>AI visibility report · {p.brand}</p>
-            <p style={{ fontSize: "0.75rem", color: C.muted, margin: 0 }}>{p.topic} · {p.market} · {fmtDate(t.before.readAt)} to {fmtDate(t.after.readAt)}</p>
-          </div>
-        </div>
-        <button type="button" className="btn-primary" style={{ ...btn, padding: "0.625rem 1.25rem", fontSize: "0.8125rem" }} disabled tabIndex={-1}>Download report (PDF)</button>
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }} className="stack-mobile">
-        {[["Before", t.before], ["After four weeks", t.after]].map(([lbl, v]) => {
-          const x = v as Tracking["before"];
-          return (
-            <div key={String(lbl)} style={card}>
-              <p style={{ fontSize: "0.75rem", fontWeight: 600, color: C.muted, letterSpacing: "0.002em", margin: "0 0 0.5rem" }}>{String(lbl)}</p>
-              <p style={{ fontSize: "1.5rem", fontWeight: 700, color: C.navy, letterSpacing: "-0.02em", lineHeight: 1.1, margin: "0 0 0.25rem", fontVariantNumeric: "tabular-nums" }}>Named in {x.namedIn} of {x.of}</p>
-              <p style={{ fontSize: "0.8125rem", color: C.body, margin: 0 }}>{ord(x.rank)} of {x.ofBrands} brands</p>
-              <p style={{ fontSize: "0.7rem", color: C.muted, margin: "0.5rem 0 0" }}>read {fmtDate(x.readAt)}</p>
-            </div>
-          );
-        })}
-      </div>
-
-      <div style={{ ...card, background: "rgba(34,197,94,0.06)", borderColor: "rgba(34,197,94,0.25)" }}>
-        <p style={{ fontSize: "0.9375rem", color: C.navy, margin: 0, lineHeight: 1.55 }}>
-          <strong>+{up}</strong> question{up === 1 ? "" : "s"} newly named in. Rank {ord(t.before.rank)} to {ord(t.after.rank)}. Share of voice {t.weekly[0].shareOfVoice}% to {t.weekly[t.weekly.length - 1].shareOfVoice}%.
-        </p>
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }} className="stack-mobile">
-        <div style={card}>
-          <p style={{ fontSize: "0.8125rem", fontWeight: 700, color: C.navy, margin: "0 0 0.5rem" }}>Questions newly named in</p>
-          <ul style={{ margin: 0, paddingLeft: "1.125rem", display: "flex", flexDirection: "column", gap: "0.375rem" }}>
-            {t.newlyNamed.map((q) => <li key={q} style={{ fontSize: "0.8125rem", color: C.navy, lineHeight: 1.45 }}>{q}</li>)}
-          </ul>
-          <p style={{ fontSize: "0.8125rem", color: C.body, margin: "0.75rem 0 0" }}>No longer named: <strong style={{ color: C.navy }}>{t.noLongerNamed.length === 0 ? "none" : t.noLongerNamed.length}</strong></p>
-        </div>
-        <div style={card}>
-          <p style={{ fontSize: "0.8125rem", fontWeight: 700, color: C.navy, margin: "0 0 0.5rem" }}>Newly citing sources</p>
-          <ul style={{ margin: 0, paddingLeft: "1.125rem", display: "flex", flexDirection: "column", gap: "0.375rem" }}>
-            {t.newlyCitingSources.map((d) => <li key={d} style={{ fontSize: "0.8125rem", color: C.navy }}>{d}</li>)}
-          </ul>
-        </div>
-      </div>
-
-      <div style={card}>
-        <p style={{ fontSize: "0.8125rem", fontWeight: 700, color: C.navy, margin: "0 0 0.75rem" }}>Share of voice, week by week</p>
-        <div style={{ display: "grid", gridTemplateColumns: `repeat(${t.weekly.length}, 1fr)`, gap: "0.75rem", alignItems: "end" }}>
-          {t.weekly.map((w) => (
-            <div key={w.week} style={{ textAlign: "center" }}>
-              <p style={{ fontSize: "0.75rem", fontWeight: 700, color: C.navy, margin: "0 0 0.25rem", fontVariantNumeric: "tabular-nums" }}>{w.shareOfVoice}%</p>
-              <div style={{ height: 72, display: "flex", alignItems: "flex-end" }}>
-                <div style={{ width: "100%", height: `${(w.shareOfVoice / maxSov) * 100}%`, background: C.purple, borderRadius: "6px 6px 3px 3px" }} />
-              </div>
-              <p style={{ fontSize: "0.7rem", color: C.muted, margin: "0.375rem 0 0" }}>{w.week}</p>
-              <p style={{ fontSize: "0.65rem", color: C.muted, margin: 0 }}>{w.namedIn} of {t.before.of}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}

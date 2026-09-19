@@ -16,7 +16,7 @@ import { ENGINE_SPECS, isEngine } from "@/lib/scan/engines";
 import ConfirmScreen from "./ConfirmScreen";
 import HeroSequence from "./HeroSequence";
 import ResultView from "./ResultView";
-import { C, btn, field, label } from "./screens";
+import { btn, field, label } from "./screens";
 
 /**
  * The scan, on its own page, from confirm to report.
@@ -190,12 +190,12 @@ function toResult(t: Teaser, domain: string, full: FullPayload | null): RunScanR
 function VerifyPending(p: { email: string; note: string; busy: boolean; onResend: () => void }) {
   return (
     <div>
-      <p style={{ fontSize: "0.9375rem", fontWeight: 700, color: C.navy, margin: "0 0 0.5rem" }}>Check your inbox</p>
-      <p style={{ fontSize: "0.875rem", color: C.body, margin: "0 0 1rem", lineHeight: 1.6 }}>
-        The full report is one click away. We have sent a link to <strong style={{ color: C.navy }}>{p.email}</strong> -
+      <p style={{ fontSize: "0.9375rem", fontWeight: 700, color: T.ink, margin: "0 0 0.5rem" }}>Check your inbox</p>
+      <p style={{ fontSize: "0.875rem", color: T.soft, margin: "0 0 1rem", lineHeight: 1.6 }}>
+        The full report is one click away. We have sent a link to <strong style={{ color: T.ink }}>{p.email}</strong> -
         opening it unlocks the leaderboard and every source, on this device or any other.
       </p>
-      <p style={{ fontSize: "0.8125rem", color: C.body, margin: "0 0 0.75rem", lineHeight: 1.6 }}>
+      <p style={{ fontSize: "0.8125rem", color: T.soft, margin: "0 0 0.75rem", lineHeight: 1.6 }}>
         Nothing yet? It can take a minute, and it is worth a look in spam.
       </p>
       <button
@@ -205,9 +205,9 @@ function VerifyPending(p: { email: string; note: string; busy: boolean; onResend
         style={{
           fontSize: "0.875rem",
           fontWeight: 600,
-          color: C.purple,
+          color: T.accent,
           background: "transparent",
-          border: "1px solid " + C.border,
+          border: "1px solid " + T.line,
           borderRadius: 8,
           padding: "0.5rem 0.9rem",
           cursor: p.busy ? "default" : "pointer",
@@ -217,7 +217,7 @@ function VerifyPending(p: { email: string; note: string; busy: boolean; onResend
         {p.busy ? "Sending" : "Send it again"}
       </button>
       {p.note ? (
-        <p aria-live="polite" style={{ fontSize: "0.8125rem", color: C.body, margin: "0.75rem 0 0" }}>
+        <p aria-live="polite" style={{ fontSize: "0.8125rem", color: T.soft, margin: "0.75rem 0 0" }}>
           {p.note}
         </p>
       ) : null}
@@ -609,9 +609,9 @@ export default function ScanFlow(p: {
           <p
             style={{
               fontSize: "0.8125rem",
-              color: gatedStatus === "failed" ? C.red : C.body,
+              color: gatedStatus === "failed" ? T.badFg : T.soft,
               background: gatedStatus === "failed" ? "transparent" : T.wash,
-              border: "1px solid " + (gatedStatus === "failed" ? C.border : T.washLine),
+              border: "1px solid " + (gatedStatus === "failed" ? T.line : T.washLine),
               borderRadius: 12,
               padding: "0.75rem 1rem",
               margin: "0 0 1rem",
@@ -639,10 +639,10 @@ export default function ScanFlow(p: {
                 <VerifyPending email={pendingEmail} note={resendNote} busy={busy} onResend={onResend} />
               ) : (
                 <form onSubmit={onEmail} noValidate>
-                  <p style={{ fontSize: "0.9375rem", fontWeight: 700, color: C.navy, margin: "0 0 0.5rem" }}>
+                  <p style={{ fontSize: "0.9375rem", fontWeight: 700, color: T.ink, margin: "0 0 0.5rem" }}>
                     {gateHeading}
                   </p>
-                  <p style={{ fontSize: "0.875rem", color: C.body, margin: "0 0 1rem", lineHeight: 1.6 }}>
+                  <p style={{ fontSize: "0.875rem", color: T.soft, margin: "0 0 1rem", lineHeight: 1.6 }}>
                     {gateBody}
                   </p>
                   <label htmlFor="scan-email" style={label}>
@@ -660,7 +660,7 @@ export default function ScanFlow(p: {
                     aria-invalid={Boolean(emailErr)}
                   />
                   {emailErr ? (
-                    <p style={{ fontSize: "0.8125rem", color: C.red, marginTop: "0.5rem" }}>{emailErr}</p>
+                    <p style={{ fontSize: "0.8125rem", color: T.badFg, marginTop: "0.5rem" }}>{emailErr}</p>
                   ) : null}
                   <button
                     type="submit"
@@ -670,7 +670,7 @@ export default function ScanFlow(p: {
                   >
                     {busy ? "Unlocking" : "Send me the full report"}
                   </button>
-                  <p style={{ fontSize: "0.75rem", color: C.muted, marginTop: "0.75rem", lineHeight: 1.5 }}>
+                  <p style={{ fontSize: "0.75rem", color: T.faint, marginTop: "0.75rem", lineHeight: 1.5 }}>
                     One scan, no charge. Ongoing tracking comes with a plan.
                   </p>
                 </form>

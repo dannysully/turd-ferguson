@@ -1,11 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* The scan adapter reads fixtures/*.json at runtime via a dynamic path, which
-     file tracing cannot follow. Include them in every function bundle. */
-  outputFileTracingIncludes: {
-    "/**": ["./fixtures/**/*"],
-  },
   /**
    * /example is gone - Danny, 19 Sep 2026: "We no longer need example you can
    * remove this." It was live for weeks and may be linked from somewhere

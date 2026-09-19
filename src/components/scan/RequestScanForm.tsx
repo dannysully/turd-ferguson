@@ -3,8 +3,9 @@
 import { useState } from "react";
 
 import { requestScan } from "@/app/actions/waitlist";
+import { T } from "@/config/tokens";
 
-import { C, DomainScreen, TopicScreen, btn, field, label } from "./screens";
+import { DomainScreen, TopicScreen, btn, field, label } from "./screens";
 
 /**
  * What the domain field does while the live scan is switched off.
@@ -62,11 +63,11 @@ export default function RequestScanForm({ initialDomain = "" }: { initialDomain?
 
   if (step === "done") {
     return (
-      <div style={{ background: C.soft, border: `1px solid ${C.border}`, borderRadius: 16, padding: "1.5rem" }}>
-        <p style={{ fontSize: "1rem", fontWeight: 700, color: C.navy, margin: "0 0 0.5rem" }}>
+      <div style={{ background: T.bg, border: `1px solid ${T.line}`, borderRadius: 16, padding: "1.5rem" }}>
+        <p style={{ fontSize: "1rem", fontWeight: 700, color: T.ink, margin: "0 0 0.5rem" }}>
           Got it. We will run {domain} for {topic} and send it over.
         </p>
-        <p style={{ fontSize: "0.9375rem", color: C.body, margin: 0, lineHeight: 1.65 }}>
+        <p style={{ fontSize: "0.9375rem", color: T.soft, margin: 0, lineHeight: 1.65 }}>
           You will get the questions we asked, which engines named them, and every source those
           engines cited. Reply to that email and it reaches a person.
         </p>
@@ -96,16 +97,16 @@ export default function RequestScanForm({ initialDomain = "" }: { initialDomain?
               setError("");
             }}
           />
-          {error && <p style={{ fontSize: "0.8125rem", color: C.red, marginTop: "0.75rem" }}>{error}</p>}
+          {error && <p style={{ fontSize: "0.8125rem", color: T.badFg, marginTop: "0.75rem" }}>{error}</p>}
         </>
       )}
 
       {step === "email" && (
         <form onSubmit={onEmail} noValidate>
-          <h2 style={{ fontSize: "1rem", fontWeight: 700, color: C.navy, margin: "0 0 0.5rem", lineHeight: 1.45 }}>
+          <h2 style={{ fontSize: "1rem", fontWeight: 700, color: T.ink, margin: "0 0 0.5rem", lineHeight: 1.45 }}>
             Automatic checks switch on shortly.
           </h2>
-          <p style={{ fontSize: "0.9375rem", color: C.body, margin: "0 0 1.125rem", lineHeight: 1.65 }}>
+          <p style={{ fontSize: "0.9375rem", color: T.soft, margin: "0 0 1.125rem", lineHeight: 1.65 }}>
             Until they do, a person runs {domain} for {topic} against Google AI Overviews, ChatGPT and
             Gemini and sends you the same report, usually within a working day. One check, no charge.
           </p>
@@ -124,7 +125,7 @@ export default function RequestScanForm({ initialDomain = "" }: { initialDomain?
             style={field}
             required
           />
-          {error && <p style={{ fontSize: "0.8125rem", color: C.red, marginTop: "0.5rem" }}>{error}</p>}
+          {error && <p style={{ fontSize: "0.8125rem", color: T.badFg, marginTop: "0.5rem" }}>{error}</p>}
 
           <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap", marginTop: "1rem" }}>
             <button type="submit" className="btn-primary" style={btn} disabled={busy}>
@@ -136,7 +137,7 @@ export default function RequestScanForm({ initialDomain = "" }: { initialDomain?
                 setStep("topic");
                 setError("");
               }}
-              style={{ background: "none", border: "none", color: C.body, fontSize: "0.875rem", cursor: "pointer", fontFamily: "inherit" }}
+              style={{ background: "none", border: "none", color: T.soft, fontSize: "0.875rem", cursor: "pointer", fontFamily: "inherit" }}
             >
               Back
             </button>
