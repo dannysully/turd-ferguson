@@ -26,6 +26,15 @@
   --font-sans: "Hanken Grotesk Variable", "Hanken Grotesk", system-ui, -apple-system, sans-serif;
 }
 
+:root {
+  /* The site has one palette and it is light. Saying so stops the browser
+     painting the parts we do not paint ourselves - caret, autofill, scrollbars,
+     placeholder - in its dark-mode defaults on a machine set to dark. The
+     fields themselves already set an explicit background and colour, so this
+     is the chrome around them rather than the fields. */
+  color-scheme: light;
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
 }
