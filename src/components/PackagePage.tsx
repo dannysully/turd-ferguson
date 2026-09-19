@@ -1,4 +1,4 @@
-import TierName from "@/components/TierName";
+import TierName, { TierText, type TierKey } from "@/components/TierName";
 import { CONTACT_URL, TIERS, type Tier } from "@/config/pricing";
 import { ld, ORG_REF, SITE_REF, SITE_URL } from "@/config/schema";
 import { CARD, MICRO, SHELL, T } from "@/config/tokens";
@@ -99,7 +99,12 @@ export default function PackagePage({
   standfirst: string;
   included: string[];
   sections: PackageSection[];
-  notIncluded?: { text: string; upgradeTo?: string; href?: string };
+  /**
+   * `upgradeTo` is a tier key rather than the written name: the page names a
+   * tier here, so the lockup is not something a page should be able to spell
+   * for itself.
+   */
+  notIncluded?: { text: string; upgradeTo?: TierKey; href?: string };
 }) {
   return (
     <section style={{ ...SHELL, paddingTop: "40px", display: "flex", flexDirection: "column", gap: "28px" }}>
@@ -126,7 +131,7 @@ export default function PackagePage({
             <TierName tier={tier.key} qualifier={tier.qualifier} />
           </h1>
           <p style={{ margin: "12px 0 0", fontSize: "15.5px", lineHeight: 1.65, color: T.soft, maxWidth: "60ch" }}>
-            {standfirst}
+            <TierText>{standfirst}</TierText>
           </p>
         </div>
 
@@ -198,7 +203,9 @@ export default function PackagePage({
                   <svg width="12" height="9" viewBox="0 0 12 9" fill="none" aria-hidden="true" style={{ marginTop: "6px", flexShrink: 0 }}>
                     <path d="M1 4.5l3.5 3.5L11 1" stroke={T.accent} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
-                  <span style={{ fontSize: "14px", lineHeight: 1.6, color: T.soft }}>{item}</span>
+                  <span style={{ fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
+                    <TierText>{item}</TierText>
+                  </span>
                 </li>
               ))}
             </ul>
@@ -207,12 +214,20 @@ export default function PackagePage({
 
         {notIncluded ? (
           <p style={{ margin: "14px 0 0", fontSize: "14px", lineHeight: 1.65, color: T.soft }}>
-            {notIncluded.text}
+            <TierText>{notIncluded.text}</TierText>
             {notIncluded.upgradeTo && notIncluded.href ? (
               <>
                 {" "}
-                <Link href={notIncluded.href} style={{ color: T.accent, fontWeight: 600, textDecoration: "none" }}>
-                  {notIncluded.upgradeTo}
+                {/* Ink, not accent. Colouring the whole word in brand purple
+                    flattens the lockup into one colour - the accent half is
+                    the only part that is purple, and TierName owns that. The
+                    underline is what makes it read as a link once the colour
+                    is no longer doing that job. */}
+                <Link
+                  href={notIncluded.href}
+                  style={{ color: T.ink, textDecoration: "underline", textUnderlineOffset: "2px" }}
+                >
+                  <TierName tier={notIncluded.upgradeTo} />
                 </Link>
                 .
               </>

@@ -31,7 +31,7 @@ export default function Page() {
       ]}
       notIncluded={{
         text: "This package measures. It does not place. If you want us to get your client into the sources the scan names, that starts at",
-        upgradeTo: "alwaysmentioned",
+        upgradeTo: "mentioned",
         href: "/alwaysmentioned",
       }}
       sections={[

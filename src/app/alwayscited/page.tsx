@@ -30,7 +30,7 @@ export default function Page() {
       ]}
       notIncluded={{
         text: "One topic, one market. For several markets, several brands, or a dedicated strategist, that is",
-        upgradeTo: "alwayseverywhere",
+        upgradeTo: "everywhere",
         href: "/alwayseverywhere",
       }}
       sections={[

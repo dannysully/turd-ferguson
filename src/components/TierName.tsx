@@ -12,7 +12,12 @@
  * carries no markup.
  */
 
-export type TierKey = "tracked" | "mentioned" | "cited" | "everywhere";
+import { splitTierNames, TIER_PLAIN, type TierKey } from "@/lib/tier-text";
+
+// Re-exported so every existing import site keeps its one obvious source for
+// these. They live in lib/tier-text.ts because the splitting rule below has to
+// be loadable by `node --test`, and this file is JSX.
+export { TIER_PLAIN, type TierKey };
 
 const TIER_PARTS: Record<TierKey, { stem: string; accent: string }> = {
   tracked: { stem: "always", accent: "tracked" },
@@ -21,13 +26,32 @@ const TIER_PARTS: Record<TierKey, { stem: string; accent: string }> = {
   everywhere: { stem: "always", accent: "everywhere" },
 };
 
-/** Unstyled one-word forms for every context that strips colour. */
-export const TIER_PLAIN: Record<TierKey, string> = {
-  tracked: "alwaystracked",
-  mentioned: "alwaysmentioned",
-  cited: "alwayscited",
-  everywhere: "alwayseverywhere",
-};
+/**
+ * A plain sentence with any tier name in it rendered as the lockup.
+ *
+ * This exists because one string legitimately has to serve two contexts at
+ * once. A package page's standfirst is body copy, where the rule is TierName;
+ * it is also the `description` of that page's Service JSON-LD, which is one of
+ * the contexts that strips colour and so must stay TIER_PLAIN. Splitting it
+ * into two strings is how the two drift apart. So the string stays plain,
+ * feeds the schema as it is, and is rendered through this on the way to the
+ * page.
+ *
+ * Matching is deliberately narrow. A tier name is only a lockup when it is a
+ * word in prose: preceded by a slash, a dot or a word character it is part of
+ * a URL or a slug, and `alwayscited.com` is the company's domain rather than a
+ * plan. A trailing qualifier such as "pro" is left as plain text after the
+ * word, which is what TierName's own `qualifier` does with it.
+ */
+export function TierText({ children }: { children: string }) {
+  return (
+    <>
+      {splitTierNames(children).map((seg, n) =>
+        "tier" in seg ? <TierName key={n} tier={seg.tier} /> : seg.text,
+      )}
+    </>
+  );
+}
 
 export default function TierName({
   tier,

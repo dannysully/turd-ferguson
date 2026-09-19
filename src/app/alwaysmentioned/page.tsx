@@ -30,7 +30,7 @@ export default function Page() {
       ]}
       notIncluded={{
         text: "This package wins the mention. It does not do on-page work. For schema and link insertions that go after the Google position directly, that is",
-        upgradeTo: "alwayscited",
+        upgradeTo: "cited",
         href: "/alwayscited",
       }}
       sections={[
