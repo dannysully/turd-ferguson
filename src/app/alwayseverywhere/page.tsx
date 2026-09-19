@@ -6,7 +6,7 @@ import { TIERS } from "@/config/pricing";
 const tier = TIERS.find((t) => t.id === "everywhere")!;
 
 export const metadata: Metadata = {
-  title: "alwayseverywhere | Multi-market AI visibility for agencies",
+  title: "alwayseverywhere | Multi-market AI visibility",
   description:
     "Multi-market, multi-brand AI citation placements with a dedicated strategist, white-labelled for agencies running this across a client base.",
   openGraph: { url: "https://alwayscited.com/alwayseverywhere", images: OG_IMAGE },

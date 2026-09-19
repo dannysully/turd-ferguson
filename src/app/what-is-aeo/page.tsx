@@ -50,13 +50,13 @@ import { ORG_REF, ld } from "@/config/schema";
  */
 
 export const metadata: Metadata = {
-  title: "What is AEO? A guide to answer engine optimisation",
+  title: "What is AEO? Answer engine optimisation",
   description:
-    "AEO is getting a brand named inside an AI-generated answer rather than ranked in the links underneath it. What it is, how it differs from SEO, and how we measure it.",
+    "AEO is getting a brand named inside an AI-generated answer rather than ranked in the links underneath it. How it differs from SEO, and how we measure it.",
   alternates: { canonical: "https://alwayscited.com/what-is-aeo" },
   openGraph: {
     images: OG_IMAGE,
-    title: "What is AEO? A guide to answer engine optimisation | alwayscited",
+    title: "What is AEO? Answer engine optimisation | alwayscited",
     description:
       "AEO is getting a brand named inside an AI-generated answer rather than ranked in the links underneath it.",
     url: "https://alwayscited.com/what-is-aeo",

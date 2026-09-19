@@ -7,7 +7,7 @@ import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
 export const metadata: Metadata = {
   title: "Free campaign benchmark",
   description:
-    "Take the reading before the campaign. Five questions, three engines, every source checked against your coverage - dated and re-runnable, so the next is a comparison.",
+    "Take the reading before the campaign. Five questions, three engines, every cited source checked against your coverage - dated and re-runnable.",
   openGraph: { url: "https://alwayscited.com/coverage-check", images: OG_IMAGE },
   alternates: { canonical: "https://alwayscited.com/coverage-check" },
 };

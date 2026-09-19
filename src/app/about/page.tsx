@@ -15,7 +15,7 @@ import { CARD, MICRO, SHELL, T } from "@/config/tokens";
  */
 
 export const metadata: Metadata = {
-  title: "About " + BRAND + " | AI citation placements for agencies",
+  title: "About us | AI citation placements for agencies",
   description:
     "An agency built the tool it wanted, then sold it to other agencies. Run by the senior team at Nomada Digital, a B2B search agency in York.",
   alternates: { canonical: "https://alwayscited.com/about" },

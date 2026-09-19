@@ -12,7 +12,7 @@ import Results from "@/components/home/Results";
 export const metadata: Metadata = {
   title: "LLM Visibility Checker | alwayscited",
   description:
-    "Check whether AI engines name your client. A free scan shows who Google AI Overviews and ChatGPT cite for a topic. Then get placed in those sources, white-labelled.",
+    "Check whether AI engines name your client. A free scan shows who Google AI Overviews and ChatGPT cite for a topic. Then get placed in them, white-labelled.",
   alternates: { canonical: "https://alwayscited.com" },
   openGraph: {
     images: OG_IMAGE,

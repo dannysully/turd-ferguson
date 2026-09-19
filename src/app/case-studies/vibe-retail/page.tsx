@@ -25,13 +25,13 @@ import { ORG_REF, ld } from "@/config/schema";
  */
 
 export const metadata: Metadata = {
-  title: "One listicle placement, on a page already ranking for the category",
+  title: "One placement, three AI Overview citations",
   description:
-    "One listicle placement, on a page already ranking for the category. Three AI Overview citations, and the money keyword #83 to #4 in eight weeks, #1 at four months.",
+    "One listicle placement on a page already ranking for the category. Three AI Overview citations. The money keyword #83 to #4 in eight weeks, #1 at four months.",
   alternates: { canonical: "https://alwayscited.com/case-studies/vibe-retail" },
   openGraph: {
     images: OG_IMAGE,
-    title: "One listicle placement, on a page already ranking for the category",
+    title: "One placement, three AI Overview citations",
     description:
       "Three AI Overview citations. The money keyword went from #83 to #4 in eight weeks, and reached #1 four months in.",
     url: "https://alwayscited.com/case-studies/vibe-retail",

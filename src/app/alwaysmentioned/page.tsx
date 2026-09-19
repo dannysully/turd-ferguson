@@ -6,7 +6,7 @@ import { TIERS } from "@/config/pricing";
 const tier = TIERS.find((t) => t.id === "mentioned")!;
 
 export const metadata: Metadata = {
-  title: "alwaysmentioned | AI citation placements for agencies",
+  title: "alwaysmentioned | AI citation placements",
   description:
     "Three editorial placements a month in the sources AI engines already cite for your client's topic, white-labelled. $995 a month, priced per topic.",
   openGraph: { url: "https://alwayscited.com/alwaysmentioned", images: OG_IMAGE },

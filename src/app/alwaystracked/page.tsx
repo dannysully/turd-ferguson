@@ -6,9 +6,9 @@ import { TIERS } from "@/config/pricing";
 const tier = TIERS.find((t) => t.id === "tracked")!;
 
 export const metadata: Metadata = {
-  title: "alwaystracked | AI visibility tracking for agencies",
+  title: "alwaystracked | AI visibility tracking",
   description:
-    "Ongoing AI visibility tracking for one topic: who the engines name, which sources they cite, and which of your coverage is in that list. $99 a month, white-labelled.",
+    "AI visibility tracking for one topic: who the engines name, which sources they cite, and which of your coverage is in that list. $99 a month, white-labelled.",
   openGraph: { url: "https://alwayscited.com/alwaystracked", images: OG_IMAGE },
   alternates: { canonical: "https://alwayscited.com/alwaystracked" },
 };

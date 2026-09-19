@@ -8,9 +8,9 @@ import { T } from "@/config/tokens";
 import { ORG_REF, ld } from "@/config/schema";
 
 export const metadata: Metadata = {
-  title: "AEO vs SEO: What's Actually Different (and What Isn't)",
+  title: "AEO vs SEO: What's Actually Different",
   description:
-    "AEO and SEO are overlapping channels with different target surfaces, measurement and time horizons. What actually differs and what does not, from people who do both.",
+    "AEO and SEO are overlapping channels with different target surfaces, measurement and time horizons. What differs and what does not, from people who do both.",
   alternates: {
     canonical: "https://alwayscited.com/blog/aeo-vs-seo-whats-actually-different",
   },
