@@ -29,7 +29,10 @@ import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
 const FACTS = [
   { label: "Money keyword, at eight weeks", val: "#83 to #4" },
   { label: "Money keyword, at four months", val: "#83 to #1" },
-  { label: "AI visibility across the full question set, eight weeks", val: "0% to 25%" },
+  // No window on this one: I have a source for the keyword dates and none
+  // for this figure. See blocked.md - the case study reports 14% across the
+  // same "full prompt set" and also calls 14% a ChatGPT-only figure.
+  { label: "AI visibility across the full question set", val: "0% to 25%" },
   { label: "AI Overview citations on commercial questions", val: "3" },
 ];
 
