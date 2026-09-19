@@ -62,7 +62,39 @@ export default async function ScanTokenPage({ params }: { params: Promise<{ toke
    * moving.
    */
   const complete = scan.status === "complete";
-  const teaser = complete ? (await db.rpc("scan_teaser", { p_token: token })).data : null;
+
+  /**
+   * A read that failed is not a result with nothing in it.
+   *
+   * This was the one read on this page that discarded its own error, in a file
+   * where the three around it each carry a comment about exactly that defect.
+   * It was written `(await db.rpc(...)).data`, so the result was consumed
+   * inline and bound to nothing - which is why neither sweep next door could
+   * see it. The route that makes this same call separates the two outcomes and
+   * answers 500 against 404; here they collapsed into one null.
+   *
+   * Logged and degraded to the client fetch rather than thrown, which is the
+   * argument `full` makes twenty lines down and it holds harder here: the
+   * teaser is the free result screen, ScanFlow already re-asks for it through
+   * `needTeaser`, and /api/scan/[token] reports the failure with a message and
+   * a refresh behind it. Throwing would take the whole page down for a fault
+   * the client recovers from on its own.
+   *
+   * What changes is that the failure is now visible in the log. A silent null
+   * here looked identical to a scan the RPC had no rows for, so a `scan_teaser`
+   * failing in production left no trace at all - only a visitor being told, by
+   * the client, that we could not load their result.
+   */
+  let teaser = null;
+  if (complete) {
+    const { data: teaserData, error: teaserErr } = await db.rpc("scan_teaser", { p_token: token });
+    if (teaserErr) {
+      console.error(`[scan] could not read the teaser for ${scan.id}:`, teaserErr.message);
+    } else {
+      teaser = teaserData;
+    }
+  }
+
   const unlocked = complete && !!scan.unlocked_at;
 
   /**

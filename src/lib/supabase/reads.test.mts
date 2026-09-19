@@ -165,9 +165,17 @@ function boundName(destructure: string): string {
  * afterwards. Its error was discarded and the sweep reported a clean tree.
  *
  * So the rule is the narrow one rather than a judgement about the read: bind
- * the result apart, and the sweep can see you. Anchored on `.from(` or `.rpc(`
- * within the statement and on a `.select(` with no mutating verb, so the writes
- * sweep next door keeps the writes and this keeps the reads.
+ * the result apart, and the sweep can see you. Anchored on `.from(` within the
+ * statement and on a `.select(` with no mutating verb, so the writes sweep next
+ * door keeps the writes and this keeps the reads.
+ *
+ * `.rpc(` used to sit beside `.from(` in that condition and was removed on
+ * 19 September 2026, because it could never fire: the same condition requires
+ * `.select(`, and an `.rpc()` call does not have one. It read as coverage this
+ * rule did not have, which is how `(await db.rpc("scan_teaser", ...)).data` sat
+ * on `/scan/[token]` discarding its error with the sweep green. RPC results
+ * have their own rule below, which needs no `.select(` and catches both
+ * spellings.
  *
  * A read handed to `selectAll` is not caught and must not be: those are arrow
  * functions returning a page, and `selectAll` throws on the error itself.
@@ -193,10 +201,61 @@ function undestructuredIn(file: string): { file: string; line: number; text: str
     // on purpose. Excluded by the call, not by the binding, because the
     // binding is rows and looks exactly like an unchecked read.
     if (/\bselectAll[<(]/.test(body)) continue;
-    if (!/\.from\(|\.rpc\(/.test(body)) continue;
+    if (!/\.from\(/.test(body)) continue;
     if (!/\.select\(/.test(body)) continue;
     if (/\.(update|insert|upsert|delete)\(/.test(body)) continue;
     out.push({ file: name, line: i + 1, text });
+  }
+  return out;
+}
+
+/**
+ * Every `.rpc(` call, and whether its result is destructured at all.
+ *
+ * The fourth blind spot of the same family, and the first one that was not a
+ * binding name but a *call shape*. The three rules above each identify a
+ * postgrest result by something an `.rpc()` never has - `const {` for the first,
+ * `.select(` for the other two - so all seven RPC call sites in this tree were
+ * absent from the sweep rather than exempted by it, and it reported 80 of 80.
+ *
+ * Six of the seven checked their error anyway. The seventh did not:
+ *
+ *     const teaser = complete ? (await db.rpc("scan_teaser", ...)).data : null;
+ *
+ * which is the free result screen, on the page the email link lands on. The
+ * result was consumed inline, so there is no binding anywhere for a rule about
+ * bindings to judge - the same reason a result held whole was invisible, one
+ * step further along. `const teaser = ... ?` does not even match
+ * `const <ident> = await`.
+ *
+ * So the rule is about the call and not about what is done with the result:
+ * every `.rpc(` must sit in a statement that destructures. Deliberately
+ * indifferent to whether the function reads or writes, because the call site
+ * cannot tell and both have an error worth looking at - the error check itself
+ * is then the sweep above for a read, and the writes sweep next door for the
+ * four that mutate.
+ *
+ * The statement is taken back to the previous `;`, which is what stops an
+ * unrelated destructure a few lines up from excusing the call: anything with
+ * its own terminator is a different statement and cannot be the binding.
+ */
+function rpcUndestructuredIn(file: string): { file: string; line: number; text: string }[] {
+  const source = readFileSync(file, "utf8");
+  const name = relative(ROOT, file).split(sep).join("/");
+  const lines = source.split("\n");
+  const out: { file: string; line: number; text: string }[] = [];
+
+  for (const m of source.matchAll(/\.rpc\(/g)) {
+    const line = source.slice(0, m.index).split("\n").length;
+    // Prose, not code. This file's own explanation of the defect quotes the
+    // call that caused it, and so does the page it was fixed on.
+    const text = lines[line - 1].trim();
+    if (text.startsWith("*") || text.startsWith("//") || text.startsWith("/*")) continue;
+
+    const head = source.slice(source.lastIndexOf(";", m.index) + 1, m.index);
+    if (/const\s*\{[^}]*\}\s*=\s*await\b/.test(head)) continue;
+
+    out.push({ file: name, line, text });
   }
   return out;
 }
@@ -261,7 +320,11 @@ function matchBracket(text: string, open: number): number {
 /** Does this expression read rows through postgrest rather than through selectAll? */
 function isBareRead(expr: string): boolean {
   if (/\bselectAll[<(]/.test(expr)) return false;
-  if (!/\.from\(|\.rpc\(/.test(expr)) return false;
+  // `.rpc(` was here too and was removed for the reason given above
+  // `undestructuredIn`: it cannot fire against the `.select(` line below it.
+  // An RPC inside a `Promise.all` is caught by `rpcUndestructuredIn`, which
+  // sees `const [` as readily as anything else that is not `const {`.
+  if (!/\.from\(/.test(expr)) return false;
   if (!/\.select\(/.test(expr)) return false;
   return !/\.(update|insert|upsert|delete)\(/.test(expr);
 }
@@ -334,6 +397,23 @@ const FILES = sourceFiles(SRC);
 const READS = FILES.flatMap(readsIn);
 const UNDESTRUCTURED = FILES.flatMap(undestructuredIn);
 const UNPAIRED = FILES.flatMap(unpairedIn);
+const RPC_HELD = FILES.flatMap(rpcUndestructuredIn);
+/**
+ * How many `.rpc(` calls the rule above actually looked at.
+ *
+ * A clean tree makes `RPC_HELD` empty, which is also what a rule matching
+ * nothing at all produces - and "matching nothing at all" is precisely the
+ * state the three rules above were in with respect to RPCs. So the guard
+ * asserts on the number examined rather than on the empty result, which is the
+ * lesson `PAIRED` already carries ten lines down.
+ */
+const RPC_SEEN = FILES.reduce((total, file) => {
+  const code = readFileSync(file, "utf8")
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => !l.startsWith("*") && !l.startsWith("//") && !l.startsWith("/*"));
+  return total + code.filter((l) => l.includes(".rpc(")).length;
+}, 0);
 
 test("the sweep can still see the reads it is sweeping", () => {
   // Guards the regex and the walk together. If either stops working, every
@@ -354,6 +434,7 @@ test("the sweep can still see the reads it is sweeping", () => {
     "the array-pattern walk found no read in unlock.ts, so it is matching nothing",
   );
   assert.ok(PAIRED >= 4, `expected 4+ paired Promise.all destructures, lined up ${PAIRED}`);
+  assert.ok(RPC_SEEN >= 6, `expected 6+ .rpc( calls in the tree, the RPC rule looked at ${RPC_SEEN}`);
 });
 
 test("every Supabase read looks at its own error", () => {
@@ -384,6 +465,14 @@ test("a read inside a Promise.all is destructured too", () => {
     UNPAIRED.map((r) => `${r.file}:${r.line} ${r.text}`),
     [],
     "destructure this element - a postgrest result taken whole out of a Promise.all is invisible to the sweep above",
+  );
+});
+
+test("an RPC result is destructured, so both sweeps can see it", () => {
+  assert.deepEqual(
+    RPC_HELD.map((r) => `${r.file}:${r.line} ${r.text}`),
+    [],
+    "destructure this RPC result - a call whose result is taken inline is invisible to every rule above, which each identify a read by something an .rpc() does not have",
   );
 });
 

@@ -40,6 +40,62 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = join(fileURLToPath(import.meta.url), "..", "..", "..", "..");
 const SRC = join(ROOT, "src");
+const MIGRATIONS = join(ROOT, "supabase", "migrations");
+
+/**
+ * The database functions that mutate, read off the migrations that define them.
+ *
+ * A write does not have to be a `.from(...).update(...)`. Four of them here are
+ * `db.rpc("note_...")`, and the sweep below cannot see any of them: it is
+ * anchored on `.from(`, which an RPC call does not have, and on a verb that
+ * lives in SQL rather than in TypeScript. So `note_scan_spend`,
+ * `note_verify_send`, `note_preview_call` and `note_preview_calls` were absent
+ * from this sweep rather than exempted by it, and it reported the tree clean.
+ *
+ * All four happen to look at their error today, so nothing was broken - the same
+ * "clean by accident" the `Promise.all` rule next door was added under. What
+ * makes it worth closing is that three of the four are ceilings, which is the
+ * one family of write whose silence reads as "nothing has happened yet".
+ *
+ * Derived rather than typed. A list of mutating function names written into
+ * this file is the drift these two sweeps exist to avoid - it would be right on
+ * the day it was written and silently wrong the first time somebody added a
+ * function. This reads `supabase/migrations`, takes each `create [or replace]
+ * function` body between its `$$` delimiters, and calls the function a write if
+ * a statement in it mutates.
+ *
+ * Filename order is apply order, and these migrations redefine as they go -
+ * `scan_teaser` is written five times. So the last definition wins, exactly as
+ * it does in the database, and a function that gains an `update` in a later
+ * migration becomes a write here without anyone remembering to say so.
+ */
+function mutatingFunctions(): Set<string> {
+  const verdict = new Map<string, boolean>();
+
+  for (const file of readdirSync(MIGRATIONS).filter((f) => f.endsWith(".sql")).sort()) {
+    const sql = readFileSync(join(MIGRATIONS, file), "utf8");
+    for (const m of sql.matchAll(/create\s+(?:or\s+replace\s+)?function\s+(?:public\.)?(\w+)\s*\(/gi)) {
+      const open = sql.indexOf("$$", m.index);
+      if (open < 0) continue;
+      const close = sql.indexOf("$$", open + 2);
+      if (close < 0) continue;
+      // `--` comments only. The bodies here carry no block comments, and a
+      // prose line mentioning an update would otherwise make a read look like
+      // a write - which fails in the noisy direction rather than the silent
+      // one, but is still a wrong answer.
+      const body = sql
+        .slice(open + 2, close)
+        .split("\n")
+        .map((l) => l.replace(/--.*$/, ""))
+        .join("\n");
+      verdict.set(m[1], /\b(insert|update|delete)\s/i.test(body));
+    }
+  }
+
+  return new Set([...verdict].filter(([, mutates]) => mutates).map(([name]) => name));
+}
+
+const MUTATING = mutatingFunctions();
 
 function sourceFiles(dir: string): string[] {
   const out: string[] = [];
@@ -99,6 +155,39 @@ function writesIn(file: string): Write[] {
 }
 
 /**
+ * Calls to a database function that mutates, and whether the error is read.
+ *
+ * "Looked at" is the same pair as above, with the same reasoning. What differs
+ * is how the call is found: an RPC is identified by the name it calls, matched
+ * against the set derived from the migrations, so a call to a function that
+ * only reads - `scan_teaser`, `scan_source_coverage` - is not a write and is
+ * left to the reads sweep next door.
+ *
+ * The statement is taken back to the previous `;`, which is what stops a
+ * destructure belonging to some earlier statement from excusing this one.
+ */
+function mutatingRpcsIn(file: string): Write[] {
+  const source = readFileSync(file, "utf8");
+  const name = relative(ROOT, file).split(sep).join("/");
+  const lines = source.split("\n");
+  const out: Write[] = [];
+
+  for (const m of source.matchAll(/\.rpc\(\s*["'`](\w+)["'`]/g)) {
+    if (!MUTATING.has(m[1])) continue;
+    const line = source.slice(0, m.index).split("\n").length;
+    const text = lines[line - 1].trim();
+    if (text.startsWith("*") || text.startsWith("//") || text.startsWith("/*")) continue;
+
+    const head = source.slice(source.lastIndexOf(";", m.index) + 1, m.index);
+    const checked =
+      /const\s*\{[^}]*\b(error|\w+Err)\b[^}]*\}\s*=\s*await/.test(head) || /\bendWrite\(/.test(head);
+
+    out.push({ file: name, line, text, checked });
+  }
+  return out;
+}
+
+/**
  * Writes that may discard their error, each with the reason it is safe.
  *
  * Keyed by file and line-independent text, not by line number, which would go
@@ -108,7 +197,7 @@ function writesIn(file: string): Write[] {
 const EXEMPT: Record<string, string> = {};
 
 const FILES = sourceFiles(SRC);
-const WRITES = FILES.flatMap(writesIn);
+const WRITES = [...FILES.flatMap(writesIn), ...FILES.flatMap(mutatingRpcsIn)];
 
 test("the sweep can still see the writes it is sweeping", () => {
   // Guards the walk and the match together. If either stops working every
@@ -116,6 +205,27 @@ test("the sweep can still see the writes it is sweeping", () => {
   // which is the failure mode that makes a green check worse than no check.
   assert.ok(FILES.length >= 40, `expected 40+ source files, walked ${FILES.length}`);
   assert.ok(WRITES.length >= 15, `expected 15+ Supabase writes, found ${WRITES.length}`);
+});
+
+test("the migrations still say which functions mutate", () => {
+  /**
+   * Guards the derivation in both directions, because a set that came back
+   * empty and a tree with no mutating RPCs produce the same green.
+   *
+   * Both halves are asserted on purpose. `note_scan_spend` is the `update scans`
+   * that the two spend ceilings depend on, so if it stops reading as a write
+   * the rule has quietly stopped covering the four calls it exists for.
+   * `scan_teaser` is a `select` and must stay out of the set: were the body
+   * parse to give up and call everything a write, every read RPC would land in
+   * the writes sweep and the error check would be asserted twice in two files
+   * while nobody noticed the parse had failed.
+   */
+  assert.ok(MUTATING.has("note_scan_spend"), "note_scan_spend updates scans and must read as a write");
+  assert.ok(!MUTATING.has("scan_teaser"), "scan_teaser only selects and must not read as a write");
+  assert.ok(
+    WRITES.some((w) => /\.rpc\(/.test(w.text)),
+    "no mutating RPC call site was found, so the name match is not reaching the source",
+  );
 });
 
 test("every Supabase write looks at its own error", () => {
