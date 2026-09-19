@@ -12,11 +12,11 @@ import { CARD, MICRO, SHELL, T } from "@/config/tokens";
  *
  * Two departures from the board, both deliberate:
  *
- * - **The metric strip carries the keyword move only.** The board puts AI
- *   visibility beside it at 0% to 25%. This page has always said 14%, the
- *   homepage says 25%, and neither carries a dated reading - so the figure
- *   stays in the body where it was written, with the marker below, rather
- *   than being promoted to a headline.
+ * - **The visibility figure has one denominator now.** This page carried 14%
+ *   and described it as both a whole-prompt-set figure and a ChatGPT-only
+ *   one; the homepage carried 25%. Danny settled it as the account owner on
+ *   19 Sep 2026: ChatGPT brand visibility, 25%. No window is attached,
+ *   because none is sourced.
  * - **"What it did not do"**, the board's honest paragraph, is not written.
  *   It needs facts about what stayed flat and what decayed, and inventing
  *   that paragraph would defeat the point of having it.
@@ -175,6 +175,15 @@ export default function CaseStudyPage() {
             </div>
           </div>
           <div style={{ flexGrow: 1, flexBasis: "260px", padding: "22px 26px", borderLeft: "1px solid " + T.line }}>
+            <div style={{ fontSize: "14px", color: T.soft }}>ChatGPT brand visibility</div>
+            <div style={{ fontSize: "36px", fontWeight: 700, letterSpacing: "-0.035em", lineHeight: 1.1, marginTop: "2px" }}>
+              0% to 25%
+            </div>
+            <div style={{ fontSize: "13px", color: T.soft, marginTop: "6px", maxWidth: "34ch" }}>
+              Share of the tracked prompts where ChatGPT names the brand. Nothing named it before the placement ran.
+            </div>
+          </div>
+          <div style={{ flexGrow: 1, flexBasis: "260px", padding: "22px 26px", borderLeft: "1px solid " + T.line }}>
             <div style={{ fontSize: "14px", color: T.soft }}>AI Overview citations</div>
             <div style={{ fontSize: "36px", fontWeight: 700, letterSpacing: "-0.035em", lineHeight: 1.1, marginTop: "2px" }}>
               3
@@ -255,18 +264,12 @@ export default function CaseStudyPage() {
               ))}
             </div>
 
-            <H3>ChatGPT visibility, from nothing</H3>
+            <H3>ChatGPT brand visibility, from nothing</H3>
             <P>
-              Across the tracked prompt set, the mention rate climbed from 0% to 14% in seven days. On the
-              highest-intent prompts - cloud retail POS system comparison, and top cloud-based POS systems for retail
-              stores with inventory management - the brand is named in every response.
+              The brand went from being named in none of the tracked ChatGPT answers to being named in 25% of them.
+              On the highest-intent prompts - cloud retail POS system comparison, and top cloud-based POS systems for
+              retail stores with inventory management - it is named in every response.
             </P>
-            <p style={{ margin: "10px 0 0", fontSize: "13px", lineHeight: 1.6, color: T.soft }}>
-              <Gap>
-                whether the 14% is across the full prompt set or ChatGPT alone - this page has said both - and the
-                date it was read
-              </Gap>
-            </p>
 
             <H3>And the rest of the search footprint</H3>
             <P>
@@ -281,9 +284,10 @@ export default function CaseStudyPage() {
             <div style={{ ...CARD, padding: "22px" }}>
               <div style={MICRO}>Method</div>
               <p style={{ margin: "8px 0 0", fontSize: "13.5px", lineHeight: 1.6, color: T.soft }}>
-                AI visibility here is the share of tracked buyer prompts where the brand is named or cited, against a
-                frozen prompt set across ChatGPT, Gemini and Perplexity. Google positions are daily readings from an
-                independent tracker rather than our own run.
+                Brand visibility here is the share of tracked buyer prompts where ChatGPT names the brand, against a
+                frozen prompt set. One engine and one denominator, deliberately: a figure that moves between
+                denominators is not a figure. Google positions are daily readings from an independent tracker rather
+                than our own run.
               </p>
               <p style={{ margin: "10px 0 0", fontSize: "13px", lineHeight: 1.6, color: T.soft }}>
                 <Gap>how many prompts were in the set, and the dates each reading covers</Gap>

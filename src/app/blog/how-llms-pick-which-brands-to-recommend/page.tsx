@@ -127,8 +127,8 @@ export default function Post() {
         Within hours, Google&apos;s AI Overview was citing the publication and naming our client
         as Best Overall. The AI wasn&apos;t evaluating POS platforms independently - it was
         reflecting what its trusted source already said. The same pattern held in ChatGPT:
-        the brand&apos;s mention rate climbed from 0% to 14% within a week of the placement
-        going live, reaching 100% on the highest-intent prompts.
+        the brand went from being named in none of the tracked answers to 25% of them, reaching
+        100% on the highest-intent prompts.
       </P>
       <P>
         This is why &ldquo;create great content and wait&rdquo; doesn&apos;t work as an AI search strategy.

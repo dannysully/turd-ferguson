@@ -29,10 +29,12 @@ import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
 const FACTS = [
   { label: "Money keyword, at eight weeks", val: "#83 to #4" },
   { label: "Money keyword, at four months", val: "#83 to #1" },
-  // No window on this one: I have a source for the keyword dates and none
-  // for this figure. See blocked.md - the case study reports 14% across the
-  // same "full prompt set" and also calls 14% a ChatGPT-only figure.
-  { label: "AI visibility across the full question set", val: "0% to 25%" },
+  // One denominator, and it is ChatGPT. This figure was published here as
+  // 25% against the full question set and on the case study as 14% against
+  // both that and ChatGPT alone - three readings of one number. Danny
+  // settled it as the account owner on 19 Sep 2026: ChatGPT brand
+  // visibility, 25%. No window, because no window is sourced for it.
+  { label: "ChatGPT brand visibility", val: "0% to 25%" },
   { label: "AI Overview citations on commercial questions", val: "3" },
 ];
 

@@ -77,7 +77,7 @@ export default function RequestScanForm({ initialDomain = "" }: { initialDomain?
   return (
     <div>
       {step === "domain" && (
-        <DomainScreen value={domain} onChange={setDomain} onSubmit={onDomain} error={error} exampleLink />
+        <DomainScreen value={domain} onChange={setDomain} onSubmit={onDomain} error={error} />
       )}
 
       {step === "topic" && (

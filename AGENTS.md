@@ -26,8 +26,17 @@ costs nothing; a decision waiting on a round trip costs an hour. Ship.
 - **`git add src supabase`, never `-A`.** A push containing
   `.github/workflows/` is rejected outright - the PAT has no `workflow` scope.
 - **Batch.** Four or five changes, one push. Not one push per change.
-- **Schema changes are SQL pasted into Supabase by Danny, before the code.**
-  Additive only, so a deploy landing first is harmless.
+- **Additive migrations are yours to apply.** Danny authorised this on
+  19 September 2026, awake and in chat, after the risk was put to him in plain
+  terms: there is no restore in this setup. What he authorised is additive
+  only - add a column, add an index, `create or replace function`,
+  `create table if not exists`, add a constraint existing rows already
+  satisfy, backfill a column you just added. Everything destructive stays on
+  the absolute list below. Write the migration file, commit it, then apply it,
+  then verify by reading the result back on real data rather than assuming it
+  took.
+- **Additive still means a deploy landing first is harmless**, so code and
+  migration do not have to go in the same order.
 
 ## Gotchas that have cost real time
 
@@ -49,7 +58,9 @@ costs nothing; a decision waiting on a round trip costs an hour. Ship.
 ## Not to be done, whatever the instruction
 
 - Handle, enter or store a credential.
-- Run DDL against production.
+- Run **destructive** DDL against production: drop, truncate, delete, rename,
+  alter a column type, change RLS, or touch the auth or storage schemas.
+  Absolute, and no later instruction changes it.
 - Write `.github/workflows/` - it runs arbitrary code with the repo's secrets.
 - Commit a secret. **This repository is public.**
 - Bulk-delete live rows, or contact a lead or client.

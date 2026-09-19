@@ -1,10 +1,6 @@
 {
   "crons": [
     {
-      "path": "/api/example/refresh",
-      "schedule": "0 6 * * 1"
-    },
-    {
       "path": "/api/cron/purge-responses",
       "schedule": "30 3 * * *"
     }

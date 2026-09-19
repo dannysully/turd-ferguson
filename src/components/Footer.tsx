@@ -25,7 +25,6 @@ const PRODUCT: [string, string][] = [
   ["White label", "/white-label"],
   ["Coverage checker", "/coverage-check"],
   ["Compare", "/compare"],
-  ["Worked example", "/example"],
 ];
 
 const TIER_PAGES: TierKey[] = ["tracked", "mentioned", "cited", "everywhere"];

@@ -45,7 +45,7 @@ const ro = (readOnly?: boolean) => (readOnly ? { readOnly: true, tabIndex: -1, "
 /* ── 1. Domain ── */
 export function DomainScreen(p: {
   value: string; onChange?: (v: string) => void; onSubmit?: (e: React.FormEvent) => void;
-  error?: string; busy?: boolean; readOnly?: boolean; exampleLink?: boolean; id?: string;
+  error?: string; busy?: boolean; readOnly?: boolean; id?: string;
   /** Server action for the no-JS path. With JS, onSubmit prevents default and handles it. */
   action?: (formData: FormData) => void | Promise<void>;
 }) {
@@ -62,11 +62,6 @@ export function DomainScreen(p: {
         </button>
       </div>
       {p.error && <p id={`${id}-err`} style={{ fontSize: "0.8125rem", color: C.red, marginTop: "0.5rem" }}>{p.error}</p>}
-      {p.exampleLink && (
-        <p style={{ marginTop: "1rem", fontSize: "0.875rem" }}>
-          <a href="/example?from=hero" style={{ color: C.body, textDecoration: "underline", textUnderlineOffset: 3 }}>See exactly what happens first</a>
-        </p>
-      )}
     </form>
   );
 }

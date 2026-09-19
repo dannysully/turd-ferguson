@@ -10,10 +10,11 @@ import { CARD, MICRO, SHELL, T } from "@/config/tokens";
  * [CASE STUDY TITLE] and [HEADLINE FIGURE]; a page that invents two more
  * clients to look busier is the one thing an evidence page cannot do.
  *
- * The card carries the keyword figure only. The board pairs it with an AI
- * visibility number and a citation count; the visibility figure is published
- * in two contradictory forms elsewhere on this site with no dated reading
- * behind either, so it is not restated here. See docs/blocked.md.
+ * The card carries the keyword moves and the visibility figure. That last
+ * one was published in three forms across this site - 25% against the full
+ * question set, 14% against the same, and 14% against ChatGPT alone - until
+ * Danny settled it as the account owner on 19 Sep 2026: ChatGPT brand
+ * visibility, 25%, with no window attached because none is sourced.
  */
 
 export const metadata: Metadata = {
@@ -94,6 +95,22 @@ export default function CaseStudiesPage() {
                 #83 to #4
               </div>
               <div style={{ fontSize: "12px", color: T.soft, marginTop: "5px" }}>Over eight weeks</div>
+            </div>
+            <div style={{ flexGrow: 1, flexBasis: 0, padding: "18px 20px", borderLeft: "1px solid " + T.line }}>
+              <div style={{ fontSize: "12.5px", color: T.soft }}>ChatGPT brand visibility</div>
+              <div
+                style={{
+                  fontSize: "27px",
+                  fontWeight: 700,
+                  letterSpacing: "-0.035em",
+                  lineHeight: 1.15,
+                  marginTop: "2px",
+                  color: T.ink,
+                }}
+              >
+                0% to 25%
+              </div>
+              <div style={{ fontSize: "12px", color: T.soft, marginTop: "5px" }}>Of the tracked prompts</div>
             </div>
             <div style={{ flexGrow: 1, flexBasis: 0, padding: "18px 20px", borderLeft: "1px solid " + T.line }}>
               <div style={{ fontSize: "12.5px", color: T.soft }}>The same keyword</div>

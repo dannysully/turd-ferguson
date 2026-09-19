@@ -576,14 +576,13 @@ const ONSITE = [
 ];
 
 /**
- * The one real client figure in the sequence, and the only one with a source
- * behind it: Danny attested it on 19 September 2026. Written with its window,
- * because the window is what makes it a claim rather than a boast.
- *
- * The AI visibility figure that sits beside this on the board is deliberately
- * absent. It is published in two contradictory forms elsewhere on the site and
- * has no dated reading behind either, so it is left out rather than picked.
+ * The two real client figures in the sequence, both attested by Danny as the
+ * account owner on 19 September 2026. The keyword carries its window, because
+ * the window is what makes it a claim rather than a boast; the visibility
+ * figure carries none, because none is sourced and an invented window is worse
+ * than no window at all.
  */
+const VIBE_VISIBILITY = "0% to 25%";
 const VIBE_KEYWORD = "#83 to #1";
 
 function ActCited() {
@@ -633,10 +632,18 @@ function ActCited() {
 
         <div style={{ marginTop: "12px", paddingTop: "12px", borderTop: "1px solid " + T.hair }}>
           <div style={MICRO}>Vibe Retail, US retail SaaS</div>
-          <div style={{ ...CARD, marginTop: "8px", padding: "14px 16px" }}>
-            <div style={{ fontSize: "12px", color: T.soft }}>Money keyword, in four months</div>
-            <div style={{ fontSize: "22px", fontWeight: 700, letterSpacing: "-0.03em", marginTop: "2px" }}>
-              {VIBE_KEYWORD}
+          <div style={{ ...CARD, marginTop: "8px", display: "flex", overflow: "hidden", flexWrap: "wrap" }}>
+            <div style={{ flexGrow: 1, flexBasis: 0, padding: "14px 16px" }}>
+              <div style={{ fontSize: "12px", color: T.soft }}>ChatGPT brand visibility</div>
+              <div style={{ fontSize: "22px", fontWeight: 700, letterSpacing: "-0.03em", marginTop: "2px" }}>
+                {VIBE_VISIBILITY}
+              </div>
+            </div>
+            <div style={{ flexGrow: 1, flexBasis: 0, padding: "14px 16px", borderLeft: "1px solid " + T.line }}>
+              <div style={{ fontSize: "12px", color: T.soft }}>Money keyword, in four months</div>
+              <div style={{ fontSize: "22px", fontWeight: 700, letterSpacing: "-0.03em", marginTop: "2px" }}>
+                {VIBE_KEYWORD}
+              </div>
             </div>
           </div>
         </div>
