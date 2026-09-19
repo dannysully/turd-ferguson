@@ -165,6 +165,13 @@ function writesIn(file: string): Write[] {
  *
  * The statement is taken back to the previous `;`, which is what stops a
  * destructure belonging to some earlier statement from excusing this one.
+ *
+ * Matching the name means matching a **string literal**, which is the one shape
+ * this rule cannot see past: `db.rpc(fnName, ...)` has no name to look up, so it
+ * could not be classified as a write and would drop out of this sweep silently -
+ * the exact failure the whole run was about. Every call in this tree spells the
+ * name inline, and `every RPC call names its function inline` below keeps it
+ * that way rather than trusting it to stay true.
  */
 function mutatingRpcsIn(file: string): Write[] {
   const source = readFileSync(file, "utf8");
@@ -225,6 +232,41 @@ test("the migrations still say which functions mutate", () => {
   assert.ok(
     WRITES.some((w) => /\.rpc\(/.test(w.text)),
     "no mutating RPC call site was found, so the name match is not reaching the source",
+  );
+});
+
+test("every RPC call names its function inline", () => {
+  /**
+   * The one shape the rule above cannot classify.
+   *
+   * It decides whether a call is a write by looking the function name up in the
+   * set derived from the migrations, so a call whose name is a variable -
+   * `db.rpc(fnName, ...)` - has nothing to look up and would drop out of this
+   * sweep without saying so. That is the same silent disappearance this whole
+   * file was widened for, one shape further along, and it is cheaper to refuse
+   * it than to discover it later from the outside.
+   *
+   * Not a style rule. If a computed name is ever genuinely wanted, the fix is to
+   * teach this sweep how to resolve it - not to delete the assertion.
+   */
+  const computed = FILES.flatMap((file) => {
+    const name = relative(ROOT, file).split(sep).join("/");
+    const source = readFileSync(file, "utf8");
+    const lines = source.split("\n");
+    return [...source.matchAll(/\.rpc\(/g)]
+      .map((m) => ({ line: source.slice(0, m.index).split("\n").length, rest: source.slice(m.index) }))
+      .filter(({ line }) => {
+        const text = lines[line - 1].trim();
+        return !text.startsWith("*") && !text.startsWith("//") && !text.startsWith("/*");
+      })
+      .filter(({ rest }) => !/^\.rpc\(\s*["'`]\w+["'`]/.test(rest))
+      .map(({ line }) => `${name}:${line} ${lines[line - 1].trim()}`);
+  });
+
+  assert.deepEqual(
+    computed,
+    [],
+    "name this RPC's function with a string literal - a computed name cannot be matched against the migrations, so the call would leave the writes sweep silently",
   );
 });
 
