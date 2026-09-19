@@ -5,7 +5,7 @@ import { TIERS } from "@/config/pricing";
 import { CARD, GRID12, MICRO, SHELL, T } from "@/config/tokens";
 
 export const metadata: Metadata = {
-  title: "How we compare | alwayscited",
+  title: "How we compare",
   description:
     "What alwayscited does and what it costs, set out row by row. No competitor columns: we will not publish a claim about another company's product without a dated source for it.",
   alternates: { canonical: "https://alwayscited.com/compare" },

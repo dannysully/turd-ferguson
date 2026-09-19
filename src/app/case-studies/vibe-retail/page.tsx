@@ -23,7 +23,7 @@ import { CARD, MICRO, SHELL, T } from "@/config/tokens";
  */
 
 export const metadata: Metadata = {
-  title: "One listicle placement, on a page already ranking for the category | alwayscited",
+  title: "One listicle placement, on a page already ranking for the category",
   description:
     "How a US retail SaaS became the most cited cloud POS brand on AI search in under eight weeks. Three AI Overview citations, and the money keyword from #83 to #4.",
   alternates: { canonical: "https://alwayscited.com/case-studies/vibe-retail" },

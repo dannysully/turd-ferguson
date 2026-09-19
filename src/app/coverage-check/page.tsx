@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
 
 export const metadata: Metadata = {
-  title: "Free campaign benchmark | alwayscited",
+  title: "Free campaign benchmark",
   description:
     "Take the reading before the campaign. Five questions, three engines, every source kept and checked against your coverage - dated and re-runnable, so the next reading is a comparison.",
   alternates: { canonical: "https://alwayscited.com/coverage-check" },

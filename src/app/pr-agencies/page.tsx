@@ -5,7 +5,7 @@ import { TIERS } from "@/config/pricing";
 import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
 
 export const metadata: Metadata = {
-  title: "For PR agencies | alwayscited",
+  title: "For PR agencies",
   description:
     "You already place the coverage. We tell you which of it the engines actually read - so a PR placement has a measurable outcome, and the report says whether the client got named.",
   alternates: { canonical: "https://alwayscited.com/pr-agencies" },

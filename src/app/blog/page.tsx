@@ -16,7 +16,7 @@ import { CARD, MICRO, SHELL, T } from "@/config/tokens";
  */
 
 export const metadata: Metadata = {
-  title: "What we have actually found | alwayscited",
+  title: "What we have actually found",
   description:
     "Written for people who run agencies, not for search engines. Every number says where it came from and when it was taken.",
   alternates: { canonical: "https://alwayscited.com/blog" },

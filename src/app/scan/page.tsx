@@ -7,7 +7,7 @@ import HeroSection from "@/components/scan/HeroSection";
  * the field and nothing more. Not indexed - it is a state, not a page.
  */
 export const metadata: Metadata = {
-  title: "Checking your client's domain | alwayscited",
+  title: "Checking your client's domain",
   robots: { index: false, follow: false },
 };
 

@@ -18,7 +18,7 @@ import { CARD, MICRO, SHELL, T } from "@/config/tokens";
  */
 
 export const metadata: Metadata = {
-  title: "What the work actually moved | alwayscited",
+  title: "What the work actually moved",
   description:
     "Short case studies, and every figure says what it was measured against and when. Clients are named only where the agency has agreed to it.",
   alternates: { canonical: "https://alwayscited.com/case-studies" },

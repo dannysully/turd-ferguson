@@ -4,7 +4,7 @@ import { TIERS } from "@/config/pricing";
 import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
 
 export const metadata: Metadata = {
-  title: "For SEO agencies | alwayscited",
+  title: "For SEO agencies",
   description:
     "Sell AI visibility without building a second supply chain. The work is placement on third-party pages - the work you already do, aimed at a different target list - run white-label under your name.",
   alternates: { canonical: "https://alwayscited.com/seo-agencies" },

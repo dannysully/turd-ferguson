@@ -14,10 +14,10 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
  * magic link both land here too, so a visitor coming back on another device
  * gets their scan rather than an empty form.
  *
- * Not indexed. Every one of these is somebody own result.
+ * Not indexed. Every one of these is somebody's own result.
  */
 export const metadata: Metadata = {
-  title: "Your AI visibility report | alwayscited",
+  title: "Your AI visibility report",
   robots: { index: false, follow: false },
 };
 

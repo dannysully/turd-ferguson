@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { CARD, GRID12, MICRO, SHELL, T } from "@/config/tokens";
 
 export const metadata: Metadata = {
-  title: "Privacy policy | alwayscited",
+  title: "Privacy policy",
   description:
     "What alwayscited collects when you run a scan, why, how long it is kept, and who processes it. Written plainly, with the gaps marked rather than filled in.",
   alternates: { canonical: "https://alwayscited.com/legal" },
