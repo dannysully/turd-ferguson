@@ -121,8 +121,7 @@ type StoredQuestion = { id: string; idx: number; question: string };
 type Spend = { dfsCalls: number; dfsCost: number; anthropicCalls: number };
 
 /**
- * The three spend columns, with this pass's spend added to what is already on
- * the row.
+ * Add what this pass billed to the three spend columns, in the database.
  *
  * One rule for every exit: a pass adds what it billed, whether it returned or
  * threw. Added rather than set because three runs write these columns - the
@@ -130,55 +129,59 @@ type Spend = { dfsCalls: number; dfsCost: number; anthropicCalls: number };
  * second time after a failed one. A set let that retry overwrite the first
  * attempt's cost with its own, so reads that had been paid for twice counted
  * once.
+ *
+ * The addition happens in the update rather than here. This used to read the
+ * totals, add to them and hand them back to the caller's update, which is only
+ * a set with extra steps when two passes overlap: both read the same figure,
+ * both add their own spend, and the second write lands on top of the first, so
+ * the column advances by one pass's spend however many there were. The two
+ * passes are not hypothetically concurrent - the gated one starts when the
+ * visitor clicks the link in their verification email, and nothing sequences
+ * that against a free pass being retried.
+ *
+ * `note_scan_spend` does it in one statement, so the row is locked for the
+ * addition and neither pass can lose the other's. It needs no read at all,
+ * which also retires the case the previous fix could only refuse: a read that
+ * failed became `0 + this pass's spend` and erased what the earlier pass had
+ * recorded, and the mitigation was to omit the columns and lose this pass's
+ * addition instead. There is nothing to read now.
+ *
+ * Both matter past tidiness. `spentSince` and `anthropicCallsSince` sum these
+ * columns to enforce the day's dollar and model-call ceilings, so a lost write
+ * under-reports the day - and the busier the day, the more overlap there is to
+ * lose. That is the one direction a ceiling must not fail in.
+ *
+ * Never throws, and answers whether the spend is on the row: both callers run
+ * it on a path that is already ending, one of them inside a catch, and turning
+ * a lost bill into a second error would replace a recorded failure with an
+ * unhandled one. A false is logged, and the caller's catch gets one more go at
+ * it.
  */
-/**
- * A read that failed must not be added to as though it returned zero.
- *
- * The error was discarded, so a database that did not answer became
- * `0 + this pass's spend` - and because the caller writes that total back, the
- * cost already recorded by the earlier pass was erased. The function written to
- * stop a retry overwriting the first attempt's cost did exactly that whenever
- * its own read failed.
- *
- * It matters beyond tidiness: `spentSince` and `anthropicCallsSince` sum these
- * columns to enforce the day's ceilings, and a ceiling that reads a total which
- * has had earlier spend erased from it under-reports - which is the one
- * direction a ceiling must not fail in, and the busier the day the more of it
- * there is to erase.
- *
- * So a failed read omits the columns rather than guessing at them. This pass's
- * spend is then missing from the row, which the log says out loud, and what was
- * already measured survives. Losing an addition is recoverable; erasing a
- * record is not.
- *
- * The better fix is a database-side increment - `update scans set dfs_cost =
- * dfs_cost + $1` through an RPC, the way note_preview_call already reserves -
- * because that needs no read at all and also closes the case this cannot: two
- * passes reading the same total concurrently and each writing its own sum back.
- * That is additive DDL and therefore ours to do; it is written up in worklog.md
- * as the next job on this path rather than bolted onto a fix that had to ship.
- */
-async function billedOnto(
-  scanId: string,
-  spend: Spend,
-): Promise<{ dfs_calls: number; dfs_cost: number; anthropic_calls: number } | Record<string, never>> {
-  const { data: current, error } = await supabaseAdmin()
-    .from("scans")
-    .select("dfs_calls, dfs_cost, anthropic_calls")
-    .eq("id", scanId)
-    .single();
-  if (error) {
+async function billSpend(scanId: string, spend: Spend): Promise<boolean> {
+  // Nothing billed, nothing to record - and a round trip to add zero is still a
+  // round trip that can fail and warn about it.
+  if (!spend.dfsCalls && !spend.dfsCost && !spend.anthropicCalls) return true;
+  try {
+    const { data, error } = await supabaseAdmin().rpc("note_scan_spend", {
+      p_scan: scanId,
+      p_dfs_calls: spend.dfsCalls,
+      p_dfs_cost: spend.dfsCost,
+      p_anthropic_calls: spend.anthropicCalls,
+    });
+    if (error) throw new Error(error.message);
+    // The function updates by primary key and returns what it wrote, so an
+    // empty set means no such scan - nothing was billed, and reporting that as
+    // recorded would be the under-report this function exists to stop.
+    if (!Array.isArray(data) || !data.length) throw new Error("no scan row matched");
+    return true;
+  } catch (err) {
     console.warn(
-      "[scan] could not read the spend already on " + scanId +
-        ", so this pass's spend is not recorded rather than overwriting it: " + error.message,
+      `[scan] could not bill ${spend.dfsCalls} read(s), $${spend.dfsCost} and ` +
+        `${spend.anthropicCalls} model call(s) onto ${scanId}, so the day's ceilings are ` +
+        `low by that much: ${err instanceof Error ? err.message : String(err)}`,
     );
-    return {};
+    return false;
   }
-  return {
-    dfs_calls: (current?.dfs_calls ?? 0) + spend.dfsCalls,
-    dfs_cost: Number(current?.dfs_cost ?? 0) + spend.dfsCost,
-    anthropic_calls: (current?.anthropic_calls ?? 0) + spend.anthropicCalls,
-  };
 }
 
 /**
@@ -730,6 +733,14 @@ export async function runScan(scanId: string): Promise<void> {
     }
     spend.anthropicCalls += sourceCalls.calls;
 
+    // Billed before the status is written, not with it. They are two statements
+    // now that the addition happens in the database, and the order decides what
+    // survives a process that dies between them: spend first leaves a bill
+    // recorded against a scan still showing as running, which the day ceilings
+    // read correctly; status first leaves a complete scan that cost nothing,
+    // which is the direction a ceiling must not fail in.
+    spendPersisted = await billSpend(scanId, spend);
+
     await db
       .from("scans")
       .update({
@@ -738,19 +749,19 @@ export async function runScan(scanId: string): Promise<void> {
         completed_at: new Date().toISOString(),
         engines_answered: read.answered,
         leaderboard_partial: read.leaderboardPartial,
-        ...(await billedOnto(scanId, spend)),
       })
       .eq("id", scanId);
-    spendPersisted = true;
   } catch (err) {
     const message = describeAnthropicError(err);
+    // The guard stops a throw raised after the bill above from billing twice,
+    // and a bill that failed up there gets one more attempt here.
+    if (!spendPersisted) await billSpend(scanId, spend);
     await supabaseAdmin()
       .from("scans")
       .update({
         status: "failed",
         step: null,
         error: message.slice(0, 500),
-        ...(spendPersisted ? {} : await billedOnto(scanId, spend)),
       })
       .eq("id", scanId);
   }
@@ -871,6 +882,9 @@ export async function runGatedScan(scanId: string): Promise<void> {
       );
     }
 
+    // Before the status write, for the reason given on the free pass's call.
+    spendPersisted = await billSpend(scanId, spend);
+
     await db
       .from("scans")
       .update({
@@ -883,22 +897,20 @@ export async function runGatedScan(scanId: string): Promise<void> {
         // more engines; it cannot recover names a failed batch lost on the free
         // pass, so a clean second pass is not evidence the leaderboard is whole.
         ...(read.leaderboardPartial ? { leaderboard_partial: true } : {}),
-        ...(await billedOnto(scanId, spend)),
       })
       .eq("id", scanId);
-    spendPersisted = true;
   } catch (err) {
     const message = describeAnthropicError(err);
     // What this pass had already paid for when it failed. Without it a failed
     // gated pass was free as far as the cap could see, and this is the
     // expensive pass - every question again, on two more engines. The guard
-    // stops a throw raised after the update above from billing the day twice.
+    // stops a throw raised after the bill above from billing the day twice.
+    if (!spendPersisted) await billSpend(scanId, spend);
     await supabaseAdmin()
       .from("scans")
       .update({
         gated_status: "failed",
         gated_error: message.slice(0, 500),
-        ...(spendPersisted ? {} : await billedOnto(scanId, spend)),
       })
       .eq("id", scanId);
   }

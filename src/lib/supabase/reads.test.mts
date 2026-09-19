@@ -25,7 +25,10 @@ import { test } from "node:test";
  *    it, so an unlocked report said the free engines had not answered;
  *  - `billedOnto` added this pass's spend to zero and wrote the total back,
  *    erasing what the earlier pass had cost - under the two ceilings that read
- *    those columns to bound the day's spend.
+ *    those columns to bound the day's spend. That read is gone rather than
+ *    fixed: the addition happens in the database now, through
+ *    `note_scan_spend`, which also closes the overlap two correct reads still
+ *    lost.
  *
  * A list of call sites written into this test would drift exactly the way the
  * comments promising "this is handled" drifted. So it reads the source and
