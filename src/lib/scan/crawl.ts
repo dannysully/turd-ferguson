@@ -1,11 +1,27 @@
 import "server-only";
 
+import { checkHost } from "./address";
+
 /** Paths worth reading beyond the homepage, in the order we prefer them. */
 const INTERESTING = /\/(about|services|what-we-do|solutions|sectors|industries)/i;
 
 const PAGE_BYTE_CAP = 200 * 1024;
 const TOTAL_BUDGET_MS = 8_000;
 const MAX_EXTRA_PAGES = 5;
+
+/**
+ * Redirects followed per page, now that they are followed by hand.
+ *
+ * fetch would have followed twenty of them. Every hop is a fresh address that
+ * has to be checked, and the chains a real site needs - http to https, apex to
+ * www, a missing trailing slash - are three at the outside.
+ */
+const MAX_REDIRECTS = 5;
+
+/** The 3xx statuses that carry a Location worth following. */
+const REDIRECTS = new Set([301, 302, 303, 307, 308]);
+
+const USER_AGENT = "alwayscited-scan/1.0 (+https://alwayscited.com)";
 
 /**
  * Why a site could not be read.
@@ -29,7 +45,12 @@ export type ReadFailure =
   /** It answered with something that is not a web page. */
   | "not_html"
   /** We read it, and there was too little prose to name a brand from. */
-  | "too_thin";
+  | "too_thin"
+  /**
+   * It resolves somewhere that is not a public web server, or it redirected
+   * somewhere that is not. Not a site we will read on anyone's behalf.
+   */
+  | "private";
 
 export class UnreachableDomain extends Error {
   readonly reason: ReadFailure;
@@ -53,7 +74,14 @@ type Fetched =
   | { ok: true; html: string }
   | { ok: false; why: "status"; status: number }
   | { ok: false; why: "not_html" }
+  | { ok: false; why: "private" }
   | { ok: false; why: "network" };
+
+// The three refusals that carry nothing of their own, named once so the read
+// loop keeps its branches on one line each.
+const FAILED_NETWORK: Fetched = { ok: false, why: "network" };
+const FAILED_PRIVATE: Fetched = { ok: false, why: "private" };
+const FAILED_NOT_HTML: Fetched = { ok: false, why: "not_html" };
 
 /**
  * The first PAGE_BYTE_CAP bytes, and no more of them read than that.
@@ -124,13 +152,60 @@ function decodeBody(bytes: Uint8Array, contentType: string): string {
   return new TextDecoder().decode(bytes);
 }
 
-async function getText(url: string, signal: AbortSignal): Promise<Fetched> {
-  try {
-    const res = await fetch(url, {
-      signal,
-      redirect: "follow",
-      headers: { "user-agent": "alwayscited-scan/1.0 (+https://alwayscited.com)" },
-    });
+/**
+ * Fetch one page, following redirects by hand so that every hop is checked.
+ *
+ * redirect: follow handed the whole chain to fetch, which left only the first
+ * address ours to judge. A public site answering 302 to a link-local address
+ * was followed with nothing looking at it - and that is the cheaper half of
+ * this, because it needs no DNS record of your own at all.
+ *
+ * trusted is the hostname the caller has already resolved and cleared, which
+ * is the scanned domain itself. Every other host, including a www variant of
+ * it, is checked here before it is fetched.
+ */
+async function getText(url: string, signal: AbortSignal, trusted: string): Promise<Fetched> {
+  let current = url;
+
+  for (let hop = 0; ; hop++) {
+    let target: URL;
+    try {
+      target = new URL(current);
+    } catch {
+      return FAILED_NETWORK;
+    }
+    // A redirect to file: or data: is not a page, and not ours to open.
+    if (target.protocol !== "https:" && target.protocol !== "http:") return FAILED_NETWORK;
+    if (target.hostname !== trusted) {
+      const where = await checkHost(target.hostname, signal);
+      if (where === "private") return FAILED_PRIVATE;
+      if (where === "unresolved") return FAILED_NETWORK;
+    }
+
+    let res: Response;
+    try {
+      res = await fetch(current, {
+        signal,
+        redirect: "manual",
+        headers: { "user-agent": USER_AGENT },
+      });
+    } catch {
+      return FAILED_NETWORK;
+    }
+
+    const location = REDIRECTS.has(res.status) ? res.headers.get("location") : null;
+    if (location) {
+      // The body of a redirect is never read, whatever size it arrived at.
+      await res.body?.cancel().catch(() => {});
+      if (hop >= MAX_REDIRECTS) return FAILED_NETWORK;
+      try {
+        current = new URL(location, current).toString();
+      } catch {
+        return FAILED_NETWORK;
+      }
+      continue;
+    }
+
     // Nothing reads the body on either refusal, so it is dropped rather than
     // left for the collector at whatever size it arrived.
     if (!res.ok) {
@@ -140,15 +215,13 @@ async function getText(url: string, signal: AbortSignal): Promise<Fetched> {
     const type = res.headers.get("content-type") ?? "";
     if (!type.includes("html")) {
       await res.body?.cancel().catch(() => {});
-      return { ok: false, why: "not_html" };
+      return FAILED_NOT_HTML;
     }
     if (!res.body) return { ok: true, html: "" };
 
     // The cap is on bytes, so a multi-byte character straddling it decodes to
     // one replacement character at the very end of 200KB of prose.
     return { ok: true, html: decodeBody(await bodyUpTo(res.body, PAGE_BYTE_CAP), type) };
-  } catch {
-    return { ok: false, why: "network" };
   }
 }
 
@@ -208,6 +281,7 @@ function failureFor(
   first: Exclude<Fetched, { ok: true }> | null,
 ): UnreachableDomain {
   if (signal.aborted) return new UnreachableDomain(domain, "timeout");
+  if (first?.why === "private") return new UnreachableDomain(domain, "private");
   if (first?.why === "status") return new UnreachableDomain(domain, "blocked", first.status);
   if (first?.why === "not_html") return new UnreachableDomain(domain, "not_html");
   return new UnreachableDomain(domain, "dns");
@@ -224,13 +298,20 @@ export async function readSite(domain: string): Promise<string> {
   const timer = setTimeout(() => controller.abort(), TOTAL_BUDGET_MS);
 
   try {
+    // Where the address points is settled before a single byte is fetched.
+    // Both schemes below share the hostname, so this is one lookup for the pair
+    // rather than one per attempt.
+    const where = await checkHost(domain, controller.signal);
+    if (where === "private") throw new UnreachableDomain(domain, "private");
+    if (where === "unresolved") throw failureFor(domain, controller.signal, null);
+
     let html: string | null = null;
     let base = `https://${domain}/`;
     let firstFailure: Exclude<Fetched, { ok: true }> | null = null;
 
     for (const scheme of ["https", "http"] as const) {
       const url = `${scheme}://${domain}/`;
-      const got = await getText(url, controller.signal);
+      const got = await getText(url, controller.signal, domain);
       if (got.ok) {
         html = got.html;
         base = url;
@@ -248,7 +329,7 @@ export async function readSite(domain: string): Promise<string> {
     const links = sameHostLinks(html, domain, base);
 
     // Remaining pages share whatever is left of the budget, in parallel.
-    const extra = await Promise.all(links.map((u) => getText(u, controller.signal)));
+    const extra = await Promise.all(links.map((u) => getText(u, controller.signal, domain)));
     for (const page of extra) {
       if (page.ok) parts.push(toProse(page.html));
     }

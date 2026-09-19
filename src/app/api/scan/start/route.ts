@@ -59,6 +59,14 @@ const SITE_READ_FAILURE: Record<
     code: "site_slow",
     message: `${d} took too long to answer. Please try again in a moment.`,
   }),
+  // Deliberately says nothing about what it resolved to. A visitor who has
+  // pointed us at their own internal host needs to know we will not read it;
+  // somebody sweeping for one does not need our resolver as an oracle.
+  private: (d) => ({
+    http: 422,
+    code: "not_public",
+    message: `${d} does not resolve to a public web server, so there is nothing for us to read.`,
+  }),
   too_thin: (d) => ({
     http: 502,
     code: "too_little_text",
