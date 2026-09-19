@@ -14,19 +14,32 @@ import type { NextConfig } from "next";
  * The header is the only form of the directive that reaches it.
  *
  * `:path+` on /scan, not `:path*`. The docs for this version are explicit that
- * `*` is zero or more and that `/blog/:slug*` matches `/blog` - so `/scan`
- * itself was being served `noindex, nofollow`, which is the one thing
- * src/app/robots.ts goes out of its way to avoid. It keeps `/scan` crawlable
- * on purpose: it is the action of seven `<form method="get">` on the home
- * page, the posts, the case study and both agency pages, and a linked URL
- * that is closed gets listed as a bare address instead. Verified against the
- * built server rather than inferred - `/scan` answered 200 with
- * `noindex, nofollow` on it, `/scan/abc` still does, and `/` never did.
+ * `*` is zero or more and that `/blog/:slug*` matches `/blog`, so `/scan`
+ * itself was picking up the header. What is protected is a scan result, which
+ * always has a token under it, so "one or more segments" is the rule that was
+ * meant. /api keeps `*`: there is no page at bare /api, so the extra match
+ * costs nothing and a 404 is better off noindexed anyway.
  *
- * What is protected is a scan result, which always has a token under it, so
- * "one or more segments" is the rule that was meant. /api keeps `*`: there is
- * no page at bare /api, so the extra match costs nothing and a 404 is better
- * off noindexed anyway.
+ * CORRECTION, 19 Sep, read off the live page rather than the headers. The
+ * commit that made this change (7541ba2) said it was un-indexing /scan and
+ * that src/app/robots.ts wanted /scan indexable. Neither is so, and the check
+ * behind it only read response headers.
+ *
+ * robots.ts keeps /scan *crawlable*, which is not the same thing, and its own
+ * sentence says why - "a linked URL that is closed gets listed as a bare
+ * address, which is worse than the noindex it already carries". It is the
+ * action of seven `<form method="get">` across the site, so it must be
+ * fetchable; it carries `noindex, nofollow` in its own page metadata, and
+ * still does today. Crawlable plus noindex is the pairing that was intended
+ * and the one that is live: the crawler fetches it, reads the tag, and does
+ * not list the bare URL.
+ *
+ * So this rule change removed a header that duplicated a meta tag, and /scan
+ * is not and was never made indexable by it. That is the right outcome - the
+ * page renders the home page's hero with the domain field prefilled, carries
+ * `?domain=` and `?verify=` state, has no description of its own and is
+ * deliberately absent from sitemap.ts. Indexing it would put a near-duplicate
+ * of the home page into the index against the home page's own canonical.
  */
 const BASELINE = [
   ["x-content-type-options", "nosniff"],

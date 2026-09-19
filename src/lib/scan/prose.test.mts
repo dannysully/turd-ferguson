@@ -82,6 +82,23 @@ test("what is not an entity is left as the page wrote it", () => {
   assert.equal(decodeEntities("&#0;"), "&#0;");
 });
 
+test("a name the entity table inherits is not an entity either", () => {
+  // The table used to be an object literal read with NAMED[body], so every
+  // name on Object.prototype answered. `?? raw` could not catch it, because a
+  // function is not nullish: the prose handed to the brand read came back
+  // carrying "function Object() { [native code] }" where the page had written
+  // an entity we do not know. Same shape as the /scan?verify= crash.
+  assert.equal(decodeEntities("&constructor;"), "&constructor;");
+  assert.equal(decodeEntities("&toString;"), "&toString;");
+  assert.equal(decodeEntities("&valueOf;"), "&valueOf;");
+  assert.equal(decodeEntities("&hasOwnProperty;"), "&hasOwnProperty;");
+  assert.equal(decodeEntities("&isPrototypeOf;"), "&isPrototypeOf;");
+  assert.equal(
+    toProse("<p>Read the &constructor; guide</p>"),
+    "Read the &constructor; guide",
+  );
+});
+
 test("tags come out before entities go in", () => {
   // The other half of the ordering. Decoding first would turn this page's own
   // escaped text into a tag, and the tag strip would then delete it along with

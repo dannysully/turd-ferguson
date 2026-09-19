@@ -26,8 +26,23 @@
  * Numeric entities are handled generically below, which is what actually
  * covers the tail: a CMS that emits `&rsquo;` usually emits `&#8217;` on the
  * next page.
+ *
+ * A Map rather than an object, and that is the second defect this table has
+ * carried. `NAMED[body]` read the prototype chain as well as the table, and
+ * the entity grammar below accepts any run of letters - so `&constructor;` on
+ * a page resolved to Object, `&toString;` and `&valueOf;` to their functions,
+ * and the `?? raw` fallback never fired because a function is not nullish. The
+ * prose handed to the brand read then contained the text
+ * "function Object() { [native code] }" where the page had written an entity
+ * it does not recognise, which the paragraph at the top of this file is
+ * exactly about: this string is the only thing the model is given to name the
+ * company from.
+ *
+ * A Map has no inherited keys, so the lookup can only answer with something
+ * written here. CP1252 below is keyed by number and cannot reach a prototype
+ * member, which are all named, so it is left as it is.
  */
-const NAMED: Readonly<Record<string, string>> = {
+const NAMED: ReadonlyMap<string, string> = new Map(Object.entries({
   amp: "&",
   lt: "<",
   gt: ">",
@@ -115,7 +130,7 @@ const NAMED: Readonly<Record<string, string>> = {
   Uacute: "Ú",
   Ucirc: "Û",
   Uuml: "Ü",
-};
+}));
 
 /**
  * Windows-1252 code points for the C1 range, which is what `&#147;` means.
@@ -176,7 +191,7 @@ export function decodeEntities(input: string): string {
         const n = parseInt(hex ? body.slice(2) : body.slice(1), hex ? 16 : 10);
         return Number.isNaN(n) ? raw : fromCodePoint(n, raw);
       }
-      return NAMED[body] ?? raw;
+      return NAMED.get(body) ?? raw;
     },
   );
 }
