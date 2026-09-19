@@ -67,8 +67,7 @@ export default function CaseStudiesPage() {
               One listicle placement, on a page already ranking for the category
             </h2>
             <p style={{ margin: "10px 0 0", fontSize: "14px", lineHeight: 1.6, color: T.soft, maxWidth: "62ch" }}>
-              The article went live in the morning. By that evening the AI Overview for the category was citing it as
-              a source.
+              A single editorial placement, on a third-party page that already ranked for the category.
             </p>
           </div>
           <div

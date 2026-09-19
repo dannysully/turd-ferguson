@@ -223,10 +223,8 @@ export default function CaseStudyPage() {
 
             <H3>Listicle placements on pages already ranking for the category</H3>
             <P>
-              Editorial "best of" placements on high-authority retail and ecommerce publications, where the client was
-              positioned on merit. The strongest evidence that this works on demand: the most recent listicle went
-              live in the morning, and the AI Overview was citing it as the top source by that evening, naming the
-              client as best overall in the category.
+              Editorial &ldquo;best of&rdquo; placements on high-authority retail and ecommerce publications, where the
+              client was positioned on merit.
             </P>
 
             <H3>On-site content written for the question, not the keyword</H3>
@@ -256,9 +254,6 @@ export default function CaseStudyPage() {
                 </div>
               ))}
             </div>
-            <P>
-              The third of those appeared the same day the supporting listicle went live.
-            </P>
 
             <H3>The same placements moved the Google position</H3>
             <P>

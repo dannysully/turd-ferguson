@@ -15,9 +15,23 @@ import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
  * collapsing the two would claim #1 in eight weeks, which is not what
  * happened.
  *
- * Two things did go: the "listicle went live in the morning" paragraph
- * appeared twice on this page, word for word, and the Nomada provenance line
- * is now at the end of the packages board.
+ * The "listicle went live in the morning" paragraph has gone, and so has the
+ * heading above it, which was "One placement, one morning." An earlier pass
+ * removed one of two word-for-word copies of that paragraph and kept the
+ * other; this one removes the claim. It said the placement went live in the
+ * morning and the AI Overview was citing it as the top source by that
+ * evening - a claim about a client's result with no date, no tracker and no
+ * name, which is the category AGENTS.md says carries [VERIFY] until there is
+ * a dated source. The same sentence was cut from /how-it-works, /what-is-aeo
+ * and the blog posts on 19 Sep; it survived here, on /case-studies and on the
+ * case study itself, because those sweeps were scoped to the pages with no
+ * board. The heading went with it because "one morning" made the same claim
+ * in three words.
+ *
+ * The figures below are untouched - they carry windows and a dated
+ * attestation, and they are not what was wrong.
+ *
+ * The Nomada provenance line is now at the end of the packages board.
  */
 
 /**
@@ -44,7 +58,7 @@ export default function Results() {
       <div className="board-head" style={{ ...GRID12, marginBottom: "16px" }}>
         <div style={{ gridColumn: "span 4" }}>
           <div style={MICRO}>Results</div>
-          <h2 style={{ ...H2, marginTop: "8px" }}>One placement, one morning.</h2>
+          <h2 style={{ ...H2, marginTop: "8px" }}>One placement, on a page already ranking.</h2>
         </div>
         <p style={{ gridColumn: "span 8", margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
           One campaign, one placement. The eight-week readings are what it produced; the money keyword kept
@@ -75,11 +89,6 @@ export default function Results() {
             </div>
           ))}
         </div>
-
-        <p style={{ fontSize: "14px", color: T.ink, lineHeight: 1.65, marginTop: "18px", marginBottom: 0 }}>
-          The listicle went live in the morning. By that evening Google&apos;s AI Overview was citing it as the top
-          source for the category.
-        </p>
 
         <a
           href="/case-studies/vibe-retail"
