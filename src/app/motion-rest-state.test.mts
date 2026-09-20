@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
@@ -539,4 +539,222 @@ test("the failsafe that lets rule 2 be this low", () => {
     "the sweep no longer skips boxless elements, so the hidden half of a responsive pair is " +
       "revealed as though somebody were looking at it",
   );
+});
+
+/**
+ * Rule 3 and rule 4: what `prefers-reduced-motion` actually takes off.
+ *
+ * globals.css carries two `@media (prefers-reduced-motion: reduce)` blocks and
+ * they are the only thing on this site that honours the setting *after* the
+ * page has loaded. The script cannot: `Motion.tsx` reads the query once, sets
+ * `data-motion="on"` if it is clear, and nothing ever takes the attribute back
+ * off - which the first block's own comment says out loud ("the setting can be
+ * changed after the page has loaded and nothing would otherwise take it back
+ * off").
+ *
+ * **The block lost half of what it promises, and the half it lost is the half
+ * it was written for.** A media query adds no specificity, and every rule it
+ * exists to cancel carries one class more than it does - the trigger.
+ * `html[data-motion="on"] .ac-row.in-view` is (0,3,1); the neutralising list
+ * was (0,2,1). So it won the *rest* state, which is why nothing was ever stuck
+ * invisible, and lost the *animation*: a visitor who turned the setting on
+ * mid-session kept every row animating as they scrolled to it. Fixed by
+ * matching the triggered state at its own specificity; these two rules are
+ * what stop it drifting back.
+ *
+ * Both sides are derived from the stylesheet, so a seventh animating class
+ * joins both rules by existing. That matters more here than usual: the six
+ * `.ac-*` classes are checked by everything else in this file, and the eleven
+ * `.seq-*` ones are checked by nothing at all - they render only inside a live
+ * scan, which is the board nobody has ever watched (blocked.md 15).
+ *
+ * What this cannot do is match selectors the way a browser does. Coverage is
+ * judged on the class set - a neutralising selector whose classes are a subset
+ * of an animating one's matches at least the same elements - and `:is()` is
+ * expanded to its alternatives, its specificity taken as the maximum, which is
+ * what the spec says it is. Both are exact for this stylesheet and would want
+ * revisiting for a selector using a combinator to mean something narrower.
+ */
+
+/** Split a selector list on commas that are not inside `:is(...)`. */
+function selectorList(list: string): string[] {
+  const out: string[] = [];
+  let depth = 0;
+  let cur = "";
+  for (const ch of list) {
+    if (ch === "(") depth += 1;
+    else if (ch === ")") depth -= 1;
+    if (ch === "," && depth === 0) {
+      out.push(cur);
+      cur = "";
+      continue;
+    }
+    cur += ch;
+  }
+  out.push(cur);
+  return out.map((s) => s.trim()).filter(Boolean);
+}
+
+/** `:is(a, b)` matches like two selectors, so expand it before comparing. */
+function expandIs(selector: string): string[] {
+  const m = /:is\(([^()]*)\)/.exec(selector);
+  if (!m) return [selector];
+  return selectorList(m[1]!).flatMap((alt) => expandIs(selector.replace(m[0], alt)));
+}
+
+/** (ids, classes + attributes + pseudo-classes, types + pseudo-elements). */
+function specificity(selector: string): [number, number, number] {
+  const s = selector.replace(/:where\([^)]*\)/g, "");
+  const count = (re: RegExp) => (s.match(re) ?? []).length;
+  return [
+    count(/#[\w-]+/g),
+    count(/\.[\w-]+/g) + count(/\[[^\]]*\]/g) + count(/:(?!:)[a-z-]+/g),
+    count(/(?:^|[\s>+~])[a-z][\w-]*/g) + count(/::[a-z-]+/g),
+  ];
+}
+
+const higher = (a: [number, number, number], b: [number, number, number]) =>
+  a[0] - b[0] || a[1] - b[1] || a[2] - b[2];
+
+const classesOf = (selector: string) =>
+  new Set([...selector.matchAll(/\.([a-zA-Z][\w-]*)/g)].map((m) => m[1]!));
+
+type CssRule = { selector: string; body: string; at: number; reduced: boolean };
+
+function cssRules(source: string): CssRule[] {
+  const spans: [number, number][] = [];
+  const at = /@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{/g;
+  let m: RegExpExecArray | null;
+  while ((m = at.exec(source))) {
+    let depth = 1;
+    let i = m.index + m[0].length;
+    for (; i < source.length && depth > 0; i += 1) {
+      if (source[i] === "{") depth += 1;
+      else if (source[i] === "}") depth -= 1;
+    }
+    spans.push([m.index, i]);
+  }
+
+  const out: CssRule[] = [];
+  // Innermost braces only - a rule body never contains one, so this reads the
+  // rules inside an at-rule rather than reading the at-rule as a body.
+  for (const r of source.matchAll(/([^{}@]+)\{([^{}]*)\}/g)) {
+    const reduced = spans.some(([a, b]) => r.index! > a && r.index! < b);
+    for (const selector of selectorList(r[1]!).flatMap(expandIs)) {
+      if (/^\d|^from$|^to$|^%/.test(selector)) continue; // keyframe stops
+      out.push({ selector, body: r[2]!, at: r.index!, reduced });
+    }
+  }
+  return out;
+}
+
+/**
+ * Does this rule start an animation, as against turning one off?
+ *
+ * The value is read rather than excluded with a lookahead, and that is not
+ * style. `animation\s*:\s*(?!none)` **matches `animation: none`**: the `\s*`
+ * gives back the space it ate, the lookahead then sits in front of " none"
+ * rather than "none", and it passes. It was written that way here, and the
+ * green-expected case in `docs/inject-reduced-motion.mjs` is the only reason
+ * anybody found out - nothing in this stylesheet turns an animation off
+ * outside a reduced-motion block today, so the rule was noisy about a case
+ * that does not exist yet.
+ */
+function animationValue(body: string): string | null {
+  const m = /(?:^|[;{\s])animation(?:-name)?\s*:([^;]*)/.exec(body);
+  return m ? m[1]!.trim() : null;
+}
+
+type Stylesheet = { name: string; rules: CssRule[] };
+
+function analyse(name: string, source: string): Stylesheet {
+  return { name, rules: cssRules(source.replace(/\/\*[\s\S]*?\*\//g, "")) };
+}
+
+const animating = (s: Stylesheet) =>
+  s.rules.filter((r) => {
+    const value = animationValue(r.body);
+    return !r.reduced && value !== null && !/^none\b/.test(value);
+  });
+
+const neutralising = (s: Stylesheet) =>
+  s.rules.filter((r) => r.reduced && /^none\b/.test(animationValue(r.body) ?? ""));
+
+/** Every neutralising rule that matches at least the elements this one does. */
+const covering = (s: Stylesheet, target: CssRule) => {
+  const classes = classesOf(target.selector);
+  return neutralising(s).filter((n) => [...classesOf(n.selector)].every((c) => classes.has(c)));
+};
+
+/**
+ * Both stylesheets: the one that is authored and the one that is served.
+ *
+ * Not belt and braces - the minifier really does rewrite this. It merged the
+ * two rules of the fix into one selector list because their declarations are
+ * identical, which is harmless (a selector list applies each selector at its
+ * own specificity) and is exactly the kind of rewrite nobody would notice
+ * going the other way. **A probe proved on the source is not a probe pointed
+ * at what ships**, which is the `route-closure` lesson one file over.
+ */
+function stylesheets(): Stylesheet[] {
+  const out = [analyse("globals.css", CSS)];
+  const staticDir = join(fileURLToPath(import.meta.url), "..", "..", "..", ".next", "static");
+  if (!existsSync(staticDir)) return out;
+  const walk = (dir: string) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else if (entry.name.endsWith(".css")) out.push(analyse(`the shipped ${entry.name}`, readFileSync(full, "utf8")));
+    }
+  };
+  walk(staticDir);
+  return out;
+}
+
+test("every animating class is taken back under reduced motion", () => {
+  const sheets = stylesheets();
+  assert.ok(sheets.length >= 1, "no stylesheet to read");
+
+  for (const sheet of sheets) {
+    const anim = animating(sheet);
+    const stop = neutralising(sheet);
+    // Floors. A parse that found nothing is the same green as a clean
+    // stylesheet, and this file's own prose names most of these classes.
+    assert.ok(sheet.rules.length >= 150, `${sheet.name}: expected 150+ rules, parsed ${sheet.rules.length}`);
+    assert.ok(anim.length >= 15, `${sheet.name}: expected 15+ animating rules, found ${anim.length}`);
+    assert.ok(stop.length >= 15, `${sheet.name}: expected 15+ neutralising rules, found ${stop.length}`);
+    assert.ok(
+      anim.some((r) => r.selector.includes(".seq-")),
+      `${sheet.name}: no .seq-* rule is animating, so this has stopped covering the waiting sequence`,
+    );
+
+    assert.deepEqual(
+      anim.filter((r) => covering(sheet, r).length === 0).map((r) => r.selector),
+      [],
+      `${sheet.name}: this rule animates and no @media (prefers-reduced-motion: reduce) block takes` +
+        " it off. A visitor who asked for no motion gets it anyway - add the class to the block" +
+        " beside the others, in both the resting and the `.in-view` list",
+    );
+  }
+});
+
+test("the reduced-motion rule wins the cascade against the rule it takes off", () => {
+  for (const sheet of stylesheets()) {
+    const losing = animating(sheet).filter((r) => {
+      const spec = specificity(r.selector);
+      return !covering(sheet, r).some((n) => {
+        const d = higher(specificity(n.selector), spec);
+        return d > 0 || (d === 0 && n.at > r.at);
+      });
+    });
+
+    assert.deepEqual(
+      losing.map((r) => `${r.selector} (${specificity(r.selector).join(",")})`),
+      [],
+      `${sheet.name}: this rule is named in a reduced-motion block and the block cannot beat it. A` +
+        " media query adds no specificity, so a neutralising selector must be at least as specific" +
+        " and come later in the file. Matching `.in-view` there is what makes the block do what its" +
+        " comment claims",
+    );
+  }
 });

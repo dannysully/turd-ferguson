@@ -568,6 +568,25 @@ html[data-motion="on"] .ac-stamp.in-view {
     transform: none;
     stroke-dashoffset: 0;
   }
+
+  /* And the same again for the state that is actually animating.
+     A media query adds no specificity, and every rule this block exists to
+     take off carries one class more than the list above does - the trigger:
+     `html[data-motion="on"] .ac-row.in-view` is (0,3,1) against (0,2,1). So
+     the list above won the rest state, which is why nothing was ever stuck
+     invisible, and lost the animation, which is the half the comment promises.
+     The visitor it was written for - the one who turns the setting on after
+     the page has loaded - kept every row animating as they scrolled.
+     `:is()` takes the specificity of its most specific argument, so this is
+     (0,3,1) as well and wins on source order. `motion-rest-state.test.mts`
+     holds both directions. */
+  html[data-motion="on"]
+    :is(.ac-row, .ac-grow, .ac-stamp, .chart-line, .chart-dot, .flow-line).in-view {
+    animation: none;
+    opacity: 1;
+    transform: none;
+    stroke-dashoffset: 0;
+  }
 }
 
 /* Comparison table. One column today, and the grid is generated from the
