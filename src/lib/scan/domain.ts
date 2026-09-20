@@ -18,11 +18,24 @@
  * unencoded, so cutting at the first of them first cannot lose a real
  * credential - "https://user:pass@example.com/path" still normalises to
  * example.com.
+ *
+ * A backslash cuts the authority exactly as a forward slash does, and leaving
+ * it out of that set was the same bug a second time. The WHATWG URL standard
+ * every browser implements treats "\" as a path separator for http and https,
+ * so "https://example.com\@evil.com" is example.com to every visitor who
+ * pastes it - but with only "/" in the cut set the backslash survived into the
+ * credential strip, "example.com\@" matched as userinfo, and the function
+ * returned evil.com. Silent and plausible again: isPlausibleDomain says yes to
+ * evil.com, so the scan runs and is billed against a host the browser would
+ * never have gone to, and a cited URL is filed under the wrong company.
+ * Verified against `new URL()` on the cases in domain.test.mts. A backslash is
+ * no more legal unencoded in userinfo than a slash is, so cutting on it cannot
+ * lose a real credential either.
  */
 export function normalizeDomain(input: string): string {
   let d = input.trim().toLowerCase();
   d = d.replace(/^[a-z][a-z0-9+.-]*:\/\//, "");
-  d = d.split(/[/?#]/)[0];
+  d = d.split(/[/\\?#]/)[0];
   d = d.replace(/^[^/@]*@/, "");
   d = d.replace(/:\d+$/, "");
   d = d.replace(/^www\./, "");

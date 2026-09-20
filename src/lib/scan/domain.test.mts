@@ -68,6 +68,48 @@ test("an @ after the authority never renames the host", () => {
   assert.equal(normalizeDomain("https://example.com/mailto:me@other.com"), "example.com");
 });
 
+test("a backslash cuts the authority exactly as a slash does", () => {
+  // The second member of the same class. Each of these returned the domain in
+  // the comment before "\\" joined "/" in the cut set.
+  assert.equal(normalizeDomain("https://example.com\\@evil.com"), "example.com"); // evil.com
+  assert.equal(normalizeDomain("example.com\\@evil.com"), "example.com"); // evil.com
+  assert.equal(normalizeDomain("https://example.com\\path"), "example.com");
+  assert.equal(normalizeDomain("https://example.com\\\\evil.com"), "example.com");
+});
+
+/**
+ * The rule, rather than a list of cases: for an http(s) URL the browser can
+ * parse, we must name the host the browser would go to.
+ *
+ * Pinned against `new URL()` on purpose. Both faults this file records were
+ * found by comparing the step-by-step normaliser against the WHATWG parser,
+ * and hand-typed expectations are what let the first one through - they can
+ * only encode the cases somebody already thought of. This compares against the
+ * thing visitors actually use, so a third member of the class fails here
+ * without anybody having to guess it in advance.
+ */
+test("agrees with the URL parser on every host a browser would resolve", () => {
+  const urls = [
+    "https://example.com\\@evil.com",
+    "https://example.com?email=me@other.com",
+    "https://example.com#a@b.com",
+    "https://example.com/@evil.com",
+    "https://user:pass@example.com/path",
+    "https://WWW.Example.com/about",
+    "https://example.com:8443/x",
+    "https://example.com\\path",
+    "https://example.com/a\\b@evil.com",
+    "http://sub.example.co.uk/x?y=@z.com",
+  ];
+  for (const raw of urls) {
+    assert.equal(
+      normalizeDomain(raw),
+      new URL(raw).hostname.replace(/^www\./, ""),
+      `normalizeDomain disagrees with new URL() on ${raw}`,
+    );
+  }
+});
+
 test("isPlausibleDomain refuses what is not a hostname", () => {
   assert.equal(isPlausibleDomain("example.com"), true);
   assert.equal(isPlausibleDomain("a.b.example.co.uk"), true);
