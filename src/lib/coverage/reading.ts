@@ -1,5 +1,6 @@
 import "server-only";
 
+import { type CitationCountRow, countCitedDomains } from "@/lib/coverage/citation-count";
 import { type Engine, isEngine } from "@/lib/scan/engines";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { selectAll } from "@/lib/supabase/page";
@@ -58,6 +59,7 @@ export type ReadingSource = {
   /** True when this domain is in the coverage list uploaded for the campaign. */
   placed: boolean;
 };
+
 
 /** One reading, as a row in the campaign's history. */
 export type ReadingSummary = {
@@ -215,10 +217,10 @@ export async function readCampaign(token: string): Promise<CampaignReading | nul
         .order("id", { ascending: true })
         .range(from, to),
     ),
-    selectAll<{ source_domain: string }>((from, to) =>
+    selectAll<CitationCountRow>((from, to) =>
       db
         .from("scan_citations")
-        .select("source_domain")
+        .select("source_domain, question_id, engine")
         .eq("scan_id", readingId)
         .order("id", { ascending: true })
         .range(from, to),
@@ -269,8 +271,7 @@ export async function readCampaign(token: string): Promise<CampaignReading | nul
     of: questionRows.length * engines.length,
   };
 
-  const counts = new Map<string, number>();
-  for (const c of citationRows) counts.set(c.source_domain, (counts.get(c.source_domain) ?? 0) + 1);
+  const counts = countCitedDomains(citationRows);
   base.sources = [...counts.entries()]
     .map(([domain, citations]) => ({ domain, citations, placed: placed.has(domain) }))
     .sort((a, b) => b.citations - a.citations || a.domain.localeCompare(b.domain));

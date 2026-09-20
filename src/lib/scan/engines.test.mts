@@ -149,6 +149,81 @@ test("a citation is deduplicated on domain and url together", () => {
   );
 });
 
+/**
+ * The either/or. Both scraper parsers used to pick one source list and throw
+ * the other away - `collectCitations(topLevel.length ? topLevel : perItem)`,
+ * and the same shape in `parseGoogleAio` against `aio.references`. Where a
+ * response carried both, whichever lost was gone, and those citations are the
+ * report's source list and the gated placement list.
+ *
+ * These four fix the behaviour in place. The first two are the defect; the
+ * third is the property that makes merging safe to ship without a recorded
+ * response to check it against - a response with only top-level sources comes
+ * out byte for byte as it did before, positions included.
+ */
+test("a scraper answer merges top-level and per-item sources", () => {
+  const read = parseChatGpt({
+    items: [{ markdown: "Try them.", sources: [{ domain: "which.co.uk", url: "https://which.co.uk/x" }] }],
+    sources: [{ domain: "trustpilot.com", url: "https://trustpilot.com/a" }],
+  });
+
+  assert.deepEqual(
+    read.citations.map((c) => c.source_domain),
+    ["trustpilot.com", "which.co.uk"],
+  );
+});
+
+test("a source in both scraper lists is one citation, not two", () => {
+  const read = parseChatGpt({
+    items: [{ markdown: "Try them.", sources: [{ domain: "which.co.uk", url: "https://which.co.uk/x" }] }],
+    sources: [{ domain: "which.co.uk", url: "https://which.co.uk/x" }],
+  });
+
+  assert.equal(read.citations.length, 1);
+  assert.deepEqual(
+    read.citations.map((c) => c.position),
+    [1],
+  );
+});
+
+test("a scraper answer with only top-level sources is unchanged by the merge", () => {
+  const read = parseChatGpt({
+    items: [{ markdown: "Try them." }],
+    sources: [
+      { domain: "trustpilot.com", url: "https://trustpilot.com/a" },
+      { domain: "which.co.uk", url: "https://which.co.uk/x" },
+    ],
+  });
+
+  assert.deepEqual(
+    read.citations.map((c) => [c.source_domain, c.position]),
+    [
+      ["trustpilot.com", 1],
+      ["which.co.uk", 2],
+    ],
+  );
+});
+
+test("an Overview merges top-level and element-level references", () => {
+  const read = parseGoogleAio(
+    aio({
+      references: [{ domain: "trustpilot.com", url: "https://trustpilot.com/a" }],
+      items: [
+        {
+          text: "Vibe Retail is widely recommended.",
+          references: [{ domain: "which.co.uk", url: "https://which.co.uk/x" }],
+        },
+      ],
+    }),
+  );
+
+  assert.equal(read.answered, true);
+  assert.deepEqual(
+    read.citations.map((c) => c.source_domain),
+    ["trustpilot.com", "which.co.uk"],
+  );
+});
+
 test("link URLs do not survive into the prose brand matching reads", () => {
   // A brand whose name appears only inside a URL must not count as named.
   assert.equal(stripMarkdownLinks("Try [Vibe Retail](https://viberetail.com)."), "Try Vibe Retail.");

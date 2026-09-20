@@ -439,13 +439,23 @@ async function readAndStore(input: {
   );
   /**
    * Citations have no unique key, so a retried pass adds to what the failed
-   * one left rather than replacing it. Every reader already dedupes them on
+   * one left rather than replacing it. Every reader dedupes them on
    * (source_domain, question_id, engine) - scan_teaser selects distinct,
-   * buildUnlockPayload keys a counted set, deriveOpportunities keys
-   * seenAnswer - so no count doubles. What does survive is a source the
-   * abandoned read cited and the current answers do not, which is why this is
-   * a question in blocked.md rather than a delete taken here: clearing a
-   * scan own rows is still a delete, and that line is Danny to draw.
+   * scan_source_coverage counts distinct source_domain, buildUnlockPayload
+   * keys a counted set, deriveOpportunities keys seenAnswer, and the campaign
+   * reading keys countCitedDomains - so no count doubles.
+   *
+   * That sentence named three readers as though they were all of them and was
+   * wrong on 20 Sep: the campaign reading counted every physical row, so a
+   * retried reading reported each source cited twice as often as it was and
+   * sorted the table on the doubled number. It dedupes now. Anything added
+   * that reads this table has to key on that triple or it inherits the same
+   * bug - the table cannot enforce it, because it has no unique constraint.
+   *
+   * What does survive is a source the abandoned read cited and the current
+   * answers do not, which is why this is a question in blocked.md rather than
+   * a delete taken here: clearing a scan own rows is still a delete, and that
+   * line is Danny to draw.
    */
   if (citations.length) {
     const { error: cErr } = await db.from("scan_citations").insert(citations);

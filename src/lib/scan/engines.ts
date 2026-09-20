@@ -199,7 +199,11 @@ export function parseGoogleAio(result: Record<string, unknown> | undefined | nul
     .filter(Boolean)
     .join("\n\n");
 
-  const refs = aio.references?.length ? aio.references : (aio.items ?? []).flatMap((el) => el.references ?? []);
+  // Both lists, not whichever one is populated. See the note on the same
+  // merge in parseScraper below - an Overview carrying element-level
+  // references as well as top-level ones had the element-level set discarded
+  // outright, and those citations are what the source list is built from.
+  const refs = [...(aio.references ?? []), ...(aio.items ?? []).flatMap((el) => el.references ?? [])];
   const citations = collectCitations(refs);
 
   /**
@@ -264,9 +268,34 @@ function parseScraper(result: Record<string, unknown> | undefined | null): Engin
     .map((b) => b?.title)
     .filter((t): t is string => Boolean(t));
 
+  /**
+   * Both lists, merged - not whichever one happens to be non-empty.
+   *
+   * This was `topLevel.length ? topLevel : perItem`, so on any response
+   * carrying both, every per-item source was discarded. Those citations are
+   * the source list on the report and, through `deriveOpportunities`, the
+   * gated placement list: a page the engine actually cited and we silently
+   * dropped is a placement we never offered.
+   *
+   * The reason it was an either/or was a worry about double counting, and the
+   * worry does not survive checking. `collectCitations` dedupes on domain and
+   * url, so a source in both lists is one citation. A near-duplicate that
+   * escapes that - the same page in both lists under different tracking
+   * parameters - costs one extra row, and no reader counts rows: `scan_teaser`
+   * selects a distinct `(source_domain, question_id, engine)`, `total_sources`
+   * is `count(distinct source_domain)`, `scan_source_coverage` the same,
+   * `buildUnlockPayload` and `deriveOpportunities` key a set on that same
+   * triple, and `classifySources` keys on domain alone. The one reader that
+   * did count raw rows was the campaign reading, and it is keyed on the triple
+   * now too - see `countCitedDomains`. So merging cannot move a number on any
+   * report; it can only stop losing sources.
+   *
+   * Top-level first so that a response with only top-level sources produces
+   * exactly what it produced before, positions included.
+   */
   const topLevel = (result.sources as ScraperSource[] | undefined) ?? [];
   const perItem = items.flatMap((i) => i.sources ?? []);
-  const citations = collectCitations(topLevel.length ? topLevel : perItem);
+  const citations = collectCitations([...topLevel, ...perItem]);
 
   const fullProse = panelNames.length ? `${panelNames.join("\n")}\n\n${prose}` : prose;
   if (!fullProse.trim()) return { ...EMPTY, raw: { empty_answer: true } };
