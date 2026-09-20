@@ -67,6 +67,25 @@ export const PAID: Record<string, { module: string; what: string }> = {
   completeUnlock: { module: "src/lib/scan/unlock.ts", what: "the gated pass, the biggest single spender here" },
   startBenchmark: { module: "src/lib/coverage/campaign.ts", what: "a campaign and its first reading" },
   addReading: { module: "src/lib/coverage/campaign.ts", what: "a further reading of a campaign" },
+  /**
+   * Added 20 September 2026, by opening a door neither sweep could see.
+   *
+   * `/api/scan/[token]/email-report` mails a scan result. It reaches Resend one
+   * hop away - through `report-mail.ts`, which imports `verify-email`, which
+   * imports the client - so `mailSenders` did not list it, `importsModule`
+   * could not match it, and a new route onto a vendor bill passed both sweeps
+   * green.
+   *
+   * This is the registry's own answer to that, and it is why the registry
+   * exists rather than an import graph: naming the entry point is narrow and
+   * true where "imports something that imports Resend" is broad and wrong. It
+   * is checked against its module by `paidEntryPoints`, so a rename fails
+   * loudly instead of quietly emptying the set.
+   */
+  sendRequestedReport: {
+    module: "src/lib/scan/report-mail.ts",
+    what: "one report message per scan, to an address given while it was still running",
+  },
 };
 
 /**

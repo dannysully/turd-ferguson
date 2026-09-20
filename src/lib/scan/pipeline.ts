@@ -17,6 +17,10 @@ import { type Market, normalizeDomain } from "./domain";
 // file because this one imports `server-only` and so can never be executed by
 // a test - see the header of engine-results.ts.
 import { type EngineResult, readOrder, tallyEngine } from "./engine-results";
+// Mails the free result to a visitor who asked for it while the scan was still
+// running and then left. One door, shared with the route that takes the
+// address, and it claims the send so the two cannot both mail.
+import { sendRequestedReport } from "./report-mail";
 // The words this file writes into `scans.step`, so a typo here is a compile
 // error rather than a progress bar that freezes on the waiting screen.
 import { type RunStep, STEP } from "./run-steps";
@@ -1142,6 +1146,23 @@ export async function runScan(scanId: string): Promise<void> {
         })
         .eq("id", scanId),
     );
+
+    /**
+     * If somebody asked us to email this to them, this is the moment - Danny's
+     * item 5.
+     *
+     * After the completed status and not with it. The message links to
+     * `/scan/<token>`, which serves the free result off a row that has to say
+     * `complete` first; mailing before the status lands is a link that arrives
+     * ahead of the thing it opens.
+     *
+     * Called on every completed scan. The overwhelming majority have no address
+     * on them, and those cost one filtered update that matches nothing.
+     * `sendRequestedReport` never throws - the scan is finished and paid for by
+     * the time we get here, and a failed message must not turn a completed scan
+     * into a failed one.
+     */
+    await sendRequestedReport(scanId);
   } catch (err) {
     const message = describeAnthropicError(err);
     // The guard stops a throw raised after the bill above from billing twice,

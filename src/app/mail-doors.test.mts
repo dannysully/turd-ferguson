@@ -202,6 +202,96 @@ test("every server action is named, so a new export cannot be a door nobody list
   }
 });
 
+/**
+ * ## The layer this file did not have, found by opening a door it could not see
+ *
+ * `SENDERS` above is keyed on the modules that import Resend, and on
+ * 20 September 2026 a new route was added that mails a scan result. It did not
+ * change that set and it did not fail a single test, because it reaches the
+ * vendor one hop away - through `report-mail.ts`, which imports `verify-email`,
+ * which imports Resend. **A new door onto the bill, green everywhere.**
+ *
+ * That is this file's own founding species, one layer down: `spend-gates`
+ * claimed every billing door and walked `src/app/api` for `route.ts`, so the
+ * two server actions were invisible; this claimed every mail door and walked
+ * for `from "resend"`, so anything reaching a sender indirectly is invisible.
+ * The import-graph fix is the one `spenders.mts` records as discarded for good
+ * reason - an import is not a call, and the transitive version reported two
+ * routes that only read rows already paid for.
+ *
+ * So the denominator here is **call sites of the two send functions**, which is
+ * neither the importing module nor the import graph. It is the thing the
+ * question is actually about: who can cause a message to go.
+ *
+ * `verify-email.ts` is excluded because it *is* the sender - it declares these
+ * functions, and a file's own declaration is not a call. Everything else that
+ * names one has to say what bounds it.
+ */
+const SEND_CALLERS: Record<string, { reach: "anonymous" | "behind the ceilings"; bound: string; evidence: RegExp }> = {
+  "src/app/api/scan/[token]/unlock/route.ts": {
+    reach: "behind the ceilings",
+    bound:
+      "One verification message per unlock of a scan row that passed checkCeilings, under the " +
+      "day's unlock_emails_per_day ceiling counted in note_verify_send.",
+    evidence: /unlock_emails_per_day/,
+  },
+  "src/app/api/scan/[token]/resend/route.ts": {
+    reach: "behind the ceilings",
+    bound: "A sixty-second cooldown read off verify_sent_at, plus the same day ceiling.",
+    evidence: /\bverify_sent_at\b/,
+  },
+  "src/lib/scan/unlock.ts": {
+    reach: "behind the ceilings",
+    bound:
+      "One report message per unlock, sent below the unlocked_at stamp so it cannot be sent " +
+      "at all until that is a fact, and the stamp is a filtered update that one caller wins.",
+    evidence: /unlocked_at: new Date\(\)\.toISOString\(\)/,
+  },
+  "src/lib/scan/report-mail.ts": {
+    reach: "behind the ceilings",
+    bound:
+      "One message per scan row, ever. The send is claimed by stamping report_email_sent_at " +
+      "with a filtered update that reads the address back out of what it stamped, so the two " +
+      "callers - the pipeline at the end of a pass, and the route when the address arrives " +
+      "after one - cannot both mail. The count of messages is the count of scans that asked, " +
+      "and scans are bounded by the four ceilings in front of every door that starts one.",
+    evidence: /\.is\("report_email_sent_at", null\)/,
+  },
+};
+
+test("exactly the expected files can cause a message to be sent", () => {
+  const callers = files
+    .filter(
+      (f) =>
+        !f.path.endsWith("src/lib/scan/verify-email.ts") &&
+        /\bsend(?:VerificationEmail|ReportReadyEmail)\s*\(/.test(f.code),
+    )
+    .map((f) => f.path)
+    .sort();
+
+  assert.ok(callers.length >= 4, `only ${callers.length} call site(s) found - this walk has gone blind`);
+  assert.deepEqual(
+    callers,
+    Object.keys(SEND_CALLERS).sort(),
+    "a file started or stopped being able to cause a message to be sent. This is the walk that " +
+      "the module-level one above cannot do: a caller reaching a sender indirectly changes no " +
+      "import of Resend. Classify it - who can reach it, and what bounds how often.",
+  );
+});
+
+test("every call site still has the bound it claims, in its own source", () => {
+  for (const [path, { evidence, bound }] of Object.entries(SEND_CALLERS)) {
+    const src = files.find((f) => f.path === path);
+    assert.ok(src, `${path} is on this list and is not in the tree any more`);
+    assert.match(
+      src.code,
+      evidence,
+      `${path} claims to be bounded by "${bound}" and the thing proving it is gone from its own ` +
+        "source. It is now a door onto a vendor bill with nothing in front of it.",
+    );
+  }
+});
+
 test("every sender still has the bound it claims", () => {
   for (const [path, { evidence, where }] of Object.entries(SENDERS)) {
     const src = readFileSync(join(ROOT, where), "utf8");

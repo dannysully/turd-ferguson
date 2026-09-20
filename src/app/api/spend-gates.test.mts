@@ -168,6 +168,33 @@ const EXEMPT: Record<string, { why: string; evidence: RegExp; where: string }> =
     evidence: /rpc\("note_verify_send"/,
     where: "src/app/api/scan/[token]/resend/route.ts",
   },
+  /**
+   * The door that reached a vendor one hop away, and so was invisible to the
+   * derived denominator as well as to the typed one it replaced.
+   *
+   * `/api/scan/[token]/email-report` takes an address while a scan is running
+   * and mails the free result when the pass ends. It imports `report-mail.ts`,
+   * which imports `verify-email`, which imports Resend - so `mailSenders` never
+   * listed it and `importsModule` could not match it. It passed this sweep and
+   * `paid-get` green on the day it was written. `sendRequestedReport` is a
+   * named paid entry point now, which is what makes it visible here.
+   *
+   * No ceiling, and that is right rather than an omission: the scan behind it
+   * was counted at `/api/scan/start`, and what this route adds is one message
+   * per scan row for the whole life of that row. The bound is not a rate at
+   * all - it is a compare-and-swap, so posting this a thousand times writes one
+   * column and sends one message.
+   */
+  "scan/[token]/email-report": {
+    why:
+      "Records an address on a scan row that passed checkCeilings at /api/scan/start, and " +
+      "mails that row's free result once. Bounded by the claim inside sendRequestedReport: " +
+      "report_email_sent_at is stamped by a filtered update that hands the address back only " +
+      "to the caller that stamped it, so the pipeline and this route cannot both send and " +
+      "neither can send twice. One message per scan, ever.",
+    evidence: /\.is\("report_email_sent_at", null\)/,
+    where: "src/lib/scan/report-mail.ts",
+  },
 };
 
 /**
@@ -391,11 +418,24 @@ test("the kill switch is read in one place, so its reach is exactly the guarded 
     "the kill switch reaches the routes that call checkCeilings and no others",
   );
 
-  // Said as an assertion so it is not mistaken for an oversight: five doors
-  // onto real spend do not honour it, and that is the open question.
+  /**
+   * Said as an assertion so it is not mistaken for an oversight: six doors onto
+   * real spend do not honour the kill switch, and that is the open question.
+   *
+   * **Six since 20 September 2026, and the sixth does not move the decision.**
+   * `scan/[token]/email-report` records an address for a scan that is already
+   * running and paid for, and sends one message per row for the life of that
+   * row. `scans_enabled` stops new scans; refusing this one would strand a
+   * visitor mid-scan to save nothing, which is the same reading the resend door
+   * got when it joined this list a few hours earlier.
+   *
+   * What the count is for is that a door cannot join quietly, and this one
+   * tried: it reached its vendor one hop away and was green in this sweep and
+   * in `paid-get` until `sendRequestedReport` was named in `spenders.mts`.
+   */
   assert.equal(
     Object.keys(EXEMPT).length,
-    5,
+    6,
     "the number of spending doors the kill switch does not reach has changed - see docs/blocked.md",
   );
 });

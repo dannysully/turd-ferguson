@@ -14,6 +14,7 @@ import type {
   ScanOpportunity,
   ScanQuestion,
 } from "@/lib/scan";
+import { OFFER_AFTER_MS, OFFER_COPY, OFFER_STEP, offerReady } from "@/lib/scan/email-offer";
 import { type EngineResult, parseEngineResults } from "@/lib/scan/engine-results";
 import { ENGINE_SPECS, isEngine, knownEngines } from "@/lib/scan/engines";
 // The words the pipeline writes into `scans.step`, mapped back to a position.
@@ -458,6 +459,22 @@ export default function ScanFlow(p: {
    */
   const [landed, setLanded] = useState<EngineResult[]>([]);
 
+  /**
+   * The offer to email the result, and everything it needs - Danny's item 5.
+   *
+   * `mailAt` is a ref rather than state on purpose: it holds the moment the
+   * reads began, and the offer's clock must not restart when the step advances
+   * from `reading` to `sources`. As state it would re-run the effect below and
+   * push the offer back by nine seconds every time the bar moved, which is
+   * exactly the stretch of the run it exists to cover.
+   */
+  const mailAt = useRef<number | null>(null);
+  const [offer, setOffer] = useState(false);
+  const [mailTo, setMailTo] = useState("");
+  const [mailErr, setMailErr] = useState("");
+  const [mailNote, setMailNote] = useState("");
+  const [mailBusy, setMailBusy] = useState(false);
+
   const [teaser, setTeaser] = useState<Teaser | null>(p.initialTeaser ?? null);
   const [full, setFull] = useState<FullPayload | null>(p.initialFull ? asFull(p.initialFull) : null);
   const [gatedEngines, setGatedEngines] = useState<string[]>(p.gatedEngines);
@@ -639,6 +656,35 @@ export default function ScanFlow(p: {
     };
   }, [phase, p.token, loadTeaser]);
 
+  /**
+   * When to offer to email it - tied to the run, not to page load.
+   *
+   * The clock starts when the engine reads start, because that is the phase
+   * that takes the time: a scan four seconds into question generation has
+   * nothing to email, and an offer there reads as an apology for a wait that
+   * has not happened. `offerReady` holds both conditions and is executable;
+   * this effect is only the clock.
+   *
+   * The remaining wait is computed from the stored moment rather than being a
+   * fresh `OFFER_AFTER_MS` each time, so a step change mid-countdown does not
+   * extend it.
+   */
+  useEffect(() => {
+    if (phase !== "running") {
+      mailAt.current = null;
+      return;
+    }
+    if (progress < OFFER_STEP) return;
+    if (mailAt.current === null) mailAt.current = Date.now();
+    const since = Date.now() - mailAt.current;
+    if (offerReady(progress, since)) {
+      setOffer(true);
+      return;
+    }
+    const t = setTimeout(() => setOffer(true), OFFER_AFTER_MS - since);
+    return () => clearTimeout(t);
+  }, [phase, progress]);
+
   // ---- what the gate is holding: the count, never the rows ----
   useEffect(() => {
     if (phase !== "result" || full || oppCount !== null) return;
@@ -734,6 +780,11 @@ export default function ScanFlow(p: {
       // verdicts into it would show the visitor figures from the pass that
       // failed, under a bar that has just gone back to the start.
       setLanded([]);
+      // The offer earns its place again on the new run. The address is not
+      // cleared: it is on the row already and the same person is still waiting,
+      // so a re-run that finishes mails them exactly as the first would have.
+      setOffer(false);
+      mailAt.current = null;
       setPhase("running");
       track("scan_confirmed", { topic: input.topic, market: input.market, questions: input.questions.length });
       return null;
@@ -741,6 +792,44 @@ export default function ScanFlow(p: {
       return "We could not reach the checker. Please try again.";
     } finally {
       setBusy(false);
+    }
+  }
+
+  /**
+   * Take an address for the result, while the scan is still running.
+   *
+   * The route only writes it to the row - the message is sent by whichever of
+   * the pipeline or the route notices the pass is finished - so there is
+   * nothing here that a closed tab can interrupt. That is the promise this
+   * panel makes and it is kept by where the address lives, not by this handler.
+   *
+   * On success the form is replaced by its own confirmation rather than being
+   * cleared: the one thing this visitor needs to be told is that they may now
+   * leave.
+   */
+  async function onMailRequest(e: React.FormEvent) {
+    e.preventDefault();
+    setMailErr("");
+    setMailBusy(true);
+    try {
+      const headers = new Headers();
+      headers.set("content-type", "application/json");
+      const res = await fetch("/api/scan/" + p.token + "/email-report", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ email: mailTo }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setMailErr(data.message ?? "We could not save that address. Please try again.");
+        return;
+      }
+      setMailNote(data.message ?? OFFER_COPY.queued);
+      track("scan_report_email_requested", {});
+    } catch {
+      setMailErr("We could not reach the checker. Please try again.");
+    } finally {
+      setMailBusy(false);
     }
   }
 
@@ -924,6 +1013,80 @@ export default function ScanFlow(p: {
             slow={slow}
             headingRef={headingRef}
           />
+        ) : null}
+
+        {/* The offer to email it, under the waiting panel rather than inside
+            it: HeroSequence is a board translated from HeroSequence.dc.html and
+            this is not on that board.
+
+            It appears once the reads have been running for a few seconds - see
+            email-offer.ts, where both the trigger and every word of the copy
+            live so that a test can execute them. What it must not do is promise
+            the placement list, which is what the gate further down sells. */}
+        {phase === "running" && offer ? (
+          <div
+            style={{
+              marginTop: "18px",
+              background: T.wash,
+              border: "1px solid " + T.washLine,
+              borderRadius: 14,
+              padding: "16px 18px",
+            }}
+          >
+            {mailNote ? (
+              <p aria-live="polite" style={{ fontSize: "0.875rem", color: T.ink, margin: 0, lineHeight: 1.6 }}>
+                {mailNote}
+              </p>
+            ) : (
+              <form onSubmit={onMailRequest} noValidate>
+                <p style={{ fontSize: "0.9375rem", fontWeight: 700, color: T.ink, margin: "0 0 0.375rem" }}>
+                  {OFFER_COPY.heading}
+                </p>
+                <p style={{ fontSize: "0.875rem", color: T.soft, margin: "0 0 0.875rem", lineHeight: 1.6 }}>
+                  {OFFER_COPY.body}
+                </p>
+                <label htmlFor="scan-mail-to" style={label}>
+                  {OFFER_COPY.label}
+                </label>
+                <input
+                  id="scan-mail-to"
+                  type="email"
+                  name="email"
+                  autoComplete="email"
+                  maxLength={SCAN_LIMITS.email}
+                  required
+                  value={mailTo}
+                  onChange={(e) => setMailTo(e.target.value)}
+                  style={field}
+                  aria-invalid={Boolean(mailErr)}
+                  aria-describedby={mailErr ? "scan-mail-error" : undefined}
+                />
+                {/* Announced, for the reason the gate's own error is: a refused
+                    address on a form somebody is about to walk away from is a
+                    button that appears to do nothing. */}
+                {mailErr ? (
+                  <p
+                    id="scan-mail-error"
+                    role="alert"
+                    style={{ fontSize: "0.8125rem", color: T.badFg, marginTop: "0.5rem" }}
+                  >
+                    {mailErr}
+                  </p>
+                ) : null}
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  style={{ ...btn, marginTop: "0.75rem" }}
+                  disabled={mailBusy}
+                >
+                  {mailBusy ? OFFER_COPY.sending : OFFER_COPY.submit}
+                </button>
+                <p style={{ fontSize: "0.75rem", color: T.soft, marginTop: "0.75rem", lineHeight: 1.5 }}>
+                  {OFFER_COPY.privacy} <a href="/legal">What we collect</a>.
+                </p>
+              </form>
+            )}
+          </div>
         ) : null}
 
         {phase === "result" && result && fullError ? (

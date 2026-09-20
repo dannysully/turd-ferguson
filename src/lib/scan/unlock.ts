@@ -10,6 +10,7 @@ import {
   type QuestionRow,
 } from "@/lib/scan/opportunities";
 import { runGatedScan } from "@/lib/scan/pipeline";
+import { type CountableAnswer, reportCounts } from "@/lib/scan/report-counts";
 import { getSettings } from "@/lib/scan/settings";
 import { spentSince } from "@/lib/scan/spend";
 import { sendReportReadyEmail } from "@/lib/scan/verify-email";
@@ -246,47 +247,25 @@ export async function completeUnlock(
       return;
     }
 
-    const answers = (rows ?? []) as Array<{ question_id: string; answered: boolean; brand_named: boolean }>;
-    const questions = (qs ?? []) as Array<{ id: string }>;
-
     /**
-     * Both measures, because the message sends both and they are not the same
-     * number.
+     * Both measures, counted in `report-counts.ts` rather than here.
      *
-     * The subject is counted over answers, which is the figure the report's own
-     * h1 leads on - one engine's reply to one question. The body is counted
-     * over questions, where a miss means every engine that replied left the
-     * brand out. Until now only the question pair was computed and the subject
-     * printed it under the word "answers", so a four-engine scan told a buyer
-     * "9 of 14 AI answers" for a set of 56 answers, and the page they clicked
-     * through to said something else.
-     *
-     * brand_named is only ever set on a row that answered - readAndStore writes
-     * `read.answered && namesBrand(...)` - so the subtraction cannot go
-     * negative.
+     * The thirty lines this replaces were the only description in the tree of
+     * what the five numbers a lead reads in writing are counted over, and they
+     * sat inside a `server-only` module inside a deferred closure, where
+     * nothing could execute them. Item 5 needed the identical five for the
+     * report a visitor asks for while a scan is still running, and writing them
+     * out a second time is how the date formatter came to exist twice with the
+     * guard on only one copy. `report-counts.test.mts` runs them now.
      */
-    const totalAnswers = answers.filter((a) => a.answered).length;
-    const namedAnswers = answers.filter((a) => a.brand_named).length;
-
-    // "Answered by someone, named by nobody". A question no engine answered is
-    // not a miss, it is a silence - so it is outside both halves of this pair.
-    const byQuestion = questions.map((q) => answers.filter((a) => a.question_id === q.id));
-    const answeredQuestions = byQuestion.filter((rs) => rs.some((a) => a.answered)).length;
-    const missedQuestions = byQuestion.filter(
-      (rs) => rs.some((a) => a.answered) && !rs.some((a) => a.brand_named),
-    ).length;
-
     await sendReportReadyEmail({
       email,
       brand: scan.brand_name ?? scan.domain,
       publicToken: scan.public_token,
-      counts: {
-        missedAnswers: totalAnswers - namedAnswers,
-        totalAnswers,
-        missedQuestions,
-        answeredQuestions,
-        askedQuestions: questions.length,
-      },
+      counts: reportCounts(
+        (qs ?? []) as Array<{ id: string }>,
+        (rows ?? []) as CountableAnswer[],
+      ),
     });
   });
 
