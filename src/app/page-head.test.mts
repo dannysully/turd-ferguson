@@ -196,6 +196,64 @@ test("every indexable page carries a description, a canonical and an og:image", 
   assert.deepEqual(bad, [], bad.join("\n"));
 });
 
+test("every canonical points at the page's own route, and og:url agrees with it", (t) => {
+  if (!existsSync(PRERENDER)) {
+    t.skip(NEEDS_BUILD);
+    return;
+  }
+
+  /**
+   * The test above asks whether a canonical is *present*. It has never asked
+   * what one says, and those are different questions - a canonical pointing at
+   * the wrong page is worse than none at all, and looks identical to a reader,
+   * to `next build` and to the presence check.
+   *
+   * The four `/blog?kind=` states are why this is worth a test rather than a
+   * reading. They are one page filtered four ways, they joined the swept set
+   * only on 20 Sep (`88e0948`), and each one must fold to `/blog`. A
+   * self-referencing canonical on each would offer a crawler four near-identical
+   * pages and split whatever the real one has earned. All four fold correctly
+   * today; nothing was checking that they still would.
+   */
+  const SITE = "https://alwayscited.com";
+  const canonicalFor = (route: string) => SITE + (route === "/" ? "" : route);
+
+  const pages = sweptPages();
+  const bad: string[] = [];
+  let checked = 0;
+
+  for (const { page, html } of pages) {
+    const head = headOf(html);
+    if (/noindex/.test(head) || page === NO_LAYOUT) continue;
+
+    const canonical = /<link rel="canonical" href="([^"]+)"/.exec(head)?.[1];
+    if (!canonical) continue; // the presence check above owns this
+    checked++;
+
+    // `p0` drops a query string, so a filtered state resolves to its base
+    // route - which is exactly what its canonical is being asked to say.
+    const want = canonicalFor(p0(page));
+    if (canonical !== want) bad.push(`${page}: canonical is ${canonical}, expected ${want}`);
+
+    // og:url and the canonical are the same claim made twice. Where they
+    // disagree, a share and a crawl attribute the same page to two URLs.
+    const ogUrl = /<meta property="og:url" content="([^"]+)"/.exec(head)?.[1];
+    if (ogUrl && ogUrl !== canonical) bad.push(`${page}: og:url is ${ogUrl}, canonical is ${canonical}`);
+  }
+
+  // The counterpart guard, and the reason the loop above `continue`s rather
+  // than asserting: if the noindex filter ever swallowed the site, this rule
+  // would pass while checking nothing.
+  assert.ok(checked > 15, `only ${checked} canonicals checked - the filter has drifted`);
+
+  // Prove the folding case is really in the set rather than assuming it.
+  const filtered = pages.filter((p) => p.page.includes("?kind="));
+  assert.ok(filtered.length >= 2, `only ${filtered.length} query-string states swept - run \`npm run capture\``);
+
+  t.diagnostic(`${checked} canonicals checked, ${filtered.length} of them query-string states, ${bad.length} wrong`);
+  assert.deepEqual(bad, [], bad.join("\n"));
+});
+
 test("every internal href and every fragment resolves", (t) => {
   if (!existsSync(PRERENDER)) {
     t.skip(NEEDS_BUILD);
