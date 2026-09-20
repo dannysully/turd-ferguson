@@ -157,7 +157,8 @@ const SLOW_MS = 150_000;
  *
  * Nothing on the server can move a scan after this. Every route that runs a
  * pass declares maxDuration = 300, and the pipeline now gives up at 270 and
- * writes status failed, so a scan still reading at six minutes is not slow -
+ * writes status failed - both held by `src/app/api/run-duration.test.mts`,
+ * which also pins this constant above the reaper's. So a scan still reading at six minutes is not slow -
  * it is a function that was killed with the row left at running, and the row
  * will stay that way for ever. This poll had no end, so that visitor sat on a
  * progress bar for as long as they were willing to, and the one message they

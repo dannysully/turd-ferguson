@@ -23,8 +23,11 @@ import { classifySources } from "./sources";
  * hanging - which is what it says, and at five minutes it could not do.
  *
  * Every route that starts a pass declares maxDuration = 300, so the platform
- * stops the invocation at five minutes too. A ceiling equal to the one above
- * it never fires: the function was killed mid-read first, the catch that
+ * stops the invocation at five minutes too. That sentence is held by
+ * `src/app/api/run-duration.test.mts` rather than by this comment - it derives
+ * the pass-starting routes from the call graph, because two of the five reach
+ * the pipeline through `completeUnlock` and name nothing here. A ceiling equal
+ * to the one above it never fires: the function was killed mid-read first, the catch that
  * writes status failed never ran, and the scan sat at running with a step it
  * would never leave. The result screen polls that status every 2.5 seconds
  * with no end, so the visitor got a spinner that says "this one is taking a

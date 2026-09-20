@@ -4,7 +4,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  * When a pass that is still marked running can no longer be alive.
  *
  * Every route that starts a pass declares `maxDuration = 300`, and the
- * pipeline gives itself 270s and then writes `failed` itself. So the only way
+ * pipeline gives itself 270s and then writes `failed` itself. Both halves of
+ * that, and the ordering of this constant against them, are held by
+ * `src/app/api/run-duration.test.mts`. So the only way
  * a row is left at `running` is the one failure the pipeline cannot catch: the
  * function was killed by the platform with the row mid-flight. Past 300s from
  * the moment the pass stamped its start, nothing server-side can move that row
