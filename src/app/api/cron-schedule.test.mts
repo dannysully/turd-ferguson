@@ -97,6 +97,52 @@ export function authWeaknesses(route: string, src: string): string[] {
   return out;
 }
 
+/**
+ * What would make one cron route refuse the bearer Vercel actually sends.
+ *
+ * `authWeaknesses` above looks one way down a two-way street: it is correct
+ * about every route it names and asks only whether a WRONG bearer is refused.
+ * Nothing asked whether the RIGHT one is still accepted, and the two failures
+ * are not symmetrical in how they announce themselves. A route that stops
+ * refusing is a hole somebody may find; a route that starts refusing everyone
+ * is a scheduled job that quietly never runs again, which is the exact failure
+ * this file's own header opens with - "the purge simply stops happening, and
+ * the one signal anybody watches is a scheduled job that ran".
+ *
+ * Both shapes below pass all three of `authWeaknesses`' checks, because each
+ * has a CRON_SECRET read, a 503, a `constantTimeEqual` and a 401. They differ
+ * only in whether the comparison can ever come out true.
+ *
+ * Kept deliberately shallow, for the same reason `validSchedule` is: this
+ * catches a gate that is inverted and a gate that compares the wrong string,
+ * not every way an expression could be wrong. Those two are what a person
+ * writing the third cron route by copying the second would produce.
+ */
+export function acceptWeaknesses(route: string, src: string): string[] {
+  const out: string[] = [];
+
+  /**
+   * The header Vercel sends is `Bearer <CRON_SECRET>`, so the expected side of
+   * the comparison has to carry the prefix. Comparing against the bare secret
+   * is the copy-paste that looks right in review and matches nothing forever.
+   */
+  const compare = /constantTimeEqual\(([^;]*?)\)\s*\)/.exec(src)?.[1] ?? "";
+  if (compare && !/Bearer\s/.test(compare)) {
+    out.push(`  ${route}  compares against the bare secret, so the Bearer header never matches`);
+  }
+
+  /**
+   * The 401 must sit behind a negated comparison. An un-negated one refuses
+   * every correct call and admits every wrong one - a single missing `!`, and
+   * both directions are wrong at once.
+   */
+  if (/constantTimeEqual/.test(src) && !/if\s*\(\s*!\s*constantTimeEqual/.test(src)) {
+    out.push(`  ${route}  reaches its 401 without negating the comparison - the gate is inverted`);
+  }
+
+  return out;
+}
+
 /** Every route file under `src/app/api/cron`, with its source. */
 function cronSources(dir = CRON_DIR): { route: string; src: string }[] {
   const out: { route: string; src: string }[] = [];
@@ -173,6 +219,37 @@ test("the auth sweep fires at a cron route that forgot to check", () => {
   );
 });
 
+test("the accept sweep fires at a cron route that refuses everyone", () => {
+  const correct =
+    'const secret = process.env.CRON_SECRET;\n' +
+    'if (!secret) return NextResponse.json({}, { status: 503 });\n' +
+    'const offered = req.headers.get("authorization") ?? "";\n' +
+    'if (!constantTimeEqual(offered, `Bearer ${secret}`)) return NextResponse.json({}, { status: 401 });\n';
+
+  // The real shape must come back clean, or the narrowing below is a probe
+  // that matches nothing.
+  assert.deepEqual(acceptWeaknesses("/api/cron/correct", correct), []);
+  // And it must be clean through the OTHER sweep too - the two are meant to
+  // be complementary, not two names for one check.
+  assert.deepEqual(authWeaknesses("/api/cron/correct", correct), []);
+
+  // Compares against the bare secret. Vercel sends `Bearer <secret>`, so this
+  // route answers 401 to the platform every night and to nothing else.
+  const bareSecret = correct.replace("`Bearer ${secret}`", "secret");
+  assert.deepEqual(acceptWeaknesses("/api/cron/bare", bareSecret), [
+    "  /api/cron/bare  compares against the bare secret, so the Bearer header never matches",
+  ]);
+  // The point of the pair: the existing sweep sees nothing wrong with it.
+  assert.deepEqual(authWeaknesses("/api/cron/bare", bareSecret), []);
+
+  // One missing `!`. Refuses every correct call and admits every wrong one.
+  const inverted = correct.replace("if (!constantTimeEqual", "if (constantTimeEqual");
+  assert.deepEqual(acceptWeaknesses("/api/cron/inverted", inverted), [
+    "  /api/cron/inverted  reaches its 401 without negating the comparison - the gate is inverted",
+  ]);
+  assert.deepEqual(authWeaknesses("/api/cron/inverted", inverted), []);
+});
+
 // --------------------------------------------------------- the real files
 
 test("every scheduled path resolves, and every cron route is scheduled", (t) => {
@@ -227,5 +304,20 @@ test("every cron route refuses an unauthenticated call", (t) => {
     "A cron route answers a GET on the public internet and one of these clears data that cannot " +
       "be fetched again. Every one must fail shut with no secret and refuse a wrong bearer:\n" +
       weak.join("\n"),
+  );
+});
+
+test("every cron route still accepts the bearer Vercel sends", () => {
+  const sources = cronSources();
+  assert.ok(sources.length > 0, "no cron route sources found - the walker has drifted");
+
+  const refusing = sources.flatMap(({ route, src }) => acceptWeaknesses(route, src));
+
+  assert.deepEqual(
+    refusing,
+    [],
+    "A cron route cannot accept the call Vercel makes, so the job never runs again. This is the " +
+      "quiet direction: the schedule still fires, the platform still reports an invocation, and " +
+      "the work silently stops:\n" + refusing.join("\n"),
   );
 });
