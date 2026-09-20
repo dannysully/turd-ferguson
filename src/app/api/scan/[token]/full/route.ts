@@ -1,3 +1,4 @@
+import { knownEngines } from "@/lib/scan/engines";
 import { buildUnlockPayload } from "@/lib/scan/unlock";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
@@ -63,7 +64,13 @@ export async function GET(_req: Request, ctx: { params: Promise<{ token: string 
   return Response.json(
     {
       unlocked: true,
-      gated_engines: ((scan.gated_engines ?? []) as string[]).filter(Boolean),
+      // Through the door, not `.filter(Boolean)`. That filter looks like
+      // validation and is not: it drops "" and null and passes any other string
+      // straight onto the wire, so a hand-typed name in this jsonb column
+      // reached the screen as an engine. The client narrows it again on render,
+      // which is where the visible defect was fixed; this is the same list one
+      // layer earlier, where it stops being published at all.
+      gated_engines: knownEngines(scan.gated_engines as string[] | null),
       gated_status: scan.gated_status ?? "none",
       ...payload,
     },

@@ -891,7 +891,30 @@ export default function ScanFlow(p: {
 
   const result = teaser ? toResult(teaser, p.domain, full) : null;
   const sourceCount = teaser?.total_sources ?? 0;
-  const engineNames = engineLabels(gatedEngines);
+  /**
+   * The gated list, narrowed once, and then both named and counted off the same
+   * value.
+   *
+   * `gatedEngines` is the `scans.gated_engines` jsonb column - a hand-editable
+   * array, straight off the row on first render and off the poll after that.
+   * `engineLabels` puts it through `knownEngines`, so the SENTENCE drops a name
+   * this build does not know. Every gate below used to count the raw array, so
+   * the BRANCH did not.
+   *
+   * They disagree exactly when the column holds a name that is not an engine,
+   * which is an ordinary state for that column and one this repo has already
+   * typed once (`google_ai` for `google_aio`). The length was 1, so the branch
+   * fired; the names were "", so the clause it fired rendered as "plus the same
+   * questions put through ." - a sentence stopping mid-clause on the gate that
+   * takes the visitor's email address.
+   *
+   * Derived here rather than filtered at the three places that set the state:
+   * three entry points is three places for the next change to miss one. One
+   * value, so the count and the sentence cannot come apart.
+   * `engine-count-doors.test.mts` holds it.
+   */
+  const gatedKnown = knownEngines(gatedEngines);
+  const engineNames = engineLabels(gatedKnown);
 
   const stepLabel =
     phase === "confirm"
@@ -926,7 +949,7 @@ export default function ScanFlow(p: {
     ? "The rest of the report"
     : oppCount
       ? oppCount + (oppCount === 1 ? " page" : " pages") + " you could be placed into"
-      : gatedEngines.length
+      : gatedKnown.length
         ? "Unlock the full report, plus " + engineNames
         : // Not "see who is winning" any more - the leaderboard is on the page
           // above this gate. Only the placement half is still behind it.
@@ -944,7 +967,7 @@ export default function ScanFlow(p: {
   const gateBody = noPlacements
     ? "There is no placement list to unlock here, so what the address buys is the transcript: what each engine said" +
       " word for word, question by question, and every page it cited for each" +
-      (gatedEngines.length ? ", plus the same questions put through " + engineNames : "") +
+      (gatedKnown.length ? ", plus the same questions put through " + engineNames : "") +
       "."
     : oppCount
       ? (oppCount === 1 ? "One page is" : oppCount + " pages are") +
@@ -952,9 +975,9 @@ export default function ScanFlow(p: {
         (oppCount === 1 ? "it is" : "they are") +
         " somewhere an article can run. Ranked by how many answers a placement would put you into, with the" +
         " questions behind each one" +
-        (gatedEngines.length ? ", and the same questions put through " + engineNames : "") +
+        (gatedKnown.length ? ", and the same questions put through " + engineNames : "") +
         "."
-      : gatedEngines.length
+      : gatedKnown.length
         ? "We will run the same " +
           // This scan's own count when we have it; the shape the product asks
           // for when we do not. Never a 14 typed here - see config/scan-shape.
@@ -1106,7 +1129,7 @@ export default function ScanFlow(p: {
           </p>
         ) : null}
 
-        {phase === "result" && result && full && gatedEngines.length > 0 ? (
+        {phase === "result" && result && full && gatedKnown.length > 0 ? (
           <p
             style={{
               fontSize: "0.8125rem",
