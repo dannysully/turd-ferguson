@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
-import { blocksOf, headClaims, pageText, sweptPages, type Page } from "./dynamic-render.mts";
+import { blocksOf, headClaims, pageText, schemaClaims, sweptPages, type Page } from "./dynamic-render.mts";
 
 /**
  * What the site says about where the white-label line sits.
@@ -124,9 +124,17 @@ const pages: Page[] = sweptPages();
  * refill question of this sweep minutes after writing it, which is the whole
  * argument for asking it then: a run later this would have read as a sweep over
  * the pages, with no sign that "the page" had ever meant only half of one.
+ *
+ * **And the structured data, for the third time and the same reason.** Asking
+ * the same question again one surface out: `blocksOf` opens by dropping every
+ * `<script>` whole, so no rule here had ever read a `ld+json` block.
+ * `/alwayseverywhere`'s Service node publishes its standfirst - "still
+ * entirely under your brand" - to the surface an answer engine reads, and
+ * this file could not see it. `schemaClaims` says why the strip itself stays
+ * and why only prohibitions take it.
  */
 function claimsOf(page: Page): string[] {
-  return [...blocksOf(page.html), ...headClaims(page.html)];
+  return [...blocksOf(page.html), ...headClaims(page.html), ...schemaClaims(page.html)];
 }
 
 /**

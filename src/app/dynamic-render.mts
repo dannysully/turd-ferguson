@@ -413,6 +413,66 @@ export function headClaims(html: string): string[] {
   return out.map(decodeEntities).map((s) => s.replace(/\s+/g, " ").trim()).filter(Boolean);
 }
 
+/**
+ * The copy in the STRUCTURED DATA: every prose string a `ld+json` block
+ * publishes.
+ *
+ * `headClaims` exists because `pageText` drops the head by construction. This
+ * exists for the layer out from that, and the construction is even plainer:
+ * `pageText` and `blocksOf` both open with
+ *
+ *     .replace(/<script[\s\S]*?<\/script>/g, "")
+ *
+ * so **no claim sweep on this site has ever read a line of its own structured
+ * data**. That cut is right and must stay - `price-surfaces.test.mts` records
+ * why, because schema carries the same claim in one contiguous run and would
+ * otherwise satisfy a requirement rule on behalf of a card that has stopped
+ * printing the number. The fix is not to stop dropping scripts. It is to hand
+ * the dropped strings to the rules that forbid things, separately.
+ *
+ * **Prohibitions only**, for the reason written beside `headClaims`' use: a
+ * requirement satisfied by chrome can never fire, and every page carries the
+ * same Organization node. Widening a prohibition is safe because a false claim
+ * in a schema block is still a false claim - and on this site it is the worse
+ * one, since JSON-LD is the surface an answer engine reads and answer engines
+ * are what this product is about.
+ *
+ * What is included is prose only. `@type`, `@id`, `@context`, anything that
+ * parses as a URL, and the short enum-like values are addresses and vocabulary
+ * rather than copy; `structured-data.test.mts` and `page-head.test.mts` own
+ * those. Numbers are excluded here too - `price-schema.test.mts` reads the
+ * offer figures against `pricing.ts`, which is a stronger check than any
+ * pattern over their text would be.
+ */
+export function schemaClaims(html: string): string[] {
+  const out: string[] = [];
+  const visit = (node: unknown): void => {
+    if (Array.isArray(node)) return node.forEach(visit);
+    if (!node || typeof node !== "object") return;
+    for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
+      if (typeof value !== "string") {
+        visit(value);
+        continue;
+      }
+      if (key.startsWith("@")) continue;
+      if (/^https?:\/\/|^#|^mailto:/.test(value)) continue;
+      if (value.length < 12) continue;
+      out.push(value);
+    }
+  };
+  for (const m of html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)) {
+    try {
+      visit(JSON.parse(m[1]!));
+    } catch {
+      // A block that does not parse is `structured-data.test.mts`'s finding,
+      // and it asserts exactly that. Throwing here would report one defect
+      // twice, from a rule that is not about it - and an exception thrown by
+      // a test is not a caught defect.
+    }
+  }
+  return out.map((s) => s.replace(/\s+/g, " ").trim()).filter(Boolean);
+}
+
 /** Attribute values arrive escaped - React writes an apostrophe as `&#x27;`,
  *  which splits "client's" into two tokens and would let an entity hide a word
  *  a rule is looking for. The five named entities plus numeric escapes are the

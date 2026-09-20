@@ -1,6 +1,7 @@
 import TierName, { TierText, type TierKey } from "@/components/TierName";
 import { CONTACT_URL, TIERS, TRACKED_QUESTIONS, type Tier } from "@/config/pricing";
-import { ld, ORG_REF, SITE_REF, SITE_URL } from "@/config/schema";
+import { ld } from "@/config/schema";
+import { serviceSchema } from "@/config/service-schema";
 import { CARD, MICRO, SHELL, T } from "@/config/tokens";
 import Link from "next/link";
 
@@ -30,62 +31,12 @@ const GLOSS: Record<string, string> = {
  * readable to answer engines. "What does it cost" is the question a buyer
  * actually asks one.
  *
- * Built from `pricing.ts` rather than written per page, so a price cannot be
- * right in the card and stale in the markup. Three rules it follows:
- *
- * - **The name is `plainName`**, the TIER_PLAIN form, because JSON-LD is one
- *   of the contexts that strips colour.
- * - **The price is the one on the page.** `alwaystracked` reads "from $99/mo",
- *   so it gets an AggregateOffer with a lowPrice rather than an Offer with a
- *   flat price that the label itself contradicts.
- * - **`alwayseverywhere` gets no offer.** Its price is "Book a call". An offer
- *   node with no price says less than no offer node, and inventing one is the
- *   thing we do not do.
- *
- * `description` is the page's own standfirst. Nothing here is a new claim.
+ * `serviceSchema` used to live here and now lives in
+ * `src/config/service-schema.ts`, because nothing could execute it where it
+ * was - Node's runner cannot parse JSX. Its rules and the reason the split
+ * happened are in that file's header; `price-schema.test.mts` runs it and
+ * reads the offer nodes back off the built pages.
  */
-function serviceSchema(tier: Tier, standfirst: string) {
-  const url = SITE_URL + tier.href;
-  const offers =
-    tier.basePrice === null
-      ? undefined
-      : tier.priceLabel.startsWith("from")
-        ? {
-            "@type": "AggregateOffer",
-            priceCurrency: "USD",
-            lowPrice: tier.basePrice,
-            url,
-          }
-        : {
-            "@type": "Offer",
-            priceCurrency: "USD",
-            price: tier.basePrice,
-            url,
-            priceSpecification: {
-              "@type": "UnitPriceSpecification",
-              priceCurrency: "USD",
-              price: tier.basePrice,
-              // Monthly, stated in a field rather than only in the /mo of
-              // the label. MON is the UN/CEFACT code for a month.
-              billingDuration: 1,
-              billingIncrement: 1,
-              unitCode: "MON",
-            },
-          };
-
-  return {
-    "@context": "https://schema.org",
-    "@type": "Service",
-    "@id": url + "#service",
-    name: tier.plainName,
-    url,
-    isPartOf: SITE_REF,
-    description: standfirst,
-    serviceType: "Answer engine optimisation",
-    provider: ORG_REF,
-    ...(offers ? { offers } : {}),
-  };
-}
 
 export default function PackagePage({
   tier,

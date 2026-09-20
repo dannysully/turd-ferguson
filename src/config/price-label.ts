@@ -44,6 +44,32 @@ export function isPriceLabel(label: string): boolean {
   return label.includes("$");
 }
 
+/**
+ * Whether the label states a floor rather than a flat price.
+ *
+ * The same judgement `splitPriceLabel` already makes, exported because a
+ * second reader was making it privately and making it differently.
+ * `PackagePage`'s `serviceSchema` chose between an `AggregateOffer` with a
+ * `lowPrice` and an `Offer` with a flat `price` on `priceLabel.startsWith
+ * ("from")` - case-sensitive, against a `splitPriceLabel` that lowercases
+ * first and whose own test pins `"From $99/mo"` as a floor.
+ *
+ * So the two disagreed on exactly the label this file's header says the
+ * repo has already shipped twice: a floor rendered as a flat price. On the
+ * schema path it is worse than on the card, because the wrong answer is a
+ * machine-readable `price: 99` with a monthly `UnitPriceSpecification` under
+ * it, published to the engines this product exists to be read by, while the
+ * card beside it correctly says "From".
+ *
+ * Derived from `splitPriceLabel` rather than written again here, so a third
+ * reader cannot be added without this one moving too. Two copies of one
+ * function is this repo's named species and the untested copy is always the
+ * one missing the guard.
+ */
+export function isFloorLabel(label: string): boolean {
+  return splitPriceLabel(label).prefix !== "";
+}
+
 export function splitPriceLabel(label: string): PriceParts {
   if (!isPriceLabel(label)) return { prefix: "", figure: label, suffix: "" };
 
