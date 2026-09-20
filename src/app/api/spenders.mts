@@ -1,0 +1,183 @@
+/**
+ * Which routes in this tree can cause somebody to be billed.
+ *
+ * Not a test - `npm run check` globs `src/**\/*.test.mts`, so this is a helper
+ * the way `src/app/dynamic-render.mts` and `src/lib/source-read.mts` are. It
+ * exists because **two sweeps in this one directory were answering the same
+ * question with two different denominators, and the smaller one did not know
+ * it was smaller.**
+ *
+ * `spend-gates.test.mts` asks what stands in front of each spending door.
+ * `paid-get.test.mts` asks whether a spending route answers GET - a real
+ * question, because `robots.txt` closes `/scan/` and not `/scan?domain=...`,
+ * so a GET that spends is every crawler on the internet spending a scan.
+ * Different questions, one denominator, and it was written twice.
+ *
+ * ## What each copy could not see, measured 20 September 2026
+ *
+ * `paid-get` derived its set from the two *guard* names - a route was paid if
+ * it called `checkCeilings` or `completeUnlock`. That is deriving off the
+ * wrong thing: it names what stands in front of spend rather than what
+ * spends, so **the three routes bounded by something else were invisible**.
+ * One of them is `scan/[token]/confirm`, which runs the entire free pass -
+ * every question against every engine - and is bounded by a compare-and-swap
+ * instead of a ceiling. 5 of 8. Its own header called the set "DERIVED, not
+ * typed here", and it was, off a premise that had quietly stopped being true.
+ *
+ * `spend-gates` typed its vendor list and called them "the two clients that
+ * actually put a request on the wire to a vendor". There are three: **Resend
+ * bills per message**, which is the premise `mail-doors.test.mts` is built on.
+ * So `scan/[token]/resend` - under `src/app/api`, named `route.ts`, squarely
+ * inside that walk, and existing only to put a second message on a vendor's
+ * bill - was in neither of its lists. 7 of 8.
+ *
+ * Neither gap was reachable by editing either file's lists, which is the
+ * argument for this one existing rather than for a third list.
+ *
+ * ## Nothing here is typed that can be walked
+ *
+ * `PAID` is five function names and every one is re-checked against the module
+ * that exports it, so a rename fails loudly rather than emptying the set - the
+ * failure mode a name-matching probe has by default. The mail senders are
+ * walked for, not named. The routes are walked for, not named.
+ *
+ * ## The honest limit
+ *
+ * A route "spends" if its own source calls one of the paid entry points, or
+ * imports a vendor client or a mail sender directly. That cannot see a paid
+ * call reached through a module the route imports for another reason - which
+ * is why the import-graph version of this was discarded: it reported `/full`
+ * and `/opportunities` as spenders because something in their graph imports
+ * `anthropic.ts`, when both only read rows that were already paid for. **An
+ * import is not a call.** The named-entry-point list is narrower and true, and
+ * the direct-import half is what stops a route routing around it.
+ */
+
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { join, relative } from "node:path";
+
+/**
+ * The functions that bill somebody, or queue work that will.
+ *
+ * Checked against their own modules by `paidEntryPoints`, below.
+ */
+export const PAID: Record<string, { module: string; what: string }> = {
+  runScan: { module: "src/lib/scan/pipeline.ts", what: "every question against every engine" },
+  readBrand: { module: "src/lib/scan/anthropic.ts", what: "one model call to name the brand" },
+  completeUnlock: { module: "src/lib/scan/unlock.ts", what: "the gated pass, the biggest single spender here" },
+  startBenchmark: { module: "src/lib/coverage/campaign.ts", what: "a campaign and its first reading" },
+  addReading: { module: "src/lib/coverage/campaign.ts", what: "a further reading of a campaign" },
+};
+
+/**
+ * The two scan clients, named because each is one module and a rename of
+ * either fails `paidEntryPoints`. The mail senders are derived instead - see
+ * `mailSenders` - because that is precisely where the typed version was wrong.
+ */
+export const SCAN_VENDORS = ["@/lib/scan/anthropic", "@/lib/scan/dataforseo"];
+
+/**
+ * Strip comments before looking for a call.
+ *
+ * Every one of these routes discusses the others in prose - `start/route.ts`
+ * names `runScan`, `completeUnlock` and `checkCeilings` in comments without
+ * calling any of them - so a bare substring search reads almost every route as
+ * a spender.
+ *
+ * Trailing comments are stripped as well as whole-line ones, and that was
+ * found by an injection rather than by reading: a case that appended
+ * `// checkCeilings(` to a line was reported CAUGHT, by the right test, for
+ * entirely the wrong reason. A pass that means nothing looks exactly like a
+ * pass that means something.
+ *
+ * The `[^:]` guard is so `https://` in a comment or a string does not take the
+ * rest of its line with it.
+ */
+export function code(src: string): string {
+  return src
+    .replace(/\/\*[\s\S]*?\*\//g, " ")
+    .replace(/(^|[^:])\/\/.*$/gm, "$1");
+}
+
+/**
+ * Every module under `src` that imports Resend, as the `@/` specifier a route
+ * would import it by.
+ *
+ * Walked rather than named, and comments stripped first, for the reason
+ * `mail-doors.test.mts` proves with an injected case: a commented-out
+ * `from "resend"` line anywhere in `src` reads as a mail sender otherwise.
+ */
+export function mailSenders(root: string): string[] {
+  const out: string[] = [];
+  const src = join(root, "src");
+  const walk = (dir: string) => {
+    for (const entry of readdirSync(dir)) {
+      const p = join(dir, entry);
+      if (statSync(p).isDirectory()) walk(p);
+      else if (/\.tsx?$/.test(entry) && !entry.includes(".test.")) {
+        if (/from "resend"/.test(code(readFileSync(p, "utf8")))) {
+          out.push("@/" + relative(src, p).split(/[\\/]/).join("/").replace(/\.tsx?$/, ""));
+        }
+      }
+    }
+  };
+  walk(src);
+  return out.sort();
+}
+
+/** Every vendor that bills us, as the specifier a route imports it by. */
+export function vendors(root: string): string[] {
+  return [...SCAN_VENDORS, ...mailSenders(root)];
+}
+
+export type Route = { name: string; file: string; src: string };
+
+/** Every `route.ts` under `src/app/api`, named the way a human names it. */
+export function apiRoutes(root: string): Route[] {
+  const api = join(root, "src", "app", "api");
+  const out: string[] = [];
+  const walk = (dir: string) => {
+    for (const entry of readdirSync(dir)) {
+      const p = join(dir, entry);
+      if (statSync(p).isDirectory()) walk(p);
+      else if (entry === "route.ts") out.push(p);
+    }
+  };
+  walk(api);
+  return out.map((file) => ({
+    name: relative(api, file).split(/[\\/]/).join("/").replace(/\/route\.ts$/, ""),
+    file,
+    src: readFileSync(file, "utf8"),
+  }));
+}
+
+/** Does this route's own source reach a paid call? */
+export function spends(routeSrc: string, vendorList: string[]): boolean {
+  const c = code(routeSrc);
+  const calls = Object.keys(PAID).some((fn) => new RegExp(`\\b${fn}\\s*\\(`).test(c));
+  const vendor = vendorList.some((v) => c.includes(`"${v}"`));
+  return calls || vendor;
+}
+
+/** The set both sweeps are about, sorted by route name. */
+export function spendingRoutes(root: string): Route[] {
+  const vendorList = vendors(root);
+  return apiRoutes(root)
+    .filter((r) => spends(r.src, vendorList))
+    .sort((a, b) => (a.name < b.name ? -1 : 1));
+}
+
+/**
+ * Each paid entry point checked against the module that exports it.
+ *
+ * Returns the ones that have gone missing, so a caller can assert on an empty
+ * list and name what moved.
+ */
+export function missingEntryPoints(root: string): string[] {
+  return Object.entries(PAID)
+    .filter(([fn, { module }]) => {
+      const src = readFileSync(join(root, module), "utf8");
+      return !new RegExp(`export (async )?function ${fn}\\b`).test(src);
+    })
+    .map(([fn, { module }]) => `${module} no longer exports ${fn}`);
+}

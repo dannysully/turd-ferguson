@@ -4,12 +4,20 @@
  * own runner can execute it.
  *
  * It was split out of `dataforseo.ts` on 20 September 2026 for exactly that
- * reason. That file is `server-only` and the only module in the tree that
- * spends money, and it was one of the source files no test named - a test
+ * reason. That file is `server-only` and the module this tree spends the most
+ * money through, and it was one of the source files no test named - a test
  * written in place would have had to retype every request body to compare
  * against, which is how this repo's four blind tripwires were built. What is
  * here is the half a test can run; `dataforseo.ts` keeps `auth()`, `post()`
  * and the two exported reads.
+ *
+ * **It is not the only module that spends**, and this comment said it was
+ * until later the same day. `anthropic.ts` bills per model call, and Resend
+ * bills per message through `verify-email.ts` and the two public forms. That
+ * wrong premise is not harmless prose: it is the one that left
+ * `/api/scan/[token]/resend` outside both of the sweeps whose job is to hold
+ * every door onto a vendor bill. `src/app/api/spenders.mts` carries the
+ * measured set.
  *
  * Imports are relative and carry the extension deliberately. Node strips types
  * but does not resolve `@/` or an extensionless specifier, and tidying either

@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
+
+import { apiRoutes, missingEntryPoints, spendingRoutes } from "./spenders.mts";
 
 /**
  * A route that spends money must not answer GET.
@@ -24,17 +25,33 @@ import { test } from "node:test";
  * The third is the one worth a tripwire, because a route gains a method in one
  * line and nothing else in the tree would notice.
  *
- * The paid set is DERIVED, not typed here - a list of paid routes in a test is
- * the fixed-rung-against-a-growing-list species this repo keeps finding. A
- * route is paid if it calls `checkCeilings` (every pass that costs DataForSEO
- * or Anthropic goes through it) or `completeUnlock` (which starts the gated
- * pass in `after()`). A new paid route joins this sweep by calling either.
+ * ## The denominator was derived off the wrong thing, and it moved out
+ *
+ * This file used to say: "The paid set is DERIVED, not typed here - a list of
+ * paid routes in a test is the fixed-rung-against-a-growing-list species this
+ * repo keeps finding. A route is paid if it calls `checkCeilings` or
+ * `completeUnlock`." It was derived, and it was still wrong, which is the
+ * sharper lesson: **those two names are the GUARDS, not the spend.** A route
+ * bounded by something else entirely is a route that spends and calls
+ * neither.
+ *
+ * Measured 20 September 2026: it saw **five of the eight** routes that can
+ * cause a paid call. The three outside it were `scan/[token]/confirm`, which
+ * runs the entire free pass and is bounded by a compare-and-swap;
+ * `scan/[token]/questions`, bounded by a per-scan reservation; and
+ * `scan/[token]/resend`, which bills Resend and was in no sweep's list at all.
+ * All three are POST-only today, so nothing was served wrong - but the rule
+ * this file states was being enforced on five eighths of its own subject, and
+ * a `GET` added to the confirm route is precisely the crawler-spends-a-scan
+ * scenario it exists for, passing green.
+ *
+ * `spend-gates.test.mts` had already censused the true set two files away, off
+ * a denominator of its own that was blind somewhere else. Two copies of one
+ * denominator, so the set now lives in `spenders.mts` and both import it.
+ * That file's header carries the whole measurement; do not re-derive it here.
  */
 
 const API = join(import.meta.dirname, ".");
-
-/** The two doors everything that spends money goes through. */
-const SPEND = ["checkCeilings", "completeUnlock"];
 
 /**
  * The one paid route that is a GET, and why that is right rather than an
@@ -53,20 +70,27 @@ const SPEND = ["checkCeilings", "completeUnlock"];
 const EMAIL_LINK = "verify/[vtoken]";
 const COMPARE_AND_SWAP = '.is("verified_at", null)';
 
-type Route = { name: string; src: string };
+const ROOT = join(import.meta.dirname, "..", "..", "..");
 
-function routes(): Route[] {
-  const out = execFileSync("git", ["ls-files", "src/app/api"], { encoding: "utf8" })
-    .split("\n")
-    .filter((f) => f.endsWith("/route.ts"));
+/**
+ * Deliberately not `git ls-files`, which is what this walked before.
+ *
+ * `npm run check` runs before `git add`, so a route file that exists and is
+ * not yet staged is invisible to that listing - and a brand new paid route is
+ * exactly the thing most likely to be both unstaged and wrong. `apiRoutes`
+ * walks the filesystem. This repo has the rule written down; this file was
+ * breaking it.
+ */
+const routes = () => apiRoutes(ROOT);
 
-  return out.map((f) => ({
-    name: f.replace(/^src\/app\/api\//, "").replace(/\/route\.ts$/, ""),
-    src: readFileSync(f, "utf8"),
-  }));
-}
-
-/** Strip comments, so a route that only *mentions* a spend door is not counted. */
+/**
+ * Strip comments, so a route that only *mentions* a spend door is not counted.
+ *
+ * Kept local rather than taken from `spenders.mts`, whose cut is not identical.
+ * A stripper that differs in one case blinds the sweep that depended on that
+ * case, and `methodsOf` and the compare-and-swap check below were both proved
+ * against this one.
+ */
 function code(src: string): string {
   return src
     .replace(/\/\*[\s\S]*?\*\//g, "")
@@ -85,14 +109,21 @@ test("every route that spends money refuses GET, except the email link", () => {
   // matching and a site with no API routes read identically.
   assert.ok(all.length > 10, `only ${all.length} API routes found - the file walk has drifted`);
 
-  const paid = all.filter((r) => SPEND.some((door) => code(r.src).includes(door + "(")));
+  const paid = spendingRoutes(ROOT);
 
-  // Counter-guard: if the doors were renamed, `paid` empties and every
-  // assertion below passes while checking nothing at all.
+  // Counter-guard: if the entry points were renamed, `paid` empties and every
+  // assertion below passes while checking nothing at all. The floor is 8 and
+  // not 4 because the set is now the measured one - see `spenders.mts`.
   assert.ok(
-    paid.length >= 4,
-    `only ${paid.length} paid routes detected via ${SPEND.join("/")} - the spend doors have been ` +
-      `renamed and this sweep is now blind. Update SPEND.`,
+    paid.length >= 8,
+    `only ${paid.length} paid routes detected - the spend walk in spenders.mts has gone blind: ` +
+      paid.map((r) => r.name).join(", "),
+  );
+  assert.deepEqual(
+    missingEntryPoints(ROOT),
+    [],
+    "a paid entry point was renamed, so the set this rule runs over is short by however many " +
+      "routes reached money through it",
   );
 
   const gettable = paid.filter((r) => methodsOf(r.src).includes("GET"));

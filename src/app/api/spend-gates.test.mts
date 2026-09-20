@@ -3,6 +3,8 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { test } from "node:test";
 
+import { PAID, apiRoutes, code, mailSenders, missingEntryPoints, spendingRoutes, vendors } from "./spenders.mts";
+
 /**
  * Every **route** in this tree that can cause somebody to be billed, and what
  * stands in front of each one.
@@ -18,10 +20,11 @@ import { test } from "node:test";
  *
  * `ceilings.test.mts` now executes the ceilings themselves. That is one way
  * down a two-way street: it proves the guard decides correctly and says nothing
- * about which doors have it. Three routes call `checkCeilings`; **seven can
- * cause a paid call**, and the four that do not are each bounded by something
+ * about which doors have it. Three routes call `checkCeilings`; **eight can
+ * cause a paid call**, and the five that do not are each bounded by something
  * else entirely - a per-scan reservation, a compare-and-swap, a dollar cap read
- * somewhere else. Not one of those pairings was written down anywhere, so the
+ * somewhere else, a send ceiling counted in a database function. Not one of
+ * those pairings was written down anywhere, so the
  * denominator was invisible: a new route that spends would have been in nobody's
  * list, passed tsc, passed the build, passed every test and passed the deploy.
  *
@@ -55,28 +58,44 @@ import { test } from "node:test";
  * `anthropic.ts`, when both only read rows that were already paid for. An
  * import is not a call. The named-entry-point list is narrower and true, and
  * the direct-import assertion below is what stops a route routing around it.
+ *
+ * ## The third vendor, and why the denominator left this file
+ *
+ * `VENDORS` was typed here, and its own comment called them "the two clients
+ * that actually put a request on the wire to a vendor". There are three.
+ * **Resend bills per message**, which is the premise `mail-doors.test.mts` is
+ * built on and which blocked.md 24 states in as many words, and the module
+ * that sends was not on this list because whoever wrote it was thinking about
+ * the scan pipeline. So `/api/scan/[token]/resend` - under `src/app/api`,
+ * named `route.ts`, squarely inside this walk, and existing only to put a
+ * second message on a vendor's bill - passed tsc, the build, this file and the
+ * deploy while appearing in neither list here.
+ *
+ * That is this file's own species caught in this file for the second time. The
+ * first was the header, which claimed "every door" over a walk that could only
+ * see routes; this was a typed denominator *inside* a rule, written from the
+ * instances in front of whoever wrote it.
+ *
+ * The fix is not a longer list. `paid-get.test.mts` was answering the same
+ * question two files away with a denominator of its own, derived off the two
+ * *guard* names, and could see five of the eight - it missed
+ * `scan/[token]/confirm`, which runs the whole free pass. **Two copies of one
+ * denominator, each blind somewhere the other was not.** So the set moved to
+ * `spenders.mts`, a helper both import, and its header carries the whole
+ * measurement. What stays here is the question this file asks: what stands in
+ * front of each door.
+ *
+ * `mail-doors.test.mts` still does not merge in, for the reason it gives: it
+ * asks what bounds the *rate* a stranger can open a door, this asks whether a
+ * door reaches `checkCeilings`. A route appearing in both is correct. What
+ * would be wrong is a door appearing in neither, which is what just happened.
  */
 
 const ROOT = join(import.meta.dirname, "..", "..", "..");
 const API = join(ROOT, "src", "app", "api");
 
-/**
- * The functions that bill somebody, or queue work that will.
- *
- * Every one is re-checked below against the module that exports it, so a rename
- * fails this file rather than silently emptying the list - the failure mode a
- * name-matching probe has by default.
- */
-const PAID: Record<string, { module: string; what: string }> = {
-  runScan: { module: "src/lib/scan/pipeline.ts", what: "every question against every engine" },
-  readBrand: { module: "src/lib/scan/anthropic.ts", what: "one model call to name the brand" },
-  completeUnlock: { module: "src/lib/scan/unlock.ts", what: "the gated pass, the biggest single spender here" },
-  startBenchmark: { module: "src/lib/coverage/campaign.ts", what: "a campaign and its first reading" },
-  addReading: { module: "src/lib/coverage/campaign.ts", what: "a further reading of a campaign" },
-};
-
-/** The two clients that actually put a request on the wire to a vendor. */
-const VENDORS = ["@/lib/scan/anthropic", "@/lib/scan/dataforseo"];
+const MAIL_SENDERS = mailSenders(ROOT);
+const VENDORS = vendors(ROOT);
 
 /** Routes that pass through `checkCeilings` - the kill switch and four ceilings. */
 const GUARDED = [
@@ -126,16 +145,45 @@ const EXEMPT: Record<string, { why: string; evidence: RegExp; where: string }> =
     evidence: /spentToday < settings\.daily_cost_cap_usd/,
     where: "src/lib/scan/unlock.ts",
   },
+  /**
+   * The door the typed vendor list could not see. It spends on Resend rather
+   * than on a model, which is why no ceiling is the right bound for it: the
+   * scan behind it was already counted at `/api/scan/start`, and what this
+   * route adds is a second copy of one message.
+   *
+   * Two bounds, and the evidence is the volume one rather than the cooldown.
+   * Sixty seconds is a bound on a double click; `note_verify_send` is the
+   * bound on somebody holding the public token - which is in every shared scan
+   * link - and calling this on a timer. Without it the route had none, and
+   * sixty seconds apart forever is about fourteen hundred messages a day to
+   * one address past a cap that reads five.
+   */
+  "scan/[token]/resend": {
+    why:
+      "Sends the verification email again for a scan row that passed checkCeilings at " +
+      "/api/scan/start. Bounded by a sixty-second cooldown on verify_sent_at and, because " +
+      "that only stops a double click, a volume ceiling counted in note_verify_send against " +
+      "unlock_emails_per_day. It fails closed, unlike the unlock cap: a refusal here costs a " +
+      "second copy of a message already sent once.",
+    evidence: /rpc\("note_verify_send"/,
+    where: "src/app/api/scan/[token]/resend/route.ts",
+  },
 };
 
 /**
  * Doors the kill switch actually reaches, measured on 20 September 2026.
  *
  * `scans_enabled` is read in exactly one place - `decideCeilings` - so a route
- * honours it if and only if it calls `checkCeilings`. The four exempt routes
+ * honours it if and only if it calls `checkCeilings`. The five exempt routes
  * above therefore do not, and the two most expensive things this system does
  * are both among them: a confirm runs the whole free pass, and an unlock runs
  * the gated one, which `spend.ts` calls the biggest single spender here.
+ *
+ * The fifth joined the list on 20 September, when the vendor denominator was
+ * derived rather than typed. It does not change the shape of the question -
+ * `scan/[token]/resend` spends pennies on mail rather than dollars on models -
+ * but it changes the count blocked.md 22 is written around, and the count is
+ * there precisely so a door cannot join quietly.
  *
  * Pinned rather than fixed, because which way it should go is a product call
  * and not a bug: closing it turns the switch into something that strands a
@@ -147,48 +195,11 @@ const KILL_SWITCH_REACHES = GUARDED;
 
 // --------------------------------------------------------------- the walk
 
-function routeFiles(dir: string): string[] {
-  const out: string[] = [];
-  for (const entry of readdirSync(dir)) {
-    const p = join(dir, entry);
-    if (statSync(p).isDirectory()) out.push(...routeFiles(p));
-    else if (entry === "route.ts") out.push(p);
-  }
-  return out;
-}
-
-/** `src/app/api/scan/start/route.ts` -> `scan/start`, which is how a human names it. */
-function routeName(file: string): string {
-  return relative(API, file).replace(/\/route\.ts$/, "");
-}
-
 /**
- * Strip comments before looking for a call.
- *
- * Every one of these routes discusses the others in prose - `start/route.ts`
- * names `runScan`, `completeUnlock` and `checkCeilings` in comments without
- * calling any of them - so a bare substring search reads almost every route as
- * a spender. That is the `String.replace` lesson in a different coat: the
- * target has to be the code, not the paragraph above it.
- *
- * Trailing comments are stripped as well as whole-line ones, and that was found
- * by the injection harness rather than by reading: a case that appended
- * `// checkCeilings(` to a line was reported CAUGHT, by the right test, for
- * entirely the wrong reason - the sweep had matched a comment. A pass that
- * means nothing looks exactly like a pass that means something, which is why
- * the harness asks which assertion fired and not merely whether one did.
- *
- * The `[^:]` guard is so `https://` in a comment or a string does not take the
- * rest of its line with it.
+ * The walk, the comment strip and the spend test all live in `spenders.mts`
+ * now. What is left here is this file's own question.
  */
-function code(src: string): string {
-  return src
-    .replace(/\/\*[\s\S]*?\*\//g, " ")
-    .replace(/(^|[^:])\/\/.*$/gm, "$1");
-}
-
-const files = routeFiles(API);
-const routes = files.map((f) => ({ name: routeName(f), file: f, src: readFileSync(f, "utf8") }));
+const routes = apiRoutes(ROOT);
 
 // --------------------------------------------------------------- the tests
 
@@ -202,27 +213,45 @@ test("the walk found the routes, so a zero here cannot pass as a clean sweep", (
   }
 });
 
-test("every paid entry point still exists under the name this file matches on", () => {
-  for (const [fn, { module }] of Object.entries(PAID)) {
-    const src = readFileSync(join(ROOT, module), "utf8");
-    assert.match(
-      src,
-      new RegExp(`export (async )?function ${fn}\\b`),
-      `${module} no longer exports ${fn}, so this sweep is matching a name nothing answers to`,
+/**
+ * The floor under the derived half, without which an empty walk reads as a
+ * clean sweep.
+ *
+ * A `MAIL_SENDERS` that came back empty - a renamed package, a changed import
+ * idiom, a walk pointed at the wrong directory - would silently restore the
+ * exact blindness this was written to remove, and every assertion below would
+ * still pass. So the walk is made to prove it can still find the module it is
+ * about before its emptiness is believed.
+ */
+test("the derived vendor walk still finds the mail senders", () => {
+  assert.ok(
+    MAIL_SENDERS.length >= 3,
+    `only ${MAIL_SENDERS.length} mail senders found; the walk has stopped seeing Resend: ${MAIL_SENDERS.join(", ")}`,
+  );
+  assert.ok(
+    MAIL_SENDERS.includes("@/lib/scan/verify-email"),
+    "verify-email is no longer read as a mail sender, and it is the one a route imports",
+  );
+  for (const v of VENDORS) {
+    const file = join(ROOT, "src", v.replace(/^@\//, "") + ".ts");
+    assert.ok(
+      readFileSync(file, "utf8").length > 0,
+      `${v} is on the vendor list and is not a module any more`,
     );
   }
 });
 
+test("every paid entry point still exists under the name this file matches on", () => {
+  assert.deepEqual(
+    missingEntryPoints(ROOT),
+    [],
+    "a paid entry point was renamed, so the spend walk is matching a name nothing answers to",
+  );
+  assert.ok(Object.keys(PAID).length >= 5, "the paid entry points emptied out");
+});
+
 test("exactly the expected routes can cause a paid call", () => {
-  const spenders = routes
-    .filter((r) => {
-      const c = code(r.src);
-      const calls = Object.keys(PAID).some((fn) => new RegExp(`\\b${fn}\\s*\\(`).test(c));
-      const vendor = VENDORS.some((v) => c.includes(`"${v}"`));
-      return calls || vendor;
-    })
-    .map((r) => r.name)
-    .sort();
+  const spenders = spendingRoutes(ROOT).map((r) => r.name).sort();
 
   assert.deepEqual(
     spenders,
@@ -304,11 +333,11 @@ test("the kill switch is read in one place, so its reach is exactly the guarded 
     "the kill switch reaches the routes that call checkCeilings and no others",
   );
 
-  // Said as an assertion so it is not mistaken for an oversight: four doors
+  // Said as an assertion so it is not mistaken for an oversight: five doors
   // onto real spend do not honour it, and that is the open question.
   assert.equal(
     Object.keys(EXEMPT).length,
-    4,
+    5,
     "the number of spending doors the kill switch does not reach has changed - see docs/blocked.md",
   );
 });

@@ -21,8 +21,16 @@ import { MARKETS, type Market } from "./domain.ts";
 import { ENGINES } from "./engines.ts";
 
 /**
- * The only module in this tree that spends money had no executor until
+ * The module this tree spends the most money through had no executor until
  * 20 September 2026.
+ *
+ * It said "the only module in this tree that spends money" until later that
+ * day, and that was false three ways over: `anthropic.ts` bills per model
+ * call, and Resend bills per message through three senders. The sentence is
+ * corrected rather than deleted because it is the same wrong premise that left
+ * `scan/[token]/resend` outside both spend sweeps - see `spenders.mts`. **The
+ * denominator of "what spends" is bigger than the scan pipeline**, and a
+ * comment that says otherwise is how it stays that way.
  *
  * `dataforseo.ts` is `server-only`, so Node's runner cannot load it, and it was
  * one of the source files named by no test - swept for text by the four walking
