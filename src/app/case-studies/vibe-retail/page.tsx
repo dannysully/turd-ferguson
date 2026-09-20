@@ -4,6 +4,7 @@ import { OG_IMAGE } from "@/config/og";
 import Link from "next/link";
 
 import { CARD, MICRO, SHELL, T } from "@/config/tokens";
+import ToConfirm from "@/components/ToConfirm";
 import { ORG_REF, ld } from "@/config/schema";
 
 /**
@@ -56,24 +57,6 @@ const articleSchema = {
   publisher: ORG_REF,
 };
 
-const TO_CONFIRM = "TO CONFIRM";
-
-function Gap({ children }: { children: React.ReactNode }) {
-  return (
-    <mark
-      style={{
-        background: T.warnBg,
-        color: T.warnFg,
-        padding: "1px 6px",
-        borderRadius: "6px",
-        fontWeight: 600,
-        fontSize: "0.95em",
-      }}
-    >
-      [{TO_CONFIRM}: {children}]
-    </mark>
-  );
-}
 
 const H2 = ({ children }: { children: React.ReactNode }) => (
   <h2 style={{ margin: "26px 0 0", fontSize: "19px", fontWeight: 700, letterSpacing: "-0.022em", color: T.ink }}>
@@ -192,7 +175,7 @@ export default function CaseStudyPage() {
               ))}
             </dl>
             <p style={{ margin: "14px 0 0", fontSize: "12.5px", lineHeight: 1.6, color: T.soft }}>
-              <Gap>the date each reading was taken, and which tracker</Gap>
+              <ToConfirm>the date each reading was taken, and which tracker</ToConfirm>
             </p>
           </div>
         </div>
@@ -327,7 +310,7 @@ export default function CaseStudyPage() {
                 than our own run.
               </p>
               <p style={{ margin: "10px 0 0", fontSize: "13px", lineHeight: 1.6, color: T.soft }}>
-                <Gap>how many prompts were in the set, and the dates each reading covers</Gap>
+                <ToConfirm>how many prompts were in the set, and the dates each reading covers</ToConfirm>
               </p>
             </div>
 

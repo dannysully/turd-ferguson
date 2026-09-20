@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { OG_IMAGE } from "@/config/og";
 
 import { CARD, GRID12, MICRO, SHELL, T } from "@/config/tokens";
+import ToConfirm from "@/components/ToConfirm";
 
 export const metadata: Metadata = {
   title: "Privacy policy",
@@ -32,24 +33,6 @@ export const metadata: Metadata = {
  * than a visible gap, and every marker is in docs/blocked.md.
  */
 
-const TO_CONFIRM = "TO CONFIRM";
-
-function Gap({ children }: { children: React.ReactNode }) {
-  return (
-    <mark
-      style={{
-        background: T.warnBg,
-        color: T.warnFg,
-        padding: "1px 6px",
-        borderRadius: "6px",
-        fontWeight: 600,
-        fontSize: "0.95em",
-      }}
-    >
-      [{TO_CONFIRM}: {children}]
-    </mark>
-  );
-}
 
 /**
  * The five documents the board's sidebar switches between. Four are not
@@ -101,7 +84,7 @@ const SECTIONS: Section[] = [
       <>
         Scan results are kept so you can come back to the link. The full text of what each engine said is deleted after
         seven days if nobody claims the scan - what survives is the measurements: whether an engine answered, whether it
-        named the brand, and what it cited. <Gap>the retention period for claimed scans, and for contact form messages</Gap>
+        named the brand, and what it cited. <ToConfirm>the retention period for claimed scans, and for contact form messages</ToConfirm>
       </>
     ),
   },
@@ -113,7 +96,7 @@ const SECTIONS: Section[] = [
         The scan runs through DataForSEO, which queries the engines on our behalf - your domain and the generated
         questions pass through it, your email address does not. Anthropic reads the text of the site being scanned and
         writes the questions. Email is sent through Resend. Hosting is Vercel, and the database is Supabase, in London.{" "}
-        <Gap>that this list is complete, and whether a data processing agreement is in place with each of them</Gap>
+        <ToConfirm>that this list is complete, and whether a data processing agreement is in place with each of them</ToConfirm>
       </>
     ),
   },
@@ -125,7 +108,7 @@ const SECTIONS: Section[] = [
         This site sets no cookies of its own and runs no analytics - there is no Google Analytics, no tag manager, and
         no advertising pixel. The one third-party script the page loads is Cloudflare Turnstile, the box that checks you
         are not a robot before a scan runs, and it sets storage of its own to do that.{" "}
-        <Gap>whether Turnstile&apos;s own storage needs a cookie banner under PECR</Gap>
+        <ToConfirm>whether Turnstile&apos;s own storage needs a cookie banner under PECR</ToConfirm>
       </>
     ),
   },
@@ -215,8 +198,8 @@ export default function LegalPage() {
             What we collect, and what we do with it
           </h1>
           <p className="ac-row" style={{ margin: "10px 0 0", fontSize: "13px", color: T.soft, lineHeight: 1.7 }}>
-            Nomada Digital Ltd &middot; <Gap>company number</Gap> &middot; <Gap>registered address</Gap> &middot;{" "}
-            <Gap>ICO registration number</Gap> &middot; <Gap>the date this was last reviewed by someone qualified</Gap>
+            Nomada Digital Ltd &middot; <ToConfirm>company number</ToConfirm> &middot; <ToConfirm>registered address</ToConfirm> &middot;{" "}
+            <ToConfirm>ICO registration number</ToConfirm> &middot; <ToConfirm>the date this was last reviewed by someone qualified</ToConfirm>
           </p>
 
           <div style={{ ...CARD, marginTop: "26px", overflow: "hidden" }}>

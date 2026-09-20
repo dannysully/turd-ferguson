@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import TierName from "@/components/TierName";
 import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
+import ToConfirm from "@/components/ToConfirm";
 
 export const metadata: Metadata = {
   title: "White label for agencies",
@@ -46,9 +47,7 @@ const TERMS: { label: string; value: string; note: React.ReactNode }[] = [
     note: (
       <>
         Written into the agreement.{" "}
-        <mark style={{ background: T.warnBg, color: T.warnFg, padding: "1px 6px", borderRadius: "6px", fontWeight: 600 }}>
-          [TO CONFIRM: the clause wording]
-        </mark>
+        <ToConfirm>the clause wording</ToConfirm>
       </>
     ),
   },
