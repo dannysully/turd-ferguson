@@ -1,12 +1,13 @@
 import { after } from "next/server";
 
 import { describeAnthropicError, QUESTION_COUNT, readBrand } from "@/lib/scan/anthropic";
+import { checkCeilings } from "@/lib/scan/ceilings";
 import { type ReadFailure, readSite, UnreachableDomain } from "@/lib/scan/crawl";
 import { isMarket, isPlausibleDomain, normalizeDomain } from "@/lib/scan/domain";
 import { estimateScanCost } from "@/lib/scan/engine-costs";
 import { clientIp, hashIp } from "@/lib/scan/ip";
 import { getSettings } from "@/lib/scan/settings";
-import { anthropicCallsSince, recordModelCallDebit, spentSince } from "@/lib/scan/spend";
+import { recordModelCallDebit } from "@/lib/scan/spend";
 import { verifyTurnstile } from "@/lib/scan/turnstile";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
@@ -101,117 +102,25 @@ export async function POST(req: Request) {
 
   // 3. Caches and limits, cheapest first, failing fast.
   const settings = await getSettings();
-  if (!settings.scans_enabled) {
-    return fail(503, "paused", "Scans are paused right now. We will be back shortly.");
-  }
-
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
   /**
-   * A ceiling that could not be read has not been cleared.
+   * The kill switch and the four ceilings, which used to be transcribed here.
    *
-   * The error was discarded here, and a failed count comes back null, so
-   * `?? 0` stated "nothing has run today" as a fact whenever the read did not
-   * answer - and the cap it guards was simply off for as long as that lasted.
-   * The direction matters: the hour this fails in is an hour the database is
-   * unwell, which is the same hour every request below still pays Anthropic for
-   * a site read before reaching an insert that will fail. So the ceiling went
-   * blind exactly when it was the only thing left, which is the shape
-   * `anthropicCallsSince` was already fixed for.
+   * They moved to lib/scan/ceilings.ts unchanged - same order, same refusals,
+   * same reasoning, which travelled with them - when the campaign benchmark
+   * needed the same set. The alternative was a second copy on the second route,
+   * and every one of those ceilings is here because the first copy had a hole
+   * in it; keeping two would mean finding each hole twice.
    *
-   * Refused rather than allowed, and it is not a new trade for this route: the
-   * three ceilings around it - getSettings, spentSince, anthropicCallsSince -
-   * all throw on a read that fails and so already refuse the scan. These two
-   * were the outliers, with nothing written down to say why.
-   *
-   * Its own code, not "capped". The cap was not hit; we could not find out
-   * whether it was, and a log that cannot tell those apart sends whoever reads
-   * it to the wrong question.
-   */
-  const { count: todayCount, error: todayErr } = await db
-    .from("scans")
-    .select("id", { count: "exact", head: true })
-    .eq("is_tracking_run", false)
-    .gte("created_at", since);
-  if (todayErr) {
-    console.warn("[scan] could not count today's scans, so the daily cap is unverified: " + todayErr.message);
-    return fail(503, "cap_unreadable", "We could not start that scan just now. Please try again in a moment.");
-  }
-  if ((todayCount ?? 0) >= settings.daily_scan_cap) {
-    return fail(503, "capped", "We have hit today's scan limit. We will be back shortly.");
-  }
-
-  // Spend is capped as well as volume: adding engines changes the cost of a
-  // scan by an order of magnitude, so a count alone is no longer a safe limit.
-  const spentToday = await spentSince(since, { excludeTrackingRuns: true });
-  if (spentToday >= settings.daily_cost_cap_usd) {
-    return fail(503, "capped", "We have hit today's scan limit. We will be back shortly.");
-  }
-
-  /**
-   * The model bill, which the dollar cap above cannot see.
-   *
-   * daily_cost_cap_usd sums dfs_cost, and the call this route is about to
-   * make - reading the site and naming the brand - costs nothing at
-   * DataForSEO. So did the question set, the brand extraction, the
-   * leaderboard judgement and the source classification. Every per-scan
-   * ceiling in this codebase bounds one scan; nothing bounded a day.
-   *
-   * Checked here rather than inside the Anthropic client because this is the
-   * first door and the cheapest place to refuse: every model call downstream
-   * belongs to a scan that started here.
-   *
-   * A request that fails before the insert a few lines below has no row to
-   * bill, and those calls used to be invisible here - the gap that mattered,
-   * because the failure that produces them repeats. They now go to
-   * model_call_debits and anthropicCallsSince adds them, so this reads the
+   * A request that fails before the insert below has no row to bill, and those
+   * calls used to be invisible to the model-call ceiling - the gap that
+   * mattered, because the failure that produces them repeats. They go to
+   * model_call_debits now and anthropicCallsSince adds them, so it reads the
    * whole day rather than the part of it that completed.
    */
-  const callsToday = await anthropicCallsSince(since);
-  if (callsToday >= settings.anthropic_calls_per_day) {
-    console.warn(
-      `[scan] model call cap reached: ${callsToday} of ${settings.anthropic_calls_per_day} in 24h`,
-    );
-    return fail(503, "capped", "We have hit today's scan limit. We will be back shortly.");
-  }
-
-  /**
-   * The per-IP limit, refused rather than waved through when it cannot be read.
-   *
-   * Same defect as the daily cap above and the same fix, with one difference in
-   * what the visitor is told: 429 "you have used today's free scans" would be a
-   * statement about them that we have no basis for. We do not know how many
-   * they have used - that is the whole failure - so this answers the same 503 as
-   * the cap above rather than accusing them of something unmeasured.
-   *
-   * Scans that failed are not counted, decided by Danny on 20 September 2026:
-   * "If our pass failed, that is ours. Do not charge a retry against their
-   * allowance." A row only reaches status 'failed' once the pipeline has
-   * started and died - a domain we cannot reach is refused with a 422 before
-   * any row is inserted - so every row this excludes is one of ours, not a
-   * scan the visitor got the benefit of.
-   *
-   * Deliberately narrower than it looks, and the narrowness is the point. This
-   * is the per-IP ALLOWANCE, which is about what is fair to one visitor. The
-   * daily scan cap, the dollar cap and the model call ceiling above all still
-   * count failures, because those are about spend, and a pass that died still
-   * spent. So a visitor cannot lose a scan to our bug, and we cannot lose a
-   * day's budget to a loop of them: the two concerns are held by different
-   * ceilings rather than one ceiling being asked to do both jobs badly.
-   */
-  const { count: ipCount, error: ipErr } = await db
-    .from("scans")
-    .select("id", { count: "exact", head: true })
-    .eq("ip_hash", ipHash)
-    .neq("status", "failed")
-    .gte("created_at", since);
-  if (ipErr) {
-    console.warn("[scan] could not count scans for this address, so the per-IP limit is unverified: " + ipErr.message);
-    return fail(503, "cap_unreadable", "We could not start that scan just now. Please try again in a moment.");
-  }
-  if ((ipCount ?? 0) >= settings.ip_scans_per_day) {
-    return fail(429, "rate_limited", "You have used today's free scans. Try again tomorrow.");
-  }
+  const refusal = await checkCeilings({ settings, since, ipHash, subject: "scan" });
+  if (refusal) return fail(refusal.http, refusal.code, refusal.message);
 
   // A complete scan for this domain inside the cache window is returned as is.
   // Repeat visits are instant and spend on a given domain is capped.
@@ -233,6 +142,20 @@ export async function POST(req: Request) {
   // client's domain would be served that client's tracking run as their own
   // result.
   //
+  // Campaign readings are excluded on the same principle and it is the newest
+  // of the three, so it is worth being explicit about what it stops. A reading
+  // is a scans row - complete, not a tracking run, never unlocked - so it
+  // matched every condition this cache tests. A visitor typing a domain
+  // somebody had benchmarked would have been handed that reading as their free
+  // scan: the campaign's five fixed questions instead of the fourteen this
+  // product generates, against the campaign's topic rather than theirs, and
+  // titled with somebody else's brief. Nothing would have failed, and the cache
+  // would have made it instant.
+  //
+  // The other direction is closed by construction rather than here: a benchmark
+  // never reads this cache at all, because a dated reading that silently
+  // returned an older one is not a reading.
+  //
   // The filter costs one extra scan per unlocked domain, not one per visitor.
   // The fresh scan is itself locked, so it becomes the entry the next visitor
   // hits, and the caps above bound it either way.
@@ -252,6 +175,7 @@ export async function POST(req: Request) {
     .eq("market", market)
     .eq("status", "complete")
     .eq("is_tracking_run", false)
+    .is("campaign_id", null)
     .is("unlocked_at", null)
     .gte("completed_at", cacheSince)
     .order("completed_at", { ascending: false })

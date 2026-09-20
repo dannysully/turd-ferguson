@@ -184,7 +184,33 @@ const HOMES = new Set<string>(OWNED.map((o) => o.home));
  * would have missed the second hit this rule was written for - a prompt in
  * anthropic.ts reading "well measured by fourteen versions of...", where the
  * subject of the sentence is the question set and the word is not on the line.
+ *
+ * ## Why a CSS length is cut out before the digit is looked for
+ *
+ * "`14px` is a font size on nearly every line" is what the qualifier above is
+ * for, and it holds right up until a line is both - which the benchmark
+ * reading page produced on its first run:
+ *
+ *     <span style={{ fontSize: "14.5px", color: T.ink }}>{q.question}</span>
+ *
+ * `\b14\b` matches inside "14.5px" because the decimal point ends the word, and
+ * `{q.question}` satisfies the qualifier. So the sweep reported a typed
+ * question count on a line that states one nowhere - a styled element that
+ * renders a question, which is the most ordinary thing a page that lists
+ * questions can contain.
+ *
+ * A false positive on this rule is not harmless. It is a push gate, the fix a
+ * reader reaches for is to reword copy that was already right, and the second
+ * time it fires on markup the rule gets an exemption entry that turns it off
+ * for a whole file.
+ *
+ * So lengths go before the digit is looked for, rather than the qualifier being
+ * loosened. Nothing real is lost: a claim about the product never writes its
+ * number as `14px` or `14.5rem`, and the word form - the spelling this rule was
+ * written for and the one that actually went stale - is untouched by it.
  */
+const CSS_LENGTH = /\b\d+(?:\.\d+)?(?:px|rem|em|ch|vh|vw|%|ms|s)\b/g;
+
 export function typedCounts(
   source: string,
   file: string,
@@ -195,8 +221,9 @@ export function typedCounts(
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     if (isComment(line)) continue;
+    const prose = line.replace(CSS_LENGTH, " ");
     const hit = counts.some(({ value }) => {
-      const digit = new RegExp(`\\b${value}\\b`).test(line) && /question/i.test(line) && !HOMES.has(file);
+      const digit = new RegExp(`\\b${value}\\b`).test(prose) && /question/i.test(line) && !HOMES.has(file);
       const word = NUMBER_WORDS[value] ? new RegExp(`\\b${NUMBER_WORDS[value]}\\b`, "i").test(line) : false;
       return digit || word;
     });
@@ -350,6 +377,22 @@ test("each rule can still see what it is looking for", () => {
   // A comment is prose for a maintainer, and a font size is not a claim.
   assert.deepEqual(typedCounts(` * ${word} questions across four engines`, "x.tsx", COUNTS), []);
   assert.deepEqual(typedCounts(`fontSize: "${scan.value}px", // the question table`, "x.tsx", COUNTS), []);
+  /**
+   * A decimal length on a line that renders a question, which is the shape the
+   * benchmark reading page hit. `\b14\b` matches inside "14.5px" - the decimal
+   * point ends the word where the "p" of "14px" does not - so this one got past
+   * the qualifier the line above tests, on markup that claims nothing.
+   */
+  assert.deepEqual(
+    typedCounts(`<span style={{ fontSize: "${scan.value}.5px" }}>{q.question}</span>`, "x.tsx", COUNTS),
+    [],
+  );
+  // Cutting the length out must not cut the claim out with it: a real count
+  // beside a styled element is still a real count.
+  assert.deepEqual(
+    say(typedCounts(`<p style={{ fontSize: "13.5px" }}>${scan.value} questions</p>`, "x.tsx", COUNTS)),
+    [`x.tsx:1 <p style={{ fontSize: "13.5px" }}>${scan.value} questions</p>`],
+  );
   // The file that owns a count may state it.
   assert.deepEqual(typedCounts(`export const QUESTIONS = ${scan.value};`, scan.home, COUNTS), []);
 

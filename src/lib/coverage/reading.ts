@@ -1,0 +1,303 @@
+import "server-only";
+
+import { type Engine, isEngine } from "@/lib/scan/engines";
+import { supabaseAdmin } from "@/lib/supabase/admin";
+import { selectAll } from "@/lib/supabase/page";
+
+/**
+ * A campaign reading, assembled for the page that shows it.
+ *
+ * Every figure on this page is counted here from stored rows. None of them is
+ * typed, and none of them is a model's opinion about what the reading means:
+ * "named in 6 of 20 answers" is six rows with `brand_named` true out of twenty
+ * rows, and "3 of your 14 placements were cited" is a set intersection. That is
+ * the whole reason this product can be given away - it makes no claim it cannot
+ * point at a row for.
+ *
+ * ## What is deliberately not here
+ *
+ * No share of voice, no rank against competitors, no verdict. The scan's
+ * leaderboard is built on the same row and could be read from here in one more
+ * select, and it is left out because a benchmark's five questions are not a
+ * category sample - ranking somebody ninth off five questions would be a number
+ * with a denominator too small to mean what a reader takes it to mean. The free
+ * scan asks a full set and says so.
+ *
+ * No verbatim answer text either, and that one is load-bearing rather than
+ * editorial. `response_text` is cleared by the retention purge on any scan that
+ * was never unlocked, and a reading is never unlocked - it takes no email, so
+ * nothing ever sets `unlocked_at`. Every reading's prose is therefore gone a
+ * week after it was taken, while the columns this page reads - `answered`,
+ * `brand_named`, and the citation rows - are kept for good. That is what lets a
+ * benchmark promise a dated starting line worth coming back to. Anyone adding
+ * the answers themselves to this page is adding something that will be blank on
+ * every reading older than `response_retention_days`, with nothing on screen to
+ * say why.
+ */
+
+export type ReadingAnswer = {
+  engine: Engine;
+  /** Did this engine answer at all. A false is a measured absence. */
+  answered: boolean;
+  /** Did the answer name the brand. Only meaningful when `answered`. */
+  brandNamed: boolean;
+};
+
+export type ReadingQuestion = {
+  idx: number;
+  kind: string;
+  question: string;
+  /** In the order the reading's engines were frozen, so the columns line up. */
+  answers: ReadingAnswer[];
+};
+
+export type ReadingSource = {
+  domain: string;
+  /** How many answers cited it, across every question and engine. */
+  citations: number;
+  /** True when this domain is in the coverage list uploaded for the campaign. */
+  placed: boolean;
+};
+
+/** One reading, as a row in the campaign's history. */
+export type ReadingSummary = {
+  id: string;
+  status: string;
+  takenAt: string | null;
+  named: number;
+  answers: number;
+};
+
+export type CampaignReading = {
+  campaign: {
+    brand: string;
+    domain: string;
+    topic: string;
+    segment: string | null;
+    market: string;
+    createdAt: string;
+  };
+  /** The newest reading. Null only if the scan insert never landed. */
+  reading: {
+    id: string;
+    status: string;
+    step: string | null;
+    error: string | null;
+    createdAt: string;
+    completedAt: string | null;
+    engines: Engine[];
+    enginesAnswered: Engine[];
+  } | null;
+  questions: ReadingQuestion[];
+  /** Cited sources, most-cited first. */
+  sources: ReadingSource[];
+  coverage: {
+    /** Placements uploaded and dated on or before this reading. */
+    uploaded: number;
+    /** Distinct placed domains at least one engine cited. */
+    cited: number;
+    /** Placed domains no engine cited. The other half of the same finding. */
+    uncited: string[];
+  };
+  /** Named in N of M answers, counted over the current reading. */
+  named: { count: number; of: number };
+  /** Every reading of this campaign, newest first. One today, more after a re-run. */
+  history: ReadingSummary[];
+};
+
+/**
+ * Read a campaign by its public token, or null when there is no such campaign.
+ *
+ * A read that fails throws rather than returning null, so the page can tell
+ * "this link matches nothing" from "the database did not answer". The scan
+ * result page carries the same distinction and the comment on it says why: a
+ * 404 to somebody following a link to their own reading is a false statement
+ * and a terminal one.
+ */
+export async function readCampaign(token: string): Promise<CampaignReading | null> {
+  const db = supabaseAdmin();
+
+  const { data: campaign, error: campaignErr } = await db
+    .from("campaigns")
+    .select("id, brand, domain, topic, segment, market, created_at")
+    .eq("public_token", token)
+    .maybeSingle();
+  if (campaignErr) {
+    throw new Error("could not read the campaign behind a benchmark link: " + campaignErr.message);
+  }
+  if (!campaign) return null;
+
+  const campaignId = campaign.id as string;
+
+  /**
+   * Every reading of this campaign, newest first.
+   *
+   * All of them rather than the newest one, because the campaign id is the
+   * stable thing and a re-run inserts a new row beside the old one. The
+   * history below is the only place the product's actual promise - the same
+   * five questions again, compared - is visible, and it costs one select.
+   */
+  const { data: scans, error: scansErr } = await db
+    .from("scans")
+    .select("id, status, step, error, created_at, completed_at, engines, engines_answered")
+    .eq("campaign_id", campaignId)
+    .order("created_at", { ascending: false });
+  if (scansErr) throw new Error("could not read the readings for a campaign: " + scansErr.message);
+
+  const rows = scans ?? [];
+  const current = rows[0] ?? null;
+
+  const base: CampaignReading = {
+    campaign: {
+      brand: campaign.brand as string,
+      domain: campaign.domain as string,
+      topic: campaign.topic as string,
+      segment: (campaign.segment as string | null) ?? null,
+      market: (campaign.market as string | null) ?? "UK",
+      createdAt: campaign.created_at as string,
+    },
+    reading: null,
+    questions: [],
+    sources: [],
+    coverage: { uploaded: 0, cited: 0, uncited: [] },
+    named: { count: 0, of: 0 },
+    history: [],
+  };
+
+  if (!current) return base;
+
+  const readingId = current.id as string;
+  const engines = ((current.engines as string[] | null) ?? []).filter(isEngine);
+
+  base.reading = {
+    id: readingId,
+    status: current.status as string,
+    step: (current.step as string | null) ?? null,
+    error: (current.error as string | null) ?? null,
+    createdAt: current.created_at as string,
+    completedAt: (current.completed_at as string | null) ?? null,
+    engines,
+    enginesAnswered: ((current.engines_answered as string[] | null) ?? []).filter(isEngine),
+  };
+
+  /**
+   * The coverage list as it stood when this reading was taken.
+   *
+   * Dated rather than "all rows for the campaign", which is the whole argument
+   * for `campaign_coverage` being a table instead of a column. A list that grew
+   * after a reading was taken would otherwise change what that reading was
+   * judged against, months later and silently, and the comparison the next
+   * reading makes would be against a moving line.
+   */
+  const [coverageRows, questionRows, answerRows, citationRows, historyAnswers] = await Promise.all([
+    selectAll<{ source_domain: string }>((from, to) =>
+      db
+        .from("campaign_coverage")
+        .select("source_domain")
+        .eq("campaign_id", campaignId)
+        .lte("added_at", current.created_at as string)
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
+    selectAll<{ id: string; idx: number; kind: string; question: string }>((from, to) =>
+      db
+        .from("scan_questions")
+        .select("id, idx, kind, question")
+        .eq("scan_id", readingId)
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
+    selectAll<{ question_id: string; engine: string; answered: boolean; brand_named: boolean }>((from, to) =>
+      db
+        .from("scan_answers")
+        .select("question_id, engine, answered, brand_named")
+        .eq("scan_id", readingId)
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
+    selectAll<{ source_domain: string }>((from, to) =>
+      db
+        .from("scan_citations")
+        .select("source_domain")
+        .eq("scan_id", readingId)
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
+    selectAll<{ scan_id: string; brand_named: boolean }>((from, to) =>
+      db
+        .from("scan_answers")
+        .select("scan_id, brand_named")
+        .in(
+          "scan_id",
+          rows.map((r) => r.id as string),
+        )
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
+  ]);
+
+  const placed = new Set(coverageRows.map((r) => r.source_domain));
+
+  const byQuestion = new Map<string, ReadingAnswer[]>();
+  for (const a of answerRows) {
+    if (!isEngine(a.engine)) continue;
+    const list = byQuestion.get(a.question_id) ?? [];
+    list.push({ engine: a.engine, answered: a.answered, brandNamed: a.brand_named });
+    byQuestion.set(a.question_id, list);
+  }
+
+  base.questions = [...questionRows]
+    .sort((a, b) => a.idx - b.idx)
+    .map((q) => {
+      const found = byQuestion.get(q.id) ?? [];
+      // Ordered by the reading's frozen engine list rather than by what came
+      // back, so every row has the same columns in the same order - including
+      // the rows where an engine returned nothing, which is a finding and has
+      // to keep its place rather than shortening the row.
+      const answers = engines.map(
+        (engine) => found.find((f) => f.engine === engine) ?? { engine, answered: false, brandNamed: false },
+      );
+      return { idx: q.idx, kind: q.kind, question: q.question, answers };
+    });
+
+  base.named = {
+    count: answerRows.filter((a) => a.brand_named).length,
+    // The denominator is what was asked, not what came back: questions times
+    // the engines this reading froze. An engine that answered nothing has to
+    // stay in the denominator or a reading where half the engines failed would
+    // report a better score than one where they all answered.
+    of: questionRows.length * engines.length,
+  };
+
+  const counts = new Map<string, number>();
+  for (const c of citationRows) counts.set(c.source_domain, (counts.get(c.source_domain) ?? 0) + 1);
+  base.sources = [...counts.entries()]
+    .map(([domain, citations]) => ({ domain, citations, placed: placed.has(domain) }))
+    .sort((a, b) => b.citations - a.citations || a.domain.localeCompare(b.domain));
+
+  base.coverage = {
+    uploaded: placed.size,
+    cited: [...placed].filter((d) => counts.has(d)).length,
+    uncited: [...placed].filter((d) => !counts.has(d)).sort(),
+  };
+
+  const namedPerScan = new Map<string, { named: number; answers: number }>();
+  for (const a of historyAnswers) {
+    const seen = namedPerScan.get(a.scan_id) ?? { named: 0, answers: 0 };
+    seen.answers++;
+    if (a.brand_named) seen.named++;
+    namedPerScan.set(a.scan_id, seen);
+  }
+  base.history = rows.map((r) => {
+    const seen = namedPerScan.get(r.id as string) ?? { named: 0, answers: 0 };
+    return {
+      id: r.id as string,
+      status: r.status as string,
+      takenAt: (r.completed_at as string | null) ?? null,
+      named: seen.named,
+      answers: seen.answers,
+    };
+  });
+
+  return base;
+}
