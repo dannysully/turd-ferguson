@@ -25,8 +25,20 @@ export const metadata: Metadata = {
  *  - the app sets no cookies of its own: no document.cookie, no cookies()
  *  - there is no analytics of any kind installed
  *
+ * Four of those five are executable now, and a claim on this page that is not
+ * executable is a claim that rots: `analytics-claim.test.mts` holds the last
+ * one, `privacy-claims.test.mts` holds the other three. Read those before
+ * rewording anything below - they fail on the wording as well as on the code,
+ * deliberately, so a reworded promise cannot quietly outrun what enforces it.
+ *
  * The board's processor list omits Anthropic, which the scan sends crawled
- * site text and the generated questions to. It is listed here.
+ * site text and the generated questions to. It is listed here. It also omitted
+ * Cloudflare, and that one was found by executing the claim above rather than
+ * by reading: `verifyTurnstile` posts `remoteip: ip` to Cloudflare's siteverify
+ * endpoint on all three scan doors, so the raw address - the thing "What we
+ * collect" promises is never written down - does leave this server, to a
+ * processor the page did not name. Never stored and never disclosed are
+ * different promises and the page was only keeping the first.
  *
  * Where a clause needs a fact nobody has given me, the page says so in the
  * open. An invented retention period or a guessed company number is worse
@@ -95,7 +107,8 @@ const SECTIONS: Section[] = [
       <>
         The scan runs through DataForSEO, which queries the engines on our behalf - your domain and the generated
         questions pass through it, your email address does not. Anthropic reads the text of the site being scanned and
-        writes the questions. Email is sent through Resend. Hosting is Vercel, and the database is Supabase, in London.{" "}
+        writes the questions. Cloudflare runs the robot check in front of a scan, and we pass it your IP address so it
+        can do that. Email is sent through Resend. Hosting is Vercel, and the database is Supabase, in London.{" "}
         <ToConfirm>that this list is complete, and whether a data processing agreement is in place with each of them</ToConfirm>
       </>
     ),
