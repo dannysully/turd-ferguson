@@ -962,9 +962,17 @@ export async function runGatedScan(scanId: string): Promise<void> {
      * The error was discarded, so a database that did not answer arrived here
      * as an empty list and was reported as "the free pass left no questions to
      * re-ask" - a sentence about a scan whose questions are sitting on the
-     * table, written into `gated_error` by the catch below and rendered on the
-     * report screen. It is the same read as the free pass's confirmed-questions
-     * one a few hundred lines up, which `c68db3b` fixed.
+     * table, written into `gated_error` by the catch below. It is the same read
+     * as the free pass's confirmed-questions one a few hundred lines up, which
+     * `c68db3b` fixed.
+     *
+     * This used to close "and rendered on the report screen", which stopped
+     * being true when `api/scan/[token]/status/route.ts` took both error
+     * columns out of the poll - nothing selects `gated_error` anywhere in the
+     * tree today. Corrected here rather than left, because the same species
+     * one column over is what `coverage/reading-error.ts` is about: a comment
+     * naming a reader that does not exist is how a reader that does exist goes
+     * unnoticed. The sentence still matters - it is what the operator reads.
      *
      * This one was not missed by that sweep - it was excused by it, with an
      * entry in `reads.test.mts` reading "throws on the next line either way".

@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import ReadingPoll from "@/components/coverage/ReadingPoll";
 import RerunButton from "@/components/coverage/RerunButton";
 import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
+import { visitorReason } from "@/lib/coverage/reading-error";
 import { readCampaign, type ReadingAnswer } from "@/lib/coverage/reading";
 import { canRerun, readingState, shouldPoll } from "@/lib/coverage/reading-state";
 import { count, isAre } from "@/lib/plural";
@@ -201,10 +202,12 @@ export default async function CampaignReadingPage({ params }: { params: Promise<
         <div style={{ ...CARD, padding: "20px 24px", background: T.badBg, borderColor: T.badLine }}>
           <div style={{ fontSize: "14px", fontWeight: 600, color: T.badFg }}>That reading stopped before it finished</div>
           <p style={{ margin: "6px 0 0", fontSize: "13.5px", lineHeight: 1.6, color: T.soft }}>
-            {/* The stored reason, verbatim. A benchmark that failed for a reason
-                we can name and does not name it sends the reader to guess at
-                their own campaign. */}
-            {reading?.error ? reading.error : "We could not complete it."} Nothing was measured, so there is nothing
+            {/* A benchmark that failed for a reason we can name and does not name
+                it sends the reader to guess at their own campaign - so the
+                reason is still printed. What is not printed is the column: it
+                held whatever was thrown, and this page asks for no credential.
+                `visitorReason` carries the whole argument. */}
+            {visitorReason(reading?.error)} Nothing was measured, so there is nothing
             here to read against. The button below takes a fresh reading of this same campaign - your uploaded
             coverage list is still on it, so there is nothing to re-enter.
           </p>

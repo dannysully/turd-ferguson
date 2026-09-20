@@ -93,11 +93,23 @@ export function isGatedPassDead(
 /**
  * The sentence left in `scans.error` and `scans.gated_error` by a reap.
  *
- * Written for the admin page, which is the only thing that reads those
- * columns - the public status poll deliberately stopped handing them out. It
- * has to be distinguishable from a pass that failed and said why, because the
- * two have different causes: this one means the function was killed, which is
- * a platform or budget question, not a vendor or a query.
+ * Written for the admin page. It has to be distinguishable from a pass that
+ * failed and said why, because the two have different causes: this one means
+ * the function was killed, which is a platform or budget question, not a
+ * vendor or a query.
+ *
+ * **This used to say the admin page "is the only thing that reads those
+ * columns - the public status poll deliberately stopped handing them out".
+ * The second clause is true and the first was not, and stating one as the
+ * other is what let the gap stand.** `api/scan/[token]/status/route.ts`
+ * narrowed *its* response; nothing narrowed the column. The campaign benchmark
+ * was built afterwards, selects `error` in `coverage/reading.ts`, and printed
+ * it verbatim on `/coverage-check/[token]` - a page that asks for no
+ * credential. `coverage/reading-error.ts` holds the reasoning and the
+ * allowlist, and `reading-error.test.mts` holds both directions.
+ *
+ * `REAPED_FREE` is on that allowlist, imported rather than retyped, so
+ * rewording it here cannot quietly turn a named reason into a generic one.
  */
 export const REAPED_FREE = "the run was stopped before it could record a result, and was closed by the stall sweep";
 export const REAPED_GATED =
