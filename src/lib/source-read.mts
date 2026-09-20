@@ -10,7 +10,7 @@
  * than inside one of them.
  */
 
-import { readdirSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 /**
@@ -160,4 +160,39 @@ export function sendCalls(source: string): string[] {
     }
   }
   return out;
+}
+
+/**
+ * The body of the last definition of each SQL function, which is the one that
+ * runs.
+ *
+ * Apply order, and the last definition wins, because that is what the database
+ * does: `scan_teaser` is written five times across these migrations, and
+ * judging every definition fails on SQL that has been superseded and is not
+ * running. `rpc-signatures.test.mts` records why a `create or replace` at a new
+ * argument type is an overload rather than a replace; nothing here has one.
+ *
+ * `--` comments are cut and block comments are not, because these bodies carry
+ * none. A `--` line naming a table would otherwise read as a query against it,
+ * which is the same cut `code` makes one syntax over and for the same reason.
+ *
+ * A private copy of this walk lives in `citations.test.mts`. It is deliberately
+ * not collapsed into this one, for the reason recorded above about the six
+ * strippers: a reader differing in one case blinds the sweep that depended on
+ * that case, and that is not a change to make in the same push as the finding
+ * that prompted this. New callers use this one.
+ */
+export function liveSqlFunctions(root: string): Map<string, { file: string; body: string }> {
+  const dir = join(root, "supabase", "migrations");
+  const live = new Map<string, { file: string; body: string }>();
+  for (const file of readdirSync(dir).filter((f) => f.endsWith(".sql")).sort()) {
+    const sql = readFileSync(join(dir, file), "utf8").replace(/--[^\n]*/g, "");
+    for (const m of sql.matchAll(/create\s+(?:or\s+replace\s+)?function\s+(?:public\.)?(\w+)\s*\(/gi)) {
+      const open = sql.indexOf("$$", m.index);
+      const close = sql.indexOf("$$", open + 2);
+      if (open < 0 || close < 0) continue;
+      live.set(m[1]!.toLowerCase(), { file, body: sql.slice(open + 2, close) });
+    }
+  }
+  return live;
 }

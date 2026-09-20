@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 
-import { code, sourceFiles } from "../source-read.mts";
+import { code, liveSqlFunctions, sourceFiles } from "../source-read.mts";
 
 /**
  * `account_id` never reaches a visitor.
@@ -297,5 +297,222 @@ test(`no response body in this tree names ${COLUMN}`, () => {
     `a response names ${COLUMN}. That is the disclosure unlock.ts's own comment says ` +
       "this tree does not do, and it is the sentence that downgrades the ilike defect " +
       `from handing a visitor another account to mis-filing a row:\n  ` + offenders.join("\n  "),
+  );
+});
+
+// ------------------------------------------------------------- the SQL half
+
+/**
+ * Same claim, same column, the other language.
+ *
+ * Rule 1 above says "nothing in this tree selects `*`" and walks `src` for
+ * `.ts` and `.tsx`. The header calls that green "across the whole tree". It is
+ * not the whole tree: **`scan_teaser` reads `from scans s`**, and `scans` is
+ * the table `account_id` is a column of. Every rule above stops at the edge of
+ * the `.sql` files, which is this repo's most-paid denominator failure - the
+ * same edge `citations.test.mts` was standing on until `aadfd06`, and the same
+ * shape as `spend-gates` claiming "every door in this tree" while walking
+ * `src/app/api` for `route.ts`.
+ *
+ * ## Why the SQL side is the more exposed one, not the lesser one
+ *
+ * Measured off the migrations rather than remembered: of the six live
+ * functions, **`scan_teaser` is the only one granted to `anon`**, and it is
+ * `security definer`, so it runs with the owner's rights and ignores RLS. The
+ * other five are `service_role` only and are reachable from this tree alone.
+ * The grants themselves are held by `function-grants.test.mts`; what matters
+ * here is the consequence - `scan_teaser` is the function behind the public
+ * scan report, callable by anybody holding a public token, and it selects from
+ * the account-bearing table.
+ *
+ * So the one-character edit rule 1 exists to refuse has an exact counterpart
+ * here, and it is *cheaper* to make. The TypeScript version is
+ * `.select("*")`. The SQL versions are two:
+ *
+ *  - `select c.*` inside one of the six `jsonb_agg(t)` sub-selects. Those
+ *    aggregate a whole derived row by alias, so widening the sub-select's
+ *    column list widens the published JSON with no other edit.
+ *  - `to_jsonb(s)` or `row_to_json(s)` in place of the twenty-key
+ *    `jsonb_build_object`. That reads as a simplification, shortens the
+ *    function by ninety lines, and publishes every column of `scans` -
+ *    `account_id`, `ip_hash` and `client_domain_id` included - to an
+ *    anonymous caller.
+ *
+ * Neither fails a build, neither moves a TypeScript type, and rules 1 to 5
+ * cannot see either.
+ *
+ * ## What these three rules are, and what they are not
+ *
+ * They are keyed on the shape of the query, the way the TypeScript rules are
+ * keyed on the shape of the select. They cannot tell you a function is
+ * *correct*; they refuse the two constructions that publish a column nobody
+ * chose to publish, and they pin the denominator so the next function joins
+ * loudly.
+ *
+ * `jsonb_agg(t)` is deliberately NOT forbidden. It is a whole-row
+ * serialisation of a derived alias and the tree has six of them, every one
+ * legitimate because the sub-select under it names its columns. Forbidding it
+ * would fail on a clean tree, which is a rule written to be exempted rather
+ * than heeded. The star rule below is what actually guards those six, and it
+ * guards them at the only place the widening can happen.
+ *
+ * The star pattern is anchored at the column-list position - `select *` and
+ * `select c.*`, never `count(*)`, which appears fourteen times in
+ * `scan_teaser` alone and is not a whole-row read. That narrowing is the one
+ * thing here most likely to be wrong in the flattering direction, so
+ * `docs/inject-account-sql.mjs` proves it from both sides: a real `select c.*`
+ * must be caught, and the existing `count(*)` must not be.
+ */
+
+/**
+ * The tables a read of which can put the column, or the identity behind it, in
+ * a function's hands.
+ *
+ * **Derived, because the first draft of this rule typed them.** That draft
+ * listed `scans`, `leads`, `client_domains` and `accounts` from the four
+ * `account_id` lines in front of whoever wrote it - which is the typed
+ * denominator inside a sweep, the species this repo has paid for three times
+ * in one sitting, arriving in the file written to close a denominator gap.
+ * A table added tomorrow with an `account_id` on it would have been outside
+ * it, and the rule would have stayed green while reporting on the tree.
+ *
+ * Two kinds of table qualify and the second is why `accounts` is here at all:
+ * a table carrying the column, and the table the column points *at*, since
+ * publishing `accounts.id` is the same disclosure spelled the other way.
+ */
+function bearerTables(): string[] {
+  const sql = migrationSources().join("\n");
+  const found = new Set<string>();
+  for (const m of sql.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?(?:public\.)?(\w+)\s*\(([\s\S]*?)\n\)\s*;/gi)) {
+    if (new RegExp(`\\b${COLUMN}\\b`).test(m[2]!)) found.add(m[1]!.toLowerCase());
+    // The referenced side, taken from the same declaration rather than assumed.
+    for (const r of m[2]!.matchAll(new RegExp(`\\b${COLUMN}\\b[^,]*?references\\s+(?:public\\.)?(\\w+)`, "gi"))) {
+      found.add(r[1]!.toLowerCase());
+    }
+  }
+  return [...found].sort();
+}
+
+/** Every migration as written, for the table declarations the function walk drops. */
+function migrationSources(): string[] {
+  const dir = join(ROOT, "supabase", "migrations");
+  return readdirSync(dir)
+    .filter((f) => f.endsWith(".sql"))
+    .sort()
+    .map((f) => readFileSync(join(dir, f), "utf8").replace(/--[^\n]*/g, ""));
+}
+
+const BEARERS = bearerTables();
+
+/** A `select` that takes every column, never `count(*)`. */
+const SQL_STAR = /\bselect\s+(?:distinct\s+)?(?:\w+\.)?\*/gi;
+
+/** A whole row serialised by alias, never `to_jsonb(s.engines)`. */
+const SQL_WHOLE_ROW = /\b(?:to_jsonb|row_to_json)\s*\(\s*([A-Za-z_]\w*)\s*\)/gi;
+
+/**
+ * The live SQL functions that read a table carrying the column, and why each
+ * cannot publish it.
+ *
+ * All six of them do, which is the point rather than an accident: every
+ * function in this schema either reads or writes `scans` or `leads`. A rule
+ * that pinned "the ones that touch it" would therefore pin everything and say
+ * nothing, so what each entry records is the thing that actually keeps the
+ * column off the wire - the return type, and for the one public function, the
+ * fact that it hand-builds its object key by key.
+ */
+const SQL_READERS: Record<string, string> = {
+  scan_teaser:
+    "The public scan report. security definer and the only function granted to anon, so " +
+    "this is the one place a whole-row read reaches somebody who is not us. Returns jsonb " +
+    "built key by key with jsonb_build_object; the outer row `s` is never serialised whole.",
+  scan_source_coverage:
+    "The admin source counts. service_role only, and `returns table (scan_id, " +
+    "cited_domains, classified_domains)` - a named three-column shape a widened select " +
+    "cannot leak through.",
+  note_scan_spend:
+    "The spend accumulator. service_role only, `returns table` with its columns named.",
+  note_preview_call:
+    "The per-scan call reservation. service_role only, returns integer.",
+  note_preview_calls:
+    "The same reservation in bulk. service_role only, returns void.",
+  note_verify_send:
+    "The verify-send ceiling on leads. service_role only, returns integer - and the one " +
+    "whose own migration records being security definer with no revoke as the defect it " +
+    "was written to fix.",
+};
+
+test("the SQL walk can see the functions it is sweeping", () => {
+  const live = liveSqlFunctions(ROOT);
+  // A parse that found no bodies is the same green as a clean schema.
+  assert.ok(live.size >= 6, `expected 6+ live SQL functions, parsed ${live.size}`);
+  // And it has to have taken the LAST definition. scan_teaser is written five
+  // times; the live one is the only one carrying google_rank.
+  assert.match(
+    live.get("scan_teaser")!.body,
+    /google_rank/,
+    "liveSqlFunctions returned a superseded scan_teaser - apply order has stopped working",
+  );
+  // And the derived table list, which every rule below is scoped by. A parse
+  // that found no tables makes the reader rule vacuous, and a derivation is
+  // exactly the thing that can go quiet without anybody editing it.
+  assert.deepEqual(
+    BEARERS,
+    ["accounts", "client_domains", "leads", "scans"],
+    `the tables carrying ${COLUMN} have changed, or bearerTables has stopped parsing them`,
+  );
+});
+
+test(`every live SQL function that reads a table carrying ${COLUMN} is recorded`, () => {
+  const found = [...liveSqlFunctions(ROOT)]
+    .filter(([, { body }]) =>
+      BEARERS.some((t) => new RegExp(`\\b(?:from|join|update|into)\\s+(?:public\\.)?${t}\\b`, "i").test(body)),
+    )
+    .map(([fn]) => fn)
+    .sort();
+
+  assert.deepEqual(
+    found,
+    Object.keys(SQL_READERS).sort(),
+    `a SQL function reads a table carrying ${COLUMN} and is on no list. Classify it here ` +
+      "with what stops it returning the column - its return type, or its grants. As with " +
+      "rule 2, the failure is meant to be a question rather than a bug report.",
+  );
+});
+
+test("no live SQL function takes a whole row", () => {
+  const offenders: string[] = [];
+
+  for (const [fn, { file, body }] of liveSqlFunctions(ROOT)) {
+    for (const m of body.matchAll(SQL_STAR)) {
+      offenders.push(`${file} ${fn}: ${m[0].replace(/\s+/g, " ")}`);
+    }
+    for (const m of body.matchAll(SQL_WHOLE_ROW)) {
+      offenders.push(`${file} ${fn}: ${m[0].replace(/\s+/g, " ")}`);
+    }
+  }
+
+  assert.deepEqual(
+    offenders,
+    [],
+    `a SQL function takes every column of a row. scan_teaser is security definer and ` +
+      `granted to anon, so on that function this publishes ${COLUMN} to anybody holding a ` +
+      "public token - the SQL spelling of the select(*) rule 1 refuses:\n  " +
+      offenders.join("\n  "),
+  );
+});
+
+test(`no live SQL function names ${COLUMN}`, () => {
+  const offenders = [...liveSqlFunctions(ROOT)]
+    .filter(([, { body }]) => new RegExp(`\\b${COLUMN}\\b`).test(body))
+    .map(([fn, { file }]) => `${file} ${fn}`);
+
+  assert.deepEqual(
+    offenders,
+    [],
+    `a SQL function names ${COLUMN}. Filtering on it is legitimate and returning it is ` +
+      "not, and the difference is not readable from the query text - so this fails either " +
+      "way and wants a decision here, the way rule 3 does for a file that mentions it:\n  " +
+      offenders.join("\n  "),
   );
 });
