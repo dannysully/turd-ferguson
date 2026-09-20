@@ -13,10 +13,15 @@
  * then said "across 1 questions" in a metric strip an agency puts in front of
  * a client. A leaderboard that finds one supplier says "1 brands in all".
  *
- * Deliberately not a pluralisation library. The nouns this counts are a known
- * short list - brand, page, source, answer, question, placement - and every
- * one of them takes a plain "s". An irregular plural passes the second
- * argument; nothing here guesses at one.
+ * Deliberately not a pluralisation library. A noun plain "s" is wrong for
+ * passes its plural explicitly; nothing here guesses at one.
+ *
+ * That obligation used to be a list in this comment - "brand, page, source,
+ * answer, question, placement" - and nothing executed it. Measured on 20 Sep
+ * 2026 it was wrong in both directions: "placement" was at no call site, and
+ * tier, price, engine, domain, link and line were at one and on no list. It is
+ * `plural-nouns.test.mts` now, which derives the set off source and refuses a
+ * bare noun that would render "2 companys". Read the test, not a list here.
  */
 export function count(n: number, singular: string, plural = singular + "s"): string {
   return `${n} ${n === 1 ? singular : plural}`;

@@ -1108,10 +1108,15 @@ export async function runScan(scanId: string): Promise<void> {
      * before today carry real measurements and a dropped column would turn those
      * into nothing while a kept one lets a reader see they stopped. Nothing
      * writes it from here on, so `search_volume` is null on every scan after
-     * this commit and populated on every scan before it. `scan_teaser` still
-     * sums it into `ai_search_volume`, which means that figure is null for new
-     * scans - every reader of it already handles null, because a question with
-     * no measurable volume always could return one.
+     * this commit and populated on every scan before it.
+     *
+     * This used to go on to say `scan_teaser` "still sums it into
+     * `ai_search_volume`", and that stopped being true the same day:
+     * `20260920030000_teaser_first_cited.sql` is the live definition and drops
+     * the key and the join to `scan_questions` with it, because the function
+     * was summing nulls into something nothing renders. `ai_search_volume` is
+     * off the contract types too. Nothing reads the column now except rows
+     * written before 20 Sep, which is the whole reason it is kept.
      *
      * `request-shape.test.mts` holds the removal the way the engine-count sweep
      * holds its own: a removal rots back in, so the assertion is that nothing in
