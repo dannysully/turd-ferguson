@@ -68,6 +68,12 @@ export class UnlockNotStamped extends Error {
  * row under it, were attached to somebody elses account. It stops being only
  * attribution the day there is an account view.
  *
+ * That last sentence names a trigger this file cannot notice, so it is
+ * executable rather than prose now: `account-disclosure.test.mts` pins every
+ * read of the column, every file that mentions it, and the two things that
+ * would publish it without any select changing - a `select("*")` and a spread
+ * of the row into a response. Add the account view and it fails and says so.
+ *
  * eq is a safe replacement because this function is the only thing that
  * inserts into accounts, and it now lowercases on the way in as well as on the
  * way out - so the stored form and the compared form cannot drift.
