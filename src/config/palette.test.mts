@@ -40,8 +40,19 @@ import { T } from "./tokens.ts";
  * That is not hypothetical. `verify-email.ts` records two of exactly these -
  * "#f6f6f8 where the ground is #f6f6f7, #eceef2 where the rule is #ececee" -
  * which went "straight through a sweep that moved all 21 pages onto the
- * tokens". Both were found by hand, both were fixed by hand, and nothing was
- * left behind that would catch the third. This is the thing left behind.
+ * tokens".
+ *
+ * **One place in this tree already solved that, and it is worth saying which,
+ * because it narrows what is new here.** `email-render.test.mts` holds the
+ * email: "no colour outside the palette reaches the inbox" walks the rendered
+ * markup for a hex outside `E`, and "the email palette is the tokens, plus
+ * only its documented departures" pins `body:#3d4451` as the only literal
+ * allowed in it. Both are good and neither is replaced by anything here.
+ *
+ * What was missing is that **the denominator stopped at that one module.** It
+ * is `contact.test.mts` again - correct about every colour it named, reading
+ * one file - while 47 sites across twenty other files had nothing at all. The
+ * email was the only surface on this product whose palette was closed.
  *
  * It also needs no build, where `contrast.test.mts` skips without one: a value
  * typed into a server module never reaches a rendered page at all.
@@ -446,6 +457,16 @@ const round = (n: number) => Math.round(n * 100) / 100;
  * value was caught by rules 3 and 4 and never by this one, which is the
  * blind-tripwire recipe the queue names - when a test duplicates a value to
  * compare against, ask what reads the original.
+ *
+ * **Why this is not `email-render.test.mts`'s AA rule under another name.**
+ * That rule opens "Measured, not asserted from the doc comment. verify-email.ts
+ * claims '#3d4451 measures 9.79 on white where T.soft is 4.68' and both check
+ * out below" - and what it actually asserts is `r >= 4.5` on every pair. It is
+ * a floor, so it is true of `#5d6471` too, and the stated 9.79 would go on
+ * sitting in the comment beside a value that no longer produces it. The heading
+ * claims the join and the body asserts a bound, which is the same gap
+ * `input-bounds` records about its own "the bounds are the numbers the servers
+ * actually enforce". This is the join.
  */
 test("the email's deliberate departure still measures what it says it does", () => {
   const src = readFileSync(join(ROOT, "src/lib/scan/verify-email.ts"), "utf8");
