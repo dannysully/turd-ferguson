@@ -1,6 +1,17 @@
 import "server-only";
 
 import { type CitationCountRow, countCitedDomains } from "@/lib/coverage/citation-count";
+import {
+  type ReadingAnswer,
+  type ReadingQuestion,
+  type ReadingSource,
+  type ReadingSummary,
+  buildCoverage,
+  buildQuestions,
+  buildSources,
+  countNamed,
+  summariseReading,
+} from "@/lib/coverage/reading-figures";
 import { type Engine, isEngine } from "@/lib/scan/engines";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { selectAll } from "@/lib/supabase/page";
@@ -36,39 +47,12 @@ import { selectAll } from "@/lib/supabase/page";
  * say why.
  */
 
-export type ReadingAnswer = {
-  engine: Engine;
-  /** Did this engine answer at all. A false is a measured absence. */
-  answered: boolean;
-  /** Did the answer name the brand. Only meaningful when `answered`. */
-  brandNamed: boolean;
-};
-
-export type ReadingQuestion = {
-  idx: number;
-  kind: string;
-  question: string;
-  /** In the order the reading's engines were frozen, so the columns line up. */
-  answers: ReadingAnswer[];
-};
-
-export type ReadingSource = {
-  domain: string;
-  /** How many answers cited it, across every question and engine. */
-  citations: number;
-  /** True when this domain is in the coverage list uploaded for the campaign. */
-  placed: boolean;
-};
-
-
-/** One reading, as a row in the campaign's history. */
-export type ReadingSummary = {
-  id: string;
-  status: string;
-  takenAt: string | null;
-  named: number;
-  answers: number;
-};
+/**
+ * The row shapes moved to `reading-figures.ts` with the counting that produces
+ * them, and are re-exported here because this is where the pages import them
+ * from.
+ */
+export type { ReadingAnswer, ReadingQuestion, ReadingSource, ReadingSummary };
 
 export type CampaignReading = {
   campaign: {
@@ -197,7 +181,8 @@ export async function readCampaign(token: string): Promise<CampaignReading | nul
    * judged against, months later and silently, and the comparison the next
    * reading makes would be against a moving line.
    */
-  const [coverageRows, questionRows, answerRows, citationRows, historyAnswers] = await Promise.all([
+  const [coverageRows, questionRows, answerRows, citationRows, historyAnswers, historyQuestions] =
+    await Promise.all([
     selectAll<{ source_domain: string }>((from, to) =>
       db
         .from("campaign_coverage")
@@ -231,10 +216,36 @@ export async function readCampaign(token: string): Promise<CampaignReading | nul
         .order("id", { ascending: true })
         .range(from, to),
     ),
-    selectAll<{ scan_id: string; brand_named: boolean }>((from, to) =>
+    /**
+     * `engine` as well as `brand_named`, because the history is counted under
+     * the same rule as the headline now and that rule drops an engine value
+     * the `Engine` union does not know.
+     */
+    selectAll<{ scan_id: string; engine: string; brand_named: boolean }>((from, to) =>
       db
         .from("scan_answers")
-        .select("scan_id, brand_named")
+        .select("scan_id, engine, brand_named")
+        .in(
+          "scan_id",
+          rows.map((r) => r.id as string),
+        )
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
+    /**
+     * How many questions each past reading asked.
+     *
+     * The history denominator is `questions x engines`, the same as the
+     * headline's, and the engines are on the scan row already while the
+     * question count is not. One more select rather than counting the answer
+     * rows, because counting the rows is exactly the bug: an engine that
+     * stored nothing would leave the denominator and make a failed reading
+     * look like a better one.
+     */
+    selectAll<{ scan_id: string }>((from, to) =>
+      db
+        .from("scan_questions")
+        .select("scan_id")
         .in(
           "scan_id",
           rows.map((r) => r.id as string),
@@ -246,80 +257,41 @@ export async function readCampaign(token: string): Promise<CampaignReading | nul
 
   const placed = new Set(coverageRows.map((r) => r.source_domain));
 
-  const byQuestion = new Map<string, ReadingAnswer[]>();
-  for (const a of answerRows) {
-    if (!isEngine(a.engine)) continue;
-    const list = byQuestion.get(a.question_id) ?? [];
-    list.push({ engine: a.engine, answered: a.answered, brandNamed: a.brand_named });
-    byQuestion.set(a.question_id, list);
-  }
-
-  base.questions = [...questionRows]
-    .sort((a, b) => a.idx - b.idx)
-    .map((q) => {
-      const found = byQuestion.get(q.id) ?? [];
-      // Ordered by the reading's frozen engine list rather than by what came
-      // back, so every row has the same columns in the same order - including
-      // the rows where an engine returned nothing, which is a finding and has
-      // to keep its place rather than shortening the row.
-      const answers = engines.map(
-        (engine) => found.find((f) => f.engine === engine) ?? { engine, answered: false, brandNamed: false },
-      );
-      return { idx: q.idx, kind: q.kind, question: q.question, answers };
-    });
+  base.questions = buildQuestions(questionRows, answerRows, engines);
 
   /**
-   * Counted off `base.questions`, which is the grid the page itself renders.
-   *
-   * The denominator is what was asked, not what came back: questions times the
-   * engines this reading froze. An engine that answered nothing has to stay in
-   * the denominator or a reading where half the engines failed would report a
-   * better score than one where they all answered.
-   *
-   * The numerator used to be `answerRows.filter(a => a.brand_named).length` -
-   * every stored row, unfiltered - while the denominator was built from
-   * `engines`, which is `.filter(isEngine)`. Two counts of the same rows under
-   * two different rules, which is the hazard AGENTS.md names for the brand
-   * extractor and the source classifier. `ENGINES` and the `scan_engine` enum
-   * agree today, so nothing is currently miscounted; the day a migration adds
-   * an engine value before the union catches up, the denominator would shrink
-   * and the numerator would not, and the headline would read "named in 24 of
-   * 20". Reading both off the rendered grid makes them agree by construction
-   * rather than by two filters somebody could edit one half of.
+   * Counted off `base.questions`, which is the grid the page itself renders,
+   * and off nothing else. See `reading-figures.ts` for why both this and the
+   * history strip below have to come out of one function: they are the same
+   * reading counted twice on one page, and they used to disagree.
    */
-  const asked = base.questions.flatMap((q) => q.answers);
-  base.named = {
-    count: asked.filter((a) => a.brandNamed).length,
-    of: asked.length,
-  };
+  base.named = countNamed(base.questions);
 
   const counts = countCitedDomains(citationRows);
-  base.sources = [...counts.entries()]
-    .map(([domain, citations]) => ({ domain, citations, placed: placed.has(domain) }))
-    .sort((a, b) => b.citations - a.citations || a.domain.localeCompare(b.domain));
+  base.sources = buildSources(counts, placed);
+  base.coverage = buildCoverage(placed, counts);
 
-  base.coverage = {
-    uploaded: placed.size,
-    cited: [...placed].filter((d) => counts.has(d)).length,
-    uncited: [...placed].filter((d) => !counts.has(d)).sort(),
-  };
-
-  const namedPerScan = new Map<string, { named: number; answers: number }>();
+  const answersByScan = new Map<string, { engine: string; brand_named: boolean }[]>();
   for (const a of historyAnswers) {
-    const seen = namedPerScan.get(a.scan_id) ?? { named: 0, answers: 0 };
-    seen.answers++;
-    if (a.brand_named) seen.named++;
-    namedPerScan.set(a.scan_id, seen);
+    const list = answersByScan.get(a.scan_id) ?? [];
+    list.push({ engine: a.engine, brand_named: a.brand_named });
+    answersByScan.set(a.scan_id, list);
   }
+  const questionsByScan = new Map<string, number>();
+  for (const q of historyQuestions) {
+    questionsByScan.set(q.scan_id, (questionsByScan.get(q.scan_id) ?? 0) + 1);
+  }
+
   base.history = rows.map((r) => {
-    const seen = namedPerScan.get(r.id as string) ?? { named: 0, answers: 0 };
-    return {
-      id: r.id as string,
+    const id = r.id as string;
+    return summariseReading({
+      id,
       status: r.status as string,
       takenAt: (r.completed_at as string | null) ?? null,
-      named: seen.named,
-      answers: seen.answers,
-    };
+      engines: (r.engines as string[] | null) ?? [],
+      questionCount: questionsByScan.get(id) ?? 0,
+      answers: answersByScan.get(id) ?? [],
+    });
   });
 
   return base;
