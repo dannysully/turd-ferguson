@@ -3,6 +3,7 @@ import { OG_IMAGE } from "@/config/og";
 import Link from "next/link";
 
 import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
+import { PLACEHOLDER, coveragePrompts } from "@/lib/coverage/prompts";
 
 export const metadata: Metadata = {
   title: "Free campaign benchmark",
@@ -41,36 +42,22 @@ export const metadata: Metadata = {
  * the boards' own rule is that nothing loops.
  */
 
-type Prompt = { kind: string; q: string; why: string; weak?: boolean };
-
-const PROMPTS: Prompt[] = [
-  {
-    kind: "Identity",
-    q: "what does [Client brand] do",
-    why: "The description everything else is judged against.",
-  },
-  {
-    kind: "Capability",
-    q: "does [Client brand] offer [the thing you announced]",
-    why: "Whether the announcement has reached the answer at all.",
-  },
-  {
-    kind: "Category",
-    q: "who offers [the thing you announced] for [segment]",
-    why: "The buying question. Coverage that wins this one is worth repeating.",
-  },
-  {
-    kind: "Comparison",
-    q: "[Client brand] vs alternatives for [the thing you announced]",
-    why: "Where a competitor comparison page usually speaks for you.",
-  },
-  {
-    kind: "News",
-    q: "what has [Client brand] announced recently",
-    weak: true,
-    why: "Weakest of the five. Engines hedge on recency and may answer from memory rather than a source.",
-  },
-];
+/**
+ * The five questions, rendered from the template the benchmark itself will
+ * ask rather than from a copy of them kept here.
+ *
+ * They were listed twice - once as example copy on this page and, once the
+ * backend existed, once in the code that runs them. That is the shape of the
+ * bug this repo has already been bitten by, with the source classifier and the
+ * brand extractor judging the same domain differently. Here it would have been
+ * quieter and worse: the page advertising one set of questions and the
+ * benchmark running another, with nothing ever failing.
+ *
+ * Danny accepted the fixed template on 20 September 2026. Filling it with the
+ * placeholders is what makes this block a worked example rather than a
+ * measurement of anyone real - the square brackets are deliberate and stay.
+ */
+const PROMPTS = coveragePrompts(PLACEHOLDER);
 
 const PROMISES: { k: string; t: string; b: string }[] = [
   {
@@ -211,11 +198,11 @@ export default function CoverageCheckPage() {
             what makes every row inside it the board's own interval. */}
         <div style={{ ...CARD, overflow: "hidden", ["--ac-stagger" as string]: "0.07s" } as React.CSSProperties}>
           {PROMPTS.map((q, i) => (
-            <div key={q.q} className="cc-prompt ac-row" style={{ padding: "14px 26px", borderTop: i ? `1px solid ${T.hair}` : undefined, alignItems: "baseline" }}>
+            <div key={q.question} className="cc-prompt ac-row" style={{ padding: "14px 26px", borderTop: i ? `1px solid ${T.hair}` : undefined, alignItems: "baseline" }}>
               <div>
                 <span className="ac-stamp" style={q.weak ? pill(T.warnBg, T.warnFg) : pill(T.chip, T.soft)}>{q.kind}</span>
               </div>
-              <div style={{ fontSize: "14px", color: T.ink }}>{q.q}</div>
+              <div style={{ fontSize: "14px", color: T.ink }}>{q.question}</div>
               <div style={{ fontSize: "12.5px", lineHeight: 1.5, color: T.soft }}>{q.why}</div>
             </div>
           ))}
