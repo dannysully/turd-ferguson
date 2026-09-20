@@ -20,13 +20,24 @@ import type { MetadataRoute } from "next";
  * listed as a bare address, which is worse than the noindex it already
  * carries.
  *
+ * `/coverage-check/<token>` is the same page one product along, and it was
+ * missing from this list until 20 September. Its own source says "Every one of
+ * these is somebody's own campaign, with a client brand and an uploaded
+ * coverage list on it" - word for word the exposure the paragraph above
+ * describes - and it shipped with the noindex meta tag alone, because the
+ * campaign benchmark was built after this file and nothing here can see a
+ * route appear. Closed on the same trailing slash and for the same reason, so
+ * the bare `/coverage-check` entry page stays open and in the sitemap.
+ * `route-closure.test.mts` now derives the whole set from source and fails
+ * when the next private route arrives with one of its three closures.
+ *
  * /api/ returns the same data as JSON and carries no tag at all.
  *
  * /admin/ answers 401 to everyone via proxy.ts, so that line changes nothing
  * today. It is here so that the day the auth moves, the crawl rule does not
  * have to be remembered separately.
  */
-const CLOSED = ["/scan/", "/api/", "/admin/"];
+const CLOSED = ["/scan/", "/coverage-check/", "/api/", "/admin/"];
 
 const AGENTS = [
   "*",

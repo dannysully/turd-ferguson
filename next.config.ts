@@ -167,10 +167,29 @@ const nextConfig: NextConfig = {
     const csp = { key: "content-security-policy", value: CSP };
     const noIndex = { key: "x-robots-tag", value: "noindex, nofollow" };
 
+    /**
+     * `/coverage-check/:path+` and `/admin/:path*` joined this list on
+     * 20 September, both found by `route-closure.test.mts` rather than by
+     * reading.
+     *
+     * The coverage-check one is the live gap: a campaign reading renders a
+     * client brand and an uploaded coverage list, exactly as `/scan/<token>`
+     * does, and it had the noindex meta tag and nothing else. `:path+` for the
+     * same reason /scan uses it - the bare `/coverage-check` page is public,
+     * indexable and in the sitemap, and only the states with a token under
+     * them are private.
+     *
+     * The admin one changes nothing today, because proxy.ts answers 401 before
+     * anything renders. It is here on the argument robots.ts already makes for
+     * its own `/admin/` line: the day the auth moves, the directive should not
+     * have to be remembered separately.
+     */
     return [
       { source: "/:path*", headers: [...baseline, csp] },
       { source: "/api/:path*", headers: [noIndex] },
       { source: "/scan/:path+", headers: [noIndex] },
+      { source: "/coverage-check/:path+", headers: [noIndex] },
+      { source: "/admin/:path*", headers: [noIndex] },
     ];
   },
 };
