@@ -7,18 +7,26 @@ import { z } from "zod";
 import { QUESTIONS } from "@/config/scan-shape";
 
 import type { Market } from "./domain";
+import { countingFetch, withRetry } from "./retry-policy";
 
 const MODEL = "claude-opus-5";
 
 /**
  * These are short extraction and generation tasks with explicit rules, so low
- * effort is the right setting: it keeps the three calls inside the scan's 90
- * second budget without trading away accuracy.
+ * effort is the right setting: it keeps the five model calls in this file
+ * inside the scan's budget without trading away accuracy.
+ *
+ * Five, not three - `readBrand`, `generateQuestions`, `extractBrands`,
+ * `classifyBrands` and `classifySourceDomains`. The count said three while the
+ * file had carried five for some time, which is the drifted-count species: the
+ * number is not the point, the point is that "every call here is low effort"
+ * was a census carried in prose with nothing executing it.
+ * `retry-policy.test.mts` walks the `messages.parse` calls and holds it.
  */
 const EFFORT = "low" as const;
 
 let client: Anthropic | null = null;
-function anthropic(): Anthropic {
+function baseClient(): Anthropic {
   if (client) return client;
   if (!process.env.ANTHROPIC_API_KEY) {
     throw new Error("ANTHROPIC_API_KEY must be set. The scan cannot read a site without it.");
@@ -28,64 +36,54 @@ function anthropic(): Anthropic {
 }
 
 /**
- * Two retries on an overloaded or rate limited model, backing off between them.
+ * The client every model call in this file goes through, billing onto `billed`.
  *
- * A 529 is capacity, not a bad request, and it lands often enough to matter:
- * the question set is the one call a visitor is waiting on on the first screen
- * of the funnel, so failing it outright costs the scan. It 529ed three times in
- * one testing session, which is more than a single retry covers - two attempts
- * against a dependency that flaky still leaves the visitor at a dead end more
- * often than it should.
+ * `withOptions` clones the client with a wrapped `fetch`, so the tally is taken
+ * below the SDK rather than above it. The SDK retries 408, 409, 429, every 5xx
+ * and a connection error twice of its own before an error surfaces to
+ * `withRetry` - `maxRetries` defaults to 2 - so counting at the `withRetry`
+ * layer counted one request where three had gone out. `retry-policy.ts` carries
+ * why that matters to a spend ceiling rather than to a log line.
  *
- * Backed off rather than immediate: a second call fired 1.5s into a capacity
- * wobble tends to meet the same wobble. Worst case this adds about five and a
- * half seconds before giving up, which is spent under a screen that says it is
- * writing the questions - and a visitor who waited is worth more than one who
- * was told no.
- *
- * Anything else - a bad request, a bad key - is thrown at once, because a
- * retry cannot fix it.
- *
- * Also wrapped: the three batched calls that run after every engine read has
- * already been paid for - brand extraction, brand judgement and source
- * classification. All three sit inside a never-fatal catch, so a 529 there
- * does not fail the scan the way it would here. It quietly shortens the
- * leaderboard or the placement list instead, which is the failure worth
- * retrying hardest rather than the one worth retrying least.
- *
- * The cost is bounded: about 5.5s per failed batch, batches per scan run to
- * single figures, and the whole run is already capped at five minutes.
+ * The global `fetch` underneath, because that is what the base client is
+ * already using: the SDK sets `this.fetch = options.fetch ?? getDefaultFetch()`
+ * and `baseClient` passes no options, so the two are the same function. Its own
+ * `fetch` cannot be read back - the property is private - so the equality is
+ * held by rule 4 of `retry-policy.test.mts` instead, which fails if the
+ * construction ever gains a `fetch` of its own and leaves this wrapping the
+ * wrong one.
  */
-async function withRetry<T>(
-  fn: () => Promise<T>,
-  /**
-   * Incremented once per attempt, before the attempt is made.
-   *
-   * A retry is a second request and Anthropic bills it like one, so a counter
-   * that only ever hears about the attempt that worked reports a scan as
-   * cheaper than it was. Counted before the await for the same reason the
-   * DataForSEO call in the pipeline is: by the time this throws, the request
-   * has already gone out. The three-529s-in-one-session run this retry exists
-   * for is exactly the run whose cost went unrecorded.
-   */
-  billed?: { calls: number },
-  waits = [1500, 4000],
-): Promise<T> {
-  let lastErr: unknown;
-  for (let attempt = 0; attempt <= waits.length; attempt++) {
-    try {
-      if (billed) billed.calls += 1;
-      return await fn();
-    } catch (err) {
-      lastErr = err;
-      const status = (err as { status?: number } | null)?.status;
-      const retryable = status === 429 || (typeof status === "number" && status >= 500);
-      if (!retryable || attempt === waits.length) throw err;
-      await new Promise((r) => setTimeout(r, waits[attempt]));
-    }
-  }
-  throw lastErr;
+function anthropic(billed?: { calls: number }): Anthropic {
+  const base = baseClient();
+  if (!billed) return base;
+  return base.withOptions({ fetch: countingFetch(billed, fetch) });
 }
+
+/**
+ * `withRetry` is the outer of TWO retry layers and is now in `retry-policy.ts`.
+ *
+ * It lived here and could not be loaded by `node --test`, so the policy under
+ * every model call this product makes had no check on it and the sentence it
+ * carried was wrong in both halves. Read that file: the SDK's own `maxRetries`
+ * defaults to 2, so one `withRetry` call is up to nine requests rather than
+ * three, and the SDK obeys a `retry-after` header with no ceiling of ours.
+ *
+ * What is worth keeping here is which of these five calls it protects and how
+ * they differ. `generateQuestions` is the one a visitor is waiting on on the
+ * first screen of the funnel, so a failure costs the scan outright. The three
+ * batched calls that run after every engine read has already been paid for -
+ * brand extraction, brand judgement and source classification - sit inside a
+ * never-fatal catch, so a 529 in one of them does not fail the scan the way it
+ * would there. It quietly shortens the leaderboard or the placement list,
+ * which is the failure worth retrying hardest rather than the one worth
+ * retrying least.
+ *
+ * The cost is bounded by the run, not by the arithmetic here: the batch count
+ * scales with what the engines gave back (`CLASSIFY_BATCH` is 50 and the header
+ * over it sizes a 400-source scan at eight batches), and each failed one costs
+ * the SDK's backoff plus 5.5s. What holds it is `RUN_TIMEOUT` and the platform
+ * cap above it, which is the ladder `run-steps.ts` records.
+ */
 
 /** Turns SDK errors into one readable message, keeping the retryable ones distinguishable. */
 export function describeAnthropicError(err: unknown): string {
@@ -117,12 +115,14 @@ export async function readBrand(siteText: string, billed?: { calls: number }): P
   // Retried for the same reason the question set is: this is the first thing a
   // visitor does, and a 529 here reads to them as "your site cannot be read".
   //
-  // The counter is passed through now. A retry is a second request and
-  // Anthropic bills it like one, and this was the one withRetry site with no
-  // sink for the count: the scan row recorded a flat 1 however many attempts
-  // went out. The run this retry exists for is exactly the run whose cost went
-  // unrecorded, and daily_cost_cap_usd is read off that column.
-  const res = await withRetry(() => anthropic().messages.parse({
+  // The counter goes to the client rather than to withRetry now. A retry is a
+  // second request and this was the one site with no sink for the count at all:
+  // the scan row recorded a flat 1 however many attempts went out. It then had
+  // the sink and still undercounted, because withRetry sees attempts and the
+  // SDK retries twice inside each one - see `retry-policy.ts`. The run this
+  // retry exists for is exactly the run whose cost went unrecorded, and
+  // daily_cost_cap_usd is read off that column.
+  const res = await withRetry(() => anthropic(billed).messages.parse({
     model: MODEL,
     max_tokens: 4000,
     output_config: { effort: EFFORT, format: zodOutputFormat(BrandRead) },
@@ -157,7 +157,7 @@ export async function readBrand(siteText: string, billed?: { calls: number }): P
       "Set confidence to low when the site does not make the category clear.",
     ].join("\n"),
     messages: [{ role: "user", content: `Website text:\n\n${siteText}` }],
-  }), billed);
+  }));
 
   const out = res.parsed_output;
   if (!out) throw new Error("could not read the brand from that site");
@@ -257,7 +257,7 @@ export async function generateQuestions(input: {
   // result says nothing about how this brand is actually positioned.
   const variants = (input.topicVariants ?? []).filter((v) => v.trim()).slice(0, TOPIC_VARIANT_COUNT);
 
-  const res = await withRetry(() => anthropic().messages.parse({
+  const res = await withRetry(() => anthropic(billed).messages.parse({
     model: MODEL,
     max_tokens: 8000,
     output_config: { effort: EFFORT, format: zodOutputFormat(QuestionSet) },
@@ -320,7 +320,7 @@ export async function generateQuestions(input: {
         ].join("\n"),
       },
     ],
-  }), billed);
+  }));
 
   const out = res.parsed_output;
   if (!out?.questions?.length) throw new Error("could not build the question set");
@@ -434,7 +434,7 @@ async function extractBrandBatch(
   context: { topic: string; brand: string },
   billed: { calls: number },
 ): Promise<{ brand: string; mentions: number }[]> {
-  const res = await withRetry(() => anthropic().messages.parse({
+  const res = await withRetry(() => anthropic(billed).messages.parse({
     model: MODEL,
     /**
      * The same 8,000 as before, and it means something different now.
@@ -470,7 +470,7 @@ async function extractBrandBatch(
           .join("\n\n"),
       },
     ],
-  }), billed);
+  }));
 
   return res.parsed_output?.brands ?? [];
 }
@@ -548,7 +548,7 @@ async function judgeBrandBatch(
   names: string[],
   billed: { calls: number },
 ): Promise<z.infer<typeof BrandJudgement>["brands"]> {
-  const res = await withRetry(() => anthropic().messages.parse({
+  const res = await withRetry(() => anthropic(billed).messages.parse({
     model: MODEL,
     // Headroom per row, so the ceiling is a function of the batch.
     max_tokens: Math.min(8000, 600 + names.length * 60),
@@ -600,7 +600,7 @@ async function judgeBrandBatch(
           .join("\n"),
       },
     ],
-  }), billed);
+  }));
 
   return res.parsed_output?.brands ?? [];
 }
@@ -680,8 +680,10 @@ export async function classifySourceDomains(input: {
     try {
       sources.push(...(await classifyBatch(input, batch, billed)));
     } catch (err) {
-      // One bad batch must not cost the other four their classification, and
-      // its domains must not fall through to a default verdict downstream.
+      // One bad batch must not cost the others their classification, and its
+      // domains must not fall through to a default verdict downstream. Not "the
+      // other four": the batch count is `domains.length / CLASSIFY_BATCH` and
+      // the header above sizes a 400-source scan at eight.
       unassessed.push(...batch.map((d) => d.domain));
       console.warn("[scan] a source batch failed to classify:", err instanceof Error ? err.message : err);
     }
@@ -694,7 +696,7 @@ async function classifyBatch(
   domains: { domain: string; pages: { url: string | null; title: string | null }[] }[],
   billed: { calls: number },
 ): Promise<z.infer<typeof SourceJudgement>["sources"]> {
-  const res = await withRetry(() => anthropic().messages.parse({
+  const res = await withRetry(() => anthropic(billed).messages.parse({
     model: MODEL,
     // Headroom per row, so the ceiling scales with the batch rather than
     // being a number somebody picked once.
@@ -750,7 +752,7 @@ async function classifyBatch(
         ].join("\n"),
       },
     ],
-  }), billed);
+  }));
 
   return res.parsed_output?.sources ?? [];
 }
