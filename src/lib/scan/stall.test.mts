@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { test } from "node:test";
 
 import { isFreePassDead, isGatedPassDead, stallCutoffIso, stallStamp, STALL_AFTER_MS } from "./stall.ts";
@@ -108,14 +108,96 @@ test("the status poll and the page render both route the status through the judg
     const src = read(path);
     assert.match(src, /isFreePassDead\(/, path + " must judge the free pass rather than report the column");
     assert.match(src, /isGatedPassDead\(/, path + " must judge the gated pass rather than report the column");
-    // Both judgements need the stamps in the select, and a missing column comes
-    // back undefined rather than throwing - so the judgement would silently
-    // answer false for every row and the bug would be back with the helper
-    // still in place, which is the failure this pair of checks is really for.
-    assert.match(src, /started_at/, path + " must select started_at");
-    assert.match(src, /queued_at/, path + " must select queued_at");
-    assert.match(src, /unlocked_at/, path + " must select unlocked_at");
   }
+});
+
+/**
+ * And every OTHER caller selects the stamps its judgement reads.
+ *
+ * The rule above is right about the two surfaces it names, and those two were
+ * the paths the original bug was on. **It also carried the stamp requirement,
+ * against a list of two typed paths** - and four files in this tree call a
+ * stall judgement. `confirm/route.ts` and `coverage-check/[token]/rerun/
+ * route.ts` were in nobody's list.
+ *
+ * That is the failure the rule above states in its own comment and then does
+ * not sweep for: **a missing column comes back `undefined` rather than
+ * throwing**, so the judgement silently answers `false` for every row and the
+ * bug is back with the helper still in place. TypeScript does not catch it
+ * either - every stamp in both signatures is optional, deliberately, because
+ * the callers pass partial selects. So the select is the only thing standing
+ * between a dead pass and a route that decides whether to start a paid one.
+ *
+ * Both unnamed callers are correct today, checked 20 Sep: each calls one
+ * judgement and selects exactly that judgement's stamps. Nothing is broken.
+ * What was missing is anything that would notice.
+ *
+ * **Two typed denominators removed rather than one.** The callers are walked,
+ * and the stamps each judgement needs are read out of `stall.ts`'s own
+ * signatures - so adding a stamp to a judgement requires it at every call site
+ * with no edit here. Typing the stamp list would have rebuilt the same defect
+ * one level in, which is the species `69a2167` and `14ce56d` are both about.
+ */
+const JUDGEMENTS = ["isFreePassDead", "isGatedPassDead"] as const;
+
+/** The row fields a judgement reads, off its own parameter type. */
+function stampsOf(stallSource: string, fn: string): string[] {
+  const sig = new RegExp(`export function ${fn}\\(\\s*row:\\s*\\{([^}]*)\\}`).exec(stallSource);
+  assert.ok(sig, `${fn} no longer declares an inline row type - this parse, not the tree, is what changed`);
+  return [...sig[1]!.matchAll(/(\w+_at)\??:/g)].map((m) => m[1]!);
+}
+
+test("every caller of a stall judgement selects the stamps that judgement reads", () => {
+  const stall = read("src/lib/scan/stall.ts");
+  const needs = Object.fromEntries(JUDGEMENTS.map((fn) => [fn, stampsOf(stall, fn)]));
+  for (const fn of JUDGEMENTS) {
+    assert.ok(needs[fn]!.length > 0, `${fn} reads no stamp - the parse above has gone blind`);
+  }
+
+  const callers: { file: string; src: string }[] = [];
+  (function walk(dir: string, prefix: string) {
+    for (const entry of readdirSync(new URL("../../../" + dir, import.meta.url), { withFileTypes: true })) {
+      const rel = `${prefix}${entry.name}`;
+      if (entry.isDirectory()) walk(`${dir}/${entry.name}`, `${rel}/`);
+      else if (/\.tsx?$/.test(entry.name) && !entry.name.includes(".test.")) {
+        const src = read(rel);
+        // `stall.ts` declares them; it is not a caller of itself.
+        if (rel !== "src/lib/scan/stall.ts" && JUDGEMENTS.some((fn) => src.includes(fn + "("))) {
+          callers.push({ file: rel, src });
+        }
+      }
+    }
+  })("src", "src/");
+
+  // A walk that stopped walking finds no caller, and no caller is also what a
+  // clean sweep looks like. The floor is what tells the two apart.
+  assert.ok(callers.length >= 4, `only ${callers.length} callers found - the walk, not the tree, is what changed`);
+
+  const missing: string[] = [];
+  for (const { file, src } of callers) {
+    for (const fn of JUDGEMENTS) {
+      if (!src.includes(fn + "(")) continue;
+      for (const stamp of needs[fn]!) {
+        // Word-bounded, not a substring. `started_at` occurs inside
+        // `gated_started_at`, which `spend.ts` stamps and which is a different
+        // column on the same table - so a bare `includes` is satisfied by a
+        // caller that selects the gated stamp and drops the free one. Not live
+        // today (checked: no caller selects `gated_started_at`), and it was the
+        // shape of the rule this replaces. `_` is a word character, so `\b`
+        // does not match inside `gated_started_at` and the narrowing is real.
+        if (!new RegExp(`\\b${stamp}\\b`).test(src)) {
+          missing.push(`${file} calls ${fn} and never selects ${stamp}`);
+        }
+      }
+    }
+  }
+
+  assert.deepEqual(
+    missing,
+    [],
+    "a stall judgement is handed a row without the column it reads, which answers false silently:\n" +
+      missing.map((s) => `  ${s}`).join("\n"),
+  );
 });
 
 test("the confirm route stamps queued_at and closes a dead pass before it refuses one", () => {
