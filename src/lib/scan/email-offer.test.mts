@@ -20,6 +20,12 @@ import { RUN_STEPS, STEP, STEP_INDEX } from "./run-steps.ts";
  * correctly, because an address unlocks those. This panel takes an address for
  * something free that is already on the visitor's screen, and a sentence
  * borrowed from the gate would be a promise the mail does not keep.
+ *
+ * **What the last rule in this file cannot see:** it matches the heading
+ * exactly, so a near-copy differing by a comma passes. That is the limit of a
+ * string compare and it is not worth a fuzzy match - the defect it is written
+ * for is a copy-paste, which is exact by definition. Stated so the next run
+ * does not read a green as "nothing anywhere repeats this copy".
  */
 
 const ROOT = new URL("../../../", import.meta.url).pathname;

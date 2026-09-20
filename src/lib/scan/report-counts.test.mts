@@ -21,6 +21,16 @@ import { type CountableAnswer, reportCounts } from "./report-counts.ts";
  * Item 5 needed the identical five for a second sender, and a second copy of a
  * counting rule is the species this repo keeps paying for. One function, two
  * senders, and this is the thing that runs it.
+ *
+ * ## What the sender walk below cannot see, stated rather than discovered later
+ *
+ * It matches `sendReportReadyEmail\s*\(`, so **an aliased import is invisible**
+ * - `import { sendReportReadyEmail as mail }` and a call to `mail(...)` would
+ * pass. Nothing in this tree aliases an import today (measured, not assumed),
+ * and `mail-doors.test.mts`'s call-site walk has the identical limit for the
+ * identical reason. Recorded because the alternative to recording it is the
+ * next run believing the walk is complete - which is precisely how the mail
+ * door this feature added came to be green in two sweeps at once.
  */
 
 const ROOT = new URL("../../../", import.meta.url).pathname;

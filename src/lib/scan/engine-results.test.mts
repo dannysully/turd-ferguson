@@ -154,29 +154,89 @@ test("the gated pass leaves the landed engines alone", () => {
 });
 
 /**
- * Every reader of the column parses it.
+ * Every `.update({ ... })` payload in a file, sliced out by its own braces.
  *
- * The denominator is derived - each file that reads `.engine_results` off
- * anything - because the next surface to read this poll response is the one
- * this rule needs to cover and it does not exist yet. A property access is the
- * read; `engine_results: rows` in the pipeline is the write and is not one.
+ * **A key in an object literal is not enough to tell a database write from a
+ * JSON response, and both rules below were wrong about that in turn.** The
+ * writer rule matched `engine_results\s*:` and reported the status route as a
+ * second writer, because that route's *response* carries the column as a key.
+ * The reader rule then inherited the same test as its write exemption - and
+ * that was worse than wrong, it was a regression: a status route sending
+ * `data.engine_results` raw still has the key, so it counted as a write and the
+ * case that used to be CAUGHT came back MISSED. Found by re-running the harness
+ * after widening the rule, which is the only reason it was found at all.
+ *
+ * Brace-matched rather than read off a line window, which is the standing rule
+ * here: a window is a number somebody has to keep in step with the block, and
+ * it fails flattering when a call drifts past it.
+ */
+function updatePayloads(src: string): string[] {
+  const out: string[] = [];
+  for (const m of src.matchAll(/\.update\(/g)) {
+    const open = src.indexOf("{", m.index);
+    if (open === -1) continue;
+    let depth = 0;
+    for (let i = open; i < src.length; i++) {
+      if (src[i] === "{") depth++;
+      else if (src[i] === "}" && --depth === 0) {
+        out.push(src.slice(open, i + 1));
+        break;
+      }
+    }
+  }
+  return out;
+}
+
+/** Does this file write the column to the database, as opposed to naming it? */
+function writesColumn(src: string): boolean {
+  return updatePayloads(src).some((p) => /\bengine_results\b/.test(p));
+}
+
+test("exactly one file writes the column to the database", () => {
+  const writers = sourceFiles(ROOT)
+    .map((f) => ({ f, src: code(readFileSync(join(ROOT, f), "utf8")) }))
+    .filter(({ src }) => writesColumn(src))
+    .map(({ f }) => f);
+
+  assert.deepEqual(
+    writers,
+    ["src/lib/scan/pipeline.ts"],
+    "a second writer would overwrite the free pass's verdicts - see the migration and onEngines",
+  );
+});
+
+/**
+ * Every file that names the column either parses it or writes it.
  *
  * It matters because the value is JSON off a column keyed into a lookup, which
  * is exactly the shape `STEP_INDEX` was rewritten for. There it froze a
  * progress bar. Here it would draw a sentence about what an engine found.
+ *
+ * ## The hole this had when it was written, asked of it in the same run
+ *
+ * The first version matched `\.engine_results\b` - the property access - and
+ * treated `engine_results: rows` as a write by construction. **A destructured
+ * read has neither shape**: `const { engine_results } = data` names the column,
+ * takes the JSON at its word, and matched nothing. The rule would have been
+ * green on the idiom a reader is most likely to reach for.
+ *
+ * So the match is the bare identifier, and the write exemption is
+ * `writesColumn` - a brace-matched `.update(` payload - rather than a key in
+ * any object literal. See that helper's header for why: the cheap version of
+ * this exemption made the rule *weaker* than the one it replaced.
  */
-test("nothing reads the column without passing it through parseEngineResults", () => {
-  const readers = sourceFiles(ROOT).filter((f) =>
-    /\.engine_results\b/.test(code(readFileSync(join(ROOT, f), "utf8"))),
-  );
-  assert.ok(
-    readers.length >= 2,
-    `only ${readers.length} file(s) read .engine_results - this rule has gone blind`,
-  );
-  const raw = readers.filter(
-    (f) => !/parseEngineResults\(/.test(code(readFileSync(join(ROOT, f), "utf8"))),
-  );
-  assert.deepEqual(raw, [], "these take the column's JSON at its word");
+test("every file naming the column either parses it or writes it", () => {
+  const named = sourceFiles(ROOT)
+    .filter((f) => !f.endsWith("src/lib/scan/engine-results.ts"))
+    .map((f) => ({ f, src: code(readFileSync(join(ROOT, f), "utf8")) }))
+    .filter(({ src }) => /\bengine_results\b/.test(src));
+
+  assert.ok(named.length >= 3, `only ${named.length} file(s) name the column - this rule has gone blind`);
+
+  const loose = named
+    .filter(({ src }) => !/parseEngineResults\s*\(/.test(src) && !writesColumn(src))
+    .map(({ f }) => f);
+  assert.deepEqual(loose, [], "these name the column and neither parse it nor write it");
 });
 
 /* ── 2. What the numbers are counted over ── */
