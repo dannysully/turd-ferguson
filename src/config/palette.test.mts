@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
@@ -88,9 +88,25 @@ const ROOT = join(fileURLToPath(import.meta.url), "..", "..", "..");
  * blocked.md 31 is open on. The queue's own rule is that the stylesheet is a
  * fourth surface every page sweep here was blind to, so a palette census that
  * skipped it would be making the same mistake one file along.
+ *
+ * **The stylesheets are walked for, not typed.** The first draft of this file
+ * wrote `["src/app/globals.css"]`, which is a hand-typed denominator *inside* a
+ * rule - the species the queue records paying for three times in one sitting,
+ * and it fails in the flattering direction: a second stylesheet would join the
+ * tree carrying any colour it liked and this sweep would go on reporting one
+ * palette. There is exactly one today, and that is a fact the walk re-derives
+ * rather than a fact this file asserts.
  */
-const STYLESHEETS = ["src/app/globals.css"];
-const FILES = [...sourceFiles(ROOT), ...STYLESHEETS].filter((f) => !f.endsWith("config/tokens.ts"));
+function stylesheets(dir = "src", out: string[] = []): string[] {
+  for (const entry of readdirSync(join(ROOT, dir), { withFileTypes: true })) {
+    const rel = `${dir}/${entry.name}`;
+    if (entry.isDirectory()) stylesheets(rel, out);
+    else if (/\.(css|scss|sass|less)$/.test(entry.name)) out.push(rel);
+  }
+  return out;
+}
+
+const FILES = [...sourceFiles(ROOT), ...stylesheets()].filter((f) => !f.endsWith("config/tokens.ts"));
 
 /**
  * A colour literal.
@@ -315,6 +331,18 @@ test("the scanner still finds the colour literals it found when this was written
   // shape `input-bounds` was in when it lost `<textarea>`.
   assert.ok(found.some((s) => s.value.startsWith("#")), "no hex value found at all - the scanner is broken");
   assert.ok(found.some((s) => s.value.startsWith("rgba(")), "no rgba() value found - the scanner has lost a form");
+
+  // And that the stylesheet half of the walk still finds one. A `.css` walk
+  // that returns nothing reads exactly like a tree whose stylesheet is clean,
+  // and three of the values on the list below are only in that file.
+  assert.ok(
+    stylesheets().length >= 1,
+    "the stylesheet walk found no stylesheet at all, so every colour set in CSS is outside this census",
+  );
+  assert.ok(
+    found.some((s) => s.file.endsWith(".css")),
+    "no off-palette value was found in any stylesheet, and three are recorded there - the stylesheet half of the walk has gone blind",
+  );
 });
 
 /**
