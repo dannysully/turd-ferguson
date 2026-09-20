@@ -87,6 +87,47 @@ function isComment(line: string): boolean {
   return t.startsWith("*") || t.startsWith("//") || t.startsWith("/*");
 }
 
+/**
+ * Which lines of a file are comment rather than shipped text.
+ *
+ * `isComment` reads one line at a time and knows `//`, `/*` and the `*`
+ * continuation of a JSDoc block. It does not know `{/​* ... *​/}`, the JSX
+ * comment form - which is the form most comments in this repo's .tsx files
+ * take, because it is the only one that works inside markup. Its second and
+ * later lines start with ordinary prose and so read as shipped text.
+ *
+ * The header of this file promises comments are not covered. That promise was
+ * false for .tsx, and not theoretically: on 20 Sep `typedEngines` failed on a
+ * JSX comment in RequestScanForm.tsx that explained the line above it had
+ * promised "three of the four engines". The sweep read the explanation of the
+ * defect as the defect, which is the one way a rule can punish writing the
+ * reason down.
+ *
+ * Block state is tracked over `{/*` only, never over a bare `/*`. A `/*` inside
+ * a string, a regex or a URL therefore cannot swallow the rest of a file -
+ * which is the failure that would make this sweep quietly stop reporting, and
+ * is worse than the over-reporting it replaces.
+ */
+function commentLines(lines: string[]): Set<number> {
+  const out = new Set<number>();
+  let open = false;
+  for (let i = 0; i < lines.length; i++) {
+    const t = lines[i].trim();
+    if (open) {
+      out.add(i);
+      if (t.includes("*/")) open = false;
+      continue;
+    }
+    if (t.startsWith("{/*")) {
+      out.add(i);
+      if (!t.includes("*/")) open = true;
+      continue;
+    }
+    if (isComment(lines[i])) out.add(i);
+  }
+  return out;
+}
+
 // ------------------------------------------------------------ the brand word
 
 /**
@@ -218,9 +259,10 @@ export function typedCounts(
 ): Hit[] {
   const out: Hit[] = [];
   const lines = source.split("\n");
+  const comments = commentLines(lines);
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    if (isComment(line)) continue;
+    if (comments.has(i)) continue;
     const prose = line.replace(CSS_LENGTH, " ");
     const hit = counts.some(({ value }) => {
       const digit = new RegExp(`\\b${value}\\b`).test(prose) && /question/i.test(line) && !HOMES.has(file);
@@ -270,8 +312,9 @@ export function typedEngines(source: string, file: string): Hit[] {
   if (Object.hasOwn(ENGINE_EXEMPT, file)) return [];
   const out: Hit[] = [];
   const lines = source.split("\n");
+  const prose = commentLines(lines);
   for (let i = 0; i < lines.length; i++) {
-    if (isComment(lines[i])) continue;
+    if (prose.has(i)) continue;
     if (ENGINE_COUNT.test(lines[i])) out.push({ file, line: i + 1, text: lines[i].trim() });
   }
   return out;
@@ -301,8 +344,9 @@ export function typedPrices(source: string, file: string): Hit[] {
   if (Object.hasOwn(PRICE_EXEMPT, file)) return [];
   const out: Hit[] = [];
   const lines = source.split("\n");
+  const prose = commentLines(lines);
   for (let i = 0; i < lines.length; i++) {
-    if (isComment(lines[i])) continue;
+    if (prose.has(i)) continue;
     if (PRICE.test(lines[i])) out.push({ file, line: i + 1, text: lines[i].trim() });
   }
   return out;
@@ -411,6 +455,37 @@ test("each rule can still see what it is looking for", () => {
   assert.deepEqual(typedEngines("<span>{FREE_ENGINE_COUNT} engines, {ANSWERS} answers.</span>", "x.tsx"), []);
   // Worked arithmetic for a maintainer is prose, as it is for the counts.
   assert.deepEqual(typedEngines(" * fourteen questions across four engines is 56 reads", "x.tsx"), []);
+
+  /**
+   * A JSX comment is a comment, including its second and later lines.
+   *
+   * This is the case the sweep got wrong until 20 Sep. `{/​*` opens a block and
+   * the continuation lines carry no marker of their own, so every line below
+   * the first read as shipped text - and the rule fired on a comment whose
+   * whole subject was the engine count it was explaining.
+   *
+   * Asserted in both directions, because a fix that simply swallowed
+   * everything after a `{` would pass the first of these and hide the tree.
+   */
+  assert.deepEqual(
+    typedEngines(
+      ["      {/* The line below promised three engines and the set holds four.", "          Derived now. */}"].join("\n"),
+      "x.tsx",
+    ),
+    [],
+    "a JSX comment's continuation lines are still comment",
+  );
+  assert.deepEqual(
+    say(typedEngines(["      {/* opened and closed here. */}", "      <span>Three engines.</span>"].join("\n"), "x.tsx")),
+    ["x.tsx:2 <span>Three engines.</span>"],
+    "a closed JSX comment must not blind the rule to the code after it",
+  );
+  assert.deepEqual(
+    say(typedEngines(['const u = "https://x.test/*"; // not a block', "<span>Three engines.</span>"].join("\n"), "x.tsx")),
+    ["x.tsx:2 <span>Three engines.</span>"],
+    "a bare /* in a string must not open a comment block",
+  );
+
   for (const home of Object.keys(ENGINE_EXEMPT)) {
     assert.deepEqual(typedEngines('export const FREE_ENGINES = ["a"]; // four engines', home), [], `${home} is exempt and stayed exempt`);
   }

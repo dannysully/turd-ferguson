@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { requestScan } from "@/app/actions/waitlist";
+import { FREE_ENGINE_LABELS, listOf } from "@/config/scan-shape";
 import { T } from "@/config/tokens";
 
 import { DomainScreen, TopicScreen, btn, field, label } from "./screens";
@@ -106,9 +107,18 @@ export default function RequestScanForm({ initialDomain = "" }: { initialDomain?
           <h2 style={{ fontSize: "1rem", fontWeight: 700, color: T.ink, margin: "0 0 0.5rem", lineHeight: 1.45 }}>
             Automatic checks switch on shortly.
           </h2>
+          {/* The engine names were typed here - "Google AI Overviews, ChatGPT
+              and Gemini" - and had been wrong since 3586cbf moved Perplexity
+              into the free set, so this promised three of the four engines the
+              report actually carries while calling it "the same report".
+              `typedEngines` in copy.test.mts could not see it: that sweep
+              matches a *count* in front of the word "engines", and this line
+              has no count in it. Derived now, from the same pair
+              /coverage-check uses. */}
           <p style={{ fontSize: "0.9375rem", color: T.soft, margin: "0 0 1.125rem", lineHeight: 1.65 }}>
-            Until they do, a person runs {domain} for {topic} against Google AI Overviews, ChatGPT and
-            Gemini and sends you the same report, usually within a working day. One check, no charge.
+            Until they do, a person runs {domain} for {topic} against{" "}
+            {listOf(FREE_ENGINE_LABELS)} and sends you the same report, usually within a working
+            day. One check, no charge.
           </p>
 
           <label htmlFor="rq-email" style={label}>
