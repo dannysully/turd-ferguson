@@ -1,5 +1,5 @@
 /**
- * The two readers more than one sweep in this tree needs, in one place.
+ * The readers more than one sweep in this tree needs, in one place.
  *
  * Not a test - `npm run check` globs `src/**` + `/*.test.mts`, so this is a
  * helper the way `src/app/dynamic-render.mts` is. That distinction is the
@@ -9,6 +9,42 @@
  * once through the import. A shared reader belongs beside the tests rather
  * than inside one of them.
  */
+
+import { readdirSync } from "node:fs";
+import { join } from "node:path";
+
+/**
+ * Every shipped source file under `src`, as posix paths from the repo root.
+ *
+ * A walk, never a typed list, and never `git ls-files`. Both failures have
+ * been paid for here: a typed list cannot report the member absent from it -
+ * which is how `DASH_EXEMPT` sat outside both of `copy.test.mts`'s exemption
+ * audits, and how `price-schema`'s own "one reader" rule came to name two
+ * filenames while asking a question about the tree - and `git ls-files` misses
+ * anything not yet added, because `npm run check` runs before `git add`.
+ *
+ * Tests are excluded. A sweep asking "does any shipped file do X" that reads
+ * the test written to forbid X reports the guard as the defect, which is the
+ * comment-strip failure one level up.
+ *
+ * Three private copies of this walk already exist, in `client-results`,
+ * `verbatim-claims` and `mail-doors`. They are deliberately not collapsed into
+ * this one, for the reason recorded under `code` about the six strippers: a
+ * reader that differs in one case blinds the sweep that depended on that case,
+ * and three at once is not a change to make beside a finding. New callers use
+ * this.
+ */
+export function sourceFiles(root: string): string[] {
+  const out: string[] = [];
+  (function walk(dir: string, prefix: string) {
+    for (const entry of readdirSync(join(root, dir), { withFileTypes: true })) {
+      const rel = `${prefix}${entry.name}`;
+      if (entry.isDirectory()) walk(join(dir, entry.name), `${rel}/`);
+      else if (/\.(tsx?|mts)$/.test(entry.name) && !entry.name.includes(".test.")) out.push(rel);
+    }
+  })("src", "src/");
+  return out;
+}
 
 /**
  * Source with its prose removed.

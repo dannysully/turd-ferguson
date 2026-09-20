@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { test } from "node:test";
 
 import { isFloorLabel } from "../config/price-label.ts";
 import { serviceSchema } from "../config/service-schema.ts";
-import { code } from "../lib/source-read.mts";
+import { code, sourceFiles } from "../lib/source-read.mts";
 import { TIER_PLAIN } from "../lib/tier-text.ts";
 import { sweptPages } from "./dynamic-render.mts";
 
@@ -80,6 +81,17 @@ import { sweptPages } from "./dynamic-render.mts";
  */
 
 const PRICING = "src/config/pricing.ts";
+
+/**
+ * The repo root, resolved off this file rather than off the cwd.
+ *
+ * The reads here were cwd-relative and worked, because `npm run check` runs
+ * from the root. Once one rule walks the tree the two conventions sit side by
+ * side in one file, and a reader cannot tell which is load-bearing - so they
+ * are one convention now. `client-results.test.mts` resolves it the same way.
+ */
+const ROOT = join(import.meta.dirname, "..", "..");
+const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
 
 type Quoted = { id: string; basePrice: number | null; priceLabel: string; href: string };
 
@@ -168,7 +180,7 @@ function pageFor(href: string): string {
   return href.replace(/^\//, "") + ".html";
 }
 
-const source = readFileSync(PRICING, "utf8");
+const source = read(PRICING);
 const TIERS = quotedTiers(source);
 const PAGES = new Map(sweptPages().map((p) => [p.page, p.html]));
 
@@ -332,17 +344,33 @@ test("the floor judgement has one reader, and the schema is not carrying a secon
    *
    * Comments stripped, because a doc comment quoting the defect it fixed
    * satisfies a check that the defect is present - paid for five times in
-   * this tree and twice inside the test written to stop it. Both files below
-   * quote `startsWith("from")` in their headers while explaining it.
+   * this tree and twice inside the test written to stop it. `service-schema.ts`
+   * and `price-label.ts` both quote `startsWith("from")` in their headers
+   * while explaining it, and a raw read reports the fix as the defect.
+   *
+   * **The walk was two typed filenames and is now the tree**, asked of this
+   * file the same day it was written. The rule's own name is a claim about
+   * every reader on the site, and it named `service-schema.ts` and
+   * `PackagePage.tsx` - the two files the defect happened to be found in. A
+   * third component judging a floor by hand satisfied it completely, which is
+   * the state `copy.test.mts`'s `DASH_EXEMPT` was found in on the same day,
+   * one sweep over: a typed list cannot report the member absent from it.
    */
-  for (const file of ["src/config/service-schema.ts", "src/components/PackagePage.tsx"]) {
-    const src = code(readFileSync(file, "utf8"));
-    assert.ok(
-      !/priceLabel[^\n]*startsWith|startsWith\(\s*"from/i.test(src),
-      `${file} judges a floor by hand again - use isFloorLabel, which lowercases first`,
-    );
+  const judged: string[] = [];
+  const files = sourceFiles(ROOT);
+  // A walk that stopped walking returns a clean list, which is the failure
+  // this rule is least able to notice.
+  assert.ok(files.length >= 40, `expected 40+ source files, walked ${files.length}`);
+  for (const file of files) {
+    const src = code(read(file));
+    if (/priceLabel[^\n]*startsWith|startsWith\(\s*"from/i.test(src)) judged.push(file);
   }
-  const schema = code(readFileSync("src/config/service-schema.ts", "utf8"));
+  assert.deepEqual(
+    judged,
+    [],
+    "a floor is judged by hand here - use isFloorLabel, which lowercases first:\n" + judged.map((f) => `  ${f}`).join("\n"),
+  );
+  const schema = code(read("src/config/service-schema.ts"));
   assert.ok(schema.includes("isFloorLabel("), "service-schema.ts no longer reads the shared floor judgement");
 });
 
@@ -350,7 +378,7 @@ test("the comment strip above is load-bearing", () => {
   // A green-expected case: the two files really do quote the defect in their
   // prose, so a rule reading them raw would report a fix as the defect. This
   // is recorded as HELD rather than as a pass, per the note in source-read.mts.
-  const raw = readFileSync("src/config/service-schema.ts", "utf8");
+  const raw = read("src/config/service-schema.ts");
   assert.ok(raw.includes('startsWith("from")'), "the header stopped naming the defect - this guard is now untested");
   assert.ok(!code(raw).includes('startsWith("from")'), "the strip stopped removing it");
 });
