@@ -1,5 +1,6 @@
 import TierName, { type TierKey } from "@/components/TierName";
 import { TIERS } from "@/config/pricing";
+import { splitPriceLabel } from "@/config/price-label";
 import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
 
 /**
@@ -16,56 +17,21 @@ import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
  */
 
 /**
- * The price, as its label rather than rebuilt from the number.
- *
- * This read `basePrice` and assembled `$99` + `/mo`, which dropped the "from"
- * that `TIERS[0].priceLabel` carries - so the homepage card said a flat
- * "$99/mo" while /alwaystracked, its JSON-LD and the basis sentence four
- * pixels below all said "from $99/mo". The card contradicted its own next
- * line: "20 questions, checked weekly. More questions or a tighter cadence
- * moves the price."
- *
- * It is the same bug `priceFor` in pricing.ts had already been fixed for, on
- * the surface with the most traffic, and it is the expensive direction to get
- * wrong - a floor shown as a flat price is a number an agency quotes their
- * client before finding out it moves. PackagePage renders `priceLabel`
- * straight for exactly this reason; the homepage does now too.
- */
-const labelOf = (id: string) => TIERS.find((t) => t.id === id)?.priceLabel ?? "";
-
-/**
- * The basis under the price, read from pricing.ts rather than typed here.
- *
- * It was typed here, as a near-copy of `TIERS[0].priceBasis` with a different
- * tail, which is the same duplication the price itself is deliberately not:
- * the comment on `priceBasis` says the basis travels with the number so an
- * agency cannot quote $99 and then find the price moves with prompt count.
- * A second copy is exactly how it stops travelling with it.
- */
-const basisOf = (id: string) => TIERS.find((t) => t.id === id)?.priceBasis;
-
-/**
  * The label, with its qualifiers set smaller than the number.
  *
- * The board's treatment is a 36px figure with a quiet "/mo" beside it, and
- * "from" is the same kind of word - a qualifier on the number, not part of
- * it. Both are de-emphasised and neither is dropped, so the card keeps the
- * board's typography and still says the whole of what pricing.ts says.
- *
- * Anything that is not a price - "Book a call" - has no number to size
- * against and is rendered as it is.
+ * The split is in `config/price-label.ts`, which has no JSX and therefore has
+ * an executor. What it is protecting against is one bug made twice already -
+ * `c2bf546` in copy and the deleted `priceFor` in config - a floor rendered as
+ * a flat price, which is a number an agency quotes their client before finding
+ * out it moves.
  */
 function priceNode(label: string): React.ReactNode {
-  if (!label.includes("$")) return label;
-  const from = label.startsWith("from ");
-  const rest = from ? label.slice("from ".length) : label;
-  const perMoSuffix = rest.endsWith("/mo");
-  const figure = perMoSuffix ? rest.slice(0, -"/mo".length) : rest;
+  const { prefix, figure, suffix } = splitPriceLabel(label);
   return (
     <>
-      {from ? <span style={perMo}>from </span> : null}
+      {prefix ? <span style={perMo}>{prefix}</span> : null}
       {figure}
-      {perMoSuffix ? <span style={perMo}>/mo</span> : null}
+      {suffix ? <span style={perMo}>{suffix}</span> : null}
     </>
   );
 }
@@ -98,6 +64,59 @@ const priceStyle: React.CSSProperties = {
   color: T.ink,
 };
 const perMo: React.CSSProperties = { fontSize: "15px", fontWeight: 600, color: T.soft, letterSpacing: 0 };
+
+/**
+ * What the homepage says about each tier that pricing.ts does not hold: the
+ * one-line positioning under the lockup, the badge, and the feature list.
+ *
+ * `Record<TierKey, ...>` rather than four hand-written cards, because the four
+ * cards were four fixed rungs picked by name off a list that can grow. A fifth
+ * tier in `pricing.ts` used to reach /compare, its own package page, its
+ * JSON-LD and the tier journey, and silently not appear on the homepage
+ * packages grid - the one surface a buyer actually lands on. It is a missing
+ * key and a compile error now.
+ *
+ * The prices, the basis lines and the emphasis are NOT here. They are read off
+ * the tier, so the homepage cannot quote a number the package page disagrees
+ * with - and the basis in particular travels with every price rather than with
+ * the one card that happened to be given it by hand.
+ */
+const CARD_COPY: Record<TierKey, { under: string; flag?: string; items: React.ReactNode[] }> = {
+  tracked: {
+    under: "The map. You do the placing",
+    items: [
+      "A locked question set across the clusters that matter to the account, so each reading is comparable with the last",
+      "Every source behind every answer, and what kind of publication each one is",
+      "So you know where you need placing, and on what sort of site",
+      "You run the outreach",
+    ],
+  },
+  mentioned: {
+    under: "We do the placing for you",
+    items: [
+      <>
+        Everything in <TierName tier="tracked" />, and we manage the outreach
+      </>,
+      "Editorial placements in the source pages, links included",
+      "Citation reporting on every placement",
+    ],
+  },
+  cited: {
+    under: "The full push on AI citations and Google rankings together",
+    flag: "Most taken",
+    items: [
+      <>
+        Everything in <TierName tier="mentioned" />, at a higher volume
+      </>,
+      "Placements chosen to move the Google position as well as the citation",
+      "Rank tracking on the money keywords alongside the question set",
+    ],
+  },
+  everywhere: {
+    under: "All of it, across a portfolio",
+    items: ["Multiple clients under one agreement", "Priced on volume, not per seat", "Your dashboards, your branding"],
+  },
+};
 
 function Card({
   tier,
@@ -164,54 +183,22 @@ export default function Packages() {
           </p>
         </div>
 
+        {/* In the order pricing.ts lists them, which is ascending intensity -
+            so the grid cannot fall out of step with /compare or the tier
+            journey, both of which read the same order off the same array. */}
         <div className="package-grid">
-          <Card
-            tier="tracked"
-            under="The map. You do the placing"
-            price={priceNode(labelOf("tracked"))}
-            basis={basisOf("tracked")}
-            items={[
-              "A locked question set across the clusters that matter to the account, so each reading is comparable with the last",
-              "Every source behind every answer, and what kind of publication each one is",
-              "So you know where you need placing, and on what sort of site",
-              "You run the outreach",
-            ]}
-          />
-
-          <Card
-            tier="mentioned"
-            under="We do the placing for you"
-            price={priceNode(labelOf("mentioned"))}
-            items={[
-              <>
-                Everything in <TierName tier="tracked" />, and we manage the outreach
-              </>,
-              "Editorial placements in the source pages, links included",
-              "Citation reporting on every placement",
-            ]}
-          />
-
-          <Card
-            tier="cited"
-            flag="Most taken"
-            featured
-            under="The full push on AI citations and Google rankings together"
-            price={priceNode(labelOf("cited"))}
-            items={[
-              <>
-                Everything in <TierName tier="mentioned" />, at a higher volume
-              </>,
-              "Placements chosen to move the Google position as well as the citation",
-              "Rank tracking on the money keywords alongside the question set",
-            ]}
-          />
-
-          <Card
-            tier="everywhere"
-            under="All of it, across a portfolio"
-            price={priceNode(labelOf("everywhere"))}
-            items={["Multiple clients under one agreement", "Priced on volume, not per seat", "Your dashboards, your branding"]}
-          />
+          {TIERS.map((t) => (
+            <Card
+              key={t.id}
+              tier={t.key}
+              under={CARD_COPY[t.key].under}
+              flag={CARD_COPY[t.key].flag}
+              featured={t.emphasis}
+              price={priceNode(t.priceLabel)}
+              basis={t.priceBasis}
+              items={CARD_COPY[t.key].items}
+            />
+          ))}
         </div>
       </div>
 
