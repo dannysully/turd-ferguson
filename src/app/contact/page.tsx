@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { OG_IMAGE } from "@/config/og";
 
 import ContactForm from "@/components/ContactForm";
+import { CONTACT_EMAIL } from "@/config/contact";
 import { CARD, MICRO, SHELL, T } from "@/config/tokens";
 import { ORG_REF, SITE_REF, ld } from "@/config/schema";
 
@@ -49,7 +50,7 @@ const ROUTES = [
   },
   {
     label: "Prefer email",
-    body: "hello@alwayscited.com reaches the same people.",
+    body: `${CONTACT_EMAIL} reaches the same people.`,
   },
 ];
 

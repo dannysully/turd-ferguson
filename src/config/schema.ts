@@ -14,19 +14,35 @@
  * referenced by `@id` everywhere else. Adding a fact about the company is now
  * an edit to one object rather than eight.
  *
- * What is deliberately absent:
+ * `logo` was absent until 20 Sep 2026 on a stated reason - "there is no logo
+ * file" - and the build contradicted it. `src/app/icon.svg` is the brand mark
+ * as a square SVG and Next serves it at `/icon.svg`; `structured-data.test.mts`
+ * names that file in its own comment while listing every image on this site.
+ * Both icon routes were read from production on 20 Sep 2026 and return the
+ * bytes on disk - `/icon.svg` 597, `/favicon.ico` 19,515. So the reason for
+ * the absence was false, and the property that a search engine reads for the
+ * organisation panel was missing from the one entity this product exists to
+ * make resolvable.
  *
- * - **`logo`.** There is no logo file. The wordmark is drawn in markup by
- *   `BrandMark`, and the Open Graph card is a share image rather than a logo.
- *   A `logo` pointing at the OG card would be a false statement about an
- *   asset, so the property is omitted until there is a real file behind it.
+ * It is the SVG rather than the `.ico`: same mark, one file, and the `.ico` is
+ * a 256px raster of it kept for browsers that ask for one. What is claimed is
+ * only that this URL is our logo, which is true of the file. Nothing here
+ * claims what any engine does with it - that would need a dated source and
+ * vendor docs are unreachable from this session.
+ *
+ * What is still deliberately absent:
+ *
  * - **`sameAs`.** Profile URLs need a source. None is recorded anywhere in
  *   this repo, and guessing at a social handle is the same error as guessing
- *   a number.
+ *   a number. `organization-entity.test.mts` re-earns that reason against the
+ *   built pages rather than leaving it as prose, because the day the footer
+ *   links a profile the absence stops being honest.
  * - **`foundingDate`, `numberOfEmployees`, `address`.** Same reason. The one
  *   place-fact on the site - "York" - is prose on /about about Nomada, not a
  *   postal address we hold.
  */
+
+import { CONTACT_EMAIL } from "./contact.ts";
 
 export const SITE_URL = "https://alwayscited.com";
 
@@ -40,6 +56,14 @@ export const SITE_URL = "https://alwayscited.com";
  * constant would make a future rename of either silently rename the other.
  */
 export const BRAND = "alwayscited";
+
+/**
+ * The brand mark, and the only image on this site that is a logo rather than
+ * a share card. Served by Next's `icon` file convention from
+ * `src/app/icon.svg`; the hash the head puts on the href is a cache-buster and
+ * not part of the route, so the bare path is the stable URL.
+ */
+export const LOGO_URL = SITE_URL + "/icon.svg";
 
 export const ORG_ID = SITE_URL + "/#organization";
 export const SITE_ID = SITE_URL + "/#website";
@@ -64,6 +88,7 @@ export const siteGraph = {
       "@id": ORG_ID,
       name: BRAND,
       url: SITE_URL,
+      logo: LOGO_URL,
       description:
         "Editorial placements in the third-party pages AI search systems already read for a category, so a brand is named inside the answer rather than ranked in the links under it.",
       parentOrganization: {
@@ -74,7 +99,7 @@ export const siteGraph = {
       contactPoint: {
         "@type": "ContactPoint",
         contactType: "sales",
-        email: "hello@alwayscited.com",
+        email: CONTACT_EMAIL,
       },
     },
     {

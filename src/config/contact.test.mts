@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { test } from "node:test";
 
-import { CONTACT_LIMITS } from "./contact.ts";
+import { CONTACT_EMAIL, CONTACT_LIMITS } from "./contact.ts";
 
 /**
  * The contact form's bounds, checked against the fields the action actually
@@ -123,4 +124,182 @@ test("no bound is large enough to be no bound", () => {
   for (const [field, limit] of Object.entries(CONTACT_LIMITS)) {
     assert.ok(limit <= 5000, `the bound on "${field}" is ${limit}, which is not a bound`);
   }
+});
+
+// -------------------------------------------- the address, across the tree
+
+/**
+ * Everything above this line reads one file.
+ *
+ * That was named in the queue as this test's own weakness, and it is the
+ * denominator species rather than a missing assertion: every claim above is
+ * correct about `contact/actions.ts` and cannot see anything else. The
+ * published contact address is the fact that proves it - on 20 Sep 2026
+ * `hello@alwayscited.com` was typed **thirteen times across seven files**,
+ * one of them this action, and no constant existed anywhere.
+ *
+ * It is the two-copies species at its largest instance here. The date
+ * formatter, the honeypot and `brand-name.ts` were two copies each and in all
+ * three the untested copy was the wrong one. Thirteen is past what a rename
+ * completes by grep, and the copies that survive one are the two nobody reads
+ * while working: the `mailto:` on /legal, and `contactPoint.email` in the
+ * JSON-LD - the machine-readable one, which is the copy an answer engine
+ * quotes and the only one no human proofreads.
+ *
+ * So the rule is not "the copies agree", which is a census that goes stale.
+ * It is that there is one copy: `CONTACT_EMAIL` in `config/contact.ts`, and
+ * the literal appears nowhere else in the tree.
+ */
+
+const ROOT = new URL("../..", import.meta.url).pathname;
+
+/** Where the address is allowed to be written out in full. */
+const HOME = "src/config/contact.ts";
+
+/**
+ * Source with its prose removed, because this check reads source.
+ *
+ * Non-negotiable and paid for five times in this repo, most recently
+ * `0a3aa9e`. It is load-bearing right here rather than theoretically: the doc
+ * comment above `ContactValues` in `contact/actions.ts` quotes the sentence
+ * "please email hello@alwayscited.com directly" while explaining what the
+ * React form reset used to destroy. That prose is correct, must stay, and
+ * would otherwise be reported as a fourteenth typed copy - prose describing
+ * the code satisfying a check that the code is there, in the exact shape that
+ * has caught this repo out before.
+ */
+function sourceOf(file: string): string {
+  const lines = readFileSync(join(ROOT, file), "utf8").split("\n");
+  const out: string[] = [];
+  let open = false;
+  for (const line of lines) {
+    const t = line.trim();
+    if (open) {
+      if (t.includes("*/")) open = false;
+      continue;
+    }
+    if (t.startsWith("{/*") || t.startsWith("/*")) {
+      if (!t.includes("*/")) open = true;
+      continue;
+    }
+    if (t.startsWith("*") || t.startsWith("//")) continue;
+    out.push(line);
+  }
+  return out.join("\n");
+}
+
+/**
+ * Source with its import statements removed as well as its prose.
+ *
+ * **An import is not a use**, and this file proved it the hard way: the
+ * reader rule below first passed on an injected `schema.ts` that had swapped
+ * `email: CONTACT_EMAIL` for a typed address and kept the import line, which
+ * is a surface that has stopped publishing the constant while still naming
+ * it. The harness reported MISS and the defect was the test, not the
+ * injection - the same mistake the import-graph draft of `spend-gates` made
+ * when it read two routes as spenders because something in their graph
+ * imported `anthropic.ts`.
+ *
+ * Handles both forms in this tree: a single-line `import { a, b } from "x";`
+ * and the multi-line one ending in `} from "x";`.
+ */
+function withoutImports(src: string): string {
+  const out: string[] = [];
+  let open = false;
+  for (const line of src.split("\n")) {
+    const t = line.trim();
+    if (open) {
+      if (/^\}\s*from\s/.test(t)) open = false;
+      continue;
+    }
+    if (/^import\b/.test(t)) {
+      if (!/;$|^import\s+["']/.test(t) && !/\bfrom\b/.test(t)) open = true;
+      continue;
+    }
+    out.push(line);
+  }
+  return out.join("\n");
+}
+
+/** Every source file in the tree, so the denominator is walked and not typed. */
+function sourceFiles(): string[] {
+  const out: string[] = [];
+  (function walk(dir: string, prefix: string) {
+    for (const entry of readdirSync(join(ROOT, dir), { withFileTypes: true })) {
+      const rel = `${prefix}${entry.name}`;
+      if (entry.isDirectory()) walk(join(dir, entry.name), `${rel}/`);
+      else if (/\.(tsx?|mts)$/.test(entry.name) && !entry.name.includes(".test.")) out.push(rel);
+    }
+  })("src", "src/");
+  return out;
+}
+
+test("the address is written out in exactly one place", () => {
+  const files = sourceFiles();
+  // A walk that stopped walking returns a clean list, which is the failure
+  // shape this whole file exists to refuse.
+  assert.ok(files.length >= 40, `expected 40+ source files, walked ${files.length}`);
+
+  const typed: string[] = [];
+  for (const file of files) {
+    if (file === HOME) continue;
+    const src = sourceOf(file);
+    src.split("\n").forEach((line, i) => {
+      if (line.includes(CONTACT_EMAIL)) typed.push(`${file}:${i + 1} ${line.trim()}`);
+    });
+  }
+
+  assert.deepEqual(
+    typed,
+    [],
+    `the published address is typed out instead of imported from ${HOME}:\n` +
+      typed.map((s) => `  ${s}`).join("\n"),
+  );
+});
+
+/**
+ * And the one place is real, rather than a constant nothing uses.
+ *
+ * The rule above passes perfectly on a tree where the address has been
+ * deleted from every surface - a green that would mean the footer, /legal and
+ * the entity graph had all stopped publishing it. This is the other
+ * direction, and it is the half that makes the first one mean something.
+ */
+test("the constant is what the published surfaces actually use", () => {
+  const readers = sourceFiles().filter((f) => f !== HOME && /\bCONTACT_EMAIL\b/.test(withoutImports(sourceOf(f))));
+
+  for (const surface of ["src/components/Footer.tsx", "src/app/legal/page.tsx", "src/config/schema.ts"]) {
+    assert.ok(
+      readers.includes(surface),
+      `${surface} publishes the contact address and no longer reads CONTACT_EMAIL`,
+    );
+  }
+  assert.ok(readers.length >= 5, `only ${readers.length} files read CONTACT_EMAIL, expected the five surfaces or more`);
+});
+
+/**
+ * Delivery and publication are two facts, and they must stay two constants.
+ *
+ * `CONTACT_EMAIL_DESTINATION` is an environment variable a deployment may
+ * point anywhere, and no agent here can read it - blocked.md 20 is the same
+ * shape one variable over. If the site ever derived what it publishes from
+ * where mail lands, then repointing an inbox would silently rewrite /legal's
+ * data-protection contact and the address in the entity graph. They share a
+ * default and nothing else, and this pins that.
+ */
+test("the published address is not read out of the delivery variable", () => {
+  for (const file of ["src/app/contact/actions.ts", "src/app/actions/waitlist.ts"]) {
+    const src = sourceOf(file);
+    assert.match(
+      src,
+      /process\.env\.CONTACT_EMAIL_DESTINATION \?\? CONTACT_EMAIL/,
+      `${file} no longer defaults delivery to the published address`,
+    );
+  }
+
+  const home = sourceOf(HOME);
+  assert.ok(
+    !/process\.env/.test(home),
+    `${HOME} now reads an environment variable - what the site publishes must not depend on a deployment`,
+  );
 });

@@ -30,6 +30,32 @@
 export const CONTACT_LIMITS = { name: 120, email: 254, company: 200, message: 5000, website: 200 };
 
 /**
+ * The address the site publishes, which is not the address mail is delivered
+ * to - and the whole point of naming it here is that those are two facts.
+ *
+ * Delivery is `process.env.CONTACT_EMAIL_DESTINATION`, which a deployment may
+ * point anywhere and which no agent here can read. This is the string a
+ * visitor is shown and told to write to: the footer, /legal's mailto, the
+ * "reaches the same people" line on /contact, both actions' send-failed
+ * copy, and `contactPoint.email` in the JSON-LD an answer engine parses.
+ * They share a default because the default should be the published address,
+ * and they are separate constants because a deployment changing where mail
+ * lands must not silently change what the site tells people to write to.
+ *
+ * Counted on 20 Sep 2026: the literal was typed thirteen times across seven
+ * files and no constant existed. That is the two-copies species at its
+ * largest instance in this tree - the date formatter, the honeypot and
+ * `brand-name.ts` were two each, and in every one the untested copy was the
+ * wrong one. Thirteen is not a rename anybody completes by grep, and the
+ * copies that would survive it are the two nobody reads while working: the
+ * `mailto:` on /legal and the machine-readable one in the entity graph.
+ *
+ * `contact.test.mts` sweeps the tree for the bare literal, so a fourteenth
+ * cannot be typed.
+ */
+export const CONTACT_EMAIL = "hello@alwayscited.com";
+
+/**
  * The same, for the other public form.
  *
  * `RequestScanForm` posts to a "use server" action that mails Danny, and it had

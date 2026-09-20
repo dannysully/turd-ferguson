@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { OG_IMAGE } from "@/config/og";
 
+import { CONTACT_EMAIL } from "@/config/contact";
 import { CARD, GRID12, MICRO, SHELL, T } from "@/config/tokens";
 import ToConfirm from "@/components/ToConfirm";
 
@@ -235,8 +236,8 @@ export default function LegalPage() {
 
           <p style={{ margin: "18px 0 0", fontSize: "13.5px", lineHeight: 1.7, color: T.soft, maxWidth: "76ch" }}>
             To ask what we hold about you, to have it corrected, or to have it deleted, email{" "}
-            <a href="mailto:hello@alwayscited.com" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
-              hello@alwayscited.com
+            <a href={`mailto:${CONTACT_EMAIL}`} style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
+              {CONTACT_EMAIL}
             </a>
             . If you are not satisfied with how we handle it you can complain to the Information Commissioner&apos;s
             Office at{" "}

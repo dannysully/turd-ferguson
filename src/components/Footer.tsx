@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import BrandMark from "./BrandMark";
 import TierName, { type TierKey } from "./TierName";
+import { CONTACT_EMAIL } from "@/config/contact";
 import { GRID12, MICRO, T } from "@/config/tokens";
 
 /**
@@ -153,7 +154,7 @@ export default function Footer() {
             Privacy
           </Link>
           <div style={{ flexGrow: 1 }} />
-          <span>hello@alwayscited.com</span>
+          <span>{CONTACT_EMAIL}</span>
         </div>
       </div>
     </footer>

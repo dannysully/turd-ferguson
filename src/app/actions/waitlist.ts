@@ -2,7 +2,7 @@
 
 import { Resend } from "resend";
 
-import { WAITLIST_LIMITS as LIMITS } from "@/config/contact";
+import { CONTACT_EMAIL, WAITLIST_LIMITS as LIMITS } from "@/config/contact";
 import { isPlausibleEmail } from "@/lib/email-address";
 import { headerSafe } from "@/lib/email-header";
 import { isPlausibleDomain, normalizeDomain } from "@/lib/scan/domain";
@@ -109,7 +109,7 @@ export async function requestScan(input: {
   if (!key) {
     // No silent success. If we cannot record the request, we say so.
     console.error("[waitlist] RESEND_API_KEY is not set, request not recorded");
-    return { ok: false, message: "We could not record that just now. Please email hello@alwayscited.com." };
+    return { ok: false, message: `We could not record that just now. Please email ${CONTACT_EMAIL}.` };
   }
 
   try {
@@ -129,7 +129,7 @@ export async function requestScan(input: {
      */
     const dispatch = await new Resend(key).emails.send({
       from: process.env.SCAN_FROM_EMAIL ?? "alwayscited <onboarding@resend.dev>",
-      to: process.env.CONTACT_EMAIL_DESTINATION ?? "hello@alwayscited.com",
+      to: process.env.CONTACT_EMAIL_DESTINATION ?? CONTACT_EMAIL,
       replyTo: email,
       subject: headerSafe(`Scan request: ${domain}`),
       text: [
@@ -142,11 +142,11 @@ export async function requestScan(input: {
     });
     if (dispatch.error) {
       console.error("[waitlist] send rejected", dispatch.error);
-      return { ok: false, message: "We could not record that just now. Please email hello@alwayscited.com." };
+      return { ok: false, message: `We could not record that just now. Please email ${CONTACT_EMAIL}.` };
     }
   } catch (e) {
     console.error("[waitlist] send failed", e);
-    return { ok: false, message: "We could not record that just now. Please email hello@alwayscited.com." };
+    return { ok: false, message: `We could not record that just now. Please email ${CONTACT_EMAIL}.` };
   }
 
   return { ok: true };

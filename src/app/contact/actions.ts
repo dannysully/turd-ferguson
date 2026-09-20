@@ -2,7 +2,7 @@
 
 import { Resend } from "resend";
 
-import { CONTACT_LIMITS as LIMITS } from "@/config/contact";
+import { CONTACT_EMAIL, CONTACT_LIMITS as LIMITS } from "@/config/contact";
 import { isPlausibleEmail } from "@/lib/email-address";
 import { headerSafe } from "@/lib/email-header";
 
@@ -17,8 +17,13 @@ import { headerSafe } from "@/lib/email-header";
  * is bounded before it is put in a message.
  */
 
-const CONTACT_EMAIL_DESTINATION =
-  process.env.CONTACT_EMAIL_DESTINATION ?? "hello@alwayscited.com";
+/**
+ * Where mail lands, which is deliberately a different constant from
+ * `CONTACT_EMAIL` - the address the site tells people to write to. They share
+ * a default and nothing else: a deployment repointing delivery must not
+ * silently change what /legal, the footer and the entity graph publish.
+ */
+const CONTACT_EMAIL_DESTINATION = process.env.CONTACT_EMAIL_DESTINATION ?? CONTACT_EMAIL;
 const FROM = process.env.SCAN_FROM_EMAIL ?? "alwayscited <onboarding@resend.dev>";
 
 /**
@@ -161,7 +166,7 @@ export async function submitContactForm(
     return {
       status: "error",
       message:
-        "We could not send that just now. Please email hello@alwayscited.com directly and we will pick it up.",
+        `We could not send that just now. Please email ${CONTACT_EMAIL} directly and we will pick it up.`,
       values,
     };
   }
@@ -190,7 +195,7 @@ export async function submitContactForm(
       return {
         status: "error",
         message:
-          "We could not send that just now. Please email hello@alwayscited.com directly and we will pick it up.",
+          `We could not send that just now. Please email ${CONTACT_EMAIL} directly and we will pick it up.`,
         values,
       };
     }
@@ -199,7 +204,7 @@ export async function submitContactForm(
     return {
       status: "error",
       message:
-        "We could not send that just now. Please email hello@alwayscited.com directly and we will pick it up.",
+        `We could not send that just now. Please email ${CONTACT_EMAIL} directly and we will pick it up.`,
       values,
     };
   }
