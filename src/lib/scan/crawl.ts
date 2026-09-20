@@ -289,15 +289,37 @@ function sameHostLinks(html: string, domain: string, base: string): string[] {
      * it, found in the same pass.
      */
     const href = decodeEntities(m[1]);
-    if (!INTERESTING.test(href)) continue;
+    let url: URL;
     try {
-      const url = new URL(href, base);
-      if (url.hostname.replace(/^www\./, "") !== domain) continue;
-      url.hash = "";
-      out.add(url.toString());
+      url = new URL(href, base);
     } catch {
-      // Ignore unparseable hrefs.
+      continue; // Ignore unparseable hrefs.
     }
+    if (url.hostname.replace(/^www\./, "") !== domain) continue;
+    /**
+     * Matched against the resolved path, not against the raw href, and the
+     * difference is the case this whole function was fixed for.
+     *
+     * INTERESTING wants a "/" before the word, so it was deciding on a string
+     * that may not carry one yet. `href="about"` - the example the comment on
+     * `Fetched` and the header of crawl.test.mts both reach for - has no slash
+     * in it at all, so it failed this test and was dropped here, one step
+     * before the resolution those two comments are about. Carrying `base`
+     * forward fixed `./about` and `en/about`; the bare form never got far
+     * enough to benefit, and nothing said so because a link that is never
+     * followed looks exactly like a link that is not there.
+     *
+     * Resolving first also narrows what can match. The raw href was tested
+     * whole, so a "/about" sitting in a query string or a fragment counted;
+     * `url.pathname` is the path and only the path.
+     *
+     * The cost is parsing every href on the page rather than the few that
+     * matched, which is bounded by the 200KB page cap and is microseconds
+     * against an 8 second network budget.
+     */
+    if (!INTERESTING.test(url.pathname)) continue;
+    url.hash = "";
+    out.add(url.toString());
   }
   return [...out].slice(0, MAX_EXTRA_PAGES);
 }

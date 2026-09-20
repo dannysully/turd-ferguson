@@ -80,3 +80,31 @@ test("readSite resolves links against what answered, not against what it asked f
     "sameHostLinks must resolve against base",
   );
 });
+
+test("an interesting link is recognised by its resolved path, not by its raw href", () => {
+  /**
+   * The other half of the same defect, and the half that made the two comments
+   * about it untrue.
+   *
+   * INTERESTING is `/\/(about|services|...)/i` - it wants a slash before the
+   * word. Tested against the raw href, `href="about"` has no slash anywhere in
+   * it, so it was dropped here, one step before the base resolution that the
+   * `Fetched` comment and the header of this file both use it as the example
+   * for. Resolving first is what makes the bare relative form reach the same
+   * place `./about` and `en/about` already did.
+   *
+   * Checked as source text for the reason at the top of this file: crawl.ts
+   * imports `server-only`, so there is no way to call the function from here.
+   * What has to stay true is which value the test is applied to.
+   */
+  assert.doesNotMatch(
+    SRC,
+    /INTERESTING\.test\(\s*href\s*\)/,
+    "INTERESTING must not be tested against the raw href - a bare relative link carries no slash",
+  );
+  assert.match(
+    SRC,
+    /INTERESTING\.test\(\s*url\.pathname\s*\)/,
+    "INTERESTING must be tested against the resolved pathname",
+  );
+});
