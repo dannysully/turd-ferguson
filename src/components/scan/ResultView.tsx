@@ -236,9 +236,28 @@ function SourceTable(p: { r: RunScanResponse; domain: string; detailed: boolean;
 
   return (
     <section>
+      {/*
+        Two lists, two sentences, and they are not interchangeable.
+
+        Unlocked, `r.sources` is the unlock payload: every page every answer
+        cited. Locked, it is the teaser, which since 20 Sep 2026 carries only
+        the source each answer reached for FIRST, deduped by domain - Danny's
+        item 4, a filter in `scan_teaser` and nowhere in what the pass stores.
+
+        So "Every page the engines drew on" is true of one of these lists and
+        false of the other, and it was the only sentence here. `detailed` is
+        `unlocked`, which is exactly the switch, so it carries the copy too.
+
+        The free sentence deliberately does not say "top" or "most important".
+        Position is order of citation: on an AI Overview it tracks prominence
+        reasonably well, on a chat engine it may be nothing but order of
+        mention. "Reached for first" is what the data supports and all it
+        supports - the migration header says the same thing at more length.
+      */}
       <Head title={p.detailed ? "The pages that decide this category" : "What the answers were built from"}>
-        Every page the engines drew on, what kind of site it is, and how many of your answers it fed. The kind
-        matters: a listicle can be joined, a competitor own site cannot.
+        {p.detailed
+          ? "Every page the engines drew on, what kind of site it is, and how many of your answers it fed. The kind matters: a listicle can be joined, a competitor own site cannot."
+          : "The page each answer reached for first, deduped across the answers - not a ranking, just what came first. The kind matters: a listicle can be joined, a competitor own site cannot."}
       </Head>
       <div style={{ ...CARD, overflow: "hidden" }}>
         <div
@@ -247,7 +266,14 @@ function SourceTable(p: { r: RunScanResponse; domain: string; detailed: boolean;
         >
           <div style={MICRO}>Source page</div>
           <div style={MICRO}>Kind</div>
-          <div style={{ ...MICRO, textAlign: "right" }}>Answers it fed</div>
+          {/* The figure under this header is a count of answers, and which
+              answers depends on the list - see the note above the standfirst.
+              Unlocked it is every answer that cited the page; locked it is
+              every answer that reached for it first. "Answers it fed" is true
+              of the first and overstates the second. */}
+          <div style={{ ...MICRO, textAlign: "right" }}>
+            {p.detailed ? "Answers it fed" : "Reached first by"}
+          </div>
           <div style={MICRO}>You appear</div>
         </div>
         {rows.map((s) => {

@@ -226,11 +226,59 @@ test("a cited page is yours only on the domain or under it", () => {
 
 /* ── The source table's two footnotes ── */
 
+/**
+ * The wording changed on 20 September 2026 and the cases did not.
+ *
+ * "Most-cited" was a ranking claim, and the free list stopped being a ranking
+ * when it became the page each answer reached for FIRST (Danny's item 4). The
+ * boundaries this test exists for are unchanged - nothing held back, a negative
+ * remainder, and the singular - and they are what the assertions are about.
+ *
+ * The second half of the sentence is asserted deliberately rather than sliced
+ * off: "The rest come with the report" is only true while the position filter
+ * stays inside `scan_teaser` and out of `buildUnlockPayload`, which is the
+ * split `citations.test.mts` holds. If that ever stops being true, this promise
+ * is the thing on the page that becomes a lie.
+ */
 test("nothing held back says nothing, and one row held back is still singular", () => {
   assert.equal(moreSourcesNote(4, 4), null);
   assert.equal(moreSourcesNote(9, 4), null, "a total below what is shown invented a negative remainder");
-  assert.equal(moreSourcesNote(1, 2), "The most-cited of 2 pages the engines drew on. The rest come with the report.");
-  assert.equal(moreSourcesNote(4, 30), "The 4 most-cited of 30 pages the engines drew on. The rest come with the report.");
+  assert.equal(
+    moreSourcesNote(1, 2),
+    "The page your answers reached for first, of 2 pages the engines drew on. The rest come with the report.",
+  );
+  assert.equal(
+    moreSourcesNote(4, 30),
+    "The 4 pages your answers reached for first, of 30 pages the engines drew on. The rest come with the report.",
+  );
+});
+
+/**
+ * And that the note never claims a ranking.
+ *
+ * Position in `scan_citations` is order of citation: on an AI Overview it
+ * tracks prominence reasonably well, on a chat engine it may be nothing but
+ * order of mention. So the free list may be described by what it is and not by
+ * what it would be flattering for it to be. Written as a prohibition over the
+ * strings this function can produce, because the failure is one adjective
+ * slipping back in during a copy pass - which is exactly how "most-cited" came
+ * to be describing a list that had stopped being one.
+ */
+test("the source footnote never calls the first-cited list a ranking", () => {
+  const said = [moreSourcesNote(1, 2), moreSourcesNote(4, 30), moreSourcesNote(12, 300)].filter(
+    (s): s is string => s !== null,
+  );
+  assert.equal(said.length, 3, "the note stopped producing a sentence for these cases");
+  for (const s of said) {
+    for (const claim of ["most-cited", "most cited", "top ", "best ", "biggest", "leading", "important"]) {
+      assert.ok(
+        !s.toLowerCase().includes(claim),
+        `the source footnote says ${JSON.stringify(claim)} in "${s}". These rows are ordered by which ` +
+          `answer cited them first, which is not a ranking of anything - see the header of ` +
+          `20260920030000_teaser_first_cited.sql`,
+      );
+    }
+  }
 });
 
 test("the placement footnote is absent when nothing was sorted, and agrees with itself when it is not", () => {

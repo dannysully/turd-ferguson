@@ -490,3 +490,91 @@ test("scan_teaser's citation sub-selects still key on all three columns", () => 
     }
   }
 });
+
+/* ── The display filter, and the one place it is allowed to live ── */
+
+/**
+ * Danny, 20 Sep 12:10, item 4, in his own words: "Keep the full set stored.
+ * This is a display filter, not a collection change. The unlock payload, the
+ * coverage count and the campaign reading all read the same table and none of
+ * them should start seeing a truncated set. Whatever changes must change in the
+ * view, not in what the pass writes."
+ *
+ * That is a claim about every reader of `scan_citations`, so it belongs in the
+ * file that already derives them - both halves, TypeScript and SQL - rather
+ * than in a comment beside the one query that is supposed to have it.
+ *
+ * The failure it refuses is quiet and expensive in exactly the wrong direction:
+ * a position filter spreading from the free teaser into `buildUnlockPayload`
+ * shortens the report somebody traded an email address for, and every count on
+ * it stays internally consistent while doing so. Nothing else in the tree would
+ * notice, and "the rest come with the report" - published under the free source
+ * table - quietly becomes untrue.
+ */
+test("only scan_teaser filters citations by position, and it does it per prompt response", () => {
+  const withPosition = SQL_READS.filter((r) => /\bposition\b/i.test(r.query));
+  assert.deepEqual(
+    [...new Set(withPosition.map((r) => r.fn))].sort(),
+    ["scan_teaser"],
+    "a SQL reader of scan_citations other than scan_teaser looks at `position`. The first-cited filter " +
+      "is a display filter for the free result and must not reach the unlocked report, the coverage " +
+      "count or the campaign reading",
+  );
+  assert.ok(
+    withPosition.length >= 2,
+    `only ${withPosition.length} of scan_teaser's reads filter on position - top_sources and all_sources ` +
+      `both should, or the two lists disagree about what they are showing`,
+  );
+
+  // Per question AND per engine. "Per prompt response" is up to 56 answers on a
+  // fourteen-question free scan, not fourteen - partitioning on question_id
+  // alone would throw away three quarters of the list and still look right.
+  for (const r of withPosition) {
+    assert.match(
+      r.query,
+      /distinct\s+on\s*\(\s*c\.question_id\s*,\s*c\.engine\s*\)/i,
+      "the first-cited filter is not keyed on (question_id, engine). Per prompt response means per " +
+        "question and per engine - see the header of 20260920030000_teaser_first_cited.sql",
+    );
+    assert.match(
+      r.query,
+      /order\s+by[\s\S]*?c\.position\b/i,
+      "the first-cited filter picks a row per response without ordering by position, so which citation " +
+        "it calls first is whatever the planner happened to return",
+    );
+  }
+});
+
+/**
+ * And the TypeScript half, which is where the unlock payload lives.
+ *
+ * `buildUnlockPayload` is the reader that must stay unfiltered, and it is a
+ * PostgREST call rather than SQL, so the rule above cannot see it at all.
+ *
+ * Read over the READING FUNCTION rather than over the select's column list. A
+ * `.eq("position", 1)` is a filter, not a column, so `r.columns` - which is
+ * what the dedupe rules above key on - contains no trace of it. `enclosingSpan`
+ * is the same narrowing those rules use, and it is already asserted to be real
+ * further up this file, so borrowing it costs nothing and inherits that guard.
+ */
+test("no TypeScript reader of scan_citations filters on position", () => {
+  const filtered: string[] = [];
+  for (const r of READS) {
+    const source = readFileSync(join(ROOT, r.file), "utf8");
+    const { from, to } = enclosingSpan(source, r.offset);
+    const fn = source.slice(from, to);
+    // The word bound matters here for the reason it mattered three times
+    // elsewhere today: `rank_absolute` and `position` are both about order, and
+    // a column named `*_position` would otherwise read as this filter.
+    if (/(?<![\w])position\b/.test(fn.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/(^|[^:])\/\/.*$/gm, "$1"))) {
+      filtered.push(`${r.file}:${r.line}`);
+    }
+  }
+  assert.deepEqual(
+    filtered,
+    [],
+    "a TypeScript reader of scan_citations mentions position. The first-cited list is the free teaser's " +
+      "alone; the report a visitor gave an address for carries every page, which is what makes the " +
+      "published promise that the rest come with the report true",
+  );
+});

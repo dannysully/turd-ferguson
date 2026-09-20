@@ -170,8 +170,24 @@ export function kindLabel(kind: string | null): string | null {
  */
 export function moreSourcesNote(shown: number, total: number): string | null {
   if (total - shown <= 0) return null;
+  /**
+   * "Most-cited" was true until 20 September 2026 and is not any more.
+   *
+   * The free list is now the page each answer reached for FIRST, deduped by
+   * domain - Danny's item 4, a filter that lives in `scan_teaser` alone. A page
+   * cited by every answer but never first is not on this list, so calling what
+   * is shown "the most-cited" is a ranking claim the rows no longer support.
+   *
+   * "The rest come with the report" stays, and stays TRUE, because the filter
+   * is in the view and not in the pass: `buildUnlockPayload` reads
+   * `scan_citations` with no position anywhere in it, so the report really does
+   * carry every page. That sentence is the reason `total_sources` was
+   * deliberately left counting every cited domain rather than the shortened
+   * set - see the migration header.
+   */
   return (
-    (shown === 1 ? "The most-cited of " : "The " + shown + " most-cited of ") +
+    (shown === 1 ? "The page " : "The " + shown + " pages ") +
+    "your answers reached for first, of " +
     count(total, "page") +
     " the engines drew on. The rest come with the report."
   );
