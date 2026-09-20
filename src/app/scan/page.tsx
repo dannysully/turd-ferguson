@@ -6,6 +6,24 @@ import HeroSection from "@/components/scan/HeroSection";
  * The landing for a domain submitted from elsewhere on the site. It prefills
  * the field and nothing more. Not indexed - it is a state, not a page.
  *
+ * **A GET here cannot start a scan, and that is worth stating because the
+ * question is a fair one.** `robots.txt` closes `/scan/` with a trailing
+ * slash, which does not close `/scan?domain=...` - robots matching is literal
+ * prefix, and after `/scan` comes `?`. GPTBot, Googlebot and Bingbot are all
+ * `Allow: /` on this path, so if a GET with a query string started a pass,
+ * every crawler that followed one would spend a scan. Asked by the 20 Sep
+ * design review; answered from the source, three ways:
+ *
+ *  - `domain` below becomes a `useState` initial value and nothing else;
+ *  - there is no `useEffect` in `HeroSection`, `LiveScanChecker` or
+ *    `RequestScanForm`, so nothing at all runs on mount;
+ *  - the fetch to `/api/scan/start` is inside a submit handler, and that route
+ *    exports POST only. A crawler issues GETs and does not submit forms.
+ *
+ * The third is now a tripwire - `src/app/api/paid-get.test.mts` - because a
+ * route gains a method in one line and nothing else in the tree would notice.
+ *
+
  * It is also where a verification link lands when it cannot do its job, which
  * is why it reads `verify`. Both of those redirects existed and neither said
  * anything: somebody who clicked the link in their email arrived at a plain
