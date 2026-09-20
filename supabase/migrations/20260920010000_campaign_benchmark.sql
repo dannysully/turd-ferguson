@@ -59,8 +59,25 @@
 
 create table if not exists campaigns (
   id              uuid primary key default gen_random_uuid(),
-  -- The credential the results page reads by, the same shape scans use.
-  public_token    text not null unique default encode(gen_random_bytes(16),'hex'),
+  -- The credential the results page reads by, the same 32 hex characters the
+  -- scans token is.
+  --
+  -- Built from gen_random_uuid rather than the encode(gen_random_bytes(16))
+  -- that scans uses, and the difference is not stylistic. The first attempt at
+  -- this migration copied that expression and failed on
+  -- `function gen_random_bytes(integer) does not exist`: it comes from
+  -- pgcrypto, which is not on the search path this migration runs with.
+  -- scans.public_token still works because a column default is resolved when
+  -- the column is made and stored by reference, so it kept the function it
+  -- found in 2026-09-15 regardless of where the extension sits now.
+  --
+  -- gen_random_uuid is core Postgres, so this cannot break the same way, and
+  -- it produces the same shape: strip the hyphens from a v4 uuid and you have
+  -- 32 hex characters. Six of those bits are the version and variant, so it is
+  -- 122 bits of randomness rather than 128 - which is not a meaningful
+  -- difference for an unguessable token, and it is already what the id column
+  -- beside it relies on.
+  public_token    text not null unique default replace(gen_random_uuid()::text, '-', ''),
   -- The four inputs the board collects. brand and topic fill the prompt
   -- template; segment is optional and the category question asks its broader
   -- form without it, which is a worse question but still a real one.
