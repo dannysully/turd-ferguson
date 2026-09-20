@@ -3,7 +3,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { test } from "node:test";
 
-import { sweptPages } from "./dynamic-render.mts";
+import { sweptPages, type Page } from "./dynamic-render.mts";
 import { OG_IMAGE } from "../config/og.ts";
 import { ENGINE_SPECS, ENGINES } from "../lib/scan/engines.ts";
 import { TIER_PLAIN } from "../lib/tier-text.ts";
@@ -26,10 +26,17 @@ import { TIER_PLAIN } from "../lib/tier-text.ts";
  * title, so the card cannot assert anything the site does not already say".
  * The root layout title default is real - and it renders on exactly one page
  * in the build, `_not-found`, which is `noindex`. Counted off the built heads
- * on 20 Sep 2026: all 16 other prerendered pages set their own title and get
- * the `%s | alwayscited` template instead. So the sentence's only *indexed*
+ * on 20 Sep 2026: all 30 other swept states set their own title and get the
+ * `%s | alwayscited` template instead. So the sentence's only *indexed*
  * publisher is the card, and the surface it was said to be echoing reaches no
  * reader. Same shape as the root description already recorded in the queue.
+ *
+ * (That count read 16 until the second measurement on 20 Sep and the finding
+ * it supports is unchanged - `_not-found` is still the only page rendering the
+ * default. It was 16 because the swept set was the 17 prerendered pages before
+ * `npm run capture` widened it to 31. A count carried in prose beside rules
+ * that do not execute it drifts with the denominator underneath it, which is
+ * the cheapest tell this queue has, arriving inside a test.)
  *
  * Nothing on the card is false today - it is positioning in the same register
  * as the title, not a claim about an engine or a result, so no `[VERIFY]` is
@@ -58,6 +65,21 @@ const ROOT = join(import.meta.dirname, "..", "..");
 const CARD = "src/app/opengraph-image.tsx";
 const TWITTER = "src/app/twitter-image.tsx";
 const LAYOUT = "src/app/layout.tsx";
+
+/**
+ * Next's global fallback renders its own document, outside the root layout, so
+ * it has no metadata at all - no description, no canonical, no card.
+ * `page-head.test.mts` earns that exemption against the motion script; the rule
+ * below earns this file's use of it by measuring that no other page shares it.
+ */
+const NO_HEAD = "_global-error.html";
+
+const headOf = (html: string) => /<head>[\s\S]*?<\/head>/.exec(html)?.[0] ?? "";
+
+/** Every swept page whose head names no share card at all. */
+function cardless(pages: Page[]): string[] {
+  return pages.filter(({ html }) => !/<meta property="og:image" content=/.test(headOf(html))).map((p) => p.page);
+}
 
 /**
  * Source with its prose removed.
@@ -261,8 +283,10 @@ test("the engine row is derived from config, never typed", () => {
  * page that sets `openGraph` at all drops the file-convention image it
  * inherited. The fix was a value every page points at - and that value retypes
  * `alt`, `width`, `height` and `type` from the image route rather than reading
- * them. Both copies reach the same head on different pages: 16 prerendered
- * pages take `OG_IMAGE`'s, `_not-found` takes the route's own exports.
+ * them. Both copies reach the same head on different pages, measured off this
+ * build on 20 Sep 2026: 24 of the 30 carded states emit `OG_IMAGE`'s bare URL
+ * because they set `openGraph` themselves, and 6 take Next's file-convention
+ * URL with its cache-busting query. The rule below reads both shapes.
  *
  * Nothing joined them, and this is the two-copies species that actually pays
  * here - the date formatter, the honeypot, `brand-name.ts`. In each the
@@ -297,9 +321,23 @@ test("config/og.ts agrees with the card's own exports", () => {
  * stop, and one that shows up only in built HTML. So this end is read from
  * the prerender and the capture rather than from any literal in the tree.
  *
- * Pages with no og:image at all are not a failure: the `noindex` pages carry
- * no head metadata by design and `page-head.test.mts` owns that. The floor is
- * what stops this narrowing to nothing the day the extraction breaks.
+ * ## The gate below was a `continue` with a false reason, and a floor 20 pages
+ * short of its own denominator
+ *
+ * It read `if (!/<meta property="og:image"/.test(head)) continue;` under
+ * "pages with no og:image at all are not a failure: the **noindex** pages
+ * carry no head metadata by design". Measured on 20 September 2026 against
+ * this build: 30 of the 31 swept states carry an og:image and the one that
+ * does not is `_global-error.html`, which is **not noindex**. `_not-found` is
+ * noindex and carries one. So the reason named a class that is not the class
+ * being skipped - the sweep's own reason for narrowing, which this queue has
+ * now paid for twice, and the least visible place a universal hides.
+ *
+ * The floor was `checked > 10` over 31 pages, so nineteen indexed pages could
+ * have dropped out of this rule's denominator in silence. It is derived from
+ * the exemption now, and the exemption is earned by `cardless()` below rather
+ * than asserted here, so a second page losing its card fails loudly instead of
+ * quietly leaving this rule.
  */
 test("every head states the card's own four facts", () => {
   const pages = sweptPages();
@@ -318,8 +356,8 @@ test("every head states the card's own four facts", () => {
   const bad: string[] = [];
   let checked = 0;
   for (const { page, html } of pages) {
-    const head = /<head>[\s\S]*?<\/head>/.exec(html)?.[0] ?? "";
-    if (!/<meta property="og:image" content=/.test(head)) continue;
+    if (page === NO_HEAD) continue;
+    const head = headOf(html);
     checked++;
     for (const [key, value] of Object.entries(want)) {
       const m = new RegExp(`<meta (?:property|name)="${key}" content="([^"]*)"`).exec(head);
@@ -328,7 +366,193 @@ test("every head states the card's own four facts", () => {
     }
   }
 
-  assert.ok(checked > 10, `only ${checked} of ${pages.length} swept pages carry an og:image - the sweep has narrowed`);
+  assert.equal(
+    checked,
+    pages.length - 1,
+    `${checked} of ${pages.length} swept pages were read for the card's four facts, and every page but ${NO_HEAD} should have been`,
+  );
+  assert.deepEqual(bad, [], bad.join("\n"));
+});
+
+/**
+ * The gate, as a property rather than as a `continue`.
+ *
+ * `page-head.test.mts` already asserts that every swept page but `_global-error`
+ * carries an og:image, and it earns that one exemption against the motion
+ * script. This is not that rule again and does not replace it: what it holds is
+ * this **file's** denominator. The four-facts rule above skips one page by name,
+ * and a skip that names a page is only honest while that page is the only one
+ * with no card - otherwise a page quietly losing its card would also quietly
+ * stop being read for the four facts, and the two failures would look like one.
+ */
+test("exactly one swept page carries no card, and it is the one with no head", () => {
+  const pages = sweptPages();
+  if (!pages.length) return;
+
+  assert.deepEqual(
+    cardless(pages),
+    [NO_HEAD],
+    `these pages carry no og:image. ${NO_HEAD} is Next's global fallback, which renders outside the ` +
+      `root layout and has no metadata at all; anything else here has lost its share card`,
+  );
+});
+
+// ------------------------------------------------------ which picture, though
+
+/**
+ * WHICH picture the head names - the one fact about the card that every rule
+ * in this file, and every rule outside it, read past.
+ *
+ * `OG_IMAGE` has five fields. The source-to-source rule above compares four of
+ * them - `alt`, `width`, `height`, `type` - against the card's own exports, and
+ * it cannot compare the fifth: the card module exports no URL, because the URL
+ * is a route Next serves for the file convention. The prerender rule above
+ * reads those same four facts out of every head and uses `og:image` only as a
+ * **gate**, never reading its value. So `url` was joined to nothing.
+ *
+ * What the rest of the suite holds is weaker than it looks. `page-head` asks
+ * that an og:image is *present*. `structured-data` asks that whatever URL is
+ * there resolves to *a route the build serves* - and this site serves
+ * `/icon.svg` and `/favicon.ico` as generated routes, so both answer that
+ * question yes. Nothing anywhere asked whether the picture published to every
+ * crawler is **the card**.
+ *
+ * The failure that passes every one of them: a page sets its own `images:`
+ * block - the exact mistake `config/og.ts` exists to stop, and the likeliest
+ * way it happens is copying the shape off another page - keeping all four
+ * facts and pointing `url` at another served route. Right alt, right
+ * dimensions, right MIME type, wrong picture, on the surface a buyer sees
+ * before they have loaded a page at all. `email-header`'s shape exactly: the
+ * correct denominator, the subject read, and `from` and `to` read by nothing.
+ *
+ * Both routes are derived from the card files rather than typed, off the same
+ * constants the denominator rule at the foot of this file walks for, so a card
+ * that moves segment takes its expected URL with it.
+ *
+ * Two URL shapes reach the heads and both are legitimate: the pages that set
+ * `openGraph` themselves emit the bare `OG_IMAGE.url`, and the ones that do not
+ * get Next's file-convention URL with a cache-busting query on the end. The
+ * query is not part of the route, so the comparison is on the pathname.
+ *
+ * What this derivation cannot do, checked rather than assumed: Next strips
+ * route groups `(name)` and parallel slots `@name` out of the URL, so a card
+ * under one would get a wrong expected route here. `src/app` has neither today
+ * - walked on 20 Sep 2026 - and the failure would be the loud direction, a
+ * false fire rather than a silent pass. If one arrives, teach this function
+ * before believing its complaint.
+ */
+function imageRoute(file: string): string {
+  const m = /^src\/app\/(.*)\.[jt]sx?$/.exec(file);
+  assert.ok(m, `${file} is not a route segment file - imageRoute cannot derive its URL`);
+  const segments = m[1]!.split("/");
+  assert.ok(
+    !segments.some((s) => /^[(@]/.test(s)),
+    `${file} sits under a route group or a parallel slot, which Next strips from the URL - imageRoute would derive the wrong route`,
+  );
+  return "/" + segments.join("/");
+}
+
+/** The pathname a head's image URL resolves to, with the cache-buster dropped. */
+function pathOf(url: string): string {
+  return new URL(url, "https://alwayscited.com").pathname;
+}
+
+test("every head names the card's own route, not merely an image the build serves", () => {
+  const pages = sweptPages();
+  if (!pages.length) return;
+
+  const want = { "og:image": imageRoute(CARD), "twitter:image": imageRoute(TWITTER) };
+
+  const bad: string[] = [];
+  const seen = { "og:image": 0, "twitter:image": 0 };
+  for (const { page, html } of pages) {
+    if (page === NO_HEAD) continue;
+    const head = headOf(html);
+    for (const [key, route] of Object.entries(want)) {
+      const urls = [...head.matchAll(new RegExp(`<meta (?:property|name)="${key}" content="([^"]+)"`, "g"))].map(
+        (m) => m[1]!,
+      );
+      if (!urls.length) {
+        bad.push(`${page}: no ${key}`);
+        continue;
+      }
+      seen[key as keyof typeof seen] += urls.length;
+      for (const url of urls) {
+        if (pathOf(url) !== route) {
+          bad.push(`${page}: ${key} is ${JSON.stringify(url)}, which is not the card at ${route}`);
+        }
+      }
+    }
+  }
+
+  // Counted, not matched: one page publishing two og:image tags - the old one
+  // and the card - reads as a pass to any rule that stops at the first match.
+  for (const [key, n] of Object.entries(seen)) {
+    assert.equal(n, pages.length - 1, `${n} ${key} tags across ${pages.length - 1} pages that should carry one each`);
+  }
+  assert.deepEqual(bad, [], bad.join("\n"));
+});
+
+/**
+ * And the source end of the same join, which is the half the four-facts rule
+ * above says in its own header that it cannot make.
+ *
+ * `OG_IMAGE.url` is what 24 of the 30 carded pages actually emit, so a wrong
+ * value here is wrong on most of the site at once. It is compared against the
+ * derived route rather than a typed "/opengraph-image", so the two cannot be
+ * edited into agreement on a card that has moved.
+ */
+test("OG_IMAGE points at the card's route, the field the four-facts rule cannot reach", () => {
+  assert.equal(
+    pathOf(OG_IMAGE.url),
+    imageRoute(CARD),
+    `config/og.ts publishes ${JSON.stringify(OG_IMAGE.url)} as the share card, and the card is ${CARD}`,
+  );
+});
+
+/**
+ * The refill, asked of the two rules above while their denominator was still in
+ * my head - and it came back with the premise all of this rests on.
+ *
+ * `twitter:card` is the tag that decides whether the picture renders as a large
+ * card, a thumbnail, or not at all. It is set once, in `layout.tsx`, and until
+ * now **nothing in this tree read it**: it appears in three doc comments as the
+ * reason the card exists - `opengraph-image.tsx`'s opening sentence, this
+ * file's, and `config/og.ts`'s - and in no assertion anywhere.
+ *
+ * It is a TRUE universal today, which is the kind `0476c7f` records as still
+ * worth taking: 30 of the 31 swept states declare `summary_large_image` and
+ * nothing else, the thirty-first being `NO_HEAD`. Its value is that it says
+ * where the property is unheld. `config/og.ts` was written because Open Graph
+ * metadata merges **shallowly**, so a page that sets `openGraph` at all drops
+ * the image it inherited - and the identical thing is true of `twitter`. A page
+ * adding `twitter: { title: "..." }` to its metadata drops `card` and publishes
+ * the 1200x630 card as a thumbnail, or as nothing. That is the same failure
+ * `config/og.ts` exists to stop, on the half it explicitly left alone: "no page
+ * overrides twitter, so the twitter-image convention reaches all of them on its
+ * own" - a sentence true when typed and executed by nobody.
+ *
+ * Read from `layout.tsx` rather than typed, so the two cannot be edited into
+ * agreement, and the shipped heads are the other end.
+ */
+test("every head declares the large card the layout asks for", () => {
+  const pages = sweptPages();
+  if (!pages.length) return;
+
+  const declared = /card:\s*"([^"]+)"/.exec(sourceOf(LAYOUT));
+  assert.ok(declared, `${LAYOUT} no longer declares a twitter card type - this rule is reading nothing`);
+
+  const bad: string[] = [];
+  let checked = 0;
+  for (const { page, html } of pages) {
+    if (page === NO_HEAD) continue;
+    checked++;
+    const m = /<meta name="twitter:card" content="([^"]*)"/.exec(headOf(html));
+    if (!m) bad.push(`${page}: no twitter:card, so the card it carries renders as a bare link`);
+    else if (m[1] !== declared[1]) bad.push(`${page}: twitter:card is ${JSON.stringify(m[1])}, the layout asks for ${JSON.stringify(declared[1])}`);
+  }
+
+  assert.equal(checked, pages.length - 1, `${checked} of ${pages.length} pages were read`);
   assert.deepEqual(bad, [], bad.join("\n"));
 });
 
