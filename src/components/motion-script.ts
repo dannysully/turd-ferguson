@@ -40,6 +40,15 @@
  * eight because the boards stagger short groups, and a twenty-row table with
  * an uncapped .09s would still be arriving two seconds in.
  *
+ * The cap is a ceiling on a ladder, which on this site is a defect species
+ * rather than a one-off - so both halves of it are checked. `motion-script.
+ * test.mts` pins the mechanism, and it also measures every `.ac-row` group in
+ * the prerendered build against this number: past nine rows the tail shares a
+ * beat, which reads as perfectly correct in the markup. The homepage's largest
+ * group is eight. If you raise or lower the cap here, that test reads the new
+ * value out of this string and needs no edit; if a group outgrows it, the test
+ * names the page.
+ *
  * ## Siblings that are displayed, not siblings that exist
  *
  * The count skips any `.ac-row` whose computed `display` is `none`, and the
