@@ -3,12 +3,39 @@ import { OG_IMAGE } from "@/config/og";
 import Link from "next/link";
 
 import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
-import { PLACEHOLDER, coveragePrompts } from "@/lib/coverage/prompts";
+import { FREE_ENGINE_COUNT, FREE_ENGINE_LABELS, listOf } from "@/config/scan-shape";
+import { COVERAGE_PROMPT_COUNT, PLACEHOLDER, coveragePrompts } from "@/lib/coverage/prompts";
+
+/**
+ * Every engine and question count on this page is derived, and it is derived
+ * because all three of them were wrong.
+ *
+ * The board says "three engines" and its example data carries three, because
+ * it was drawn before the backend had been decided. Danny then accepted the
+ * six proposals on 20 September 2026, and proposal 4 was "the scan's own
+ * engine set" - which is `FREE_ENGINES`, and has been four since 3586cbf moved
+ * Perplexity into the free pass. `20260920010000_campaign_benchmark.sql` is
+ * built on that answer in terms: a reading IS a scan row, so it inherits the
+ * frozen engine set along with the ceilings and the citation tables. So the
+ * page was promising a buyer fifteen answers from a thing that will return
+ * twenty.
+ *
+ * The board is the source for the design, not for a number the backend now
+ * owns - the same standing as its `[Client brand]` placeholders, which are
+ * example data and stay example data.
+ *
+ * `src/config/copy.test.mts` used to say the engine count was out of scope
+ * because it "shares its wording with the coverage checker's own three
+ * engines, five questions - a different product with its own numbers". That
+ * premise is what proposal 4 removed. There is one engine set on this site
+ * now, so the rule is swept there like the others.
+ */
+const ANSWERS = COVERAGE_PROMPT_COUNT * FREE_ENGINE_COUNT;
 
 export const metadata: Metadata = {
   title: "Free campaign benchmark",
   description:
-    "Take the reading before the campaign. Five questions, three engines, every cited source checked against your coverage - dated and re-runnable.",
+    `Take the reading before the campaign. ${COVERAGE_PROMPT_COUNT} fixed questions on the ${FREE_ENGINE_COUNT} engines a free scan reads, every cited source checked against your coverage - dated and re-runnable.`,
   openGraph: { url: "https://alwayscited.com/coverage-check", images: OG_IMAGE },
   alternates: { canonical: "https://alwayscited.com/coverage-check" },
 };
@@ -16,11 +43,17 @@ export const metadata: Metadata = {
 /**
  * CoverageCheck.dc.html, front end only.
  *
- * The board is a working tool: four inputs, five generated questions, three
+ * The board is a working tool: four inputs, a fixed question set, the scan's
  * engines, every cited source matched against an uploaded coverage list, and
- * the whole thing stored dated and re-runnable. None of that backend exists
- * and the schema for it is not mine to invent, so the submit is stubbed -
- * visibly, in the page, not as a silent no-op.
+ * the whole thing stored dated and re-runnable.
+ *
+ * The schema now exists - `campaigns` and `campaign_coverage` shipped in
+ * `20260920010000_campaign_benchmark.sql`, and the question template is pinned
+ * by a test in `src/lib/coverage/prompts.ts`. What does not exist is the run
+ * path: nothing yet inserts a campaign, hashes the caller, spends against the
+ * ceilings or writes a reading. So the submit stays stubbed - visibly, in the
+ * page, not as a silent no-op - and the counts above come from the shipped
+ * engine set rather than from the board's three-engine example.
  *
  * The one thing this page must not do is take an email address for a
  * baseline that will never arrive. So the email field is not here at all
@@ -73,7 +106,7 @@ const PROMISES: { k: string; t: string; b: string }[] = [
   {
     k: "A starting line",
     t: "Something to measure the next campaign against",
-    b: "The reading is dated and stored with its questions, so the same five can be asked again after the campaign. Without that first reading there is nothing to compare, which is why this one is free.",
+    b: "The reading is dated and stored with its questions, so the same ones can be asked again after the campaign. Without that first reading there is nothing to compare, which is why this one is free.",
   },
 ];
 
@@ -110,9 +143,10 @@ export default function CoverageCheckPage() {
             Take the reading before the campaign. <span style={{ color: T.accent }}>Then it means something.</span>
           </h1>
           <p style={{ margin: "14px 0 0", fontSize: "15px", lineHeight: 1.65, color: T.soft, maxWidth: "62ch" }}>
-            Five questions built from the brand and what the campaign is about. We ask three engines, keep the answers
-            word for word, and check every source they cite against the coverage you upload. Dated, stored, and
-            re-runnable - so the next reading is a comparison rather than another snapshot.
+            The questions are built from the brand and what the campaign is about. We ask the same engines a free scan
+            reads - {listOf(FREE_ENGINE_LABELS)} - keep the answers word for word, and check every source they cite
+            against the coverage you upload. Dated, stored, and re-runnable - so the next reading is a comparison
+            rather than another snapshot.
           </p>
         </div>
 
@@ -186,7 +220,7 @@ export default function CoverageCheckPage() {
 
       <section>
         <div className="board-head" style={{ ...GRID12, marginBottom: "14px" }}>
-          <h2 style={{ ...H2, gridColumn: "span 4" }}>These are the five we would ask</h2>
+          <h2 style={{ ...H2, gridColumn: "span 4" }}>These are the {COVERAGE_PROMPT_COUNT} we would ask</h2>
           <p style={{ gridColumn: "span 8", margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
             Built from the brand and the campaign topic, not from your headlines. If the question is wrong, everything
             after it is wrong too, so you would get to edit them before anything ran.
@@ -207,7 +241,7 @@ export default function CoverageCheckPage() {
             </div>
           ))}
           <p style={{ margin: 0, padding: "13px 26px", fontSize: "12.5px", color: T.soft, borderTop: `1px solid ${T.hair}` }}>
-            Three engines, five questions, fifteen answers. Every source kept.
+            {FREE_ENGINE_COUNT} engines, {COVERAGE_PROMPT_COUNT} questions, {ANSWERS} answers. Every source kept.
           </p>
         </div>
       </section>

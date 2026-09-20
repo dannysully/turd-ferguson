@@ -31,10 +31,17 @@ import { test } from "node:test";
  *    reach a person outside this repo.
  *  - colour. "Colour must never be the only way to tell tiers apart" is a
  *    property of the rendered page and is not decidable from source.
- *  - the engine count, which is derived everywhere already but shares its
- *    wording with the coverage checker's own "three engines, five questions" -
- *    a different product with its own numbers. A rule that flagged one would
- *    flag the other, so this makes no claim about engine counts.
+ *
+ * The engine count used to be on that list, on the grounds that it "shares its
+ * wording with the coverage checker's own three engines, five questions - a
+ * different product with its own numbers". It is covered now, because that
+ * premise stopped being true on 20 September 2026. Danny accepted proposal 4,
+ * "the scan's own engine set", and `20260920010000_campaign_benchmark.sql` is
+ * built on it: a benchmark reading is a scans row, so it inherits FREE_ENGINES
+ * rather than having a set of its own. There is one engine set on this site,
+ * and the exemption was the only thing keeping /coverage-check's "three
+ * engines, five questions, fifteen answers" off this report while the product
+ * behind it returned twenty.
  */
 
 /**
@@ -198,6 +205,51 @@ export function typedCounts(
   return out;
 }
 
+// -------------------------------------------------------- the engine count
+
+/**
+ * A count of engines typed into shipped text.
+ *
+ * Deliberately blind to what the right answer is. The other rules here sweep
+ * for a specific stale number read out of the file that owns it; this one
+ * flags *any* literal count standing in front of "engines", because the count
+ * has moved twice - Claude out and Perplexity in at 3586cbf - and the failure
+ * both times was a sentence that was true when it was written. There is
+ * nothing to compare against that a wrong page would not also match: "three
+ * engines" was wrong for a fortnight while FREE_ENGINES held four, and a rule
+ * pinned to four would have passed it on the day it was fixed and failed it
+ * on the day it broke again.
+ *
+ * `FREE_ENGINE_COUNT` interpolated into the string is what a clean line looks
+ * like, and there is no literal left for this to see.
+ *
+ * The bound is one to ten spelled out, plus any run of digits. Nothing on this
+ * site offers more than ten engines, and a number that large in front of the
+ * word is a claim whoever wrote it should have to justify anyway.
+ */
+const ENGINE_COUNT =
+  /\b(?:one|two|three|four|five|six|seven|eight|nine|ten|\d+)[ \t]+engines\b/i;
+
+/**
+ * Where the engine set is declared and may be counted in prose. Same shape as
+ * PRICE_EXEMPT, and checked below that it still points at a real file.
+ */
+const ENGINE_EXEMPT: Record<string, string> = {
+  "src/lib/scan/engines.ts": "FREE_ENGINES and GATED_ENGINES are declared here",
+  "src/config/scan-shape.ts": "FREE_ENGINE_COUNT is derived here",
+};
+
+export function typedEngines(source: string, file: string): Hit[] {
+  if (Object.hasOwn(ENGINE_EXEMPT, file)) return [];
+  const out: Hit[] = [];
+  const lines = source.split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    if (isComment(lines[i])) continue;
+    if (ENGINE_COUNT.test(lines[i])) out.push({ file, line: i + 1, text: lines[i].trim() });
+  }
+  return out;
+}
+
 // -------------------------------------------------------------- the prices
 
 /**
@@ -252,6 +304,8 @@ const COUNT_HITS: Hit[] = FILES.flatMap((file) => typedCounts(readFileSync(file,
 
 const PRICE_HITS: Hit[] = FILES.flatMap((file) => typedPrices(readFileSync(file, "utf8"), posix(file)));
 
+const ENGINE_HITS: Hit[] = FILES.flatMap((file) => typedEngines(readFileSync(file, "utf8"), posix(file)));
+
 function say(hits: Hit[]): string[] {
   return hits.map((h) => `${h.file}:${h.line} ${h.text}`);
 }
@@ -301,6 +355,23 @@ test("each rule can still see what it is looking for", () => {
 
   assert.equal([..."a — b".matchAll(DASHES)].length, 1);
 
+  // The literal this rule exists for is the one that shipped. Both spellings,
+  // and a derived line beside them that must not be reported.
+  assert.deepEqual(
+    say(typedEngines('<span>Three engines, five questions, fifteen answers.</span>', "x.tsx")),
+    ["x.tsx:1 <span>Three engines, five questions, fifteen answers.</span>"],
+  );
+  assert.deepEqual(
+    say(typedEngines("const s = `asked on 4 engines`;", "x.tsx")),
+    ["x.tsx:1 const s = `asked on 4 engines`;"],
+  );
+  assert.deepEqual(typedEngines("<span>{FREE_ENGINE_COUNT} engines, {ANSWERS} answers.</span>", "x.tsx"), []);
+  // Worked arithmetic for a maintainer is prose, as it is for the counts.
+  assert.deepEqual(typedEngines(" * fourteen questions across four engines is 56 reads", "x.tsx"), []);
+  for (const home of Object.keys(ENGINE_EXEMPT)) {
+    assert.deepEqual(typedEngines('export const FREE_ENGINES = ["a"]; // four engines', home), [], `${home} is exempt and stayed exempt`);
+  }
+
   assert.deepEqual(
     say(typedPrices('description: "$2,495 a month, priced per topic."', "x.tsx")),
     ['x.tsx:1 description: "$2,495 a month, priced per topic."'],
@@ -333,15 +404,28 @@ test("a price is read from pricing.ts, never typed", () => {
   );
 });
 
-test("every price exemption still points at a file that exists", () => {
+test("every exemption still points at a file that exists", () => {
   // An exemption outliving its file is a hole nobody can see, which is the
   // rule reads.test.mts keeps over its own list.
-  for (const home of Object.keys(PRICE_EXEMPT)) {
-    assert.ok(
-      FILES.some((f) => posix(f) === home),
-      `PRICE_EXEMPT lists ${home}, but the walk does not find it any more - delete the entry`,
-    );
+  for (const [name, list] of [
+    ["PRICE_EXEMPT", PRICE_EXEMPT],
+    ["ENGINE_EXEMPT", ENGINE_EXEMPT],
+  ] as const) {
+    for (const home of Object.keys(list)) {
+      assert.ok(
+        FILES.some((f) => posix(f) === home),
+        `${name} lists ${home}, but the walk does not find it any more - delete the entry`,
+      );
+    }
   }
+});
+
+test("an engine count is derived, never typed", () => {
+  assert.deepEqual(
+    say(ENGINE_HITS),
+    [],
+    "read this from FREE_ENGINE_COUNT or FREE_ENGINE_LABELS in src/config/scan-shape.ts - the free engine set has already changed once, and every typed count of it was true when it was written",
+  );
 });
 
 test("a question count is derived, never typed", () => {
