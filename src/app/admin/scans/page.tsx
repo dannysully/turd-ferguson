@@ -54,6 +54,8 @@ type ScanRow = {
   unlocked_at: string | null;
   created_at: string;
   completed_at: string | null;
+  /** Per-phase elapsed in ms, written by the pipeline. Null before 20 Sep 2026. */
+  step_ms: Record<string, number> | null;
 };
 
 function money(n: number): string {
@@ -69,6 +71,38 @@ function seconds(row: ScanRow): string {
   if (!row.completed_at) return "-";
   const ms = new Date(row.completed_at).getTime() - new Date(row.created_at).getTime();
   return `${Math.round(ms / 1000)}s`;
+}
+
+/**
+ * Where a scan's time actually went, under its wall clock.
+ *
+ * The figure beside this is `completed_at - created_at`, which includes every
+ * minute the row sat waiting for a visitor to confirm the topic. `step_ms` is
+ * the pass itself, phase by phase, and the two answer different questions - so
+ * both are shown rather than one replacing the other.
+ *
+ * Rendered from whatever keys the row carries rather than from a list typed
+ * here. The phases are expected to change as the pipeline does, and a typed
+ * list would quietly stop showing the one that was added - which is the whole
+ * failure this column exists to end. `total` is pulled to the front because it
+ * is the one key that is not a phase; the rest keep their stored order, which
+ * is the order the pipeline wrote them in.
+ *
+ * Null is a scan that ran before 20 September 2026, or one that died before it
+ * could write. Both print nothing, which is honest: neither is a zero.
+ */
+function Phases({ ms }: { ms: Record<string, number> | null }) {
+  if (!ms) return null;
+  const entries = Object.entries(ms).filter(([, v]) => typeof v === "number");
+  if (!entries.length) return null;
+  const total = entries.find(([k]) => k === "total");
+  const phases = entries.filter(([k]) => k !== "total");
+  const say = ([k, v]: [string, number]) => `${k} ${(v / 1000).toFixed(1)}s`;
+  return (
+    <span style={{ display: "block", color: C.muted, fontSize: "0.7rem" }}>
+      {[...(total ? [total] : []), ...phases].map(say).join(" · ")}
+    </span>
+  );
 }
 
 /**
@@ -184,7 +218,7 @@ export default async function AdminScansPage() {
     db
       .from("scans")
       .select(
-        "id, public_token, domain, topic, market, status, step, error, engines, engines_answered, gated_status, dfs_calls, dfs_cost, anthropic_calls, unlocked_at, created_at, completed_at",
+        "id, public_token, domain, topic, market, status, step, error, engines, engines_answered, gated_status, dfs_calls, dfs_cost, anthropic_calls, unlocked_at, created_at, completed_at, step_ms",
       )
       .order("created_at", { ascending: false })
       .limit(50),
@@ -454,7 +488,10 @@ export default async function AdminScansPage() {
                     <span style={{ display: "block", color: C.muted, fontSize: "0.75rem" }}>{r.error}</span>
                   ) : null}
                 </td>
-                <td style={td}>{seconds(r)}</td>
+                <td style={td}>
+                  {seconds(r)}
+                  <Phases ms={r.step_ms} />
+                </td>
                 <td style={td}>{r.dfs_calls}</td>
                 <td style={td}>{money(Number(r.dfs_cost ?? 0))}</td>
                 <td style={td}>{r.anthropic_calls}</td>

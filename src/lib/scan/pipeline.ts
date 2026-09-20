@@ -127,6 +127,61 @@ type StoredQuestion = { id: string; idx: number; question: string };
 type Spend = { dfsCalls: number; dfsCost: number; anthropicCalls: number };
 
 /**
+ * Per-phase elapsed, in whole milliseconds. Danny, 20 Sep 12:10, item 3.
+ *
+ * Nothing in this pipeline was timed, so every judgement about where a scan
+ * spends its time - including the two changes made alongside this one - was
+ * read off the call graph. That is enough to remove a dependency that provably
+ * is not real and not enough to know which phase dominates.
+ *
+ * Owned by the caller and mutated in place, for the same reason `Spend` is: a
+ * pass that throws has still spent the time it spent, and the phases that did
+ * finish are exactly what you want to look at when one did not. Written to
+ * `scans.step_ms` on both exits.
+ *
+ * The keys are finer than `RUN_STEPS`. The progress bar has three captions and
+ * the whole question is what happens inside the third, so these are phases, not
+ * steps, and they are expected to change as the pipeline does - which is why
+ * the column is jsonb rather than one column each.
+ */
+type Timings = Record<string, number>;
+
+/**
+ * Time one phase into the map and return whatever it returned.
+ *
+ * Wraps rather than bracketing each call with two `Date.now()` reads, because a
+ * phase that throws must still record what it cost before rethrowing - and a
+ * hand-written start/end pair silently records nothing on exactly the runs
+ * worth looking at. `finally` is the whole point of this function.
+ */
+async function timed<T>(into: Timings, key: string, run: () => Promise<T>): Promise<T> {
+  const at = Date.now();
+  try {
+    return await run();
+  } finally {
+    into[key] = (into[key] ?? 0) + (Date.now() - at);
+  }
+}
+
+/**
+ * The map as it goes into the column: the phases, plus `total`.
+ *
+ * `total` is wall clock from the top of the pass, not the sum of the phases,
+ * and the difference between the two is the point. The phases do not tile the
+ * run - the database reads and writes between them are untimed, and since
+ * 20 September 2026 `sources` overlaps `extract` and `classify` rather than
+ * following them, so the parts can legitimately add up to more than the whole.
+ * Summing them would hide both facts. An operator comparing `total` against the
+ * sum is reading exactly the thing worth reading.
+ *
+ * Rounded to whole milliseconds because that is the resolution `Date.now()`
+ * has, and a fractional figure would imply one it does not.
+ */
+function sealTimings(t: Timings, startedAt: number): Timings {
+  return { ...t, total: Date.now() - startedAt };
+}
+
+/**
  * Add what this pass billed to the three spend columns, in the database.
  *
  * One rule for every exit: a pass adds what it billed, whether it returned or
@@ -285,6 +340,8 @@ async function readAndStore(input: {
   /** Called once the reads are in and the citation work begins, so the screen
    *  can move off "reading" rather than sitting on it for the whole run. */
   onSources?: () => Promise<void>;
+  /** Written into per phase. See Timings. */
+  timings: Timings;
 }): Promise<{
   answered: Engine[];
   /**
@@ -295,13 +352,14 @@ async function readAndStore(input: {
   leaderboardPartial: boolean;
 }> {
   const db = supabaseAdmin();
-  const { scanId, spend, domain, brand, topic, positioning, market, engines, questions, checkDeadline, onSources, remainingMs } =
+  const { scanId, spend, domain, brand, topic, positioning, market, engines, questions, checkDeadline, onSources, remainingMs, timings } =
     input;
 
   // Every question against every engine, flattened so one queue paces the lot.
   const jobs = questions.flatMap((q) => engines.map((engine) => ({ q, engine })));
 
-  const answers = await mapWithConcurrency(jobs, CONCURRENCY, async ({ q, engine }): Promise<Answer> => {
+  const answers = await timed(timings, "reading", () =>
+    mapWithConcurrency(jobs, CONCURRENCY, async ({ q, engine }): Promise<Answer> => {
     checkDeadline();
     const base = {
       questionId: q.id,
@@ -362,8 +420,9 @@ async function readAndStore(input: {
         };
       }
     }
-    return { ...base, answered: false, brandNamed: false, error: "no answer", cost: 0 };
-  });
+      return { ...base, answered: false, brandNamed: false, error: "no answer", cost: 0 };
+    }),
+  );
 
   // Every read is in. What follows - storing citations and extracting the
   // leaderboard - is the third step the screen names, so say so.
@@ -468,6 +527,33 @@ async function readAndStore(input: {
     if (cErr) throw new Error(`could not store the sources: ${cErr.message}`);
   }
 
+  /**
+   * Source classification, started here and awaited at the foot of this
+   * function - Danny, 20 Sep 12:10, item 3.
+   *
+   * It ran after `readAndStore` returned, which put it fourth in a line behind
+   * `extractBrands` and `classifyBrands`. It has nothing to do with either: its
+   * whole input is the citation rows, and those are in the database on the line
+   * above. It was waiting on brand work for no reason, inside the phase the
+   * progress bar holds at 85%.
+   *
+   * `classifyBrands` genuinely waits for every `extractBrands` - it judges the
+   * whole name set in one call so a name cannot be a competitor on one engine
+   * and not another - so that dependency stays. This one was never real.
+   *
+   * **The catch is attached here, not at the await.** A promise that rejects
+   * while nothing is awaiting it is an unhandled rejection, which on this
+   * runtime can take the process with it - so the never-fatal wrapper has to be
+   * on the promise from the moment it exists, not on the `await` two hundred
+   * lines below. It is the same never-fatal this had in `runScan`, moved with
+   * the call: source kinds are a column, not a reason to lose a paid scan.
+   */
+  const sourceCalls = { calls: 0 };
+  const sourceKinds = classifySources(scanId, sourceCalls).then(
+    () => null,
+    (err: unknown) => (err instanceof Error ? err.message : String(err)),
+  );
+
   // One brand extraction per engine, so the leaderboard reads per engine as
   // well as overall. Engines that answered nothing are skipped rather than
   // recorded as a zero.
@@ -475,16 +561,18 @@ async function readAndStore(input: {
 
   // One extraction per engine, run together. Serially this was four Anthropic
   // round trips bolted onto the end of every scan, all of them independent.
-  const extractions = await Promise.all(
-    engines.map(async (engine) => {
-      const blocks = answers
-        .filter((a) => a.engine === engine && a.answered)
-        .map((a) => a.prose)
-        .filter(Boolean);
-      if (!blocks.length) return null;
-      const out = await extractBrands(blocks, { topic, brand });
-      return { engine, extracted: out.brands, calls: out.calls, failedBatches: out.failedBatches };
-    }),
+  const extractions = await timed(timings, "extract", () =>
+    Promise.all(
+      engines.map(async (engine) => {
+        const blocks = answers
+          .filter((a) => a.engine === engine && a.answered)
+          .map((a) => a.prose)
+          .filter(Boolean);
+        if (!blocks.length) return null;
+        const out = await extractBrands(blocks, { topic, brand });
+        return { engine, extracted: out.brands, calls: out.calls, failedBatches: out.failedBatches };
+      }),
+    ),
   );
   spend.anthropicCalls += extractions.reduce((n, r) => n + (r?.calls ?? 0), 0);
 
@@ -567,7 +655,9 @@ async function readAndStore(input: {
   const suppliers = new Set<string>();
   let failedJudgements = 0;
   if (displayFor.size) {
-    const judged = await classifyBrands({ topic, brand, positioning, names: [...displayFor.values()] });
+    const judged = await timed(timings, "classify", () =>
+      classifyBrands({ topic, brand, positioning, names: [...displayFor.values()] }),
+    );
     spend.anthropicCalls += judged.calls;
     // Keyed through brandKey, not on the returned string. The prompt asks for
     // the name back exactly as given, but a model that returns "Screaming
@@ -638,6 +728,20 @@ async function readAndStore(input: {
    * rank counted against a short population flatters the subject - the one
    * direction a number on a marketing report must not be wrong in.
    */
+  /**
+   * The source classification joins back here, having run alongside everything
+   * above rather than after it.
+   *
+   * Billed whatever the outcome. `classifySources` stores its rows last and
+   * throws if that write fails, so a count read off the return value was lost
+   * exactly when the failure was swallowed - calls made, paid for, and
+   * invisible to the day ceiling. The counter is mutated in place for that
+   * reason and is read here rather than from a resolved value.
+   */
+  const sourceErr = await timed(timings, "sources", () => sourceKinds);
+  spend.anthropicCalls += sourceCalls.calls;
+  if (sourceErr) console.warn(`[scan] source kinds skipped for ${scanId}: ${sourceErr}`);
+
   return {
     answered,
     leaderboardPartial: failedExtractions > 0 || failedJudgements > 0,
@@ -663,6 +767,11 @@ export async function runScan(scanId: string): Promise<void> {
   // below writes what this scan actually cost even when it never finished.
   const spend: Spend = { dfsCalls: 0, dfsCost: 0, anthropicCalls: 0 };
   let spendPersisted = false;
+
+  // Same rule, for time: written on whichever exit this pass takes, so a scan
+  // that failed still says which phase it was in when it did.
+  const timings: Timings = {};
+  const runStartedAt = Date.now();
 
   try {
     const { data: scan, error } = await db
@@ -756,13 +865,19 @@ export async function runScan(scanId: string): Promise<void> {
       const qBilled = { calls: 0 };
       let generated;
       try {
-        generated = await generateQuestions({
-          topic: scan.topic,
-          topicVariants: scan.topic_variants ?? [],
-          market,
-          brand,
-          positioning: scan.positioning,
-        }, qBilled);
+        // Bound outside the closure: `scan.topic` is narrowed to string by the
+        // throw at the top of this function, and that narrowing does not
+        // survive into a callback.
+        const confirmedTopic = scan.topic;
+        generated = await timed(timings, "questions", () =>
+          generateQuestions({
+            topic: confirmedTopic,
+            topicVariants: scan.topic_variants ?? [],
+            market,
+            brand,
+            positioning: scan.positioning,
+          }, qBilled),
+        );
       } finally {
         spend.anthropicCalls += qBilled.calls;
       }
@@ -793,6 +908,7 @@ export async function runScan(scanId: string): Promise<void> {
     // citation work starts. Setting it here would be a lie: the reads are the
     // long part and the screen would show the last step for the whole of it.
     const read = await readAndStore({
+      timings,
       scanId,
       spend,
       domain: scan.domain,
@@ -842,19 +958,11 @@ export async function runScan(scanId: string): Promise<void> {
      */
     checkDeadline();
 
-    // What kind of site each source is: competitor, review site, somewhere an
-    // article could be placed. One call, and never a reason to fail the scan.
-    // Billed onto the accumulator as the requests go out. classifySources
-    // stores its rows last and throws if that fails, so a count read off the
-    // return value was lost exactly when the catch below swallowed it - calls
-    // made, paid for, and invisible to the day ceiling.
-    const sourceCalls = { calls: 0 };
-    try {
-      await classifySources(scanId, sourceCalls);
-    } catch (err) {
-      console.warn(`[scan] source kinds skipped for ${scanId}:`, err instanceof Error ? err.message : err);
-    }
-    spend.anthropicCalls += sourceCalls.calls;
+    // What kind of site each source is - competitor, review site, somewhere an
+    // article could be placed - no longer runs here. It moved inside
+    // readAndStore on 20 Sep 2026, started the moment the citations it reads
+    // are stored and awaited at the end, so it overlaps the brand chain instead
+    // of queueing behind it. Billing and the never-fatal wrapper moved with it.
 
     // Billed before the status is written, not with it. They are two statements
     // now that the addition happens in the database, and the order decides what
@@ -873,6 +981,7 @@ export async function runScan(scanId: string): Promise<void> {
           completed_at: new Date().toISOString(),
           engines_answered: read.answered,
           leaderboard_partial: read.leaderboardPartial,
+          step_ms: sealTimings(timings, runStartedAt),
         })
         .eq("id", scanId),
     );
@@ -884,6 +993,10 @@ export async function runScan(scanId: string): Promise<void> {
     // If this one is lost the scan says running rather than failed, so the
     // message describing what went wrong never reaches the screen that is
     // waiting to show it.
+    //
+    // `step_ms` rides with it rather than being written separately: the phases
+    // that did finish are what you want on exactly the runs that did not, and a
+    // second update here is a second thing that can be the one that is lost.
     await endWrite(scanId, "the failed status", () =>
       supabaseAdmin()
         .from("scans")
@@ -891,6 +1004,7 @@ export async function runScan(scanId: string): Promise<void> {
           status: "failed",
           step: null,
           error: message.slice(0, 500),
+          step_ms: sealTimings(timings, runStartedAt),
         })
         .eq("id", scanId),
     );
@@ -924,6 +1038,12 @@ export async function runGatedScan(scanId: string): Promise<void> {
   // fact derived; this was the one copy that typed it.
   const spend: Spend = { dfsCalls: 0, dfsCost: 0, anthropicCalls: 0 };
   let spendPersisted = false;
+  // The gated pass times itself into its own map and does not write it: one
+  // scans row would otherwise carry two runs' phases under one set of keys,
+  // and the second would silently overwrite the first. What it is for today is
+  // the log line at the end of this function.
+  const timings: Timings = {};
+  const runStartedAt = Date.now();
 
   try {
     const { data: scan, error } = await db
@@ -1013,6 +1133,7 @@ export async function runGatedScan(scanId: string): Promise<void> {
     }
 
     const read = await readAndStore({
+      timings,
       scanId,
       spend,
       domain: scan.domain,
@@ -1026,16 +1147,27 @@ export async function runGatedScan(scanId: string): Promise<void> {
       remainingMs,
     });
 
-    // The second pass cites sources the first did not. Label the new ones.
-    const gatedSourceCalls = { calls: 0 };
-    try {
-      await classifySources(scanId, gatedSourceCalls);
-    } catch (err) {
-      console.warn(`[scan] source kinds skipped for ${scanId}:`, err instanceof Error ? err.message : err);
-    }
-    // Same reason as the free pass: the count has to survive the throw the
-    // catch above is here to absorb.
-    spend.anthropicCalls += gatedSourceCalls.calls;
+    /**
+     * The second pass cites sources the first did not, and they are labelled
+     * inside `readAndStore` above rather than here.
+     *
+     * This was a `classifySources(scanId, ...)` of its own. When that call moved
+     * into `readAndStore` on 20 September 2026 - started the moment the
+     * citations are stored, so it overlaps the brand chain - this one became a
+     * second run of the same work over the same rows, on the pass `spend.ts`
+     * calls the biggest single spender in the system. Not a wrong label: a
+     * duplicate paid model call per gated pass, absorbed by a never-fatal catch
+     * and visible only as a number on the day ceiling.
+     *
+     * Worth saying plainly because of where it was found: the move was made for
+     * the free pass and this is the other caller, four hundred lines away, and
+     * nothing about the edit pointed at it. The timing log below is the reason
+     * to look at both callers of anything this function starts.
+     */
+
+    console.info(
+      `[scan] ${scanId} gated pass timings ${JSON.stringify(sealTimings(timings, runStartedAt))}`,
+    );
 
     // Spend from both passes accumulates on the same row, so the admin page and
     // the daily cost cap see the true cost of this scan.
