@@ -38,6 +38,12 @@ import { test } from "node:test";
  * `classifySources`, taking `source_domain, url, title` to get a distinct domain
  * list, and that read is correct as it stands.
  *
+ * The dedupe is looked for inside the top-level function performing the read,
+ * not anywhere in the file. That distinction is the whole of `formsTheKey`'s
+ * second half and the reason the scoping test below exists: the per-file
+ * version of this rule was satisfiable by a dedupe in a neighbouring function,
+ * which is a tripwire guarding code it is not watching.
+ *
  * What it cannot check is whether the dedupe is *applied to the right rows*.
  * It looks for the key being formed, not for the key being used, because
  * "used correctly" is not a property of the source text. A reader that builds
@@ -67,6 +73,8 @@ function sourceFiles(dir: string): string[] {
 type CitationRead = {
   file: string;
   line: number;
+  /** Byte offset of the `.from(`, so the dedupe can be looked for around it. */
+  offset: number;
   /** The column list the read asked for, as written. */
   columns: string;
   /** Can this read produce a per-answer count at all? */
@@ -116,6 +124,7 @@ function citationReadsIn(file: string): CitationRead[] {
     out.push({
       file: name,
       line,
+      offset: m.index,
       columns: columns.replace(/\s+/g, " ").trim(),
       countable: /\bquestion_id\b/.test(columns) && /\bengine\b/.test(columns),
     });
@@ -124,8 +133,38 @@ function citationReadsIn(file: string): CitationRead[] {
 }
 
 /**
- * Does this file form the three-column key, or hand its rows to something whose
- * whole job is to?
+ * The start of every top-level declaration, which is how a read is tied to the
+ * one function that has to dedupe it.
+ *
+ * Column-anchored deliberately: at this indentation it is a declaration in the
+ * module rather than a nested arrow or an object property, and the three
+ * readers in the tree are each a top-level `export async function`.
+ */
+const TOP_LEVEL_DECL = /^(?:export\s+)?(?:default\s+)?(?:async\s+)?(?:function|class|const|let|var|type|interface)\s/gm;
+
+/**
+ * The span of the top-level declaration containing `offset`.
+ *
+ * Falls back to the whole file when nothing matches, which would make the rule
+ * below no stricter than the per-file one it replaced - so the guard test
+ * asserts the narrowing is real rather than trusting this to keep working.
+ */
+function enclosingSpan(source: string, offset: number): { from: number; to: number } {
+  let from = 0;
+  let to = source.length;
+  for (const d of source.matchAll(TOP_LEVEL_DECL)) {
+    if (d.index <= offset) from = d.index;
+    else {
+      to = d.index;
+      break;
+    }
+  }
+  return { from, to };
+}
+
+/**
+ * Does the function performing this read form the three-column key, or hand its
+ * rows to something whose whole job is to?
  *
  * Three spellings are accepted because all three are in the tree and all three
  * are correct: the template literal that `buildUnlockPayload` keys a Set on,
@@ -133,10 +172,29 @@ function citationReadsIn(file: string): CitationRead[] {
  * because each is a pure function with its own test asserting the dedupe -
  * `citation-count.test.mts` and the opportunity tests - so a reader delegating
  * to one is covered by that test rather than uncovered by this one.
+ *
+ * ## Why this is scoped to the function and not to the file
+ *
+ * It used to read the whole file, and that is a hole of the same shape as the
+ * defect the file exists to catch. `unlock.ts` holds two countable reads and
+ * both dedupe, so the file passes - and it would have gone on passing if a
+ * third read were added to it that deduped nothing, because `deriveOpportunities`
+ * appears in `opportunityShape` two hundred lines above. The rule would have
+ * been satisfied by somebody else's correctness.
+ *
+ * That is not hypothetical in kind: every motion defect found on 20 September
+ * was a ceiling nothing was measured against, and `b21279a` is the same
+ * correction applied to the stagger cap. A tripwire that can be satisfied from
+ * outside the code it guards is not watching that code.
+ *
+ * The narrowing is still not a proof, for the reason the header gives - it
+ * looks for the key being formed, not for it being used on the right rows.
  */
-function formsTheKey(file: string): boolean {
+function formsTheKey(file: string, offset: number): boolean {
   const source = readFileSync(file, "utf8");
+  const { from, to } = enclosingSpan(source, offset);
   const code = source
+    .slice(from, to)
     .split("\n")
     .filter((l) => {
       const t = l.trim();
@@ -191,8 +249,50 @@ test("the sweep can still see the citation reads it is sweeping", () => {
   );
 });
 
+test("the dedupe rule is scoped to the reading function, not to the whole file", () => {
+  /**
+   * The narrowing has to be real, and it is the part that can rot silently.
+   *
+   * `enclosingSpan` falls back to the whole file when `TOP_LEVEL_DECL` matches
+   * nothing, so a regex that stopped matching would leave every assertion above
+   * passing while the rule quietly went back to being per-file - satisfied by a
+   * dedupe two hundred lines away in a different function. That is the exact
+   * hole this scoping was added to close, so it is asserted rather than assumed.
+   */
+  for (const r of COUNTABLE) {
+    const source = readFileSync(join(ROOT, r.file), "utf8");
+    const { from, to } = enclosingSpan(source, r.offset);
+    assert.ok(
+      from <= r.offset && r.offset < to,
+      `${r.file}:${r.line} the span found does not contain the read it was found for`,
+    );
+    assert.ok(
+      to - from < source.length,
+      `${r.file}:${r.line} resolved to the whole file, so the dedupe rule is not scoped to anything - TOP_LEVEL_DECL has stopped matching`,
+    );
+  }
+
+  /**
+   * And the narrowing has to bite where it matters. `unlock.ts` is the file the
+   * per-file rule was excusing: two countable reads in two different functions,
+   * each of which must show its own dedupe. If they ever collapse into one span
+   * the scoping has stopped distinguishing them.
+   */
+  const unlock = COUNTABLE.filter((r) => r.file.endsWith("scan/unlock.ts"));
+  assert.ok(unlock.length >= 2, `expected 2+ countable reads in unlock.ts, found ${unlock.length}`);
+  const source = readFileSync(join(ROOT, unlock[0].file), "utf8");
+  // Distinct spans rather than an exact read count: a third countable read that
+  // does dedupe is a fine thing to add, and a tripwire that fails on correct new
+  // code gets deleted by the next person rather than heeded.
+  const starts = new Set(unlock.map((r) => enclosingSpan(source, r.offset).from));
+  assert.ok(
+    starts.size >= 2,
+    "every countable read in unlock.ts resolved to one span, so they are excusing each other's dedupe",
+  );
+});
+
 test("every countable read of scan_citations dedupes on the three-column key", () => {
-  const bare = COUNTABLE.filter((r) => !formsTheKey(join(ROOT, r.file)));
+  const bare = COUNTABLE.filter((r) => !formsTheKey(join(ROOT, r.file), r.offset));
 
   assert.deepEqual(
     bare.map((r) => `${r.file}:${r.line} select(${r.columns})`),

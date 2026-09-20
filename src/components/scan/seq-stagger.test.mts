@@ -167,6 +167,61 @@ test("the climb is one keyframe reading the index, not a ladder of distances", (
   );
 });
 
+/**
+ * Every class-list literal on a line, in all three spellings JSX uses.
+ *
+ * The first version of this read double-quoted strings only, because that is
+ * how `SerpPanel` spelled the clobber it was written to catch. Nothing in the
+ * tree uses the other two today - so the rule was not wrong, it was one
+ * ordinary refactor away from silently seeing nothing. A conditional className
+ * in React is most naturally a template literal, and this board is the one
+ * surface on the site with no witness but this file: a sweep that stops
+ * matching here fails the same way the clamped ladder did, by reading correct.
+ *
+ * Interpolations are blanked rather than skipped, so `` `seq-settle seq-in${n}` ``
+ * still yields `seq-settle` and the static half of a spliced pair is checked.
+ * Tokens are charset-filtered afterwards, which is what keeps a prose string
+ * from being read as a class list.
+ */
+export function classCandidates(line: string): string[][] {
+  const out: string[][] = [];
+  for (const lit of line.matchAll(/"([^"\n]*)"|'([^'\n]*)'|`([^`\n]*)`/g)) {
+    const raw = lit[1] ?? lit[2] ?? lit[3] ?? "";
+    const body = lit[3] === undefined ? raw : raw.replace(/\$\{[^}]*\}/g, " ");
+    const names = body
+      .trim()
+      .split(/\s+/)
+      .filter((t) => /^[a-zA-Z0-9_-]+$/.test(t));
+    if (names.length) out.push(names);
+  }
+  return out;
+}
+
+test("the class-list reader sees all three JSX spellings", () => {
+  // Guards the broadening itself. Without this the regex could go back to
+  // double quotes only and every assertion below would pass over nothing.
+  const seen = (line: string) => classCandidates(line).map((n) => n.join(" "));
+  assert.deepEqual(seen('<i className="seq-settle seq-in2" />'), ["seq-settle seq-in2"]);
+  assert.deepEqual(seen("<i className='seq-settle seq-in2' />"), ["seq-settle seq-in2"]);
+  assert.deepEqual(seen("<i className={`seq-settle seq-in2`} />"), ["seq-settle seq-in2"]);
+  // The interpolated form: the static half survives so a spliced pair is still
+  // compared, which is the shape SerpPanel's original clobber was written in.
+  assert.deepEqual(seen("<i className={`seq-settle seq-in${n}`} />"), ["seq-settle seq-in"]);
+  /**
+   * Prose does come back as tokens - "the", "scan" and the rest are all legal
+   * class names and there is no way to tell them apart here. That is why the
+   * charset filter is not the thing keeping this rule honest: `ANIMATING.has`
+   * is, and a word only survives it by being a class that sets `animation` in
+   * globals.css. Asserted as the property that actually holds.
+   */
+  const prose = classCandidates('throw new Error("the scan took too long and was stopped");');
+  assert.deepEqual(
+    prose.flat().filter((c) => ANIMATING.has(c)),
+    [],
+    "a prose string read as a class list - the sweep would report it as a clobber",
+  );
+});
+
 test("no element carries two classes that both set `animation`", () => {
   const files: string[] = [];
   (function walk(dir: string) {
@@ -182,8 +237,7 @@ test("no element carries two classes that both set `animation`", () => {
     readFileSync(f, "utf8")
       .split("\n")
       .forEach((line, n) => {
-        for (const lit of line.matchAll(/"([a-zA-Z0-9_ -]+)"/g)) {
-          const names = lit[1].trim().split(/\s+/).filter(Boolean);
+        for (const names of classCandidates(line)) {
           if (names.length < 2) continue;
           const anim = names.filter((c) => ANIMATING.has(c));
           if (anim.length < 2) continue;
