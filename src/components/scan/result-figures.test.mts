@@ -61,7 +61,6 @@ function question(over: Partial<ScanQuestion> = {}): ScanQuestion {
     idx: 1,
     question: "who does this",
     kind: "category",
-    search_volume: null,
     answered: 0,
     named: 0,
     google_rank: null,
@@ -70,7 +69,7 @@ function question(over: Partial<ScanQuestion> = {}): ScanQuestion {
 }
 
 function source(domain: string, kind: string | null = null, mentions = 1): SourceEntry {
-  return { domain, mentions, ai_search_volume: null, kind, note: null };
+  return { domain, mentions, kind, note: null };
 }
 
 function scan(over: Partial<RunScanResponse> = {}): RunScanResponse {
@@ -124,15 +123,15 @@ test("the ordinal is right on every teen and every twenty", () => {
 /* ── Which row is you ── */
 
 test("the server's is_subject wins, and the name compare is only the fallback", () => {
-  const flagged: LeaderboardEntry = { brand: "A Different Spelling", mentions: 3, ai_search_volume: null, is_subject: true };
+  const flagged: LeaderboardEntry = { brand: "A Different Spelling", mentions: 3, is_subject: true };
   assert.equal(isSubject(flagged, "Acme"), true, "the flag was set and was ignored");
 
-  const denied: LeaderboardEntry = { brand: "Acme", mentions: 3, ai_search_volume: null, is_subject: false };
+  const denied: LeaderboardEntry = { brand: "Acme", mentions: 3, is_subject: false };
   assert.equal(isSubject(denied, "Acme"), false, "the flag said no and the spelling overruled it");
 
-  const unflagged: LeaderboardEntry = { brand: "ACME", mentions: 3, ai_search_volume: null };
+  const unflagged: LeaderboardEntry = { brand: "ACME", mentions: 3 };
   assert.equal(isSubject(unflagged, "acme"), true, "the fixture path lost its case-insensitive compare");
-  assert.equal(isSubject({ brand: "Other", mentions: 1, ai_search_volume: null }, "Acme"), false);
+  assert.equal(isSubject({ brand: "Other", mentions: 1 }, "Acme"), false);
 });
 
 /* ── One judge per question row ── */
@@ -403,8 +402,8 @@ test("an empty list is a counted zero on either side of the gate, never an uncou
 test("the brand that tops its own leaderboard is recognised as the subject", () => {
   const r = scan({
     leaderboard: [
-      { brand: "Acme", mentions: 9, ai_search_volume: null, is_subject: true },
-      { brand: "Rival", mentions: 4, ai_search_volume: null, is_subject: false },
+      { brand: "Acme", mentions: 9, is_subject: true },
+      { brand: "Rival", mentions: 4, is_subject: false },
     ],
   });
   const f = resultFigures(r, "acme.com", { unlocked: true });

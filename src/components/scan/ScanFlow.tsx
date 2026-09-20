@@ -52,7 +52,6 @@ type ByEngine = { engine: string; asked: number; answered: number; named: number
 type TeaserSource = {
   source: string;
   mentions: number;
-  ai_search_volume: number | null;
   is_own_domain: boolean;
   kind?: string | null;
   note?: string | null;
@@ -108,7 +107,7 @@ type Teaser = {
 
 type FullPayload = {
   brands: { brand: string; mentions: number; is_subject: boolean }[];
-  sources: { source: string; mentions: number; ai_search_volume: number | null; urls: string[]; kind?: string | null; note?: string | null }[];
+  sources: { source: string; mentions: number; urls: string[]; kind?: string | null; note?: string | null }[];
   /**
    * Per-question engine detail, including what each one actually said.
    *
@@ -247,7 +246,6 @@ function toResult(t: Teaser, domain: string, full: FullPayload | null): RunScanR
   const sourceRows: {
     source: string;
     mentions: number;
-    ai_search_volume: number | null;
     kind?: string | null;
     note?: string | null;
   }[] = full?.sources ?? t.all_sources ?? t.top_sources ?? [];
@@ -300,13 +298,11 @@ function toResult(t: Teaser, domain: string, full: FullPayload | null): RunScanR
     leaderboard: leaderboard.map((b) => ({
       brand: b.brand,
       mentions: b.mentions,
-      ai_search_volume: null,
       is_subject: b.is_subject,
     })),
     sources: sourceRows.map((s) => ({
       domain: s.source,
       mentions: s.mentions,
-      ai_search_volume: s.ai_search_volume,
       kind: s.kind ?? null,
       note: s.note ?? null,
     })),

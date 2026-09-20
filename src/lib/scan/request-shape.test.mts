@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { test } from "node:test";
 
 import {
@@ -10,13 +11,12 @@ import {
   SERP_DEPTH,
   TASK_OK,
   budgetFor,
-  collectVolumes,
   firstTask,
   requestFor,
   taskCost,
-  volumeKey,
   type Task,
 } from "./dataforseo-request.ts";
+import { code, sourceFiles } from "../source-read.mts";
 import { MARKETS, type Market } from "./domain.ts";
 import { ENGINES } from "./engines.ts";
 
@@ -249,48 +249,77 @@ test("a cost that is not a positive finite number is zero", () => {
   assert.equal(taskCost({ cost: -5 }), 0, "a negative cost must not credit the run");
 });
 
-// ───────────────────────────── the volume map ─────────────────────────────
+// ───────────────────── the step that came out, and stays out ─────────────────────
 
-test("a question is found whatever case it was typed in", () => {
-  const typed = "Best CRM for UK Estate Agents";
-  const task: Task = {
-    status_code: TASK_OK,
-    // DataForSEO lowercases every keyword it echoes back.
-    result: [{ items: [{ keyword: typed.toLowerCase(), ai_search_volume: 140 }] }],
-  };
-  assert.equal(collectVolumes(task).get(volumeKey(typed)), 140);
-  assert.equal(collectVolumes(task).get(typed), undefined, "the raw string must not be the key");
+/**
+ * The search volume step, refused by name.
+ *
+ * Removed on 20 September 2026 on Danny's instruction: one DataForSEO call per
+ * scan to `keywords_search_volume`, plus a write per question, sitting inside
+ * the phase the progress bar holds at 85% - for a figure this site tells
+ * visitors twice over that it does not use. The homepage FAQ answers "Why is
+ * there no search volume anywhere in this?" with a dated reading, and the
+ * confirm screen's footer says "No search volume against them, deliberately".
+ * Both predate the removal, so no copy changed: the code was buying a number
+ * the site already said it does not use.
+ *
+ * **A removal rots back in, which is why this is a test and not a commit
+ * message** - the shape the engine-count sweep already has. What is asserted is
+ * that nothing in the shipped tree reaches this endpoint again, never that
+ * today's diff deleted some lines. The endpoint PATH is the thing named,
+ * because a path is what survives a reintroduction under a different function
+ * name, and a different function name is exactly how a removal comes back.
+ *
+ * Read over the whole of `src` rather than over `scan/`: the door it would
+ * return through need not be in the same directory. Comments stripped first -
+ * the two doc comments recording this removal both name the endpoint, and a
+ * sweep that read those would report the record of the removal as the defect,
+ * which is this repo's most-paid-for reading error.
+ */
+const ROOT = new URL("../../../", import.meta.url).pathname;
+
+test("nothing in the tree calls the search volume endpoint", () => {
+  const callers: string[] = [];
+  for (const file of sourceFiles(ROOT)) {
+    if (/keywords_search_volume|readSearchVolumes|collectVolumes|volumeKey/.test(code(readFileSync(join(ROOT, file), "utf8")))) {
+      callers.push(file);
+    }
+  }
+  assert.deepEqual(
+    callers,
+    [],
+    "the search volume step is back. It came out for the time it costs inside STEP.sources, and the " +
+      "homepage FAQ and the confirm screen both publish that this product does not use search volume - " +
+      "so reinstating it is a copy change on two surfaces as well as a pipeline change",
+  );
 });
 
-test("volumeKey is stable across the padding a pasted question carries", () => {
-  assert.equal(volumeKey("  Best CRM  "), volumeKey("best crm"));
-});
-
-test("an absent measurement and a measured zero stay different findings", () => {
-  const task: Task = {
-    status_code: TASK_OK,
-    result: [
-      {
-        items: [
-          { keyword: "measured zero", ai_search_volume: 0 },
-          { keyword: "no measurement", ai_search_volume: null },
-          { keyword: "field absent" },
-          { ai_search_volume: 99 },
-        ],
-      },
-    ],
-  };
-  const volumes = collectVolumes(task);
-
-  assert.equal(volumes.get("measured zero"), 0, "a measured zero must survive");
-  assert.equal(volumes.get("measured zero") ?? null, 0, "the pipeline's ?? must not turn a zero into null");
-  assert.equal(volumes.get("no measurement"), null);
-  assert.equal(volumes.get("field absent"), null);
-  assert.equal(volumes.size, 3, "a row with no keyword has nothing to key on and is dropped");
-});
-
-test("a task with no result at all is an empty map, not a throw", () => {
-  assert.equal(collectVolumes({ status_code: TASK_OK }).size, 0);
-  assert.equal(collectVolumes({ status_code: TASK_OK, result: null }).size, 0);
-  assert.equal(collectVolumes({ status_code: TASK_OK, result: [] }).size, 0);
+/**
+ * And that nothing writes the column, which is the half a call-site sweep
+ * cannot see: the endpoint could stay gone while some later change starts
+ * populating `search_volume` from another source, and then one column means two
+ * things at once.
+ *
+ * The column is deliberately still there. Dropping one is destructive and is on
+ * AGENTS.md's absolute list, and keeping it is also the honest choice - rows
+ * written before 20 September 2026 hold real measurements, and a reader can see
+ * they stopped. A column written again by something new is what makes that
+ * unreadable.
+ *
+ * **Word-bounded, and the first draft was not.** `ai_search_volume` ends in
+ * `search_volume`, so a bare substring reported three files that carried the
+ * payload field rather than the column - `started_at` inside `gated_started_at`
+ * for the fourth time in this repo. The leading `(?<![\w])` is the whole rule.
+ */
+test("nothing writes scan_questions.search_volume", () => {
+  const writers: string[] = [];
+  for (const file of sourceFiles(ROOT)) {
+    if (/(?<![\w])search_volume\s*:/.test(code(readFileSync(join(ROOT, file), "utf8")))) writers.push(file);
+  }
+  assert.deepEqual(
+    writers,
+    [],
+    "something writes search_volume again. The column is kept so pre-20-Sep-2026 rows stay readable as " +
+      "real measurements; a new writer makes the column mean two things at once",
+  );
 });

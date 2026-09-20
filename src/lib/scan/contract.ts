@@ -10,12 +10,23 @@
 
 export type Market = "UK" | "US";
 
+/**
+ * `ai_search_volume` was a field on the three types below and came out on
+ * 20 September 2026 with the search volume step. See `dataforseo.ts` for why
+ * the step went; what matters here is that it was rendered by nothing - it was
+ * carried from the RPC, through the payload, into `ScanFlow`'s props and no
+ * further - and the site's own copy says twice that this product does not use
+ * search volume.
+ *
+ * `scan_questions.search_volume` is still a column, because dropping one is
+ * destructive and is on AGENTS.md's absolute list. Rows written before that
+ * date hold real measurements. A payload field that is permanently null is a
+ * different thing from a column that stopped being written: the column is
+ * readable history, the field would just be a number nobody can interpret.
+ */
 export type LeaderboardEntry = {
   brand: string;
   mentions: number;
-  /** Null where search volume was not measured. Never coerce this to zero:
-      "not measured" and "no volume" are different findings. */
-  ai_search_volume: number | null;
   /**
    * Whether this row is the brand the scan is about.
    *
@@ -36,8 +47,6 @@ export type LeaderboardEntry = {
 export type SourceEntry = {
   domain: string;
   mentions: number;
-  /** Null where search volume was not measured. See LeaderboardEntry. */
-  ai_search_volume: number | null;
   /**
    * own | competitor | review | placement | other, or null where the
    * classifier did not reach this domain. Null is "unclassified", never
@@ -75,7 +84,6 @@ export type HistoryPoint = {
   year: number;
   month: number;
   mentions: number;
-  ai_search_volume: number;
 };
 
 /** One engine's coverage of the question set. */
@@ -98,8 +106,6 @@ export type ScanQuestion = {
   question: string;
   /** category | positioning | sector | outcome | comparison */
   kind: string;
-  /** Monthly searches for the phrase, null when we could not measure it. */
-  search_volume: number | null;
   /** How many engines produced an answer at all. */
   answered: number;
   /** Of those, how many named the brand. */

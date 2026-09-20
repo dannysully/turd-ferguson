@@ -211,39 +211,14 @@ export function taskCost(task: Task): number {
 }
 
 /**
- * How a question is keyed into the volume map, on both sides.
+ * `volumeKey` and `collectVolumes` were here and came out on 20 September 2026
+ * with the search volume step - see `dataforseo.ts` for why.
  *
- * DataForSEO lowercases every keyword it echoes back. The questions we send are
- * only lowercase by convention: the prompt asks the model to write them that
- * way, and the confirm screen lets a visitor edit any of them and type their
- * own, where a capital is the norm rather than the exception. So the map was
- * keyed on the API's lowercased string and read with ours, and any question
- * carrying a capital - a market, a product name, anything somebody typed -
- * looked up nothing and was stored as a null volume.
- *
- * That is the silent kind of wrong. A null volume is also exactly what a
- * question with no measured volume looks like, so the report could not tell a
- * measurement we lost from a measurement that does not exist, and neither could
- * anyone reading it.
+ * They were the only readers of the `keywords_search_volume` response shape.
+ * What they got right is recorded here rather than in the commit, because it is
+ * the kind of thing that gets re-derived if the endpoint ever comes back:
+ * DataForSEO lowercases every keyword it echoes, our questions are only
+ * lowercase by convention, and the map was keyed on their string and read with
+ * ours - so any question carrying a capital looked up nothing and stored a null
+ * volume, which is indistinguishable from a question that genuinely has none.
  */
-export function volumeKey(question: string): string {
-  return question.trim().toLowerCase();
-}
-
-type VolumeItem = { keyword?: string; ai_search_volume?: number | null };
-
-/**
- * The volume map for one task's result. Missing volumes stay null, never zero -
- * a measured zero and an absent measurement are different findings and the
- * report shows them differently.
- */
-export function collectVolumes(task: Task): Map<string, number | null> {
-  const volumes = new Map<string, number | null>();
-  const first = task.result?.[0] as { items?: VolumeItem[] } | undefined;
-  for (const row of first?.items ?? []) {
-    if (!row.keyword) continue;
-    const v = row.ai_search_volume;
-    volumes.set(volumeKey(row.keyword), typeof v === "number" ? v : null);
-  }
-  return volumes;
-}

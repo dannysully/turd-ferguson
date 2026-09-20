@@ -10,7 +10,7 @@ import {
   QUESTION_COUNT,
 } from "./anthropic";
 import { brandKey, displayNamesFor, namesBrand } from "./brand-name";
-import { readEngine, readSearchVolumes, volumeKey } from "./dataforseo";
+import { readEngine } from "./dataforseo";
 import { type Market, normalizeDomain } from "./domain";
 // The words this file writes into `scans.step`, so a typo here is a compile
 // error rather than a progress bar that freezes on the waiting screen.
@@ -815,46 +815,31 @@ export async function runScan(scanId: string): Promise<void> {
       },
     });
 
-    // One call for the whole set. A missing volume stays null, never zero.
-    //
-    // The call is counted before the await rather than after it. post() is the
-    // part DataForSEO bills, and firstTask() throws on a task that came back
-    // non-20000 - quota, auth, bad params - which happens after that request
-    // has already gone out. Counting on the way out meant a task error billed
-    // a call this row never recorded, and both the admin page and
-    // daily_cost_cap_usd read these columns. The cost itself is only known
-    // from the response, so it stays inside.
-    if (ordered.length) spend.dfsCalls += 1;
-    try {
-      const sv = await readSearchVolumes(ordered.map((q) => q.question), market);
-      spend.dfsCost += sv.cost;
-      for (const q of ordered) {
-        const { error: volErr } = await db
-          .from("scan_questions")
-          .update({ search_volume: sv.volumes.get(volumeKey(q.question)) ?? null })
-          .eq("id", q.id);
-        // Thrown into the catch below rather than handled here, because that
-        // catch is the thing written to make this failure visible and a
-        // PostgREST write reports its failure in `error` instead of throwing.
-        // So the half of this block that could fail silently was the half the
-        // catch could not see: the read was covered and the twelve writes
-        // underneath it were not, and every one of them leaving the column null
-        // is precisely the page the comment below says must not be ambiguous.
-        if (volErr) throw new Error(`could not store the volume for question ${q.id}: ${volErr.message}`);
-      }
-    } catch (err) {
-      // Search volume is a column, not a reason to fail the scan - but it has
-      // to say so out loud. This catch used to be empty, and a silent one is
-      // worse here than anywhere else in the pipeline: a scan with every
-      // volume null is exactly what the report renders when the questions
-      // genuinely have no volume, so a broken dependency and a legitimate
-      // result are the same page. The only place the difference could show up
-      // is this line.
-      console.warn(
-        `[scan] search volume skipped for ${scanId}:`,
-        err instanceof Error ? err.message : err,
-      );
-    }
+    /**
+     * The search volume step was here, and it came out on 20 September 2026 on
+     * Danny's instruction: one DataForSEO call for the whole question set, plus
+     * a write per question into `scan_questions.search_volume`.
+     *
+     * It was removed for time rather than for money. It sat inside `STEP.sources`
+     * - the phase the progress bar holds at 85% - and it is a serial round trip
+     * to a third party plus one `update` per question, all of it between the
+     * engine reads finishing and the report being ready, for a number nothing on
+     * the free result leads with.
+     *
+     * **The column stays.** Dropping it is destructive and is on the absolute
+     * list in AGENTS.md; it is also the honest thing to do, because rows written
+     * before today carry real measurements and a dropped column would turn those
+     * into nothing while a kept one lets a reader see they stopped. Nothing
+     * writes it from here on, so `search_volume` is null on every scan after
+     * this commit and populated on every scan before it. `scan_teaser` still
+     * sums it into `ai_search_volume`, which means that figure is null for new
+     * scans - every reader of it already handles null, because a question with
+     * no measurable volume always could return one.
+     *
+     * `request-shape.test.mts` holds the removal the way the engine-count sweep
+     * holds its own: a removal rots back in, so the assertion is that nothing in
+     * the pipeline calls this endpoint again, not merely that the lines are gone.
+     */
     checkDeadline();
 
     // What kind of site each source is: competitor, review site, somewhere an

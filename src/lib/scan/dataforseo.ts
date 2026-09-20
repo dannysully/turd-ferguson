@@ -1,14 +1,7 @@
 import "server-only";
 
-import {
-  budgetFor,
-  collectVolumes,
-  firstTask,
-  requestFor,
-  taskCost,
-  volumeKey,
-} from "./dataforseo-request.ts";
-import { MARKETS, type Market } from "./domain";
+import { budgetFor, firstTask, requestFor, taskCost } from "./dataforseo-request.ts";
+import { type Market } from "./domain";
 import { type Engine, type EngineRead, PARSERS } from "./engines";
 
 /**
@@ -20,8 +13,6 @@ import { type Engine, type EngineRead, PARSERS } from "./engines";
  */
 
 const BASE = "https://api.dataforseo.com";
-
-export { volumeKey };
 
 export type EngineResult = EngineRead & { cost: number };
 
@@ -75,27 +66,22 @@ export async function readEngine(
 }
 
 /**
- * One call for the whole question set. Missing volumes stay null, never zero.
+ * `readSearchVolumes` was here and came out on 20 September 2026.
  *
- * This is DataForSEO's AI search volume: how often a phrase is estimated to be
- * put to AI tools each month, modelled from People Also Ask data. Nobody has
- * the engines' own logs, so an estimate is the best there is. It replaced
- * Google Ads volume, which has nothing to say about fourteen long-tail
- * questions and left the figure empty on every scan.
+ * It called `/v3/ai_optimization/ai_keyword_data/keywords_search_volume/live`
+ * once per scan for the whole question set. Removed on Danny's instruction: it
+ * was a serial third-party round trip inside the phase the progress bar holds
+ * at 85%, for a figure this site already tells visitors it does not use.
+ *
+ * That last part is not a rationalisation after the fact - it is published
+ * copy on two surfaces and it predates the removal. The homepage FAQ answers
+ * "Why is there no search volume anywhere in this?" with a dated reading
+ * ("On a real scan we ran in September, every question came back at zero
+ * volume"), and the confirm screen's own footer reads "No search volume
+ * against them, deliberately". The code was paying for the number on every
+ * scan while both surfaces said we do not use one; the removal closes that,
+ * and no copy changed because none of it was false.
+ *
+ * `request-shape.test.mts` refuses the endpoint by name. A removal rots back
+ * in, so it is asserted rather than merely done.
  */
-export async function readSearchVolumes(
-  questions: string[],
-  market: Market,
-  timeoutMs = 45_000,
-): Promise<{ volumes: Map<string, number | null>; cost: number }> {
-  if (!questions.length) return { volumes: new Map<string, number | null>(), cost: 0 };
-
-  const body = await post(
-    "/v3/ai_optimization/ai_keyword_data/keywords_search_volume/live",
-    [{ keywords: questions, location_code: MARKETS[market].location_code, language_code: "en" }],
-    timeoutMs,
-  );
-
-  const task = firstTask(body);
-  return { volumes: collectVolumes(task), cost: taskCost(task) };
-}

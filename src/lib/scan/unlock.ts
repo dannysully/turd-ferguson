@@ -371,7 +371,6 @@ export type UnlockPayload = {
     source: string;
     mentions: number;
     engines: string[];
-    ai_search_volume: number | null;
     urls: string[];
     /** own | competitor | review | placement | other. Null until classified. */
     kind: string | null;
@@ -381,7 +380,6 @@ export type UnlockPayload = {
     idx: number;
     question: string;
     kind: string;
-    search_volume: number | null;
     /** The subject's Google organic position for this question. Null: not in the top twenty. */
     google_rank: number | null;
     engines: Array<{
@@ -550,14 +548,18 @@ export async function buildUnlockPayload(scanId: string): Promise<UnlockPayload>
     selectAll<CitationWithVolume>((from, to) =>
       db
         .from("scan_citations")
-        .select("source_domain, url, title, question_id, engine, scan_questions(search_volume)")
+        // The embedded `scan_questions(search_volume)` join came off this
+        // select on 20 September 2026 with the search volume step. It existed
+        // to sum a per-question volume onto each source row, and that sum was
+        // used as a sort tiebreak and displayed nowhere.
+        .select("source_domain, url, title, question_id, engine")
         .eq("scan_id", scanId)
         .order("id", { ascending: true })
         .range(from, to),
     ),
     db
       .from("scan_questions")
-      .select("id, idx, question, kind, search_volume, google_rank")
+      .select("id, idx, question, kind, google_rank")
       .eq("scan_id", scanId)
       .order("idx", { ascending: true }),
     db
@@ -613,7 +615,6 @@ export async function buildUnlockPayload(scanId: string): Promise<UnlockPayload>
     source: string;
     mentions: number;
     engines: string[];
-    ai_search_volume: number | null;
     urls: string[];
     kind: string | null;
     note: string | null;
@@ -626,7 +627,6 @@ export async function buildUnlockPayload(scanId: string): Promise<UnlockPayload>
       source: c.source_domain,
       mentions: 0,
       engines: [],
-      ai_search_volume: null,
       urls: [],
       kind: kindOf.get(c.source_domain)?.kind ?? null,
       note: kindOf.get(c.source_domain)?.note ?? null,
@@ -635,18 +635,22 @@ export async function buildUnlockPayload(scanId: string): Promise<UnlockPayload>
     if (!counted.has(key)) {
       counted.add(key);
       row.mentions += 1;
-      const embedded = c.scan_questions as unknown;
-      const q = Array.isArray(embedded) ? embedded[0] : embedded;
-      const v = (q as { search_volume?: number | null } | null)?.search_volume;
-      if (typeof v === "number") row.ai_search_volume = (row.ai_search_volume ?? 0) + v;
     }
     if (!row.engines.includes(c.engine)) row.engines.push(c.engine);
     if (c.url && !row.urls.includes(c.url)) row.urls.push(c.url);
     bySource.set(c.source_domain, row);
   }
-  const fullSources = [...bySource.values()].sort(
-    (a, b) => b.mentions - a.mentions || (b.ai_search_volume ?? 0) - (a.ai_search_volume ?? 0),
-  );
+  /**
+   * Mentions alone, since 20 September 2026.
+   *
+   * The second key was `ai_search_volume` descending, and it came off with the
+   * search volume step. It was already inert for any scan run after that date -
+   * nothing populates the column - so this changes the order only for sources
+   * tied on mentions in scans that ran before it, where the tiebreak is now
+   * insertion order rather than a volume sum. Said plainly rather than left to
+   * be discovered: this is a sort, not a count, and no figure moves.
+   */
+  const fullSources = [...bySource.values()].sort((a, b) => b.mentions - a.mentions);
 
   const answerRows = (answers ?? []) as Array<{
     question_id: string;
@@ -659,7 +663,6 @@ export async function buildUnlockPayload(scanId: string): Promise<UnlockPayload>
     idx: q.idx as number,
     question: q.question as string,
     kind: q.kind as string,
-    search_volume: (q.search_volume ?? null) as number | null,
     google_rank: (q.google_rank ?? null) as number | null,
     engines: answerRows
       .filter((a) => a.question_id === q.id)
