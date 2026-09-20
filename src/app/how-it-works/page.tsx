@@ -3,7 +3,8 @@ import { OG_IMAGE } from "@/config/og";
 import Link from "next/link";
 
 import CtaSection from "@/components/CtaSection";
-import TierName from "@/components/TierName";
+import { TierText } from "@/components/TierName";
+import { pricePublication } from "@/config/pricing";
 import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
 import { ORG_REF, ld } from "@/config/schema";
 
@@ -256,10 +257,18 @@ export default function HowItWorksPage() {
               source for any of it. It has gone, and it is not coming back until somebody has sourced each cell with
               a date - being wrong in public about a competitor is the expensive kind of wrong.
             </p>
+            {/* This sentence used to read "Every price is published, from
+                tracking alone up to alwayseverywhere, and the placement counts
+                are on the package pages rather than behind a call" - in a
+                section whose whole subject is not publishing what we cannot
+                stand behind. It named, as the top of the published range, the
+                one tier whose price label is "Book a call", and the placement
+                count it promised for every package exists for one of the four.
+                Derived from pricing.ts now. */}
             <p style={P}>
-              What we will say is what we do and what it costs, both of which are ours to state. Every price is
-              published, from tracking alone up to <TierName tier="everywhere" />, and the placement counts are on the
-              package pages rather than behind a call.
+              What we will say is what we do and what it costs, both of which are ours to state.{" "}
+              <TierText>{pricePublication()}</TierText> What each package includes is on its own page rather than
+              behind a call.
             </p>
             <p style={P}>
               <Link href="/compare" style={LINK}>

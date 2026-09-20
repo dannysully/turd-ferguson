@@ -286,6 +286,53 @@ export function sweptPages(): Page[] {
   return [...prerenderedPages(), ...capturedPages()];
 }
 
+/**
+ * The HTML body, without the flight payload.
+ *
+ * A prerender is two documents and one of them lies about `$`: flight escapes
+ * a leading `$` by prefixing another, so `$995/mo` appears there as
+ * `$$995/mo`. This reads the body.
+ */
+export function bodyOf(html: string): string {
+  const cut = html.indexOf("<script>self.__next_f");
+  return cut === -1 ? html : html.slice(0, cut);
+}
+
+/**
+ * A page as a reader sees it: tags stripped to nothing, scripts dropped whole.
+ *
+ * Lives here rather than beside the first sweep that needed it because it was
+ * about to have a second copy, and two copies of one function is the species
+ * this tree keeps paying for - the date formatter existed twice and the
+ * untested copy was the one missing a guard. Three facts are baked in, each of
+ * which cost a missed injection in `price-surfaces.test.mts` before it was
+ * written down:
+ *
+ * - **Stripped to nothing, not to a space.** A price is three elements -
+ *   `<span>from </span>$99<span>/mo</span>` - because the board sets the
+ *   qualifiers smaller than the figure, so a strip emitting a space per element
+ *   reads "from $99/mo" as "from $99 /mo". The same fact makes `TierName` read
+ *   as two words, which cost `structured-data.test.mts` a false positive: the
+ *   lockup sets the accent half in a nested span, so a strip that spaces
+ *   elements apart splits a tier name into its stem and its accent and no
+ *   sweep looking for the word can find it.
+ * - **Scripts go entirely.** The JSON-LD carries the price and the tier names
+ *   too, in one contiguous string, inside a `<script>` in the body. Stripping
+ *   tags but keeping their contents lets the structured data answer for the
+ *   visible card - so a claim could vanish off the page a buyer reads and a
+ *   sweep would still pass, off the copy an engine reads.
+ * - **Comments go before the tags do.** A JSX comment survives into the markup
+ *   as `<!-- -->`, and React separates adjacent text nodes with one, so a
+ *   sentence built by interpolation arrives split. Stripping comments after
+ *   tags leaves the `--` behind in the text.
+ */
+export function pageText(html: string): string {
+  return bodyOf(html)
+    .replace(/<script[\s\S]*?<\/script>/g, "")
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/<[^>]*>/g, "");
+}
+
 export const BUILD_DIR = BUILD;
 export const PRERENDER_DIR = PRERENDER;
 

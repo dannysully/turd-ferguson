@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
-import { sweptPages, type Page } from "./dynamic-render.mts";
+import { bodyOf, pageText as text, sweptPages, type Page } from "./dynamic-render.mts";
 
 /**
  * Every price this business charges reaches the two pages that quote it.
@@ -43,40 +43,11 @@ function quotedTiers(source: string): Quoted[] {
 }
 
 /**
- * The HTML body, without the flight payload.
- *
- * A prerender is two documents and one of them lies about `$`: flight escapes
- * a leading `$` by prefixing another, so `$995/mo` appears there as
- * `$$995/mo`. This reads the body.
+ * `bodyOf` and `text` moved to `dynamic-render.mts` when `price-claims` became
+ * their second reader, with the reasoning that used to sit here - the strip is
+ * subtle in three ways and a second copy of it is the shape this repo keeps
+ * finding. Read the comment there before changing either.
  */
-function bodyOf(html: string): string {
-  const cut = html.indexOf("<script>self.__next_f");
-  return cut === -1 ? html : html.slice(0, cut);
-}
-
-/**
- * Tags stripped to nothing, not to a space, and scripts dropped whole.
- *
- * Two facts, both of which cost a missed injection before they were written
- * down:
- *
- * - The price is three elements - `<span>from </span>$99<span>/mo</span>` -
- *   because the board sets the qualifiers smaller than the figure. A strip
- *   emitting a space per element reads "from $99/mo" as "from $99 /mo", so
- *   this file would fail on markup rather than on a price. Same fact that made
- *   `TierName` read as two words in `structured-data.test.mts`.
- * - The JSON-LD carries the price too, in one contiguous string, inside a
- *   `<script>` in the body. Stripping tags but keeping their contents lets the
- *   structured data answer for the visible card - so a price could vanish off
- *   the page a buyer reads and this file would still pass, off the copy an
- *   engine reads. Scripts go entirely.
- */
-function text(html: string): string {
-  return bodyOf(html)
-    .replace(/<script[\s\S]*?<\/script>/g, "")
-    .replace(/<!--[\s\S]*?-->/g, "")
-    .replace(/<[^>]*>/g, "");
-}
 
 /**
  * The packages grid alone, which is the thing that quotes the prices.

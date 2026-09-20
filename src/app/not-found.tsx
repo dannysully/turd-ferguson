@@ -1,4 +1,6 @@
 import { CARD, MICRO, SHELL, T } from "@/config/tokens";
+import { PRICED_TIERS, TIERS } from "@/config/pricing";
+import { count } from "@/lib/plural";
 
 /**
  * The 404. There is no board for it, so this is the interior-page idiom the
@@ -34,7 +36,10 @@ const ROUTES = [
   {
     href: "/#packages",
     label: "What each tier costs",
-    body: "Four tiers, every price published on the page.",
+    // Was "Four tiers, every price published on the page." Three of the four
+    // carry a figure; the fourth is a call. Both counts are derived now, so
+    // this line cannot outlive the table it describes.
+    body: `${count(TIERS.length, "tier")}, ${count(PRICED_TIERS.length, "price")} published on the page.`,
   },
   {
     href: "/how-it-works",

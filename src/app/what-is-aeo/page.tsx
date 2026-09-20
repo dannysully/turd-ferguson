@@ -4,7 +4,7 @@ import Link from "next/link";
 
 import CtaSection from "@/components/CtaSection";
 import { TierText, TIER_PLAIN } from "@/components/TierName";
-import { TIERS } from "@/config/pricing";
+import { DEAREST_PRICED_TIER, publishedPricesClause, quotedPricesClause, TIERS } from "@/config/pricing";
 import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
 import { ENGINES, ENGINE_SPECS, FREE_ENGINES } from "@/lib/scan/engines";
 import { listOf } from "@/config/scan-shape";
@@ -117,13 +117,21 @@ function firstClause(s: string): string {
  * the visible copy still gets the lockup - one string, both contexts, nothing
  * to drift.
  */
+/*
+ * The opening line used to be "Ours are published rather than quoted." - which
+ * is the claim this answer then spends three sentences supporting for three
+ * tiers, while the fourth is a call. Both halves come from pricing.ts now, and
+ * the quoted clause goes AFTER the figures rather than in front of them so the
+ * answer still opens on what a buyer can read off the page.
+ */
 const priceAnswer = [
-  "Ours are published rather than quoted.",
+  publishedPricesClause(),
   tracked ? "Tracking is " + tracked.priceLabel + "." + (tracked.priceBasis ? " " + tracked.priceBasis : "") : "",
   mentioned ? "Placements start at " + mentioned.priceLabel + " under " + TIER_PLAIN.mentioned + "." : "",
   cited
     ? "The " + TIER_PLAIN.cited + " plan, which adds the on-site work and the link insertions, is " + cited.priceLabel + "."
     : "",
+  quotedPricesClause(),
   "What other agencies charge is not something we can source, so this page does not say.",
 ]
   .filter(Boolean)
@@ -157,7 +165,9 @@ const FAQS: Faq[] = [
   },
   {
     q: "What does it cost?",
-    hint: "Published, not quoted",
+    // Was "Published, not quoted", which is the same overclaim as the answer
+    // under it. Names the range instead, off the same derivation.
+    hint: DEAREST_PRICED_TIER ? "Published up to " + DEAREST_PRICED_TIER.plainName : "Quoted",
     a: priceAnswer,
   },
 ];
@@ -414,7 +424,13 @@ export default function WhatIsAEOPage() {
                   style={{ ...GRID12, padding: "17px 26px", cursor: "pointer" }}
                 >
                   <span style={{ gridColumn: "span 5", fontSize: "15px", fontWeight: 600, color: T.ink }}>{f.q}</span>
-                  <span style={{ gridColumn: "span 7", fontSize: "13.5px", color: T.soft }}>{f.hint}</span>
+                  {/* Through TierText for the same reason the answers are: a
+                      hint is body copy, and the pricing one names the tier the
+                      published range stops at. The hints do not reach the
+                      FAQPage schema, so this is the painted context only. */}
+                  <span style={{ gridColumn: "span 7", fontSize: "13.5px", color: T.soft }}>
+                    <TierText>{f.hint}</TierText>
+                  </span>
                 </summary>
                 <div className="board-head" style={{ ...GRID12, padding: "0 26px 20px" }}>
                   <p style={{ gridColumn: "6 / span 7", margin: 0, fontSize: "14.5px", lineHeight: 1.7, color: T.soft }}>

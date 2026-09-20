@@ -18,6 +18,9 @@
  */
 
 import { TIER_PLAIN, type TierKey } from "@/components/TierName";
+// The site's one list joiner. A second copy of "a, b and c" written here is
+// the two-copies-of-one-function species this repo has already paid for once.
+import { listOf } from "@/config/scan-shape";
 
 /** Single destination for every CTA until real signup and booking flows exist. */
 export const CONTACT_URL = "/contact";
@@ -135,6 +138,92 @@ export const TIERS: Tier[] = [
     cta: { label: "See what is included", href: "/alwayseverywhere" },
   },
 ];
+
+/**
+ * Which tiers a visitor can read a price for, and which are a call.
+ *
+ * Derived here because four surfaces asserted the answer by hand and all four
+ * were wrong. `/how-it-works` said "Every price is published, from tracking
+ * alone up to alwayseverywhere" - naming, as the top of the published range,
+ * the one tier whose `priceLabel` is "Book a call". The closing CTA on that
+ * page and on /what-is-aeo said the same thing twice over, the 404 page's tier
+ * link said "Four tiers, every price published on the page", and
+ * /what-is-aeo's pricing FAQ opened "Ours are published rather than quoted."
+ *
+ * What makes it the expensive kind of wrong is that the site already says the
+ * opposite, correctly, on the tier's own page: /alwayseverywhere explains that
+ * the number of brands and markets changes the work "so we quote it rather
+ * than post a figure we would have to renegotiate". A buyer could read both
+ * sentences on one visit.
+ *
+ * Two readers of `basePrice` already understand this and neither was joined to
+ * the copy: `priceProse` returns null for a tier with no number, and
+ * `PackagePage`'s `serviceSchema` emits no Offer node for one. The copy is the
+ * third reader and it was typed. It is derived now, so the day
+ * `alwayseverywhere` gets a figure the sentences correct themselves rather
+ * than a test asking somebody to.
+ *
+ * `basePrice === null` is the same test those two make. `isPriceLabel` in
+ * price-label.ts answers the neighbouring question - whether the LABEL is a
+ * price, which is what decides the type size - and `price-claims.test.mts`
+ * holds the two in agreement rather than letting this file pick one.
+ */
+export const PRICED_TIERS: Tier[] = TIERS.filter((t) => t.basePrice !== null);
+
+/** The complement. A tier here has a call where its price would be. */
+export const QUOTED_TIERS: Tier[] = TIERS.filter((t) => t.basePrice === null);
+
+/**
+ * The dearest tier a visitor can read a price for.
+ *
+ * `TIERS` is documented above as ascending intensity, so this is the last
+ * priced entry rather than a named one. Taken off the end of a derived list
+ * instead of by a fixed index into `TIERS`, which is the ladder-with-a-ceiling
+ * shape this repo keeps finding - a rung picked by position against a list
+ * that can grow. Undefined only if nothing is priced, which the clauses below
+ * handle rather than assume away.
+ */
+export const DEAREST_PRICED_TIER: Tier | undefined = PRICED_TIERS[PRICED_TIERS.length - 1];
+
+/**
+ * What the site may claim about the prices it publishes.
+ *
+ * Plain text, carrying `plainName` rather than markup, for the reason every
+ * other shared string here is plain: it has to serve JSON-LD and meta as well
+ * as body copy, and `TierText` renders the lockup on the way to the page. See
+ * the note on `TierText` itself.
+ *
+ * Kept as two clauses rather than one sentence because /what-is-aeo needs to
+ * interleave the figures between them, and a second phrasing written there to
+ * get that is how the four copies above happened in the first place.
+ */
+export function publishedPricesClause(): string {
+  if (!DEAREST_PRICED_TIER) return "";
+  if (QUOTED_TIERS.length === 0) {
+    return `Every price is published, up to and including ${DEAREST_PRICED_TIER.plainName}.`;
+  }
+  return `Every price up to the ${DEAREST_PRICED_TIER.plainName} plan is published.`;
+}
+
+/**
+ * The other half: what is quoted, and why.
+ *
+ * Empty when nothing is quoted, so a caller joining the two gets the whole
+ * claim and no dangling clause. The reason is not invented here - it is what
+ * /alwayseverywhere already tells a reader, reduced to one clause, and it
+ * avoids a pronoun so it still reads if a second tier is ever quoted.
+ */
+export function quotedPricesClause(): string {
+  if (QUOTED_TIERS.length === 0) return "";
+  const names = QUOTED_TIERS.map((t) => t.plainName);
+  const list = names.length === 1 ? names[0] : listOf(names);
+  return `We quote ${list}, because the number of brands and markets changes the work.`;
+}
+
+/** Both clauses, for the surfaces that want the whole claim in one string. */
+export function pricePublication(): string {
+  return [publishedPricesClause(), quotedPricesClause()].filter(Boolean).join(" ");
+}
 
 /**
  * The headline price as a sentence says it, for every context that cannot

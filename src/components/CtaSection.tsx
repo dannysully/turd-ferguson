@@ -18,6 +18,8 @@
  * the top of the homepage instead. Fixed here.
  */
 import { CARD, GRID12, SHELL, T } from "@/config/tokens";
+import { pricePublication } from "@/config/pricing";
+import { TierText } from "@/components/TierName";
 import Link from "next/link";
 
 export default function CtaSection() {
@@ -28,9 +30,18 @@ export default function CtaSection() {
           <h2 style={{ margin: 0, fontSize: "25px", fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.22, color: T.ink }}>
             Prices are on the page. Start when you want.
           </h2>
+          {/* Was "Placement counts, what each tier includes and what it costs
+              are all published. If you want to buy, you do not need to speak to
+              us first." Both halves were false. The placement count is
+              published for one tier of four - pricing.ts's own header records
+              the alwayscited figure as outstanding on D1 - and the tier whose
+              price is a call is exactly the one you would have to speak to us
+              about. The price half is derived now; see pricing.ts. */}
           <p style={{ margin: "10px 0 0", fontSize: "14.5px", lineHeight: 1.6, color: T.soft }}>
-            Placement counts, what each tier includes and what it costs are all published. If you want to buy, you do
-            not need to speak to us first.
+            <TierText>
+              {pricePublication() +
+                " What each tier includes is published either way, and buying a published price does not need a call."}
+            </TierText>
           </p>
         </div>
 
