@@ -331,23 +331,51 @@ export function typedEngines(source: string, file: string): Hit[] {
  */
 const PRICE = /\$\d[\d,]*\d/;
 
-const PRICE_EXEMPT: Record<string, string> = {
-  // Where the prices are declared. Every surface reads priceLabel from here.
-  "src/config/pricing.ts": "the prices themselves live here",
-  // $1,300 of traffic value on a client's account is a measurement, not a
-  // price, and it is carried on Danny's attestation with its own window. It
-  // is not derivable from anything and must not be rebuilt from a constant.
-  "src/app/case-studies/vibe-retail/page.tsx": "a measured client result, not a price",
+/**
+ * The files allowed to carry a `$` figure, and - where it matters - which one.
+ *
+ * ## `only` is the narrowing, and the case study is why
+ *
+ * This was a file-keyed list, so an exemption earned by one figure excused the
+ * whole file. `vibe-retail/page.tsx` is on it for `$1,300` of traffic value, a
+ * measurement carried on Danny's attestation, and that single line switched the
+ * price sweep off across a four-hundred-line page - a case study, which is the
+ * kind of page that gains a "from $2,495" in a closing CTA. The sweep exists
+ * because "a price in a meta description is the claim a buyer reads in a search
+ * result before they ever reach the page", and it could not have seen one here.
+ *
+ * `pricing.ts` has no `only` and that is deliberate rather than an omission: it
+ * is where the prices are declared, so every figure in it is entitled to be
+ * there and listing them would be a second copy of the table the sweep exists
+ * to keep singular.
+ */
+type PriceExemption = { why: string; only?: string[] };
+
+const PRICE_EXEMPT: Record<string, PriceExemption> = {
+  "src/config/pricing.ts": { why: "the prices themselves live here - every figure in it is the source" },
+  "src/app/case-studies/vibe-retail/page.tsx": {
+    // $1,300 of traffic value on a client's account is a measurement, not a
+    // price, and it is carried on Danny's attestation with its own window. It
+    // is not derivable from anything and must not be rebuilt from a constant.
+    why: "a measured client result, not a price",
+    only: ["$1,300"],
+  },
 };
 
 export function typedPrices(source: string, file: string): Hit[] {
-  if (Object.hasOwn(PRICE_EXEMPT, file)) return [];
+  const exemption = Object.hasOwn(PRICE_EXEMPT, file) ? PRICE_EXEMPT[file] : undefined;
+  if (exemption && !exemption.only) return [];
   const out: Hit[] = [];
   const lines = source.split("\n");
   const prose = commentLines(lines);
   for (let i = 0; i < lines.length; i++) {
     if (prose.has(i)) continue;
-    if (PRICE.test(lines[i])) out.push({ file, line: i + 1, text: lines[i].trim() });
+    const m = PRICE.exec(lines[i]);
+    if (!m) continue;
+    // The matched figure, not the line: an allowed figure must not excuse a
+    // second one that happens to share a line with it.
+    if (exemption?.only?.includes(m[0]) && !PRICE.test(lines[i].replace(m[0], ""))) continue;
+    out.push({ file, line: i + 1, text: lines[i].trim() });
   }
   return out;
 }
@@ -497,9 +525,26 @@ test("each rule can still see what it is looking for", () => {
   // A backreference is not a price, and neither is a comment.
   assert.deepEqual(typedPrices('text.replace(/(a)(b)/, "$2$1")', "x.tsx"), []);
   assert.deepEqual(typedPrices(" * the card said a flat $99/mo", "x.tsx"), []);
-  for (const home of Object.keys(PRICE_EXEMPT)) {
-    assert.deepEqual(typedPrices('priceLabel: "$995/mo"', home), [], `${home} is exempt and stayed exempt`);
-  }
+  // A whole-file exemption still excuses anything; a narrowed one excuses only
+  // the figure it names, which is the half that had to be proved in both
+  // directions or the narrowing is a rename.
+  assert.deepEqual(typedPrices('priceLabel: "$995/mo"', "src/config/pricing.ts"), []);
+  const CASE_STUDY = "src/app/case-studies/vibe-retail/page.tsx";
+  assert.deepEqual(
+    typedPrices("traffic value up to $1,300 a month from zero", CASE_STUDY),
+    [],
+    "the figure the exemption names is still excused",
+  );
+  assert.deepEqual(
+    say(typedPrices('<p>Plans start at $2,495 a month.</p>', CASE_STUDY)),
+    [`${CASE_STUDY}:1 <p>Plans start at $2,495 a month.</p>`],
+    "a real price on the exempt page must be reported - the whole reason `only` exists",
+  );
+  assert.deepEqual(
+    say(typedPrices("from $1,300 of value, now $2,495 a month", CASE_STUDY)),
+    [`${CASE_STUDY}:1 from $1,300 of value, now $2,495 a month`],
+    "an allowed figure must not excuse a second one sharing its line",
+  );
 });
 
 test("the brand and the tier names are never capitalised or split", () => {
@@ -533,6 +578,48 @@ test("every exemption still points at a file that exists", () => {
       assert.ok(
         FILES.some((f) => posix(f) === home),
         `${name} lists ${home}, but the walk does not find it any more - delete the entry`,
+      );
+    }
+  }
+});
+
+/**
+ * And that the reason is still true, not just that the file is still there.
+ *
+ * An exemption is a sweep switched off, and the sentence beside it is the only
+ * argument for switching it off. Checking the file exists checks the weaker
+ * half: `engines.ts` could keep its name while `FREE_ENGINES` moved, leaving a
+ * file exempt from the engine-count rule on the strength of a declaration it no
+ * longer holds. `input-bounds.test.mts` records the same thing about its own
+ * list, measured, on 20 September 2026.
+ */
+test("every exemption's reason is still true, not just its filename", () => {
+  // The keys are posix paths from the repo root, the way `posix()` writes them.
+  const sourceOf = (home: string) => readFileSync(join(ROOT, ...home.split("/")), "utf8");
+
+  // ENGINE_EXEMPT: each file is excused because it declares the engine set.
+  assert.ok(/export const FREE_ENGINES\b/.test(sourceOf("src/lib/scan/engines.ts")));
+  assert.ok(/export const GATED_ENGINES\b/.test(sourceOf("src/lib/scan/engines.ts")));
+  assert.ok(/export const FREE_ENGINE_COUNT\b/.test(sourceOf("src/config/scan-shape.ts")));
+  assert.deepEqual(
+    Object.keys(ENGINE_EXEMPT).sort(),
+    ["src/config/scan-shape.ts", "src/lib/scan/engines.ts"],
+    "ENGINE_EXEMPT gained or lost an entry - the declarations asserted above are the argument for each one, so add or remove the matching assertion rather than only the key",
+  );
+
+  // PRICE_EXEMPT: pricing.ts is excused wholesale, so it had better hold prices.
+  assert.ok(PRICE.test(sourceOf("src/config/pricing.ts")), "pricing.ts is exempt as the home of the prices and has none");
+
+  // And every narrowed figure is still on the page it was allowed for. A stale
+  // one is an allowance for a number nobody can see, which is how the next
+  // price slips in beside it.
+  for (const [home, { only }] of Object.entries(PRICE_EXEMPT)) {
+    if (!only) continue;
+    const source = sourceOf(home);
+    for (const figure of only) {
+      assert.ok(
+        source.includes(figure),
+        `PRICE_EXEMPT allows ${figure} in ${home} and it is not there any more - drop it, or the next price typed on that page inherits its allowance`,
       );
     }
   }
