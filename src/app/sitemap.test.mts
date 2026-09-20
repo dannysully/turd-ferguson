@@ -4,6 +4,13 @@ import { join } from "node:path";
 import { test } from "node:test";
 
 import { BUILD_DIR, PRERENDER_DIR as PRERENDER, sweptPages } from "./dynamic-render.mts";
+/* `disallowedPaths` lived here and again in route-closure.test.mts,
+   identically, because importing a test module registers its tests - so the
+   two copies had nothing reconciling them and a fix to one would leave the
+   other reading a different robots.txt. It is in route-probes.mts now, which
+   is a plain module and runs nothing on import. Re-exported below so this
+   file's own exports are unchanged. */
+import { disallowedPaths } from "./route-probes.mts";
 
 /**
  * The two files a crawler reads first, and the only two nothing here swept.
@@ -69,10 +76,7 @@ export function locsOf(xml: string): string[] {
   return [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]!);
 }
 
-/** The paths robots.txt tells every agent not to fetch. */
-export function disallowedPaths(robots: string): string[] {
-  return [...robots.matchAll(/^Disallow:\s*(\S+)\s*$/gm)].map((m) => m[1]!);
-}
+export { disallowedPaths } from "./route-probes.mts";
 
 // -------------------------------------------------------------- the guards
 
