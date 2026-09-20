@@ -4,6 +4,8 @@ import { join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 
+import { blankComments } from "../source-read.mts";
+
 /**
  * Every Supabase read must look at its own error.
  *
@@ -85,7 +87,26 @@ type Read = { file: string; line: number; destructure: string };
  * places that fetch four or five tables at once.
  */
 function readsIn(file: string): Read[] {
-  const source = readFileSync(file, "utf8");
+  /**
+   * Blanked, not raw, and the noisy direction is still a defect.
+   *
+   * This rule matches the destructure itself, so a comment quoting
+   * `const { data } = await db.from(...)` - an ordinary thing to write when
+   * explaining what a line used to be - is reported as an unchecked read.
+   * Measured 20 Sep 2026 by injection: `pipeline.ts:786 { data }`, off a
+   * comment, with the code beside it correct.
+   *
+   * That is the opposite direction from the miss in `writes.test.mts` next
+   * door and it is not the harmless one. The obvious fix for a sweep naming a
+   * line that is fine is an EXEMPT entry, and an EXEMPT key here is
+   * `file:binding` - so the entry written to excuse the comment silently
+   * excuses the real read that lands on that key afterwards. An exemption a
+   * better primitive removes was never one.
+   *
+   * `blankComments` rather than `code` because every message below is a
+   * `file:line`.
+   */
+  const source = blankComments(readFileSync(file, "utf8"));
   // Posix-style so the keys in EXEMPT read the same on any machine.
   const name = relative(ROOT, file).split(sep).join("/");
   const out: Read[] = [];

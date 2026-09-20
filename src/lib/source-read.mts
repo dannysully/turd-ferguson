@@ -84,6 +84,53 @@ export function code(src: string): string {
 }
 
 /**
+ * The same cut as `code`, with the line numbering left intact.
+ *
+ * A comment line becomes an empty line rather than disappearing, so
+ * `src.slice(0, i).split("\n").length` still answers the line a reader would
+ * open the file at. `code` cannot do that - it drops lines - and a sweep that
+ * reports `file:line` needs both properties at once.
+ *
+ * Deliberately a second function rather than a flag on the first. The six
+ * private strippers in this tree are not consolidated for the reason recorded
+ * above, and the way to honour that is not to give the shared one a mode that
+ * changes what its existing callers get.
+ *
+ * Written for `reads.test.mts` and `writes.test.mts`, which both report a line
+ * and both read prose as code today - measured 20 Sep 2026, in the two
+ * directions a sweep can be wrong:
+ *
+ *  - `writes.test.mts` decides a write is safe by looking for a `const { ...
+ *    error ... } = await` in the eight lines above it, and finds one in a doc
+ *    comment. An unchecked write with prose above it describing the checked
+ *    idiom is reported as checked. That is the silent direction, and the
+ *    eighth time this cut has been paid for here;
+ *  - `reads.test.mts` matches the destructure itself, so a comment quoting
+ *    `const { data } = await ...` is reported as an unchecked read. That is
+ *    the noisy direction, and it is not harmless: the obvious fix is an EXEMPT
+ *    entry, which then excuses the real read that lands on that key later.
+ */
+export function blankComments(src: string): string {
+  const out: string[] = [];
+  let open = false;
+  for (const line of src.split("\n")) {
+    const t = line.trim();
+    if (open) {
+      if (t.includes("*/")) open = false;
+      out.push("");
+      continue;
+    }
+    if (t.startsWith("{/*") || t.startsWith("/*")) {
+      if (!t.includes("*/")) open = true;
+      out.push("");
+      continue;
+    }
+    out.push(t.startsWith("*") || t.startsWith("//") ? "" : line);
+  }
+  return out.join("\n");
+}
+
+/**
  * Every `emails.send({ ... })` in a file, sliced out by its own braces.
  *
  * Per call rather than per file, which is the lesson `contact.test.mts`

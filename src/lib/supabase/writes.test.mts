@@ -4,6 +4,8 @@ import { join, relative, sep } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
+import { blankComments } from "../source-read.mts";
+
 /**
  * Every Supabase write must look at its own error, for the same reason every
  * read must.
@@ -122,6 +124,18 @@ type Write = { file: string; line: number; text: string; checked: boolean };
  * name contains `error` or `Err`, or handed to `endWrite`, which retries it and
  * logs both attempts.
  *
+ * **Read through `blankComments`, and that is a fix rather than a precaution.**
+ * The `checked` test below looks at the eight lines *above* the write, which is
+ * where a doc comment lives. Measured 20 Sep 2026 by injection: an unchecked
+ * `await db.from("scans").update(...)` with `const { data, error } = await` in
+ * a comment above it came back MISSED - prose describing the idiom satisfied
+ * the check that the idiom was there. The identical write with no comment was
+ * CAUGHT, so this was the comment, not the pattern. Eighth instance of that cut
+ * in this tree and the first inside a rule about silence.
+ *
+ * Line-numbering survives the blanking, which is why it is not `code`: every
+ * message here is a `file:line` somebody has to open.
+ *
  * A third clause - a chain returned to a caller that would destructure it - was
  * written and then removed, because running it showed it exempted none of the 28
  * writes here. A clause that excuses nothing today cannot be relied on and can
@@ -130,7 +144,7 @@ type Write = { file: string; line: number; text: string; checked: boolean };
  * belongs in EXEMPT, where it has to be argued for by name.
  */
 function writesIn(file: string): Write[] {
-  const source = readFileSync(file, "utf8");
+  const source = blankComments(readFileSync(file, "utf8"));
   const name = relative(ROOT, file).split(sep).join("/");
   const lines = source.split("\n");
   const out: Write[] = [];
@@ -172,9 +186,20 @@ function writesIn(file: string): Write[] {
  * the exact failure the whole run was about. Every call in this tree spells the
  * name inline, and `every RPC call names its function inline` below keeps it
  * that way rather than trusting it to stay true.
+ *
+ * **A literal spelled WRONG drops out by the identical mechanism**, and nothing
+ * here closes that: `MUTATING.has` answers false for a name no migration
+ * declares exactly as it does for a name that only reads.
+ * `rpc-signatures.test.mts` is that other direction - it walks the calls and
+ * asks whether each names a function the migrations declare, with the argument
+ * names that function takes.
  */
 function mutatingRpcsIn(file: string): Write[] {
-  const source = readFileSync(file, "utf8");
+  // Blanked for the same reason as `writesIn`, and it replaces the three
+  // `startsWith` guards that used to sit below: those caught a call on a line
+  // *opening* with a comment marker and not one on the second line of a block
+  // comment, which is where the tree's real instance lives.
+  const source = blankComments(readFileSync(file, "utf8"));
   const name = relative(ROOT, file).split(sep).join("/");
   const lines = source.split("\n");
   const out: Write[] = [];
@@ -183,7 +208,6 @@ function mutatingRpcsIn(file: string): Write[] {
     if (!MUTATING.has(m[1])) continue;
     const line = source.slice(0, m.index).split("\n").length;
     const text = lines[line - 1].trim();
-    if (text.startsWith("*") || text.startsWith("//") || text.startsWith("/*")) continue;
 
     const head = source.slice(source.lastIndexOf(";", m.index) + 1, m.index);
     const checked =
@@ -251,14 +275,17 @@ test("every RPC call names its function inline", () => {
    */
   const computed = FILES.flatMap((file) => {
     const name = relative(ROOT, file).split(sep).join("/");
-    const source = readFileSync(file, "utf8");
+    // Blanked, not raw. `src/app/scan/[token]/page.tsx` carries
+    // `(await db.rpc(...)).data` inside a doc comment explaining a defect that
+    // was fixed, and against raw source that is a `.rpc(` with no literal after
+    // it - so this rule would report the prose describing the code as the one
+    // shape it exists to refuse. The three `startsWith` guards this replaces
+    // did hide that instance, because the comment line happens to open with
+    // `*`; they would not hide it written any other way.
+    const source = blankComments(readFileSync(file, "utf8"));
     const lines = source.split("\n");
     return [...source.matchAll(/\.rpc\(/g)]
       .map((m) => ({ line: source.slice(0, m.index).split("\n").length, rest: source.slice(m.index) }))
-      .filter(({ line }) => {
-        const text = lines[line - 1].trim();
-        return !text.startsWith("*") && !text.startsWith("//") && !text.startsWith("/*");
-      })
       .filter(({ rest }) => !/^\.rpc\(\s*["'`]\w+["'`]/.test(rest))
       .map(({ line }) => `${name}:${line} ${lines[line - 1].trim()}`);
   });
