@@ -3,6 +3,7 @@
 import { Resend } from "resend";
 
 import { CONTACT_LIMITS as LIMITS } from "@/config/contact";
+import { isPlausibleEmail } from "@/lib/email-address";
 import { headerSafe } from "@/lib/email-header";
 
 /**
@@ -87,7 +88,11 @@ export async function submitContactForm(
     return { status: "error", message: "That email address is longer than an address can be.", values };
   }
 
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  // The shared, tested check rather than a fourth private pattern. This copy was
+  // the laxest of the three - it took `me@example.c0m` and `me@example.x`, which
+  // the two funnel doors refused - and the merge narrows it to their rule while
+  // widening all three to a TLD that is not ASCII. See @/lib/email-address.
+  if (!isPlausibleEmail(email)) {
     return { status: "error", message: "Please enter a valid email address.", values };
   }
 

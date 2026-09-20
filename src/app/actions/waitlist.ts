@@ -3,6 +3,7 @@
 import { Resend } from "resend";
 
 import { WAITLIST_LIMITS as LIMITS } from "@/config/contact";
+import { isPlausibleEmail } from "@/lib/email-address";
 import { headerSafe } from "@/lib/email-header";
 import { isPlausibleDomain, normalizeDomain } from "@/lib/scan/domain";
 
@@ -95,7 +96,12 @@ export async function requestScan(input: {
   if (!isPlausibleDomain(domain)) {
     return { ok: false, message: "Enter a domain, like client-domain.com" };
   }
-  if (!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(email)) {
+  // The shared pair for the address, beside the shared pair for the domain one
+  // line up. This file's own header records that two validators for one field is
+  // "the defect this repo keeps finding in its numbers" and then kept a second
+  // one for the field beside it - the email check was a private copy the whole
+  // time the comment above was describing the domain fix.
+  if (!isPlausibleEmail(email)) {
     return { ok: false, message: "That email address does not look right." };
   }
 

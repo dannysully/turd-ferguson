@@ -1,4 +1,5 @@
 import { SCAN_LIMITS } from "@/config/contact";
+import { isPlausibleEmail, normalizeEmail } from "@/lib/email-address";
 import {
   SCAN_UNLOCK_COLUMNS,
   UnlockNotStamped,
@@ -25,7 +26,6 @@ const DISPOSABLE = new Set([
   "dispostable.com", "mintemail.com", "spamgourmet.com", "mailnesia.com",
 ]);
 
-const EMAIL = /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i;
 
 export async function POST(req: Request, ctx: { params: Promise<{ token: string }> }) {
   const { token } = await ctx.params;
@@ -37,7 +37,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
     return Response.json({ error: "bad_request" }, { status: 400 });
   }
 
-  const email = (body.email ?? "").trim().toLowerCase();
+  const email = normalizeEmail(body.email ?? "");
 
   /**
    * The bound, which lived only on the input until 20 September 2026.
@@ -58,11 +58,11 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
    * bounded on both sides; this is the door where the address is actually
    * traded for the product, and it was the one with no bound at all.
    *
-   * Before the regex, not after, for the reason `contact/actions.ts` gives about
-   * its own copy of this check: the pattern is two unbounded runs either side of
-   * an `@` and will happily accept a megabyte of them. Refused rather than
-   * clamped - truncating an address silently mails somebody other than the
-   * person who typed it, and 254 is unreachable from the form.
+   * Before the shape check, not after, for the reason `contact/actions.ts` gives
+   * about its own copy: the pattern is two unbounded runs either side of an `@`
+   * and will happily accept a megabyte of them. Refused rather than clamped -
+   * truncating an address silently mails somebody other than the person who
+   * typed it, and 254 is unreachable from the form.
    */
   if (email.length > SCAN_LIMITS.email) {
     return Response.json(
@@ -70,7 +70,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
       { status: 400 },
     );
   }
-  if (!EMAIL.test(email)) {
+  // Was a third private copy of one pattern. See @/lib/email-address for what
+  // the three disagreed about and which way the merge went.
+  if (!isPlausibleEmail(email)) {
     return Response.json(
       { error: "bad_email", message: "That email does not look right." },
       { status: 400 },
