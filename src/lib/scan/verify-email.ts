@@ -2,6 +2,7 @@ import "server-only";
 
 import { Resend } from "resend";
 
+import { mailFrom } from "@/config/mail-from";
 import { SITE_URL } from "@/config/schema";
 import { T } from "@/config/tokens";
 import { headerSafe } from "@/lib/email-header";
@@ -107,7 +108,7 @@ export async function sendVerificationEmail(input: {
   const link = verifyUrl(input.verifyToken);
   try {
     const { error } = await new Resend(key).emails.send({
-      from: process.env.SCAN_FROM_EMAIL ?? "alwayscited <onboarding@resend.dev>",
+      from: mailFrom(),
       to: input.email,
       subject: headerSafe(`Open your ${input.brand} report`),
       html: verifyHtml(E, FONT, input.brand, link),
@@ -173,7 +174,7 @@ export async function sendReportReadyEmail(input: {
 
   try {
     const { error } = await new Resend(key).emails.send({
-      from: process.env.SCAN_FROM_EMAIL ?? "alwayscited <onboarding@resend.dev>",
+      from: mailFrom(),
       to: input.email,
       subject,
       html: reportHtml(E, FONT, input.brand, link, input.counts),

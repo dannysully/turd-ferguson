@@ -12,6 +12,7 @@ import {
   readinessOf,
   type Requirement,
 } from "./readiness-spec.ts";
+import { code } from "../source-read.mts";
 
 /**
  * `readiness.ts` decides whether this site offers a live scan at all, and it
@@ -122,8 +123,29 @@ test("no key is on two lists, and every one carries a reason", () => {
 test("the address our mail is sent from is on a list", () => {
   assert.ok(NAMED.has("SCAN_FROM_EMAIL"), "SCAN_FROM_EMAIL is read by every sender and named by no list");
 
-  const senders = SOURCES.filter((f) => readFileSync(f, "utf8").includes("SCAN_FROM_EMAIL"));
-  assert.ok(senders.length >= 3, `only ${senders.length} senders read SCAN_FROM_EMAIL - the census has narrowed`);
+  /**
+   * This used to count senders - `>= 3` over files containing the string -
+   * and that was the weaker half of its own finding. A count floor cannot
+   * notice one whole sender dropping off, which is the shape `input-bounds`
+   * records about `TAGS`, and counting files that mention the variable says
+   * nothing about what they fall back to.
+   *
+   * The four copies are one module now (`config/mail-from.ts`, 20 Sep), so
+   * the census that belongs here is the narrow one: exactly one file reads
+   * the variable. That every `emails.send` in the tree goes through that
+   * module - the half this file could never assert, because it walks env
+   * keys rather than sends - is `mail-from.test.mts`.
+   */
+  // Comments stripped, and not as a precaution: the first draft of this line
+  // read raw source and reported a sender whose doc comment quoted the line
+  // it used to have. `code` is shared with mail-from.test.mts rather than
+  // copied, because six private copies of this cut is how they come to differ.
+  const readers = SOURCES.filter((f) => code(readFileSync(f, "utf8")).includes("process.env.SCAN_FROM_EMAIL"));
+  assert.deepEqual(
+    readers.map((f) => f.slice(f.indexOf("/src/") + 1)),
+    ["src/config/mail-from.ts"],
+    "the From address is read somewhere other than its one module",
+  );
 });
 
 // ──────────────────────────────── the judging ────────────────────────────────

@@ -1,0 +1,265 @@
+import assert from "node:assert/strict";
+import { readdirSync, readFileSync } from "node:fs";
+import { join, relative, sep } from "node:path";
+import { fileURLToPath } from "node:url";
+import { test } from "node:test";
+
+import { code, sendCalls } from "../lib/source-read.mts";
+import { MAIL_FROM_FALLBACK, mailFrom } from "./mail-from.ts";
+
+/**
+ * The address on the envelope of every message this product sends.
+ *
+ * `email-header.test.mts` already walks every `emails.send` in the tree - it
+ * was written for exactly this denominator, after `contact.test.mts` was found
+ * to be right about every assertion while reading one file. It reads **one of
+ * the five fields**: the subject. `to` is either a constant or a verified
+ * address and is swept by `contact.test.mts` and `mail-doors.test.mts`;
+ * `replyTo` is guarded by `isPlausibleEmail`, whose `[^\s@]` idiom makes a
+ * header terminator unreachable, so wrapping it would be a guard with no
+ * effect and this repo deletes those. `from` was read by nothing at all.
+ *
+ * Take a check that is right about everything it names and ask what it is not
+ * looking at. It was looking at four subjects and not at four From lines.
+ *
+ * **What it found.** `process.env.SCAN_FROM_EMAIL ?? "alwayscited
+ * <onboarding@resend.dev>"`, typed verbatim four times in three files - the
+ * contact action, the waitlist action, and both sends in `verify-email.ts`.
+ * `config/mail-from.ts` holds it once now, for the reasons in its own header.
+ *
+ * **What was watching it, and why that was not reading it.**
+ * `readiness.test.mts` asserted `senders.length >= 3` over files containing
+ * the string `SCAN_FROM_EMAIL`. Every word of that was true and it justified
+ * the variable's place on the readiness list. It could not notice a sender
+ * dropping off - a floor of three over four - and it never looked at the
+ * value. That assertion is narrowed to "exactly one module reads it" in the
+ * same push, because the other half is here.
+ *
+ * **Two directions, because a one-way check is this repo's recurring defect.**
+ * Nothing else may type the literal or read the variable; and every send in
+ * the tree must take its `from` from the one reader. The first alone passes a
+ * tree where a fifth sender hardcodes a different address; the second alone
+ * passes a tree where the module exists and three copies remain beside it.
+ *
+ * **What this cannot see.** Whether the address is one we own, or whether
+ * mail from it is delivered. That is blocked.md 20 and a statement about a
+ * vendor, and no source inside this repo settles it. What it does do is make
+ * the absence executable: the fallback domain is asserted to still be
+ * `resend.dev`, so the day it moves to a domain we own this fails and the
+ * blocked item has to be closed rather than quietly outliving its answer -
+ * the same device `organization-entity.test.mts` uses for the missing
+ * `sameAs`.
+ *
+ * Proved against nine injections (`docs/inject-mail-from.mjs`), 9/9, two of
+ * them green-expected. The green cases are not decoration: the first of them
+ * caught this push's own defect, a `readiness.test.mts` census reading raw
+ * source and reporting a doc comment as a reader. The fifth-send case is what
+ * earns the list below over a floor, and it had to be injected as an ADDED
+ * send rather than a removed one - removing a call means removing a block,
+ * and a half-removed call is a build failure, which is not a caught defect.
+ */
+
+const ROOT = join(fileURLToPath(import.meta.url), "..", "..", "..");
+const SRC = join(ROOT, "src");
+
+function sourceFiles(dir: string): string[] {
+  const out: string[] = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const child = join(dir, entry.name);
+    if (entry.isDirectory()) out.push(...sourceFiles(child));
+    else if (/\.tsx?$/.test(entry.name) && !entry.name.includes(".test.")) out.push(child);
+  }
+  return out;
+}
+
+function posix(file: string): string {
+  return relative(ROOT, file).split(sep).join("/");
+}
+
+const FILES = sourceFiles(SRC);
+
+/** The one file allowed to decide the address. */
+const HOME = "src/config/mail-from.ts";
+
+/**
+ * The `from:` of one send, read to the end of its line.
+ *
+ * Same reasoning as `subjectOf` one file over: to the end of the line rather
+ * than to the next comma, because a comma-terminated read cuts a call
+ * expression in half and would report `mailFrom()` as something else the day
+ * it takes an argument.
+ */
+function fromOf(call: string): string | null {
+  const m = /\n\s*from:\s*(.+?),?\s*\n/.exec(call);
+  return m ? m[1]!.trim() : null;
+}
+
+// ------------------------------------------------------------- the reader
+
+test("an unset variable falls back, and a set one wins", () => {
+  const before = process.env.SCAN_FROM_EMAIL;
+  try {
+    delete process.env.SCAN_FROM_EMAIL;
+    assert.equal(mailFrom(), MAIL_FROM_FALLBACK);
+
+    process.env.SCAN_FROM_EMAIL = "alwayscited <hello@alwayscited.com>";
+    assert.equal(mailFrom(), "alwayscited <hello@alwayscited.com>");
+  } finally {
+    if (before === undefined) delete process.env.SCAN_FROM_EMAIL;
+    else process.env.SCAN_FROM_EMAIL = before;
+  }
+});
+
+test("a variable set to nothing falls back rather than sending from nowhere", () => {
+  /**
+   * The one behavioural change in this push, and the reason the four call
+   * sites' `??` became `||`.
+   *
+   * An environment variable created and left blank stores an empty string,
+   * not an absent one, and `??` passes that straight through: all four sends
+   * go out with `from: ""`, Resend refuses every one, and three of the four
+   * paths log it and return, so what a visitor sees is mail that silently
+   * stops. The unlock mail is one of those three. An empty string is not an
+   * address, and the fallback exists for the case where the variable cannot
+   * be used.
+   */
+  const before = process.env.SCAN_FROM_EMAIL;
+  try {
+    process.env.SCAN_FROM_EMAIL = "";
+    assert.equal(mailFrom(), MAIL_FROM_FALLBACK);
+  } finally {
+    if (before === undefined) delete process.env.SCAN_FROM_EMAIL;
+    else process.env.SCAN_FROM_EMAIL = before;
+  }
+});
+
+// ------------------------------------------------- direction one: one copy
+
+test("the literal address is typed in exactly one file", () => {
+  const typed = FILES.filter((f) => code(readFileSync(f, "utf8")).includes("onboarding@resend.dev"));
+  assert.deepEqual(
+    typed.map(posix),
+    [HOME],
+    "the From address is typed outside its one module - four copies is how this started",
+  );
+});
+
+test("the environment variable is read in exactly one file", () => {
+  const readers = FILES.filter((f) => code(readFileSync(f, "utf8")).includes("process.env.SCAN_FROM_EMAIL"));
+  assert.deepEqual(
+    readers.map(posix),
+    [HOME],
+    "a sender reads SCAN_FROM_EMAIL directly, so it has its own fallback",
+  );
+});
+
+// ------------------------------------------- direction two: every send uses it
+
+/**
+ * The sends, derived by walking rather than named.
+ *
+ * `sendCalls` is shared with `email-header.test.mts` through
+ * `lib/source-read.mts` rather than copied, so the two sweeps cannot come to
+ * disagree about what a send is. If that reader narrows, both narrow together
+ * - and both carry a floor, which is what makes a narrowing fail rather than
+ * read as a clean tree.
+ *
+ * It lives in a helper rather than in either test because the first draft
+ * imported it straight out of `email-header.test.mts`, which works and
+ * silently makes node run that entire suite a second time.
+ */
+function sends(): { file: string; from: string | null }[] {
+  const out: { file: string; from: string | null }[] = [];
+  for (const f of FILES) {
+    for (const call of sendCalls(readFileSync(f, "utf8"))) out.push({ file: posix(f), from: fromOf(call) });
+  }
+  return out;
+}
+
+/**
+ * Every place this product puts a message on Resend, and why each is here.
+ *
+ * A floor alone would not do. `input-bounds.test.mts` records the reason: a
+ * count cannot notice one whole KIND going missing, and these are four sends
+ * of three kinds - two anonymous public forms and two pieces of funnel mail.
+ * `verify-email.ts` appearing once instead of twice is the case a floor of
+ * four over four would miss entirely, because the two live in one file.
+ */
+const SENDERS: { file: string; sends: number; why: string }[] = [
+  {
+    file: "src/app/contact/actions.ts",
+    sends: 1,
+    why: "the contact form - anonymous, no captcha, mails CONTACT_EMAIL_DESTINATION (mail-doors.test.mts)",
+  },
+  {
+    file: "src/app/actions/waitlist.ts",
+    sends: 1,
+    why: "the waitlist form - the other anonymous door, reachable by its action id whether or not the form renders",
+  },
+  {
+    file: "src/lib/scan/verify-email.ts",
+    sends: 2,
+    why: "the verification mail and the report mail - the two that go to a visitor rather than to us, and the pair a per-file rule would read as one",
+  },
+];
+
+test("the send census still finds every sender, and the right number in each", () => {
+  const counted = new Map<string, number>();
+  for (const s of sends()) counted.set(s.file, (counted.get(s.file) ?? 0) + 1);
+
+  assert.deepEqual(
+    [...counted.entries()].sort(),
+    SENDERS.map((s) => [s.file, s.sends] as [string, number]).sort(),
+    "the set of senders has moved - add it above with a reason, or the sweep below is narrower than it reads",
+  );
+  for (const s of SENDERS) assert.ok(s.why.length > 20, `${s.file} is listed with no reason`);
+});
+
+test("every send takes its From from the one reader", () => {
+  const all = sends();
+  // A reader that has stopped matching returns a clean list, which is the
+  // state every sweep in this tree has been caught in at least once.
+  assert.equal(all.length, 4, `expected 4 sends, the walk found ${all.length}`);
+
+  for (const s of all) {
+    assert.equal(s.from, "mailFrom()", `${s.file} sets its own From: ${s.from}`);
+  }
+});
+
+test("the From reader can still see a send that sets its own address", () => {
+  /**
+   * The guard the sweeps here learned at `75ff8d6`. A clean tree and a broken
+   * `fromOf` produce the same empty result, so the reader is shown finding a
+   * bad From and shown accepting a good one before an empty result from it is
+   * believed.
+   */
+  const bad = sendCalls('emails.send({\n  from: "someone@example.test",\n  subject: x,\n})');
+  assert.equal(bad.length, 1, "sendCalls no longer slices a send");
+  assert.equal(fromOf(bad[0]!), '"someone@example.test"');
+
+  const good = sendCalls("emails.send({\n  from: mailFrom(),\n  subject: x,\n})");
+  assert.equal(fromOf(good[0]!), "mailFrom()");
+});
+
+// --------------------------------------------------------- the open question
+
+test("the fallback still points at a domain we do not own", () => {
+  /**
+   * blocked.md 20, made executable rather than left as prose.
+   *
+   * This is not an assertion that `resend.dev` is correct - it is the opposite.
+   * The item is open because our own transactional mail should not default to
+   * somebody else's domain, and an open item nothing measures is one that
+   * outlives its answer. The day the fallback moves to a domain we control,
+   * this fails, and closing it means closing blocked.md 20 in the same edit.
+   *
+   * What is deliberately not claimed: whether mail from this address is
+   * delivered, refused or filtered. That is a statement about a vendor, vendor
+   * docs are unreachable from this session (blocked.md 21), and nothing on the
+   * site says one.
+   */
+  assert.ok(
+    MAIL_FROM_FALLBACK.endsWith("@resend.dev>"),
+    "the fallback has moved off resend.dev - settle blocked.md 20 and delete this test",
+  );
+});

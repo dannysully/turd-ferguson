@@ -3,6 +3,7 @@
 import { Resend } from "resend";
 
 import { CONTACT_EMAIL, CONTACT_LIMITS as LIMITS } from "@/config/contact";
+import { mailFrom } from "@/config/mail-from";
 import { isPlausibleEmail } from "@/lib/email-address";
 import { headerSafe } from "@/lib/email-header";
 
@@ -24,7 +25,6 @@ import { headerSafe } from "@/lib/email-header";
  * silently change what /legal, the footer and the entity graph publish.
  */
 const CONTACT_EMAIL_DESTINATION = process.env.CONTACT_EMAIL_DESTINATION ?? CONTACT_EMAIL;
-const FROM = process.env.SCAN_FROM_EMAIL ?? "alwayscited <onboarding@resend.dev>";
 
 /**
  * What was typed, handed back so an error does not destroy it.
@@ -174,7 +174,7 @@ export async function submitContactForm(
   try {
     const resend = new Resend(key);
     const { error } = await resend.emails.send({
-      from: FROM,
+      from: mailFrom(),
       to: CONTACT_EMAIL_DESTINATION,
       replyTo: email,
       subject: headerSafe(`Contact form: ${name}`),

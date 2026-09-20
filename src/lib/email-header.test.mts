@@ -6,6 +6,10 @@ import { test } from "node:test";
 
 import { WAITLIST_LIMITS } from "../config/contact.ts";
 import { headerSafe } from "./email-header.ts";
+// Moved to a shared helper on 20 Sep: mail-from.test.mts reads the From of
+// the same sends this file reads the subject of, and importing it out of a
+// test file made node run that whole suite twice.
+import { sendCalls } from "./source-read.mts";
 
 /**
  * `headerSafe` itself, and - the half that matters - who calls it.
@@ -85,30 +89,6 @@ test("an already-safe subject is returned unchanged", () => {
 
 // ----------------------------------------------------------------- the census
 
-/**
- * Every `emails.send({ ... })` in the tree, sliced out by its own braces.
- *
- * Per call rather than per file, which is the lesson `contact.test.mts` records
- * about its own error returns: a rule satisfied by "headerSafe appears
- * somewhere in this module" is satisfied by the correct send while the one
- * beside it drops it. `verify-email.ts` has two sends and is exactly that file.
- */
-export function sendCalls(source: string): string[] {
-  const out: string[] = [];
-  for (const m of source.matchAll(/emails\.send\(/g)) {
-    const open = source.indexOf("{", m.index);
-    if (open === -1) continue;
-    let depth = 0;
-    for (let i = open; i < source.length; i++) {
-      if (source[i] === "{") depth++;
-      else if (source[i] === "}" && --depth === 0) {
-        out.push(source.slice(open, i + 1));
-        break;
-      }
-    }
-  }
-  return out;
-}
 
 /**
  * The subject line of one send, as written.

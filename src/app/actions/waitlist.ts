@@ -3,6 +3,7 @@
 import { Resend } from "resend";
 
 import { CONTACT_EMAIL, WAITLIST_LIMITS as LIMITS } from "@/config/contact";
+import { mailFrom } from "@/config/mail-from";
 import { isPlausibleEmail } from "@/lib/email-address";
 import { headerSafe } from "@/lib/email-header";
 import { isPlausibleDomain, normalizeDomain } from "@/lib/scan/domain";
@@ -128,7 +129,7 @@ export async function requestScan(input: {
      * scan emails read the returned error already.
      */
     const dispatch = await new Resend(key).emails.send({
-      from: process.env.SCAN_FROM_EMAIL ?? "alwayscited <onboarding@resend.dev>",
+      from: mailFrom(),
       to: process.env.CONTACT_EMAIL_DESTINATION ?? CONTACT_EMAIL,
       replyTo: email,
       subject: headerSafe(`Scan request: ${domain}`),
