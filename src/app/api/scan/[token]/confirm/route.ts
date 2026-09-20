@@ -1,7 +1,7 @@
 import { after } from "next/server";
 
 import { SCAN_LIMITS } from "@/config/contact";
-import { QUESTION_COUNT, QUESTION_KINDS } from "@/lib/scan/anthropic";
+import { QUESTION_COUNT, QUESTION_KINDS, TOPIC_VARIANT_COUNT } from "@/lib/scan/anthropic";
 import { isMarket } from "@/lib/scan/domain";
 import { runScan } from "@/lib/scan/pipeline";
 import { isFreePassDead, reapStalledFreePass } from "@/lib/scan/stall";
@@ -134,14 +134,26 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
 
   const market = isMarket(body.market) ? body.market : scan.market;
 
-  // The variants the agency confirmed are the trusted set from here, capped so
-  // an edited payload cannot widen the question spread without limit.
+  /**
+   * The variants the agency confirmed are the trusted set from here, capped so
+   * an edited payload cannot widen the question spread without limit.
+   *
+   * Both figures are read rather than typed, and both were typed here while the
+   * questions route two screens earlier read them. That route caps at
+   * `TOPIC_VARIANT_COUNT`, which is also what the model is *asked* for - the
+   * prompt says "up to 5 ways buyers phrase this category" out of the same
+   * constant. So raising it to widen the spread would have widened the ask, the
+   * screen and the questions route, and this line would have gone on silently
+   * dropping everything past the fifth: the visitor confirms seven chips and
+   * the scan runs five. A coincidence waiting to stop being one, which is what
+   * `ConfirmScreen`'s `maxLength={200}` was.
+   */
   const variants = Array.isArray(body.topic_variants)
     ? body.topic_variants
         .filter((v): v is string => typeof v === "string")
         .map((v) => v.trim().toLowerCase())
-        .filter((v) => v.length >= 2 && v.length <= 80)
-        .slice(0, 5)
+        .filter((v) => v.length >= SCAN_LIMITS.topicVariant.min && v.length <= SCAN_LIMITS.topicVariant.max)
+        .slice(0, TOPIC_VARIANT_COUNT)
     : undefined;
 
   /**

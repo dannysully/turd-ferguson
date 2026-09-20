@@ -97,4 +97,27 @@ export const COVERAGE_LIMITS = {
  * scan route, so it is correct where it is and must not be tidied into
  * agreement with these.
  */
-export const SCAN_LIMITS = { topic: 120, question: 200, email: 254 };
+/**
+ * topicVariant is the fifth bound this file predicted, and it arrived the way
+ * the fourth did: typed inline, in two routes, on the same field.
+ *
+ * `confirm` and `questions` both take `body.topic_variants` off the wire and
+ * both filtered it with `v.length >= 2 && v.length <= 80` written as literals.
+ * Nothing joined the two, so they were one edit from disagreeing about what the
+ * same screen may send - and the same pair disagreed about the *cap* already:
+ * `questions` sliced at `TOPIC_VARIANT_COUNT` while `confirm` typed a `5`.
+ *
+ * It has no `maxLength` anywhere and that is correct - a variant is a chip the
+ * model wrote and the visitor toggles, never a field. So this is a bound the
+ * server owns outright, which is the case `input-bounds.test.mts` covers by
+ * asking for a server reader rather than for an input.
+ *
+ * min and max together, for the reason COVERAGE_LIMITS carries both: the routes
+ * check both ends, and a table holding one half is how the halves drift.
+ */
+export const SCAN_LIMITS = {
+  topic: 120,
+  question: 200,
+  email: 254,
+  topicVariant: { min: 2, max: 80 },
+};

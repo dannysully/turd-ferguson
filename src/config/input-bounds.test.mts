@@ -6,8 +6,8 @@ import { test } from "node:test";
 import { COVERAGE_LIMITS, SCAN_LIMITS, WAITLIST_LIMITS } from "./contact.ts";
 
 /**
- * Every `<input>` in the tree, and whether anything bounds what can be typed
- * into it.
+ * Every field in the tree a stranger can type into, and whether anything bounds
+ * what they can put in it.
  *
  * `scan-form.test.mts` is the same question asked of a denominator one form
  * wide: `<form action="/scan" method="get">`. It is correct about all five of
@@ -32,6 +32,26 @@ import { COVERAGE_LIMITS, SCAN_LIMITS, WAITLIST_LIMITS } from "./contact.ts";
  *
  * The count is asserted, not the files. A census that silently narrows reads
  * exactly like a clean sweep - see the four blind tests in the queue.
+ *
+ * ## The walk was narrower than the heading, which is this file's own species
+ *
+ * Everything above was written under the heading "every `<input>` in the tree"
+ * and the scanner matched `<input\b`. A `<textarea>` is a field a stranger
+ * types into, it takes `maxLength`, and it was outside the denominator
+ * entirely - so the check that exists to ask "is this bounded" could not ask it
+ * of the **longest** free-text field on the site: `c-msg`, the 5000-character
+ * contact message, which becomes the body of an email and is reflected back
+ * into HTML on an error.
+ *
+ * Measured, not argued: deleting `maxLength={CONTACT_LIMITS.message}` from that
+ * textarea left all 488 tests passing. There was no hole - the field is
+ * bounded, and `contact/actions.ts` refuses an over-length message besides -
+ * but nothing in this tree could have told you if it stopped being.
+ *
+ * `TAGS` is the fix and it is the thing to extend: a field type that accepts
+ * typed text and honours `maxLength` belongs in it. `<select>` does not (it has
+ * no free text) and there is no `contentEditable` anywhere in `src`; both were
+ * checked rather than assumed, so the next run does not re-derive them.
  */
 
 const SRC = new URL("..", import.meta.url).pathname;
@@ -50,18 +70,30 @@ const SOURCES = walk(SRC).filter((f) => /\.tsx$/.test(f));
 type Field = { file: string; line: number; tag: string; id: string };
 
 /**
- * Every `<input>` tag in the tree.
+ * The element names that accept typed text and honour `maxLength`. Extend this
+ * rather than the regex - see the heading above for why it is a list.
+ */
+const TAGS = ["input", "textarea"];
+const OPENER = new RegExp(`<(?:${TAGS.join("|")})\\b`, "g");
+
+/**
+ * Every such tag in the tree.
  *
  * Scanned brace-aware rather than with `/<input[^>]*>/`, because a JSX prop can
  * hold a `>` inside an expression - `onChange={(e) => ...}` is on most of these
  * inputs - and a regex that stops at the first `>` truncates the tag before its
  * maxLength, reading a bounded field as an unbounded one.
+ *
+ * Only the opening tag is read, which is what a non-self-closing
+ * `<textarea>...</textarea>` needs: the walk stops at the first `>` outside a
+ * brace, so the children are never part of the tag and cannot carry a
+ * `maxLength=` into it from prose.
  */
 function inputs(): Field[] {
   const out: Field[] = [];
   for (const file of SOURCES) {
     const text = readFileSync(file, "utf8");
-    for (const m of text.matchAll(/<input\b/g)) {
+    for (const m of text.matchAll(OPENER)) {
       const start = m.index;
       let depth = 0;
       let end = -1;
@@ -73,7 +105,7 @@ function inputs(): Field[] {
           break;
         }
       }
-      assert.notEqual(end, -1, `${file}: an <input> with no closing bracket`);
+      assert.notEqual(end, -1, `${file}: a <${m[0].slice(1)}> with no closing bracket`);
       const tag = text.slice(start, end);
       out.push({
         file: file.slice(SRC.length),
@@ -106,14 +138,31 @@ const EXEMPT: Record<string, string> = {
   ].join(" "),
 };
 
-test("the census still sees every input - a shrinking count is a blind probe", () => {
+test("the census still sees every field - a shrinking count is a blind probe", () => {
   const found = inputs();
   const files = new Set(found.map((f) => f.file));
+  // 23 when the walk was widened to textarea: 22 <input> and 1 <textarea>.
   assert.ok(
-    found.length >= 21,
-    `only ${found.length} inputs were found across the tree, and there were 21 when this was written - a falling count means the scanner broke, not that fields were deleted`,
+    found.length >= 23,
+    `only ${found.length} fields were found across the tree, and there were 23 when this was written - a falling count means the scanner broke, not that fields were deleted`,
   );
-  assert.ok(files.size >= 11, `only ${files.size} files carry an input, and 11 did`);
+  assert.ok(files.size >= 11, `only ${files.size} files carry a field, and 11 did`);
+});
+
+/**
+ * The floor above counts fields and cannot notice that one whole *kind* of
+ * field stopped being seen - 23 is also what you get from 23 inputs and a
+ * scanner that has quietly lost `textarea`, which is the state this file was in
+ * until 20 September 2026. Every tag in `TAGS` has to be found somewhere.
+ */
+test("every kind of field in TAGS is actually found by the scanner", () => {
+  const found = inputs();
+  for (const tag of TAGS) {
+    assert.ok(
+      found.some((f) => f.tag.startsWith(`<${tag}`)),
+      `TAGS lists "${tag}" and the scanner found none in the tree - either the walk is broken, or drop it from TAGS so the list stays honest`,
+    );
+  }
 });
 
 test("every input is bounded, or is on the exemption list with its reason", () => {
@@ -190,6 +239,45 @@ test("the routes behind these fields compare against the same constants", () => 
 });
 
 /**
+ * The one field two routes both take off the wire, held to one set of numbers.
+ *
+ * `body.topic_variants` is read by `confirm` and by `questions`, and each
+ * filtered it with `v.length >= 2 && v.length <= 80` typed as literals, then
+ * capped it - `questions` at `TOPIC_VARIANT_COUNT`, `confirm` at a typed `5`.
+ * Three numbers duplicated across two routes on one field, agreeing today by
+ * coincidence. `TOPIC_VARIANT_COUNT` is the live one: `anthropic.ts` interpolates
+ * it into the prompt, so raising it changes what the model returns and what the
+ * screen shows, and the typed `5` would have gone on trimming the confirmed set
+ * back down in silence.
+ *
+ * The routes are named here rather than derived, and that is the weakness this
+ * check has - the same one the three-route check above carries. What holds the
+ * derived half is the census at the foot of this file: `topicVariant` is a key
+ * in a table now, so a route that stops reading it makes that census fail.
+ */
+const VARIANT_ROUTES = ["confirm/route.ts", "questions/route.ts"];
+
+test("both routes that take topic_variants read one cap, not two that match", () => {
+  for (const route of VARIANT_ROUTES) {
+    const file = ROUTES.find((f) => f.endsWith(route));
+    assert.ok(file, `${route} was not found - this check has gone blind`);
+    const text = code(readFileSync(file, "utf8"));
+    assert.ok(
+      /\.slice\(\s*0\s*,\s*TOPIC_VARIANT_COUNT\s*\)/.test(text),
+      `${route} caps topic_variants at something other than TOPIC_VARIANT_COUNT`,
+    );
+    assert.ok(
+      text.includes("SCAN_LIMITS.topicVariant.min") && text.includes("SCAN_LIMITS.topicVariant.max"),
+      `${route} bounds a topic variant without reading SCAN_LIMITS.topicVariant`,
+    );
+    assert.ok(
+      !/\bv\.length\s*[<>]=?\s*\d/.test(text),
+      `${route} still compares a variant length against a typed number`,
+    );
+  }
+});
+
+/**
  * Asserted as values so the checks above cannot pass over a table that has
  * drifted. 253 is the longest a DNS name may be; 254 the longest an address may
  * be over SMTP; 120 and 200 are what the scan routes have always enforced.
@@ -207,6 +295,7 @@ test("the bounds are the numbers the servers actually enforce", () => {
   assert.equal(SCAN_LIMITS.topic, 120);
   assert.equal(SCAN_LIMITS.question, 200);
   assert.equal(SCAN_LIMITS.email, 254);
+  assert.deepEqual(SCAN_LIMITS.topicVariant, { min: 2, max: 80 });
   assert.deepEqual(COVERAGE_LIMITS.brand, { min: 2, max: 80 });
   assert.deepEqual(COVERAGE_LIMITS.topic, { min: 2, max: 120 });
   assert.deepEqual(COVERAGE_LIMITS.segment, { min: 2, max: 80 });
@@ -380,8 +469,14 @@ test("the table reader finds the tables and keys this test thinks it does", () =
   // tree where every bound is enforced.
   assert.ok(TABLES.length >= 4, `expected 4+ limit tables, found ${TABLES.map((t) => t.table).join(", ")}`);
   const total = TABLES.reduce((n, t) => n + t.keys.length, 0);
-  // 15 when this was written: 5 contact, 4 waitlist, 3 coverage, 3 scan.
-  assert.ok(total >= 15, `expected 15+ bounds across the tables, found ${total}`);
+  // 16: 5 contact, 4 waitlist, 3 coverage, 4 scan. Was 15 before SCAN_LIMITS
+  // gained topicVariant, which is the fifth bound this file predicted.
+  assert.ok(total >= 16, `expected 16+ bounds across the tables, found ${total}`);
+  // And that a nested bound inside an otherwise flat table is read as one key
+  // rather than swallowing the keys after it - SCAN_LIMITS is the mixed case.
+  const scan = TABLES.find((t) => t.table === "SCAN_LIMITS");
+  assert.ok(scan, "SCAN_LIMITS was not parsed");
+  assert.deepEqual([...scan.keys].sort(), ["email", "question", "topic", "topicVariant"]);
   // And that the nested table is read as three bounds rather than as one, which
   // is the case a `[^}]*` slice gets wrong.
   const coverage = TABLES.find((t) => t.table === "COVERAGE_LIMITS");
@@ -434,11 +529,30 @@ test("a table imported under another name is still found", () => {
  * enforces nothing, and so does a `>=` where a `>` was meant. Nothing here can
  * see either. The typed route check above is the half that asks the narrower
  * question well, for the three routes on its list, and the two together are
- * still short of "the bound is the one the server applies". That is the next
- * candidate on this file and it is written down rather than left to be
- * rediscovered - though note the shape of it: a reader that is genuinely dead
- * is a guard with no observable effect, and this queue's rule for those is to
- * find the effect first or accept that the new assertion is decoration.
+ * still short of "the bound is the one the server applies".
+ *
+ * ## That candidate was taken, read, and judged - do not re-derive it
+ *
+ * Every reader was walked by hand on 20 September 2026 and every one of them
+ * acts. There are two idioms and both are live:
+ *
+ *   - refuse - `contact/actions.ts` (four fields), `unlock` and `confirm` and
+ *     `questions` on a length, `coverage-check` through `text()`, which
+ *     compares both ends and returns null;
+ *   - clamp - `waitlist.ts` on all four of its fields, and the two honeypots on
+ *     the way to a log.
+ *
+ * The one shape that would have made this pay is a clamp that lands *before* a
+ * refusal on the same string, which makes the refusal unreachable: the visitor
+ * is silently truncated where the code says they are told. `contact/actions.ts`
+ * looks like that and is not - it clamps into `values`, the echo handed back to
+ * the form, and tests the unclamped locals. Read those eleven lines before
+ * believing otherwise.
+ *
+ * So there is no live defect here and, by this queue's rule for a guard with no
+ * observable effect, a check for it would be decoration today. What was found
+ * instead by asking the question one level up - does this file's WALK match its
+ * own HEADING - is the textarea above and the `topic_variants` pair below.
  */
 test("every declared bound is enforced by a server, not only by an input", () => {
   const orphans: string[] = [];

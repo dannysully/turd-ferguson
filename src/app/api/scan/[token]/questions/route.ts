@@ -125,7 +125,12 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
   const variants = supplied
     .filter((v): v is string => typeof v === "string")
     .map((v) => v.trim().toLowerCase())
-    .filter((v) => v.length >= 2 && v.length <= 80 && v !== topicKey)
+    .filter(
+      (v) =>
+        v.length >= SCAN_LIMITS.topicVariant.min &&
+        v.length <= SCAN_LIMITS.topicVariant.max &&
+        v !== topicKey,
+    )
     .slice(0, TOPIC_VARIANT_COUNT);
 
   /**
