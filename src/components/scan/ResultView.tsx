@@ -2,9 +2,30 @@
 
 import TierName from "@/components/TierName";
 import { CARD, MICRO, T } from "@/config/tokens";
-import type { LeaderboardEntry, RunScanResponse, ScanQuestion } from "@/lib/scan";
+import type { RunScanResponse, ScanQuestion, SourceEntry } from "@/lib/scan";
 import { ENGINE_SPECS, isEngine } from "@/lib/scan/engines";
-import { count } from "@/lib/plural";
+import {
+  PLAN_ORDER,
+  SOV_ROWS,
+  engineLabel,
+  fmtDate,
+  isOwnDomain,
+  isSubject,
+  kindLabel,
+  leaderboardCaption,
+  moreSourcesNote,
+  namedBy,
+  ordinal,
+  overviewState,
+  placementCopy,
+  placementsNote,
+  questionPill,
+  resultFigures,
+  sourcesNote,
+  topBrandNote,
+  transcript,
+  visibilityNote,
+} from "./result-figures";
 import Link from "next/link";
 
 /**
@@ -30,22 +51,11 @@ import Link from "next/link";
  * teaser filled these in without touching this file.
  */
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-function fmtDate(iso: string): string {
-  const parts = iso.slice(0, 10).split("-").map(Number);
-  const y = parts[0];
-  const m = parts[1];
-  const d = parts[2];
-  if (!y || !m || !d) return iso;
-  return d + " " + MONTHS[m - 1] + " " + y;
-}
-
-function ordinal(n: number): string {
-  const s = ["th", "st", "nd", "rd"];
-  const v = n % 100;
-  return n + (s[(v - 20) % 10] || s[v] || s[0]);
-}
+/**
+ * Every figure and every sentence this screen states is derived in
+ * `result-figures.ts`, which has no JSX and therefore has an executor. Nothing
+ * below re-derives one: what is here is the painting.
+ */
 
 const pill = (bg: string, fg: string): React.CSSProperties => ({
   fontSize: "11px",
@@ -66,40 +76,15 @@ const QUIET = pill(T.chip, T.soft);
  * a domain the classifier did not reach is a different finding from one it
  * read and could not place.
  */
-const KINDS: Record<string, string> = {
-  own: "yours",
-  placement: "placement",
-  competitor: "competitor",
-  review: "review site",
-  other: "other",
-};
-
 function KindPill(p: { kind: string | null; note: string | null }) {
-  if (!p.kind) return null;
-  const label = KINDS[p.kind] ?? KINDS.other;
+  const label = kindLabel(p.kind);
+  if (!label) return null;
   const style = p.kind === "placement" ? pill(T.wash, T.accent) : QUIET;
   return (
     <span title={p.note ?? undefined} style={style}>
       {label}
     </span>
   );
-}
-
-/**
- * Whether a leaderboard row is the brand this scan is about.
- *
- * `is_subject` is set by the pipeline when the row is written and carried all
- * the way here by both the teaser and the unlock payload, so it is the answer.
- * The name compare is the fallback for the fixture path, which has no flag -
- * and it is also what this file used to do on its own, which is the defect:
- * the brand extractor's spelling of the subject and the leaderboard's are
- * produced by different code and need not match. When they did not, the report
- * bolded nobody in the share-of-voice bars and handed "Top of the leaderboard"
- * to whoever was actually second.
- */
-function isSubject(row: LeaderboardEntry, brandName: string): boolean {
-  if (typeof row.is_subject === "boolean") return row.is_subject;
-  return row.brand.toLowerCase() === brandName.toLowerCase();
 }
 
 function Head(p: { title: string; children: React.ReactNode }) {
@@ -136,32 +121,15 @@ const unit: React.CSSProperties = { fontSize: "14px", fontWeight: 600, color: T.
 
 /* ── Question by question ── */
 
-function engineLabel(key: string): string {
-  return isEngine(key) ? ENGINE_SPECS[key].label : key;
-}
-
-/** Which engines named the brand, in words rather than a count. */
-function namedBy(q: ScanQuestion): string {
-  const rows = q.answers ?? [];
-  const named = rows.filter((a) => a.brand_named).map((a) => engineLabel(a.engine));
-  if (!rows.length) return "";
-  if (!named.length) return "none of them";
-  return named.join(", ");
-}
-
-/** Whether Google returned an AI Overview at all for this question. */
-function overviewState(q: ScanQuestion): string {
-  const row = (q.answers ?? []).find((a) => a.engine === "google_aio");
-  if (!row) return "";
-  if (!row.answered) return "none shown";
-  return row.brand_named ? "mentioned" : "shown, absent";
-}
-
 function QuestionRow(p: { q: ScanQuestion; brand: string; detailed: boolean }) {
   const q = p.q;
-  const silent = q.answered === 0;
-  const hit = q.named > 0;
-  const transcript = (q.answers ?? []).filter((a) => a.response_text?.trim());
+  /* One judge per row. The pill used to read the server's tallies while the
+     two columns beside it read the per-engine rows, and a visitor can open the
+     row and read those rows - so a disagreement was visible to them. */
+  const label = questionPill(q);
+  const silent = label === "no answer";
+  const hit = label !== "not named" && !silent;
+  const rows = transcript(q);
 
   const summary = (
     <div className={p.detailed ? "res-qrow res-qrow--full" : "res-qrow"}>
@@ -170,13 +138,11 @@ function QuestionRow(p: { q: ScanQuestion; brand: string; detailed: boolean }) {
         <span style={{ display: "block", ...MICRO, marginTop: "3px", color: T.soft }}>
           {q.kind}
           {typeof q.google_rank === "number" ? " - Google " + ordinal(q.google_rank) : ""}
-          {transcript.length ? " - read what they said" : ""}
+          {rows.length ? " - read what they said" : ""}
         </span>
       </div>
       <div style={{ textAlign: "right" }}>
-        <span style={silent ? QUIET : hit ? YES : NO}>
-          {silent ? "no answer" : hit ? q.named + " of " + q.answered : "not named"}
-        </span>
+        <span style={silent ? QUIET : hit ? YES : NO}>{label}</span>
       </div>
       {p.detailed ? (
         <>
@@ -187,7 +153,7 @@ function QuestionRow(p: { q: ScanQuestion; brand: string; detailed: boolean }) {
     </div>
   );
 
-  if (!transcript.length) {
+  if (!rows.length) {
     return <div style={{ borderBottom: "1px solid " + T.hair }}>{summary}</div>;
   }
 
@@ -195,7 +161,7 @@ function QuestionRow(p: { q: ScanQuestion; brand: string; detailed: boolean }) {
     <details style={{ borderBottom: "1px solid " + T.hair }}>
       <summary style={{ cursor: "pointer", listStyle: "none" }}>{summary}</summary>
       <div style={{ padding: "0 26px 18px", display: "flex", flexDirection: "column", gap: "10px" }}>
-        {transcript.map((a) => (
+        {rows.map((a) => (
           <div
             key={a.engine}
             style={{ background: T.bg, border: "1px solid " + T.line, borderRadius: "12px", padding: "12px 14px" }}
@@ -265,9 +231,8 @@ function QuestionTable(p: { r: RunScanResponse; detailed: boolean }) {
 function SourceTable(p: { r: RunScanResponse; domain: string; detailed: boolean; total: number }) {
   const rows = p.r.sources;
   if (!rows.length) return null;
-  const classified = rows.some((s) => s.kind);
-  const placements = rows.filter((s) => s.kind === "placement").length;
-  const hidden = Math.max(0, p.total - rows.length);
+  const more = moreSourcesNote(rows.length, p.total);
+  const placements = placementsNote(rows);
 
   return (
     <section>
@@ -286,7 +251,7 @@ function SourceTable(p: { r: RunScanResponse; domain: string; detailed: boolean;
           <div style={MICRO}>You appear</div>
         </div>
         {rows.map((s) => {
-          const yours = s.domain === p.domain || s.domain.endsWith("." + p.domain);
+          const yours = isOwnDomain(s.domain, p.domain);
           return (
             <div key={s.domain} className="res-srow" style={{ borderBottom: "1px solid " + T.hair }}>
               <div style={{ fontSize: "13.5px" }}>{s.domain}</div>
@@ -300,20 +265,11 @@ function SourceTable(p: { r: RunScanResponse; domain: string; detailed: boolean;
             </div>
           );
         })}
-        {hidden > 0 ? (
-          <p style={{ margin: 0, padding: "12px 26px", fontSize: "13px", color: T.soft }}>
-            {/* "The 1 most-cited of 2 pages" is reachable - `hidden > 0` only
-                says the list is longer than what is shown, not that what is
-                shown is more than one row. */}
-            {(rows.length === 1 ? "The most-cited of " : "The " + rows.length + " most-cited of ") +
-              count(p.total, "page") +
-              " the engines drew on. The rest come with the report."}
-          </p>
+        {more ? (
+          <p style={{ margin: 0, padding: "12px 26px", fontSize: "13px", color: T.soft }}>{more}</p>
         ) : null}
-        {classified ? (
-          <p style={{ margin: 0, padding: "12px 26px", fontSize: "13px", color: T.soft }}>
-            {placements + (placements === 1 ? " of these is a page" : " of these are pages") + " a brand can realistically be placed into."}
-          </p>
+        {placements ? (
+          <p style={{ margin: 0, padding: "12px 26px", fontSize: "13px", color: T.soft }}>{placements}</p>
         ) : null}
       </div>
     </section>
@@ -346,7 +302,7 @@ function ShareOfVoice(p: { r: RunScanResponse }) {
       </Head>
       <div style={{ ...CARD, padding: "22px 26px" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: "11px", maxWidth: "820px" }}>
-          {rows.slice(0, 12).map((b) => {
+          {rows.slice(0, SOV_ROWS).map((b) => {
             const you = isSubject(b, p.r.brand.name);
             return (
               <div key={b.brand} className="seq-sov">
@@ -386,10 +342,7 @@ function ShareOfVoice(p: { r: RunScanResponse }) {
           })}
         </div>
         <p style={{ margin: "14px 0 0", fontSize: "12.5px", color: T.soft }}>
-          {"Mentions across the answers these engines gave, " +
-            (rows.length > 12
-              ? "top 12 of " + count(rows.length, "brand") + (partial ? " we could read." : ".")
-              : count(rows.length, "brand") + (partial ? " we could read." : " in all."))}
+          {leaderboardCaption(rows.length, partial)}
         </p>
       </div>
     </section>
@@ -435,29 +388,13 @@ function LockedRows() {
  * for rows that were never there, and the report then told them so. The gate
  * and the report have to agree before the address is given, not after.
  *
- * `unclassified` is the difference between the two ways of reaching zero, and
- * only one of them is a finding. deriveOpportunities excludes any page whose
- * kind is null, so a scan where nothing was classified derives zero however
- * many pages it cited - and the copy for "we looked and there are none" is
- * false on it. Measured on 19 September 2026: of six scans read back from
- * production, three had zero of their sources classified while citing 255, 264
- * and 564 pages between them, and one of those three is unlocked and live. The
- * report told its reader that was a finding rather than a gap. Source
- * classification is wrapped in never-fatal, so this is not only an artefact of
- * scans that predate the column - a classification call that fails today lands
- * a fresh scan in exactly the same state.
+ * There are four ways to reach zero and only one of them is a finding, which
+ * is `placementVerdict`'s whole subject - read it there. This is the painting.
  */
-function NoPlacements(p: { unclassified?: boolean }) {
+function NoPlacements(p: { sources: readonly SourceEntry[] }) {
   return (
     <div style={{ ...CARD, padding: "22px 26px" }}>
-      <p style={{ margin: 0, fontSize: "14px", lineHeight: 1.65, color: T.soft }}>
-        {p.unclassified
-          ? "We could not sort the pages behind this scan into the ones an article could run on, so this list could" +
-            " not be built. That is a gap in the scan rather than a finding - every page the engines cited is still" +
-            " listed above, and none of them has been ruled out."
-          : "None this time. Every page the engines cited for these questions either already names you, is a" +
-            " competitor own site, or is somewhere an article cannot run. That is a finding, not a gap in the scan."}
-      </p>
+      <p style={{ margin: 0, fontSize: "14px", lineHeight: 1.65, color: T.soft }}>{placementCopy(p.sources)}</p>
     </div>
   );
 }
@@ -504,9 +441,11 @@ function PlacementTable(p: { r: RunScanResponse }) {
  * rather than dressed up as a finding.
  */
 function PlanCards(p: { r: RunScanResponse }) {
-  const rows = (p.r.opportunities ?? []).slice(0, 3);
+  /* The slice and the labels share one ceiling. Two typed threes is the ladder
+     species this repo keeps finding, and a fourth label with no row to hang on
+     - or a fourth row with no label - is what it looks like here. */
+  const rows = (p.r.opportunities ?? []).slice(0, PLAN_ORDER.length);
   if (!rows.length) return null;
-  const order = ["First", "Second", "Third"];
   return (
     <div className="seq-three" style={{ marginTop: "16px" }}>
       {rows.map((o, i) => (
@@ -515,8 +454,8 @@ function PlanCards(p: { r: RunScanResponse }) {
           style={{ background: T.bg, border: "1px solid " + T.line, borderRadius: "14px", padding: "18px" }}
         >
           <div style={{ display: "flex", alignItems: "baseline", gap: "10px" }}>
-            <div style={{ ...MICRO, flexGrow: 1 }}>{order[i] + " - join"}</div>
-            <div style={{ fontSize: "12px", color: T.soft }}>{KINDS[o.kind] ?? KINDS.other}</div>
+            <div style={{ ...MICRO, flexGrow: 1 }}>{PLAN_ORDER[i] + " - join"}</div>
+            <div style={{ fontSize: "12px", color: T.soft }}>{kindLabel(o.kind)}</div>
           </div>
           <div style={{ fontSize: "14px", fontWeight: 600, marginTop: "7px", lineHeight: 1.4 }}>{o.domain}</div>
           {o.note ? (
@@ -560,50 +499,10 @@ export default function ResultView(p: {
   noPlacements?: boolean;
 }) {
   const r = p.r;
-  /** A counted zero on either side of the gate. Not "not counted yet". */
-  const emptyList = p.unlocked ? !(r.opportunities && r.opportunities.length) : Boolean(p.noPlacements);
-  /**
-   * Zero because nothing was classified, which is a different sentence from
-   * zero because nothing qualified. Read off the sources the page already has:
-   * the teaser carries each page kind as well as the unlock payload, so this
-   * needs no extra read and is the same answer on both sides of the gate.
-   */
-  const unclassified = r.sources.length > 0 && r.sources.every((x) => !x.kind);
-  const answers = r.engines.reduce((a, e) => a + e.answered, 0);
-  const named = r.engines.reduce((a, e) => a + e.named, 0);
-  const missing = answers - named;
-  const pct = answers > 0 ? Math.round((named / answers) * 100) : null;
-
+  /* Every figure below is derived in result-figures.ts, which has an executor.
+     Nothing in this file re-derives one. */
+  const f = resultFigures(r, p.domain, { unlocked: p.unlocked, noPlacements: p.noPlacements });
   const qs = r.questions ?? [];
-  const answeredQs = qs.filter((q) => q.answered > 0);
-  /**
-   * Counted over the questions that got an answer, and now shown over them too.
-   *
-   * The numerator has always excluded questions no engine answered - it has to,
-   * because a question nobody answered is neither named nor missing - but the
-   * denominator was every question asked. So a scan where four of fourteen went
-   * unanswered read "10 of 14" for a figure whose real denominator was ten, and
-   * the other way round a clean scan with four unanswered read "0 of 14" as
-   * though fourteen had been measured. Same measure on both sides of the "of".
-   */
-  const blank = answeredQs.filter((q) => q.named === 0).length;
-
-  const ranks = qs.map((q) => q.google_rank).filter((v): v is number => typeof v === "number");
-  const bestRank = ranks.length ? Math.min(...ranks) : null;
-  /**
-   * The brand at the top of the leaderboard, which is the first row: both the
-   * teaser RPC and buildUnlockPayload order by mentions descending.
-   *
-   * It used to be the first row that was NOT the subject, under a label saying
-   * "Top of the leaderboard". On a scan where the brand tops its own category -
-   * the best result this product can return, and one that exists in production -
-   * the tile named the runner-up as the leader and then said "You sit 1st"
-   * directly underneath it. The two halves of one metric contradicted each
-   * other, and the half in the big type was the false one.
-   */
-  const topBrand = r.leaderboard[0] ?? null;
-  const topIsYou = topBrand ? isSubject(topBrand, r.brand.name) : false;
-  const yourSources = r.sources.filter((s) => s.domain === p.domain || s.domain.endsWith("." + p.domain)).length;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "26px" }}>
@@ -621,11 +520,7 @@ export default function ResultView(p: {
               color: T.ink,
             }}
           >
-            {answers === 0
-              ? "No engine answered these questions yet."
-              : missing === 0
-                ? "Every answer named you."
-                : missing + " of " + answers + " AI answers did not name you."}
+            {f.headline}
           </h1>
           <p style={{ margin: "12px 0 0", fontSize: "14.5px", lineHeight: 1.65, color: T.soft, maxWidth: "58ch" }}>
             {p.unlocked
@@ -672,16 +567,16 @@ export default function ResultView(p: {
             label="Answers naming you"
             value={
               <>
-                {named} <span style={unit}>{"of " + answers}</span>
+                {f.named} <span style={unit}>{"of " + f.answers}</span>
               </>
             }
-            note={pct === null ? "No engine answered yet." : pct + "% across the question set"}
+            note={f.pct === null ? "No engine answered yet." : f.pct + "% across the question set"}
           />
           <Metric
             label="Questions with no mention"
             value={
               <>
-                {blank} <span style={unit}>{"of " + answeredQs.length}</span>
+                {f.blank} <span style={unit}>{"of " + f.answeredQuestions}</span>
               </>
             }
             note="Of the questions an engine answered at all. One nobody answered is neither named nor missing."
@@ -696,37 +591,25 @@ export default function ResultView(p: {
           <Metric
             first
             label="AI visibility"
-            value={pct === null ? "-" : pct + "%"}
-            note={named + " of " + count(answers, "answer") + " named you, across " + count(qs.length, "question") + "."}
+            value={f.pct === null ? "-" : f.pct + "%"}
+            note={visibilityNote(f.named, f.answers, qs.length)}
           />
-          <Metric
-            label="Sources in the category"
-            value={p.totalSources}
-            note={"Distinct pages the answers were assembled from. You appear in " + yourSources + "."}
-          />
+          <Metric label="Sources in the category" value={p.totalSources} note={sourcesNote(f.yourSources)} />
           {/* Suppressed on a partial leaderboard: naming the top brand is a
               claim about a competitor, and the brand that would have topped
               this list may be in the batch that never came back. The rank in
               its note is already null for the same reason. */}
-          {topBrand && !r.leaderboard_partial ? (
+          {f.topBrand && !r.leaderboard_partial ? (
             <Metric
               label="Top of the leaderboard"
-              value={<span style={{ fontSize: "22px" }}>{topBrand.brand}</span>}
-              note={
-                topBrand.mentions +
-                " mentions" +
-                (topIsYou
-                  ? ". That is you - nobody we read is named more often."
-                  : r.brand.rank
-                    ? ". You sit " + ordinal(r.brand.rank) + "."
-                    : ".")
-              }
+              value={<span style={{ fontSize: "22px" }}>{f.topBrand.brand}</span>}
+              note={topBrandNote(f.topBrand.mentions, f.topIsYou, r.brand.rank)}
             />
           ) : null}
-          {bestRank !== null ? (
+          {f.bestRank !== null ? (
             <Metric
               label="Best Google position"
-              value={ordinal(bestRank)}
+              value={ordinal(f.bestRank)}
               note="Your best organic position on any question in this set."
             />
           ) : null}
@@ -754,11 +637,11 @@ export default function ResultView(p: {
               </div>
             </div>
           ) : (
-            <NoPlacements unclassified={unclassified} />
+            <NoPlacements sources={r.sources} />
           )
         ) : p.noPlacements ? (
           <div>
-            <NoPlacements unclassified={unclassified} />
+            <NoPlacements sources={r.sources} />
             <div style={{ ...CARD, padding: "24px", marginTop: "16px", maxWidth: "560px" }}>{p.gate}</div>
           </div>
         ) : (
@@ -779,7 +662,7 @@ export default function ResultView(p: {
           </div>
         )}
 
-        {emptyList ? null : (
+        {f.emptyList ? null : (
           <p style={{ margin: "14px 0 0", fontSize: "13.5px", lineHeight: 1.65, color: T.soft }}>
             This list is also the <TierName tier="mentioned" /> brief. We approach the pages on it, and where
             inclusion is not editorially possible we find the contextually equivalent page and write the content that
