@@ -22,17 +22,43 @@ import { CARD, MICRO, SHELL, T } from "@/config/tokens";
  * being typed here, which is what stops a fourth form appearing. This page
  * was already the one that scoped them correctly - "Over eight weeks", "Of
  * the tracked prompts", "Four months in" - and the homepage was not.
+ *
+ * ## "and when" came off all three surfaces on 20 Sep 2026
+ *
+ * The line read "every figure says what it was measured against **and when**",
+ * on the meta description, the OG description and the standfirst. The first
+ * half is true and `client-results.test.mts` holds it. The second half was
+ * flatly false: what each figure carries is a scope, and every scope here is
+ * a duration or a denominator - "Over eight weeks", "Four months in", "Of the
+ * tracked prompts". None of them is a date, and `ClientResult.attested` -
+ * the one field that holds a date - is documented in its own config as **not
+ * rendered**.
+ *
+ * What settles it rather than making it a wording argument: the page this one
+ * exists to link to says so itself. `/case-studies/vibe-retail` carries a
+ * visible `[TO CONFIRM]` reading **"the date each reading was taken, and
+ * which tracker"**, and a second on "the dates each reading covers". So the
+ * index promised precisely the thing the study two clicks away flags as
+ * unknown, which is blocked.md item 3.
+ *
+ * The date was not added instead, because there is none to add that could be
+ * stood behind: 19 Sep 2026 is when Danny attested the figures, not when the
+ * readings were taken, and AGENTS.md puts a number about a client's result
+ * behind a dated source. Answer item 3 and this line can have its second half
+ * back. Same call as `67bc96d`, `486d63a` and `b3a25ba` - a claim that is
+ * flatly false for a product is narrowed unattended; a claim that is merely
+ * generous waits for Danny.
  */
 
 export const metadata: Metadata = {
   title: "What the work actually moved",
   description:
-    "Short case studies, and every figure says what it was measured against and when. Clients are named only where the agency has agreed to it.",
+    "Short case studies, and every figure says what it was measured against. Clients are named only where the agency has agreed to it.",
   alternates: { canonical: "https://alwayscited.com/case-studies" },
   openGraph: {
     images: OG_IMAGE,
     title: "What the work actually moved | alwayscited",
-    description: "Short case studies, and every figure says what it was measured against and when.",
+    description: "Short case studies, and every figure says what it was measured against.",
     url: "https://alwayscited.com/case-studies",
   },
 };
@@ -51,7 +77,7 @@ export default function CaseStudiesPage() {
           </h1>
         </div>
         <p className="ac-row" style={{ margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
-          Short, and every figure says what it was measured against and when. Clients are named only where the agency
+          Short, and every figure says what it was measured against. Clients are named only where the agency
           has agreed to it, which is why this one is a sector rather than a brand.
         </p>
       </div>

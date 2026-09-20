@@ -274,3 +274,129 @@ test("every client figure records who attested it and when", () => {
   }
   assert.equal(CLIENT_RESULTS.length, 4, "the attested set changed - read the header before widening it");
 });
+
+/**
+ * A surface that publishes one of these figures may not promise it is dated.
+ *
+ * ## The instance, found by the claim census on 20 Sep 2026
+ *
+ * `/case-studies` said, on its meta description, its OG description and its
+ * standfirst: *"every figure says what it was measured against **and when**"*.
+ * The first half is true and the rule above holds it. The second half was
+ * flatly false. What each figure carries is a `scope`, and every scope in the
+ * config is a duration or a denominator - "eight weeks", "four months",
+ * "tracked prompts". **A duration is not a date**, and `ClientResult.attested`
+ * - the only field here that holds one - says in its own doc comment that it
+ * is *not rendered*.
+ *
+ * What made it a finding rather than a wording argument is that the site
+ * already said so, one click away: `/case-studies/vibe-retail` carries a
+ * visible `[TO CONFIRM]` reading **"the date each reading was taken, and which
+ * tracker"**. The index promised exactly what the study it links to flags as
+ * unknown. Two files disagreeing about the same fact, one of them a marketing
+ * page - the same shape as `b3a25ba`, where `/coverage-check` promised answers
+ * that `reading.ts` purges after a week, and `349dcda`, where `schema.ts` said
+ * there was no logo file and `structured-data.test.mts` named it.
+ *
+ * ## Why this is a prohibition and why it is not a phrase list
+ *
+ * The trigger is the *shape* of the claim - a universal over the page's own
+ * figures that also promises a time - rather than the two sentences that
+ * happened to be on the site. A rule matching the copy it was written from
+ * catches nothing but its own instance.
+ *
+ * It fires only on a surface that actually prints a figure, which is what
+ * keeps it off `/blog`. That page says "Every number says where it came from
+ * and when it was taken" and **that is deliberately left alone**: the 19 Sep
+ * sweep (`5fa3fa6`) cut the unsourced numbers out of the posts, so the claim
+ * is a universal over an emptied set. Vacuously true is not false, and
+ * narrowing it would be decoration.
+ *
+ * ## The premise is re-earned, so this rule cannot outlive its reason
+ *
+ * The second assertion checks the date really is unpublished. The day a
+ * surface starts rendering `attested`, the claim stops being false and this
+ * prohibition becomes the wrong rule - so it fails then and says so, rather
+ * than quietly forbidding a sentence that has become true. Same device as
+ * `mail-from.test.mts` asserting the fallback is still on `resend.dev`, and
+ * blocked.md item 3 is what would unblock it.
+ */
+test("no surface that publishes a client figure promises the figure is dated", () => {
+  const pages = sweptPages();
+  assert.ok(pages.length >= 20, `expected 20+ swept pages, got ${pages.length} - run the build and capture`);
+
+  /**
+   * A universal over the page's own figures that also promises a time.
+   *
+   * Bounded to one sentence by `[^.]*` so a page stating "every figure says
+   * what it was measured against" and separately mentioning a date somewhere
+   * else does not read as one claim.
+   */
+  const DATED_PROMISE = /\bevery (figure|number|reading)[^.]*\b(when|dated|date it|the date)\b/i;
+
+  const promises: string[] = [];
+  let checked = 0;
+  for (const { page, html } of pages) {
+    const surfaces = surfacesOf(html);
+    /**
+     * Gated on the PAGE, then checked on every one of its surfaces.
+     *
+     * Gating each surface on carrying a figure itself was the first draft and
+     * it was wrong in the direction that matters: the meta description and the
+     * OG description both made this promise and neither prints a number, so
+     * two of the three live instances were invisible while the rule reported
+     * itself as having caught the defect. The promise is a claim *about the
+     * page's figures* - a head string quoted in a search result makes it just
+     * as loudly as the standfirst does, which is the argument `og-card` and
+     * `verbatim-claims` both make about surfaces that are read detached.
+     */
+    if (!surfaces.some(({ text }) => SWEPT_RESULTS.some((r) => text.includes(r.value)))) continue;
+    for (const { where, text } of surfaces) {
+      checked++;
+      const m = DATED_PROMISE.exec(text);
+      if (m) promises.push(`${page} (${where}): "${m[0].replace(/\s+/g, " ").trim()}"`);
+    }
+  }
+
+  /**
+   * A floor, so a build that stopped producing pages passes nothing silently.
+   *
+   * Five rather than the ten the scope rule uses, because that one counts a
+   * surface once per figure on it and this one counts each surface once - the
+   * same seven surfaces score 10+ there and 7 here. Calibrating it to the
+   * neighbouring number instead is how this assertion fired on its first run
+   * and reported a defect that was really a miscounted floor.
+   */
+  assert.ok(checked >= 5, `only ${checked} figure-bearing surfaces found, expected 5+`);
+  assert.deepEqual(
+    promises,
+    [],
+    "a surface publishes a client figure and promises the figures are dated. They are " +
+      "not: every scope in client-results.ts is a duration or a denominator, and the case " +
+      "study itself marks the reading dates [TO CONFIRM] (blocked.md 3):\n" +
+      promises.map((s) => `  ${s}`).join("\n"),
+  );
+});
+
+test("the attestation date is still unrendered, which is what makes the rule above right", () => {
+  const dates = CLIENT_RESULTS.map((r) => r.attested.match(/\b\d{1,2} \w+ \d{4}\b/)?.[0]).filter(Boolean);
+  assert.ok(dates.length, "no attestation carries a date - read the header of the rule above");
+
+  const rendered: string[] = [];
+  for (const { page, html } of sweptPages()) {
+    for (const { where, text } of surfacesOf(html)) {
+      for (const d of dates) {
+        if (text.includes(d!)) rendered.push(`${page} (${where}): ${d}`);
+      }
+    }
+  }
+
+  assert.deepEqual(
+    rendered,
+    [],
+    "an attestation date is now published beside the figures. That is a good thing and it " +
+      "makes the prohibition above the wrong rule - the claim it forbids has become true. " +
+      "Drop that rule and put the clause back on /case-studies:\n" +
+      rendered.map((s) => `  ${s}`).join("\n"),
+  );
+});
