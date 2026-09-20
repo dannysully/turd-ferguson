@@ -27,6 +27,18 @@ export default function RequestScanForm({ initialDomain = "" }: { initialDomain?
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  /**
+   * The honeypot, matching the one `ContactForm` has carried since `a22129b`.
+   * These are the two public forms on this site and they were guarded
+   * differently, which is the defect rather than the missing field.
+   *
+   * Controlled like every other field here, because this form posts React state
+   * rather than a FormData - so a bot that sets the input's value through the
+   * native setter and dispatches an event is caught, and one that never renders
+   * the page and posts straight to the action id is not. That second case is
+   * what nothing on this site bounds; it is the question in docs/blocked.md.
+   */
+  const [website, setWebsite] = useState("");
 
   const DOMAIN = /^(https?:\/\/)?([a-z0-9-]+\.)+[a-z]{2,}(\/.*)?$/i;
 
@@ -55,7 +67,7 @@ export default function RequestScanForm({ initialDomain = "" }: { initialDomain?
     setError("");
     setBusy(true);
     try {
-      const res = await requestScan({ domain, email, topic });
+      const res = await requestScan({ domain, email, topic, website });
       if (res.ok) setStep("done");
       else setError(res.message);
     } finally {
@@ -138,6 +150,25 @@ export default function RequestScanForm({ initialDomain = "" }: { initialDomain?
             required
           />
           {error && <p role="alert" style={{ fontSize: "0.8125rem", color: T.badFg, marginTop: "0.5rem" }}>{error}</p>}
+
+          <div
+            style={{ position: "absolute", left: "-9999px", width: "1px", height: "1px", overflow: "hidden" }}
+            aria-hidden="true"
+          >
+            <label htmlFor="rq-website">Website</label>
+            <input
+              id="rq-website"
+              name="website"
+              type="text"
+              tabIndex={-1}
+              autoComplete="off"
+              maxLength={WAITLIST_LIMITS.website}
+              value={website}
+              onChange={(e) => setWebsite(e.target.value)}
+              data-1p-ignore
+              data-lpignore="true"
+            />
+          </div>
 
           <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap", marginTop: "1rem" }}>
             <button type="submit" className="btn-primary" style={btn} disabled={busy}>

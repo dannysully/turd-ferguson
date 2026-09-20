@@ -47,8 +47,16 @@ export const CONTACT_LIMITS = { name: 120, email: 254, company: 200, message: 50
  * scan path already enforces in `isPlausibleDomain`. email is 254 for the same
  * RFC 5321 reason as above; it becomes the reply-to header on what we send
  * ourselves. topic is free text and matches `company`.
+ *
+ * website is the honeypot, and it is here because the species this file names
+ * had a fourth instance after all: the contact action has read a hidden
+ * `website` field since `a22129b` and the waitlist action read nothing, so the
+ * two public forms facing the same web were guarded differently. Bounded at the
+ * log for the reason CONTACT_LIMITS.website is - a filled one is written to a
+ * function log, and an unbounded attacker-controlled string is paid for by the
+ * megabyte whether or not anybody reads it.
  */
-export const WAITLIST_LIMITS = { domain: 253, topic: 200, email: 254 };
+export const WAITLIST_LIMITS = { domain: 253, topic: 200, email: 254, website: 200 };
 
 /**
  * The campaign benchmark form, which is the fourth table this file predicted.

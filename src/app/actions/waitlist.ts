@@ -44,6 +44,14 @@ import { isPlausibleDomain, normalizeDomain } from "@/lib/scan/domain";
  * What none of this was: a test failing. `contact.test.mts` sweeps the contact
  * action's fields for exactly this species and reads one file.
  * `email-header.test.mts` is the version of it that reads every sender.
+ *
+ * It also had no honeypot while the contact action did, which is the same
+ * two-copies defect one field along: one public form guarded, the other not,
+ * with nothing anywhere holding that they are the same kind of door. Both are
+ * now in `mail-doors.test.mts`, which derives its list by walking for
+ * `"use server"` rather than by naming these two - `spend-gates.test.mts`
+ * cannot see either of them, because it walks `src/app/api` for `route.ts` and
+ * a server action is neither.
  */
 export type WaitlistResult = { ok: true } | { ok: false; message: string };
 
@@ -53,6 +61,8 @@ export async function requestScan(input: {
   domain: string;
   email: string;
   topic: string;
+  /** The honeypot. Rendered, hidden, and never filled by a person. */
+  website?: string;
 }): Promise<WaitlistResult> {
   /**
    * Clamp before anything looks at the value, so no branch below - including a
@@ -63,6 +73,24 @@ export async function requestScan(input: {
   const domain = normalizeDomain(clamp(input.domain, LIMITS.domain));
   const email = clamp(input.email, LIMITS.email).trim();
   const topic = clamp(input.topic, LIMITS.topic).trim();
+  const website = clamp(input.website ?? "", LIMITS.website).trim();
+
+  /**
+   * The honeypot, answered before the field checks rather than after.
+   *
+   * Ordered that way on purpose: a bot that fills every field also fills the
+   * real ones, so a refusal for a bad domain would reach it first and tell it
+   * which field it got wrong. It gets a success instead, for the reason the
+   * contact action gives - an error names the field that gave them away.
+   *
+   * Logged, because a hidden field that silently eats a real request looks
+   * exactly like one that is working. Already clamped above; it is
+   * attacker-controlled by definition and it is going into a function log.
+   */
+  if (website) {
+    console.warn("[waitlist] honeypot filled, not sending", { email, website });
+    return { ok: true };
+  }
 
   if (!isPlausibleDomain(domain)) {
     return { ok: false, message: "Enter a domain, like client-domain.com" };

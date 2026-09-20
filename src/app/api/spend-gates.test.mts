@@ -4,8 +4,17 @@ import { join, relative } from "node:path";
 import { test } from "node:test";
 
 /**
- * Every door in this tree that can cause somebody to be billed, and what
+ * Every **route** in this tree that can cause somebody to be billed, and what
  * stands in front of each one.
+ *
+ * That word is load-bearing and it was not here originally. This file said
+ * "every door in this tree" and then walked `src/app/api` for `route.ts`,
+ * which is a claim wider than its own denominator - the defect it was written
+ * to catch, in itself. **Two `"use server"` actions bill Resend on an
+ * anonymous post and are neither under `src/app/api` nor named `route.ts`**, so
+ * this walk cannot see either of them however the lists below are edited.
+ * `src/app/mail-doors.test.mts` is that half, and it derives its own set by
+ * walking for `"use server"` rather than by naming the two.
  *
  * `ceilings.test.mts` now executes the ceilings themselves. That is one way
  * down a two-way street: it proves the guard decides correctly and says nothing
