@@ -1,3 +1,4 @@
+import { SCAN_LIMITS } from "@/config/contact";
 import {
   SCAN_UNLOCK_COLUMNS,
   UnlockNotStamped,
@@ -37,6 +38,38 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
   }
 
   const email = (body.email ?? "").trim().toLowerCase();
+
+  /**
+   * The bound, which lived only on the input until 20 September 2026.
+   *
+   * `SCAN_LIMITS.email` is 254 - the longest an address may be over SMTP - and
+   * `ScanFlow` has carried it as `maxLength` since the input census. Nothing on
+   * this side read it, so the bound stopped a visitor typing and stopped nothing
+   * at all about a post that never rendered the page. `input-bounds.test.mts`
+   * asserted the number under the heading "the bounds are the numbers the
+   * servers actually enforce", and for this one field that sentence was false:
+   * the routes it checks are a typed list of three and this is not on it.
+   *
+   * What was unbounded is not a log line. It is the `to:` header of a message we
+   * pay Resend to send, the `email` column of a `leads` row (`text`, so the
+   * database will take whatever arrives), an `accounts` row `resolveAccount`
+   * creates from the same string, and the `email` this route echoes back in its
+   * own response. Every other field on every other public form in this tree is
+   * bounded on both sides; this is the door where the address is actually
+   * traded for the product, and it was the one with no bound at all.
+   *
+   * Before the regex, not after, for the reason `contact/actions.ts` gives about
+   * its own copy of this check: the pattern is two unbounded runs either side of
+   * an `@` and will happily accept a megabyte of them. Refused rather than
+   * clamped - truncating an address silently mails somebody other than the
+   * person who typed it, and 254 is unreachable from the form.
+   */
+  if (email.length > SCAN_LIMITS.email) {
+    return Response.json(
+      { error: "bad_email", message: "That email address is longer than an address can be." },
+      { status: 400 },
+    );
+  }
   if (!EMAIL.test(email)) {
     return Response.json(
       { error: "bad_email", message: "That email does not look right." },
