@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 
-import { seqStep } from "./seq-stagger.ts";
+import { seqClimb, seqStep } from "./seq-stagger.ts";
 
 /**
  * The stylesheet, read as a stylesheet.
@@ -130,6 +130,40 @@ test("the delay is computed from the index rather than written out as rungs", ()
   assert.ok(
     step!.body.indexOf("animation-delay") > step!.body.indexOf("animation:"),
     "the animation shorthand would reset a delay declared before it",
+  );
+});
+
+test("the climb travels the places the numbers claim, and no more", () => {
+  // SerpPanel's own comment: the distance is (places moved x the height of one
+  // result), "so the motion cannot claim more movement than the numbers do".
+  // It was enforced by `p.from - p.to === 5 ? "seq-climb5" : "seq-climb4"`,
+  // which is right for the two panels on the board and wrong for everything
+  // else - a 2-place journey took the 4-place rung and travelled twice as far
+  // as the numbers support. Over-claiming is the direction that matters.
+  for (const [from, to, places] of [[10, 5, 5], [5, 1, 4], [3, 1, 2], [40, 1, 39], [2, 2, 0], [1, 6, 0]]) {
+    const { className, style } = seqClimb(from, to);
+    assert.ok(
+      DECLARED.has(className),
+      "seqClimb(" + from + ", " + to + ") gave ." + className + ", which no rule in globals.css matches",
+    );
+    assert.equal(
+      (style as Record<string, unknown>)["--ac-places"],
+      places,
+      from + " to " + to + " is " + places + " places and the travel must say so",
+    );
+  }
+});
+
+test("the climb is one keyframe reading the index, not a ladder of distances", () => {
+  const climb = ALL.find((r) => bareClasses(r.sel).includes("seq-climb"));
+  assert.ok(climb, "expected a .seq-climb rule in globals.css");
+  // The two-rung ladder is what over-claimed; nothing should reintroduce it.
+  const rungs = [...DECLARED].filter((c) => /^seq-climb\d/.test(c));
+  assert.deepEqual(rungs, [], "a fixed-distance climb rung is back: " + rungs.join(", "));
+  assert.match(
+    CSS,
+    /@keyframes\s+seqClimb\s*\{[^}]*calc\([^)]*--ac-places/,
+    "seqClimb must take its travel from --ac-places, or the places seqClimb sets go nowhere",
   );
 });
 

@@ -7,7 +7,7 @@ import { TIERS } from "@/config/pricing";
 import { CARD, MICRO, T } from "@/config/tokens";
 import { ENGINE_SPECS, isEngine } from "@/lib/scan/engines";
 
-import { seqStep } from "./seq-stagger";
+import { seqClimb, seqStep } from "./seq-stagger";
 
 /**
  * The waiting sequence, from HeroSequence.dc.html.
@@ -429,7 +429,6 @@ const LINK_BLUE = "#1a0dab";
 type SerpRow = { site: string; path: string; title: string; snippet?: string; you?: boolean };
 
 function SerpPanel(p: { keyword: string; count: string; from: number; to: number; rows: SerpRow[] }) {
-  const climb = p.from - p.to === 5 ? "seq-climb5" : "seq-climb4";
   return (
     <div className="seq-rise" style={{ ...CARD, marginTop: "8px", overflow: "hidden" }}>
       <div style={{ padding: "10px 16px", borderBottom: "1px solid " + T.hair }}>
@@ -440,18 +439,28 @@ function SerpPanel(p: { keyword: string; count: string; from: number; to: number
       <div style={{ padding: "9px 16px 13px" }}>
         <div style={{ fontSize: "11px", color: T.soft }}>{p.count}</div>
         <div style={{ marginTop: "7px", display: "flex", flexDirection: "column", gap: "3px" }}>
-          {p.rows.map((r, n) => (
+          {p.rows.map((r, n) => {
+            // One animation per row, never two. The row that moves takes its
+            // travel from the numbers printed beside it; the rest settle on a
+            // stagger. This row used to carry `seq-settle` and a `seq-in` rung
+            // together, and both rules set the `animation` shorthand at equal
+            // specificity, so `.seq-settle` took the property outright and the
+            // rung was dead markup that read perfectly well.
+            const motion = r.you
+              ? seqClimb(p.from, p.to)
+              : {
+                  className: "seq-settle",
+                  // The .5s base is `.seq-settle`'s own default, restated
+                  // because an inline animation-delay replaces it rather than
+                  // adding to it.
+                  style: { animationDelay: (0.5 + n * 0.06).toFixed(2) + "s" },
+                };
+            return (
             <div
               key={r.site + r.path}
-              className={r.you ? climb : "seq-settle"}
+              className={motion.className}
               style={{
-                // One animation, staggered by delay. This row used to carry
-                // `seq-settle` and a `seq-in` rung together; both rules set the
-                // `animation` shorthand at equal specificity, so `.seq-settle`
-                // took the property outright and the rung was dead markup. The
-                // .5s base is `.seq-settle`'s own default, restated because an
-                // inline animation-delay replaces it rather than adding to it.
-                animationDelay: r.you ? undefined : (0.5 + n * 0.06).toFixed(2) + "s",
+                ...motion.style,
                 background: r.you ? T.wash : T.surface,
                 border: "1px solid " + (r.you ? T.accent : T.hair),
                 borderRadius: "10px",
@@ -483,7 +492,8 @@ function SerpPanel(p: { keyword: string; count: string; from: number; to: number
                 <div style={{ fontSize: "11.5px", color: T.soft, lineHeight: 1.45, marginTop: "3px" }}>{r.snippet}</div>
               ) : null}
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
@@ -894,8 +904,15 @@ export default function HeroSequence({ headingRef, ...p }: {
       </div>
 
       {/* The rail. Taking it stops the autoplay: nothing is more annoying than
-          a story that moves on while you are reading the bit you chose. */}
-      <div style={{ display: "flex", gap: "6px" }}>
+          a story that moves on while you are reading the bit you chose.
+
+          The bar is 3px, which is the board's. The button is not: the target
+          was the bar, and a 3px-tall control fails WCAG 2.5.8 (24x24 minimum)
+          outright - on the only control this screen has, during the one minute
+          a prospect gives the product. The hit area is padded out to 25px and
+          the row pulled back by the same 11px, so the rail still sits 18px
+          under the card and nothing about it looks different. */}
+      <div style={{ display: "flex", gap: "6px", marginTop: "-11px", marginBottom: "-11px" }}>
         {ACTS.map((a, n) => (
           <button
             key={a.title}
@@ -907,15 +924,25 @@ export default function HeroSequence({ headingRef, ...p }: {
             aria-label={"Step " + (n + 1) + ": " + a.title}
             aria-current={n === act}
             style={{
-              height: "3px",
+              display: "block",
               flexGrow: 1,
               border: 0,
-              padding: 0,
-              borderRadius: "3px",
+              padding: "11px 0",
+              appearance: "none",
+              background: "transparent",
               cursor: "pointer",
-              background: n === act ? T.accent : T.line,
             }}
-          />
+          >
+            <span
+              aria-hidden="true"
+              style={{
+                display: "block",
+                height: "3px",
+                borderRadius: "3px",
+                background: n === act ? T.accent : T.line,
+              }}
+            />
+          </button>
         ))}
       </div>
     </div>

@@ -623,10 +623,15 @@ html[data-motion="on"] .ac-stamp.in-view {
 @keyframes seqIn    { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes seqGrow  { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @keyframes seqDash  { to { stroke-dashoffset: 0; } }
-/* The listing physically climbs the page. One keyframe per journey, because
-   10 to 5 and 5 to 1 are different distances - 48px is one result. */
-@keyframes seqClimb5 { from { transform: translateY(240px); opacity: .25; } to { transform: translateY(0); opacity: 1; } }
-@keyframes seqClimb4 { from { transform: translateY(192px); opacity: .25; } to { transform: translateY(0); opacity: 1; } }
+/* The listing physically climbs the page, and the distance is the places it
+   moved x 48px, one result. This was two keyframes picked by
+   `p.from - p.to === 5 ? seqClimb5 : seqClimb4` - correct for the two panels
+   on the board and silently wrong for any third, because everything that was
+   not a five-place journey took the four-place rung and travelled 192px
+   whatever the numbers said. `--ac-places` is set by seqClimb, so there is no
+   rung left to pick wrongly. Same defect as the stagger ladder in f559df3,
+   reached from the other side. */
+@keyframes seqClimb { from { transform: translateY(calc(var(--ac-places, 0) * 48px)); opacity: .25; } to { transform: translateY(0); opacity: 1; } }
 /* The rows that do not climb. This carries the fade as well as the drop
    because it has to: every non-climbing row in SerpPanel was given
    `seq-settle seq-in<n>`, and `animation` is a shorthand, so at equal
@@ -662,8 +667,7 @@ html[data-motion="on"] .ac-stamp.in-view {
 .seq-step { animation: seqIn .45s ease-out both; animation-delay: calc(var(--ac-i, 0) * 0.10s); }
 .seq-bar { transform-origin: left center; animation: seqGrow .8s cubic-bezier(.2,.7,.3,1) both; }
 .seq-flow { stroke-dasharray: 220; stroke-dashoffset: 220; animation: seqDash 1.2s ease-out .3s both; }
-.seq-climb5 { animation: seqClimb5 1.3s cubic-bezier(.22,.72,.24,1) .45s both; position: relative; z-index: 2; }
-.seq-climb4 { animation: seqClimb4 1.3s cubic-bezier(.22,.72,.24,1) .45s both; position: relative; z-index: 2; }
+.seq-climb { animation: seqClimb 1.3s cubic-bezier(.22,.72,.24,1) .45s both; position: relative; z-index: 2; }
 /* .5s is the default, and the one caller overrides animation-delay inline to
    stagger down the listing. It sits just after the .45s climb so the row that
    moves starts first. */
@@ -674,7 +678,7 @@ html[data-motion="on"] .ac-stamp.in-view {
    the rail is what moves between them. */
 @media (prefers-reduced-motion: reduce) {
   .seq-in, .seq-in2, .seq-in3, .seq-in4, .seq-in5, .seq-step,
-  .seq-bar, .seq-flow, .seq-climb5, .seq-climb4, .seq-settle, .seq-rise {
+  .seq-bar, .seq-flow, .seq-climb, .seq-settle, .seq-rise {
     animation: none;
     opacity: 1;
     transform: none;

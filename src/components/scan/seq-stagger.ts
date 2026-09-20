@@ -43,3 +43,36 @@ export function seqStep(n: number, style?: CSSProperties): { className: string; 
     style: { ...style, ["--ac-i" as string]: Math.max(Math.trunc(n), 0) } as CSSProperties,
   };
 }
+
+/**
+ * Class and travel for the listing row that climbs, from `from` to `to`.
+ *
+ * `SerpPanel` says in its own comment that the climb distance is
+ * (places moved x the height of one result), "so the motion cannot claim more
+ * movement than the numbers do". Nothing enforced that. It read
+ * `p.from - p.to === 5 ? "seq-climb5" : "seq-climb4"` against a two-rung
+ * ladder, which is right for the two panels on the board and silently wrong
+ * for any third: every journey that is not five places took the four-place
+ * rung and travelled 192px regardless. A 2-place climb would have shown twice
+ * the movement the numbers support, and over-claiming is the one direction
+ * that comment cares about.
+ *
+ * This is `f559df3` reached from the other side. That one was a stagger ladder
+ * running out of rungs and flattening its tail; this is a distance ladder with
+ * two rungs and no tail at all. Both read perfectly well in the markup, and
+ * both are on the one board whose classes exist only during a live scan - so
+ * the cascade and this module are the only witnesses there are.
+ *
+ * The travel is now computed: `.seq-climb` reads `--ac-places` and multiplies
+ * by the one-result height, so there is no rung to pick wrongly. For the two
+ * panels that exist today - 10 to 5 and 5 to 1 - this renders frame for frame
+ * as the two keyframes did.
+ */
+export function seqClimb(from: number, to: number, style?: CSSProperties): { className: string; style: CSSProperties } {
+  // A row that did not move travels nothing rather than falling back to a rung.
+  const places = Math.max(Math.trunc(from) - Math.trunc(to), 0);
+  return {
+    className: "seq-climb",
+    style: { ...style, ["--ac-places" as string]: places } as CSSProperties,
+  };
+}
