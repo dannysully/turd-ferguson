@@ -117,7 +117,14 @@ export default function Results() {
           &ldquo;The goal is not to get a link. The goal is to be inside the source that the buyer, Google, and AI all
           agree to trust.&rdquo;
         </p>
-        <p style={{ margin: "12px 0 0", fontSize: "13px", color: T.soft }}>- alwayscited methodology</p>
+        {/* faint, not soft: this is the one dark ground on the page. The token
+            file states the rule and gives the numbers - faint is 7.44 on
+            #0f1115 and soft is 4.04, below AA - and the two other dark cards on
+            the site (Packages' white-label block, TierJourney's step 4) already
+            follow it. 37512ae swept 46 light-ground sites from faint to soft
+            and never looked at the dark grounds, which is how this one kept a
+            token that is correct everywhere else it appears. */}
+        <p style={{ margin: "12px 0 0", fontSize: "13px", color: T.faint }}>- alwayscited methodology</p>
       </div>
     </section>
   );

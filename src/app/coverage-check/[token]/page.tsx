@@ -6,6 +6,7 @@ import ReadingPoll from "@/components/coverage/ReadingPoll";
 import RerunButton from "@/components/coverage/RerunButton";
 import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
 import { readCampaign, type ReadingAnswer } from "@/lib/coverage/reading";
+import { canRerun, readingState, shouldPoll } from "@/lib/coverage/reading-state";
 import { count, isAre } from "@/lib/plural";
 import { ENGINE_SPECS } from "@/lib/scan/engines";
 
@@ -92,9 +93,15 @@ export default async function CampaignReadingPage({ params }: { params: Promise<
   if (!data) notFound();
 
   const { campaign, reading, questions, sources, coverage, named, history } = data;
-  const running = reading ? reading.status === "queued" || reading.status === "running" : true;
-  const failed = reading?.status === "failed";
-  const complete = reading?.status === "complete";
+  /**
+   * Exactly one of four states - see `reading-state.ts` for what used to be
+   * wrong with three and a fall-through.
+   */
+  const state = readingState(reading?.status ?? null);
+  const running = state === "running";
+  const failed = state === "failed";
+  const complete = state === "complete";
+  const stalled = state === "stalled";
 
   const engineCount = reading?.engines.length ?? 0;
   const placedSources = sources.filter((s) => s.placed);
@@ -129,7 +136,7 @@ export default async function CampaignReadingPage({ params }: { params: Promise<
         gap: "26px",
       }}
     >
-      {running && <ReadingPoll />}
+      {shouldPoll(state) && <ReadingPoll />}
 
       <div className="board-head" style={{ ...GRID12, alignItems: "start" }}>
         <div style={{ gridColumn: "span 8" }}>
@@ -166,7 +173,15 @@ export default async function CampaignReadingPage({ params }: { params: Promise<
             </>
           ) : (
             <p style={{ margin: "8px 0 0", fontSize: "13px", lineHeight: 1.55, color: T.soft }}>
-              The reading is not in yet. This page fills in on its own.
+              {/* "Fills in on its own" is only true while something is actually
+                  running. It was shown in every non-complete state, including
+                  failed and stalled - both of which mount no poll, so the page
+                  sat there promising a refresh that was never coming. */}
+              {running
+                ? "The reading is not in yet. This page fills in on its own."
+                : failed
+                  ? "That reading stopped before it finished, so there is nothing measured to show."
+                  : "This reading never started, so there is nothing to show yet."}
             </p>
           )}
         </div>
@@ -192,6 +207,17 @@ export default async function CampaignReadingPage({ params }: { params: Promise<
             {reading?.error ? reading.error : "We could not complete it."} Nothing was measured, so there is nothing
             here to read against. The button below takes a fresh reading of this same campaign - your uploaded
             coverage list is still on it, so there is nothing to re-enter.
+          </p>
+        </div>
+      )}
+
+      {stalled && (
+        <div style={{ ...CARD, padding: "20px 24px", background: T.badBg, borderColor: T.badLine }}>
+          <div style={{ fontSize: "14px", fontWeight: 600, color: T.badFg }}>That reading never got started</div>
+          <p style={{ margin: "6px 0 0", fontSize: "13.5px", lineHeight: 1.6, color: T.soft }}>
+            Something went wrong while we were setting it up, so no questions were ever asked. Nothing was spent and
+            nothing was measured. The button below takes a fresh reading of this same campaign - your uploaded coverage
+            list is still on it, so there is nothing to re-enter.
           </p>
         </div>
       )}
@@ -324,16 +350,26 @@ export default async function CampaignReadingPage({ params }: { params: Promise<
         </section>
       )}
 
-      {(complete || failed) && (
+      {/* Every state but a pass in flight, which is also exactly what the rerun
+          route accepts. `stalled` is the point of the change: it is the only
+          state where the re-run is the *only* thing that can move the page on,
+          and it was the one state the button was hidden in. */}
+      {canRerun(state) && (
         <section>
           <div className="board-head" style={{ ...GRID12, marginBottom: "14px" }}>
             <h2 style={{ ...H2, gridColumn: "span 4" }}>
-              {history.length > 1 ? "Every reading of this campaign" : "After the campaign"}
+              {stalled && history.length <= 1
+                ? "Take the first reading"
+                : history.length > 1
+                  ? "Every reading of this campaign"
+                  : "After the campaign"}
             </h2>
             <p style={{ gridColumn: "span 8", margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
-              {history.length > 1
-                ? "Each one is kept as it was taken. A re-run writes a new reading and never edits an old one, which is what makes the first one worth having."
-                : "Run it again once the coverage has had time to land. The same questions, word for word, against the same uploaded list - so what changed is the answer rather than the question."}
+              {stalled && history.length <= 1
+                ? "Nothing has been measured against this campaign yet. This asks the five questions for the first time and gives you the starting line the next reading is compared to."
+                : history.length > 1
+                  ? "Each one is kept as it was taken. A re-run writes a new reading and never edits an old one, which is what makes the first one worth having."
+                  : "Run it again once the coverage has had time to land. The same questions, word for word, against the same uploaded list - so what changed is the answer rather than the question."}
             </p>
           </div>
 
