@@ -62,12 +62,26 @@ export default function Post() {
         changes: schema, content structure, FAQ pages. These changes matter, but they&apos;re a
         small part of the actual problem.
       </P>
+      {/* This paragraph used to read "LLMs don't cite vendor websites - they
+          cite editorial publications about vendor websites". That is a flat
+          statement about what an engine does, with no source and no date, and
+          our own code contradicts it: `SourceKind` in src/lib/scan/sources.ts
+          is "own" | "competitor" | "review" | "placement" | "other", so the
+          scan reports the client's own domain, and a competitor's, as source
+          categories. /alwayscited sells schema work on the client's pages "so
+          a model can parse what your client's page says before it can quote
+          it", which the absolute version of this sentence made worthless. The
+          argument does not need it - "on-site work alone will not put you in
+          the listicle" is the actual point and is not a claim about the
+          engine's internals. */}
       <P>
         The real cause of zero AI visibility is editorial: your brand isn&apos;t in the listicles
-        AI is citing. No amount of on-site optimisation will solve that, because LLMs don&apos;t
-        cite vendor websites - they cite editorial publications about vendor websites. An AEO
-        audit that focuses exclusively on on-site recommendations has correctly diagnosed the
-        symptom and completely missed the cause.
+        AI is citing. On-site optimisation alone will not put it there. Vendor pages are not
+        shut out of an answer - our own scan reports a client&apos;s own domain as a source
+        category in its own right - but a page nobody else writes about leaves an answer
+        nothing to draw on except the vendor&apos;s account of itself. An AEO audit that focuses
+        exclusively on on-site recommendations has correctly diagnosed the symptom and left the
+        cause alone.
       </P>
 
       <H2 id="the-audit-to-action-gap">The audit-to-action gap.</H2>
@@ -78,10 +92,14 @@ export default function Post() {
         the placement work in-house. Most don&apos;t have the publisher relationships to execute.
         The audit becomes a shelf document. The visibility doesn&apos;t change.
       </P>
+      {/* "the outcome we see most often" was a frequency about our own intake
+          with no denominator behind it, and it characterised other agencies'
+          clients as well as ours. What we can stand behind is that it has
+          happened, not how often. */}
       <P>
-        This isn&apos;t hypothetical - it&apos;s the outcome we see most often when clients come to{" "}
-        <TierName tier="cited" /> after buying an AEO audit from another agency. They have a
-        detailed document. They don&apos;t have any citations.
+        We have had this walk through the door: a client arrives at <TierName tier="cited" />{" "}
+        holding a detailed audit bought from another agency, and no citations to go with it.
+        How common that is across the market is not something we can count from here.
       </P>
 
       <H2 id="why-this-exists">Why this exists.</H2>
