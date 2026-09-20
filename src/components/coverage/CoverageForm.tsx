@@ -5,7 +5,8 @@ import { useState } from "react";
 
 import Turnstile from "@/components/scan/Turnstile";
 import { MICRO, T } from "@/config/tokens";
-import { MAX_COVERAGE_BYTES } from "@/lib/coverage/csv";
+import { MAX_COVERAGE_BYTES, MAX_COVERAGE_ROWS, parseCoverageCsv } from "@/lib/coverage/csv";
+import { count } from "@/lib/plural";
 
 /**
  * The campaign form, which now runs.
@@ -46,15 +47,70 @@ export default function CoverageForm() {
   const [market, setMarket] = useState<"UK" | "US">("UK");
   const [csv, setCsv] = useState("");
   const [fileNote, setFileNote] = useState("");
+  /**
+   * True when the chosen file yielded no links at all. Kept apart from
+   * `fileNote` because it is the one case that needs the reader to act, so it
+   * is coloured and does not read as a confirmation.
+   */
+  const [fileUnread, setFileUnread] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+
+  /**
+   * What the file turned out to hold, said here rather than after the reading
+   * starts.
+   *
+   * `parseCoverageCsv` is a pure function over a string with no `server-only`,
+   * and this component already imports `MAX_COVERAGE_BYTES` from the same
+   * module - so the parser is in this bundle either way and running it costs
+   * nothing new.
+   *
+   * It is run here because this is the only moment the reader can still do
+   * anything about the answer. The route computes `stored`, `skipped` and
+   * `truncated` and returns them with a comment saying the form needs to show
+   * what was read "now, not after the pass finishes" - and the form then
+   * navigated to the reading without looking at them, so nothing ever did. The
+   * case csv.ts names is a coverage export whose link column holds headlines:
+   * it parses to nothing, and an upload that stored no placements is
+   * indistinguishable on the reading page from a campaign that uploaded none.
+   *
+   * The server parses again and its answer is still the one that counts. This
+   * is a preview of it, from the same function, so the two cannot disagree.
+   */
+  function noteFor(name: string, text: string): { note: string; unread: boolean } {
+    const parsed = parseCoverageCsv(text);
+    const found = parsed.rows.length;
+
+    if (found === 0) {
+      return {
+        note: "No links found in that file. We look for a web address in any column - check it holds the URLs and not just the headlines.",
+        unread: true,
+      };
+    }
+    if (parsed.truncated) {
+      return {
+        note: `${name} - first ${count(MAX_COVERAGE_ROWS, "link")} read, and the rest of the file was not.`,
+        unread: false,
+      };
+    }
+    // One skipped line is almost always the header, which is not worth a
+    // sentence. More than one means a shape we did not read, and that is.
+    if (parsed.skipped > 1) {
+      return {
+        note: `${name} - ${count(found, "link")} found, and ${count(parsed.skipped, "line")} with none.`,
+        unread: false,
+      };
+    }
+    return { note: `${name} - ${count(found, "link")} found, matched against every source the engines cite.`, unread: false };
+  }
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) {
       setCsv("");
       setFileNote("");
+      setFileUnread(false);
       return;
     }
     // Bounded here as well as on the server. The server's limit is the one that
@@ -63,13 +119,16 @@ export default function CoverageForm() {
     if (file.size > MAX_COVERAGE_BYTES) {
       setCsv("");
       setFileNote("");
+      setFileUnread(false);
       setError("That file is too large. A list of URLs, not the articles themselves.");
       return;
     }
     const text = await file.text();
     setCsv(text);
     setError("");
-    setFileNote(file.name);
+    const { note, unread } = noteFor(file.name, text);
+    setFileNote(note);
+    setFileUnread(unread);
   }
 
   async function onSubmit(e: React.FormEvent) {
@@ -180,10 +239,15 @@ export default function CoverageForm() {
             Coverage <span style={{ fontWeight: 400, color: T.soft }}>optional</span>
           </label>
           <input id="cc-coverage" type="file" accept=".csv,.txt,text/csv,text/plain" onChange={onFile} style={{ ...field, padding: "9px 11px" }} />
-          <p style={{ margin: "6px 0 0", fontSize: "12.5px", color: T.soft, lineHeight: 1.5 }}>
-            {fileNote
-              ? `${fileNote} - every source the engines cite is matched against it.`
-              : "A CSV of the URLs you placed. Any column will do; we find the links."}
+          <p
+            style={{
+              margin: "6px 0 0",
+              fontSize: "12.5px",
+              color: fileUnread ? T.badFg : T.soft,
+              lineHeight: 1.5,
+            }}
+          >
+            {fileNote || "A CSV of the URLs you placed. Any column will do; we find the links."}
           </p>
         </div>
       </div>

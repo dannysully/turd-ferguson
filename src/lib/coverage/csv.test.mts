@@ -96,6 +96,48 @@ test("a bare domain in a URL column is still a placement", () => {
   assert.deepEqual(out.rows, [{ url: "trade-title.com", source_domain: "trade-title.com" }]);
 });
 
+/**
+ * The "Publication, Headline, URL" export, which is what most coverage trackers
+ * hand you. The publication cell is a bare domain and it sits *before* the URL
+ * column, so a first-match rule returns the publication and never reads the
+ * link. Both halves are asserted because they fail together and are two
+ * different findings on the page.
+ */
+test("a publication column does not beat the URL column beside it", () => {
+  const out = parseCoverageCsv(
+    ["Publication,Headline,URL", 'trade-title.com,"Retailer X opens in Leeds",https://trade-title.com/leeds'].join("\n"),
+  );
+  assert.deepEqual(out.rows, [{ url: "https://trade-title.com/leeds", source_domain: "trade-title.com" }]);
+});
+
+test("three placements on one title stay three when a publication column names it", () => {
+  // Deduplication is on the url, so a publication cell winning over the link
+  // collapsed every placement on a title into one row - and `coverageStored`
+  // reports that count straight back to whoever uploaded the file.
+  const out = parseCoverageCsv(
+    [
+      "Publication,Headline,URL",
+      "trade-title.com,Retailer X opens in Leeds,https://trade-title.com/leeds",
+      "trade-title.com,Retailer X names new CFO,https://trade-title.com/cfo",
+      "trade-title.com,Retailer X Q3 results,https://trade-title.com/q3",
+    ].join("\n"),
+  );
+  assert.equal(out.rows.length, 3);
+  assert.deepEqual(
+    out.rows.map((r) => r.url),
+    ["https://trade-title.com/leeds", "https://trade-title.com/cfo", "https://trade-title.com/q3"],
+  );
+  // Every one still files under the domain a citation would be filed under.
+  assert.deepEqual(new Set(out.rows.map((r) => r.source_domain)), new Set(["trade-title.com"]));
+});
+
+test("a path with no scheme still outranks a bare domain in the same row", () => {
+  // The fallback must be ranked on "is this located", not on "does it have a
+  // scheme" - plenty of exports carry host/path with the scheme stripped.
+  const out = parseCoverageCsv("trade-title.com,Retailer X opens,trade-title.com/leeds");
+  assert.deepEqual(out.rows, [{ url: "trade-title.com/leeds", source_domain: "trade-title.com" }]);
+});
+
 test("carriage returns from a Windows export do not end up in the domain", () => {
   const out = parseCoverageCsv("https://trade-title.com/a\r\nhttps://national.co.uk/b\r\n");
   assert.deepEqual(

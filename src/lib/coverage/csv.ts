@@ -111,25 +111,52 @@ function splitRow(line: string): string[] {
  *
  * Every field is tried rather than a column being chosen by its header,
  * because the files this takes are exports from half a dozen tools and a
- * coverage list pasted out of an email is not a CSV at all. The first field
- * that normalises to a plausible domain wins, which handles "Title, URL, Date"
- * and "URL" and a bare list of links with one rule.
+ * coverage list pasted out of an email is not a CSV at all. That handles
+ * "Title, URL, Date" and "URL" and a bare list of links with one rule.
  *
- * A field is only considered when it looks like a link: it carries a scheme, or
- * a slash, or it is a bare domain. Without that test a row's "Publication" cell
- * reading "bbc.co.uk" would be taken as the placed page, which is the right
- * domain for the wrong reason and stores a url nobody placed.
+ * ## A located link beats a bare domain, wherever each one sits in the row
+ *
+ * This used to return the *first* field that normalised to a plausible domain,
+ * and a "Publication" cell reading "retailweek.com" is one - so on the ordinary
+ * "Publication, Headline, URL" export the publication name won and the URL
+ * column was never reached. The comment here claimed that case was handled; it
+ * was not, because a bare domain is deliberately accepted too and nothing
+ * ranked the two.
+ *
+ * The cost was not the wrong url alone. Rows are deduplicated on the url, so
+ * three placements on one trade title all collapsed to the single row
+ * `retailweek.com` - and `coverageStored` is what the upload route reports back,
+ * so a PR team who uploaded three placements was told we had stored one. That is
+ * a wrong number about their own campaign, from the most ordinary file shape
+ * there is.
+ *
+ * So a field carrying a scheme or a path is taken at once, and a bare domain is
+ * only remembered as a fallback for the row - which keeps "a bare domain in a
+ * URL column is still a placement" true for the exports that have no full link
+ * in them at all. Where a row is nothing but bare domains the dedupe still
+ * collapses repeats, and it should: there is no url there to tell two
+ * placements apart.
  */
 function urlIn(fields: string[]): string | null {
+  let bareDomain: string | null = null;
+
   for (const raw of fields) {
     const value = raw.trim();
     if (!value || value.length > 2000) continue;
-    const looksLikeLink = /^[a-z][a-z0-9+.-]*:\/\//i.test(value) || value.includes("/") || value.includes(".");
-    if (!looksLikeLink) continue;
     if (/\s/.test(value)) continue;
-    if (isPlausibleDomain(normalizeDomain(value))) return value;
+
+    const hasScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(value);
+    const located = hasScheme || value.includes("/");
+    // A field is only considered when it looks like a link: it carries a
+    // scheme, or a path, or it is a bare domain.
+    if (!located && !value.includes(".")) continue;
+    if (!isPlausibleDomain(normalizeDomain(value))) continue;
+
+    if (located) return value;
+    bareDomain ??= value;
   }
-  return null;
+
+  return bareDomain;
 }
 
 /**

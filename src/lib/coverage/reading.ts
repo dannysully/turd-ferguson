@@ -94,7 +94,13 @@ export type CampaignReading = {
   /** Cited sources, most-cited first. */
   sources: ReadingSource[];
   coverage: {
-    /** Placements uploaded and dated on or before this reading. */
+    /**
+     * Distinct placed *domains* dated on or before this reading - not the
+     * placement count, which is larger whenever a campaign put two pieces on
+     * one title. The page says "domain" out loud for that reason; the upload
+     * route's `stored` is the row count and the two are different numbers on
+     * purpose.
+     */
     uploaded: number;
     /** Distinct placed domains at least one engine cited. */
     cited: number;
@@ -262,13 +268,29 @@ export async function readCampaign(token: string): Promise<CampaignReading | nul
       return { idx: q.idx, kind: q.kind, question: q.question, answers };
     });
 
+  /**
+   * Counted off `base.questions`, which is the grid the page itself renders.
+   *
+   * The denominator is what was asked, not what came back: questions times the
+   * engines this reading froze. An engine that answered nothing has to stay in
+   * the denominator or a reading where half the engines failed would report a
+   * better score than one where they all answered.
+   *
+   * The numerator used to be `answerRows.filter(a => a.brand_named).length` -
+   * every stored row, unfiltered - while the denominator was built from
+   * `engines`, which is `.filter(isEngine)`. Two counts of the same rows under
+   * two different rules, which is the hazard AGENTS.md names for the brand
+   * extractor and the source classifier. `ENGINES` and the `scan_engine` enum
+   * agree today, so nothing is currently miscounted; the day a migration adds
+   * an engine value before the union catches up, the denominator would shrink
+   * and the numerator would not, and the headline would read "named in 24 of
+   * 20". Reading both off the rendered grid makes them agree by construction
+   * rather than by two filters somebody could edit one half of.
+   */
+  const asked = base.questions.flatMap((q) => q.answers);
   base.named = {
-    count: answerRows.filter((a) => a.brand_named).length,
-    // The denominator is what was asked, not what came back: questions times
-    // the engines this reading froze. An engine that answered nothing has to
-    // stay in the denominator or a reading where half the engines failed would
-    // report a better score than one where they all answered.
-    of: questionRows.length * engines.length,
+    count: asked.filter((a) => a.brandNamed).length,
+    of: asked.length,
   };
 
   const counts = countCitedDomains(citationRows);
