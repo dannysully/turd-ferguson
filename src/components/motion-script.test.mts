@@ -340,6 +340,63 @@ function acRowGroups(html: string): number[] {
   return sizes.filter((n) => n > 0);
 }
 
+/**
+ * Every `.ac-row` that has an open `.ac-row` above it.
+ *
+ * A row inside a row takes the ancestor's `translateY(8px)` and its own, on
+ * two different delays, and the two together read as mush rather than as a
+ * beat. It is the one thing the coverage work keeps having to remember not to
+ * do - "leaf content, not the wrapper" - and until now nothing checked it, so
+ * the rule lived in a commit message and in whoever had read it last.
+ *
+ * Same walker shape as `acRowGroups`: unwind to the matching open tag on a
+ * close, skip raw-text elements so the inlined script is not parsed as markup.
+ */
+function nestedRows(html: string): string[] {
+  const stack: string[] = [];
+  const rowDepths: number[] = [];
+  const hits: string[] = [];
+  const tag = /<(\/?)([a-zA-Z][a-zA-Z0-9-]*)((?:"[^"]*"|'[^']*'|[^>"'])*?)(\/?)>/g;
+
+  let match: RegExpExecArray | null;
+  while ((match = tag.exec(html)) !== null) {
+    const [, closing, rawName, attrs, selfClosing] = match;
+    const name = rawName.toLowerCase();
+
+    if (closing) {
+      const at = stack.lastIndexOf(name);
+      if (at >= 0) {
+        stack.length = at;
+        while (rowDepths.length && rowDepths[rowDepths.length - 1] > stack.length) rowDepths.pop();
+      }
+      continue;
+    }
+
+    const cls = /\sclass\s*=\s*("([^"]*)"|'([^']*)')/i.exec(attrs);
+    const names = (cls ? (cls[2] ?? cls[3] ?? "") : "").split(/\s+/);
+    const isRow = names.includes("ac-row");
+
+    if (VOID_ELEMENTS.has(name) || selfClosing) {
+      // A void element cannot contain anything, but it is still a nested row
+      // if one is already open above it.
+      if (isRow && rowDepths.length) hits.push(`<${name} class="${cls?.[2] ?? cls?.[3] ?? ""}">`);
+      continue;
+    }
+    if (name === "script" || name === "style") {
+      const end = html.indexOf(`</${name}`, tag.lastIndex);
+      if (end !== -1) tag.lastIndex = end;
+      continue;
+    }
+
+    stack.push(name);
+    if (isRow) {
+      if (rowDepths.length) hits.push(`<${name} class="${cls?.[2] ?? cls?.[3] ?? ""}">`);
+      rowDepths.push(stack.length);
+    }
+  }
+  return hits;
+}
+
 function prerenderedPages(): { page: string; html: string }[] {
   const out: { page: string; html: string }[] = [];
   const walk = (dir: string) => {
@@ -389,5 +446,47 @@ test("no shipped page has an .ac-row group long enough to flatten its tail", (t)
     `${biggest.page} has an .ac-row group of ${biggest.rows}. Past ${limit} the cap at ${cap} ` +
       `gives the tail one shared beat, which reads as correct in the markup and arrives wrong. ` +
       `Either split the group or give the stagger a budget it divides across the rows.`,
+  );
+});
+
+test("the nesting probe fires on a row inside a row, and only then", () => {
+  // Proved before it is trusted. A sweep that passes because it cannot see
+  // anything is the failure this repo has already found twice in its own
+  // tripwires, so the narrowing is asserted rather than assumed.
+  assert.equal(nestedRows('<div class="ac-row"><p class="ac-row">x</p></div>').length, 1, "missed a nested row");
+  assert.equal(
+    nestedRows('<div class="ac-row"><span><em class="ac-row">x</em></span></div>').length,
+    1,
+    "missed a nested row two levels down",
+  );
+  assert.equal(nestedRows('<div class="ac-row">a</div><div class="ac-row">b</div>').length, 0, "siblings are not nested");
+  assert.equal(
+    nestedRows('<div class="ac-row"><p>x</p></div><div class="ac-row">y</div>').length,
+    0,
+    "a row after a closed row is not nested - the depth must unwind on the close tag",
+  );
+  assert.equal(
+    nestedRows('<div class="ac-rows"><p class="ac-row">x</p></div>').length,
+    0,
+    "ac-rows is a different class and must not open a frame",
+  );
+});
+
+test("no .ac-row on any shipped page sits inside another", (t) => {
+  if (!existsSync(PRERENDER)) {
+    t.skip("no prerendered build to read - run `npm run build` first");
+    return;
+  }
+
+  const pages = prerenderedPages();
+  const offenders = pages.flatMap(({ page, html }) => nestedRows(html).map((el) => `${page}  ${el}`));
+
+  t.diagnostic(`${pages.length} pages checked for rows inside rows; ${offenders.length} found`);
+
+  assert.deepEqual(
+    offenders,
+    [],
+    `A row inside a row takes both transforms on two delays and reads as mush rather than as a beat. ` +
+      `Put the class on the leaf content and take it off the wrapper around it:\n${offenders.join("\n")}`,
   );
 });

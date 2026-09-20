@@ -58,12 +58,14 @@ export default function WhiteLabelPage() {
   return (
     <main style={{ ...SHELL, paddingTop: "44px", paddingBottom: "44px", display: "flex", flexDirection: "column", gap: "30px" }}>
       <div className="board-head" style={{ ...GRID12, alignItems: "start" }}>
+        {/* The beat, from globals.css. Both table heads stay out of it, so a
+            group is the content rather than the chrome above it. */}
         <div style={{ gridColumn: "span 7" }}>
-          <div style={MICRO}>White label</div>
-          <h1 style={{ margin: "10px 0 0", fontSize: "36px", fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.18, color: T.ink }}>
+          <div className="ac-row" style={MICRO}>White label</div>
+          <h1 className="ac-row" style={{ margin: "10px 0 0", fontSize: "36px", fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.18, color: T.ink }}>
             Your client never finds out we exist.
           </h1>
-          <p style={{ margin: "14px 0 0", fontSize: "15px", lineHeight: 1.6, color: T.soft, maxWidth: "62ch" }}>
+          <p className="ac-row" style={{ margin: "14px 0 0", fontSize: "15px", lineHeight: 1.6, color: T.soft, maxWidth: "62ch" }}>
             Everything a client opens carries your name. Everything we send carries theirs. Here is exactly where the
             line sits, so you can check it against what you have promised.
           </p>
@@ -72,8 +74,8 @@ export default function WhiteLabelPage() {
 
       <section>
         <div className="board-head" style={{ ...GRID12, marginBottom: "16px" }}>
-          <h2 style={{ ...H2, gridColumn: "span 4" }}>Who sees what</h2>
-          <p style={{ gridColumn: "span 8", margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
+          <h2 className="ac-row" style={{ ...H2, gridColumn: "span 4" }}>Who sees what</h2>
+          <p className="ac-row" style={{ gridColumn: "span 8", margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
             The honest version, including the one place our name can appear if you do nothing about it.
           </p>
         </div>
@@ -85,7 +87,7 @@ export default function WhiteLabelPage() {
             <div style={MICRO}>Notes</div>
           </div>
           {ROWS.map((r) => (
-            <div key={r.surface} className="wl-row" style={{ padding: "13px 26px", borderBottom: `1px solid ${T.hair}`, alignItems: "baseline" }}>
+            <div key={r.surface} className="wl-row ac-row" style={{ padding: "13px 26px", borderBottom: `1px solid ${T.hair}`, alignItems: "baseline" }}>
               <div style={{ fontSize: "14px", fontWeight: 500, color: T.ink }}>{r.surface}</div>
               <div style={{ fontSize: "14px", color: T.ink }}>{r.brand}</div>
               <div style={{ fontSize: "13.5px", lineHeight: 1.55, color: T.soft }}>{r.note}</div>
@@ -96,15 +98,15 @@ export default function WhiteLabelPage() {
 
       <section>
         <div className="board-head" style={{ ...GRID12, marginBottom: "16px" }}>
-          <h2 style={{ ...H2, gridColumn: "span 4" }}>How the account runs</h2>
-          <p style={{ gridColumn: "span 8", margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
+          <h2 className="ac-row" style={{ ...H2, gridColumn: "span 4" }}>How the account runs</h2>
+          <p className="ac-row" style={{ gridColumn: "span 8", margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
             Commercial terms, in the same place as the branding ones.
           </p>
         </div>
 
         <div className="wl-terms" style={{ ...CARD, overflow: "hidden" }}>
           {TERMS.map((t, i) => (
-            <div key={t.label} className="wl-term" style={{ padding: "22px 26px", borderLeft: i ? `1px solid ${T.line}` : undefined }}>
+            <div key={t.label} className="wl-term ac-row" style={{ padding: "22px 26px", borderLeft: i ? `1px solid ${T.line}` : undefined }}>
               <div style={{ fontSize: "14px", color: T.soft }}>{t.label}</div>
               <div style={{ fontSize: "27px", fontWeight: 700, letterSpacing: "-0.035em", lineHeight: 1.15, marginTop: "2px", color: T.ink }}>
                 {t.value}
@@ -115,7 +117,7 @@ export default function WhiteLabelPage() {
         </div>
       </section>
 
-      <p style={{ margin: 0, fontSize: "13.5px", color: T.soft, lineHeight: 1.65 }}>
+      <p className="ac-row" style={{ margin: 0, fontSize: "13.5px", color: T.soft, lineHeight: 1.65 }}>
         <Link href="/#packages" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
           See what it costs
         </Link>{" "}

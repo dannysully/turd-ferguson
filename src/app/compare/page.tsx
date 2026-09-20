@@ -54,18 +54,24 @@ export default function ComparePage() {
   return (
     <main style={{ ...SHELL, paddingTop: "44px", paddingBottom: "44px", display: "flex", flexDirection: "column", gap: "28px" }}>
       <div className="board-head" style={{ ...GRID12, alignItems: "start" }}>
+        {/* The beat, from globals.css. The table head is deliberately not a
+            row: eight features plus a header is nine in one group, which is
+            the stagger cap exactly, and the cap is a ladder with a ceiling -
+            the defect species this site keeps finding. Leaving the head out
+            animates the content and keeps a row of headroom for a ninth
+            feature. */}
         <div style={{ gridColumn: "span 7" }}>
-          <div style={MICRO}>Comparison</div>
-          <h1 style={{ margin: "10px 0 0", fontSize: "36px", fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.18, color: T.ink }}>
+          <div className="ac-row" style={MICRO}>Comparison</div>
+          <h1 className="ac-row" style={{ margin: "10px 0 0", fontSize: "36px", fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.18, color: T.ink }}>
             AI visibility tools, and what each one leaves you to do yourself.
           </h1>
-          <p style={{ margin: "14px 0 0", fontSize: "15px", lineHeight: 1.6, color: T.soft, maxWidth: "62ch" }}>
+          <p className="ac-row" style={{ margin: "14px 0 0", fontSize: "15px", lineHeight: 1.6, color: T.soft, maxWidth: "62ch" }}>
             Most of these are good at what they do. The question is not which dashboard is best - it is what happens
             after it tells you the answer.
           </p>
         </div>
 
-        <div style={{ ...CARD, gridColumn: "span 5", padding: "22px" }}>
+        <div className="ac-row" style={{ ...CARD, gridColumn: "span 5", padding: "22px" }}>
           <div style={MICRO}>Why there are no other columns here yet</div>
           <p style={{ margin: "8px 0 0", fontSize: "13.5px", lineHeight: 1.6, color: T.soft }}>
             A row about somebody else&apos;s product is only worth reading if it was taken from their own pricing and
@@ -89,7 +95,7 @@ export default function ComparePage() {
           ))}
         </div>
         {ROWS.map((r) => (
-          <div key={r.feature} className="cmp-row" style={{ padding: "12px 26px", borderBottom: `1px solid ${T.hair}`, alignItems: "baseline" }}>
+          <div key={r.feature} className="cmp-row ac-row" style={{ padding: "12px 26px", borderBottom: `1px solid ${T.hair}`, alignItems: "baseline" }}>
             <div style={{ fontSize: "14px", fontWeight: 500, color: T.ink }}>{r.feature}</div>
             {COLUMNS.map((c) => (
               <div key={c.key} style={{ fontSize: "13.5px", color: T.ink, fontWeight: c.emphasis ? 600 : 400 }}>
@@ -101,14 +107,14 @@ export default function ComparePage() {
       </div>
 
       <div className="two-up">
-        <div style={{ ...CARD, padding: "24px" }}>
+        <div className="ac-row" style={{ ...CARD, padding: "24px" }}>
           <div style={MICRO}>When a tracking tool is the better buy</div>
           <p style={{ margin: "10px 0 0", fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
             If you have your own outreach team and only need measurement, a pure tracking tool is cheaper than us and
             probably better instrumented. We would rather say that here than three weeks into an engagement.
           </p>
         </div>
-        <div style={{ ...CARD, border: `1px solid ${T.accent}`, padding: "24px" }}>
+        <div className="ac-row" style={{ ...CARD, border: `1px solid ${T.accent}`, padding: "24px" }}>
           <div style={{ ...MICRO, color: T.accent }}>When we are</div>
           <p style={{ margin: "10px 0 0", fontSize: "14px", lineHeight: 1.6, color: T.ink }}>
             When you need the gap closed rather than measured, and you do not have editorial relationships with the

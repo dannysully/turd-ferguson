@@ -145,13 +145,16 @@ export default function LegalPage() {
   return (
     <main style={{ ...SHELL, paddingTop: "44px", paddingBottom: "44px" }}>
       <div className="board-head" style={{ ...GRID12, alignItems: "start" }}>
+        {/* The beat, from globals.css. The document switcher animates as one
+            list rather than five items - the four unpublished entries are one
+            fact, not four arrivals. */}
         <aside className="legal-nav" style={{ gridColumn: "span 3" }}>
-          <div style={MICRO}>Legal</div>
+          <div className="ac-row" style={MICRO}>Legal</div>
           {/* The board's sidebar is a switcher between five documents, not a
               contents list for this one. Only the privacy policy is written,
               so the other four say so rather than linking somewhere empty or
               being quietly dropped. */}
-          <ul style={{ margin: "12px 0 0", padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: "2px" }}>
+          <ul className="ac-row" style={{ margin: "12px 0 0", padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: "2px" }}>
             {DOCUMENTS.map((d) => (
               <li key={d.label}>
                 {d.here ? (
@@ -188,7 +191,7 @@ export default function LegalPage() {
             ))}
           </ul>
 
-          <p style={{ margin: "16px 0 0", fontSize: "12.5px", lineHeight: 1.6, color: T.soft }}>
+          <p className="ac-row" style={{ margin: "16px 0 0", fontSize: "12.5px", lineHeight: 1.6, color: T.soft }}>
             On this page:{" "}
             {SECTIONS.map((sec, i) => (
               <span key={sec.id}>
@@ -200,18 +203,18 @@ export default function LegalPage() {
             ))}
             .
           </p>
-          <p style={{ margin: "20px 0 0", fontSize: "12.5px", lineHeight: 1.6, color: T.soft }}>
+          <p className="ac-row" style={{ margin: "20px 0 0", fontSize: "12.5px", lineHeight: 1.6, color: T.soft }}>
             Drafted as a structure, not as legal advice. It needs a solicitor before it can be relied on - this site
             processes personal data of UK and EU residents.
           </p>
         </aside>
 
         <div style={{ gridColumn: "span 9" }}>
-          <div style={MICRO}>Privacy policy</div>
-          <h1 style={{ margin: "8px 0 0", fontSize: "32px", fontWeight: 700, letterSpacing: "-0.03em", color: T.ink }}>
+          <div className="ac-row" style={MICRO}>Privacy policy</div>
+          <h1 className="ac-row" style={{ margin: "8px 0 0", fontSize: "32px", fontWeight: 700, letterSpacing: "-0.03em", color: T.ink }}>
             What we collect, and what we do with it
           </h1>
-          <p style={{ margin: "10px 0 0", fontSize: "13px", color: T.soft, lineHeight: 1.7 }}>
+          <p className="ac-row" style={{ margin: "10px 0 0", fontSize: "13px", color: T.soft, lineHeight: 1.7 }}>
             Nomada Digital Ltd &middot; <Gap>company number</Gap> &middot; <Gap>registered address</Gap> &middot;{" "}
             <Gap>ICO registration number</Gap> &middot; <Gap>the date this was last reviewed by someone qualified</Gap>
           </p>
@@ -221,6 +224,7 @@ export default function LegalPage() {
               <section
                 key={s.id}
                 id={s.id}
+                className="ac-row"
                 style={{ padding: "22px 28px", borderTop: i ? `1px solid ${T.hair}` : undefined, scrollMarginTop: "2rem" }}
               >
                 <h2 style={{ margin: 0, fontSize: "16px", fontWeight: 700, letterSpacing: "-0.022em", color: T.ink }}>

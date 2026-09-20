@@ -36,18 +36,22 @@ export default function CaseStudiesPage() {
     <section style={{ ...SHELL, paddingTop: "44px", display: "flex", flexDirection: "column", gap: "26px" }}>
       <div className="board-head confirm-head">
         <div>
-          <div style={MICRO}>Evidence</div>
-          <h1 style={{ margin: "8px 0 0", fontSize: "27px", fontWeight: 700, letterSpacing: "-0.03em", color: T.ink }}>
+          {/* The beat, from globals.css. The study card animates as one row
+              rather than animating its own stat panels - it is already a row,
+              and a row inside a row reads as mush. */}
+          <div className="ac-row" style={MICRO}>Evidence</div>
+          <h1 className="ac-row" style={{ margin: "8px 0 0", fontSize: "27px", fontWeight: 700, letterSpacing: "-0.03em", color: T.ink }}>
             What the work actually moved
           </h1>
         </div>
-        <p style={{ margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
+        <p className="ac-row" style={{ margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
           Short, and every figure says what it was measured against and when. Clients are named only where the agency
           has agreed to it, which is why this one is a sector rather than a brand.
         </p>
       </div>
 
       <Link
+        className="ac-row"
         href="/case-studies/vibe-retail"
         style={{ ...CARD, display: "block", padding: "28px 30px", textDecoration: "none" }}
       >
@@ -133,7 +137,7 @@ export default function CaseStudiesPage() {
         </div>
       </Link>
 
-      <p style={{ margin: 0, fontSize: "13px", color: T.soft, lineHeight: 1.6 }}>
+      <p className="ac-row" style={{ margin: 0, fontSize: "13px", color: T.soft, lineHeight: 1.6 }}>
         Nothing on this page is modelled or projected. Where a reading came from a third-party tracker rather than our
         own run, the case study says which.
       </p>

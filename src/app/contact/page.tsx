@@ -63,8 +63,11 @@ export default function ContactPage() {
       <section style={{ ...SHELL, paddingTop: "48px" }}>
         <div className="page-split">
           <div>
-            <div style={MICRO}>Contact</div>
+            {/* The beat, from globals.css. Three groups, none nested: the
+                heading run, the three route cards, and the form card. */}
+            <div className="ac-row" style={MICRO}>Contact</div>
             <h1
+              className="ac-row"
               style={{
                 margin: "10px 0 0",
                 fontSize: "36px",
@@ -76,14 +79,14 @@ export default function ContactPage() {
             >
               Most questions are answered by running a scan.
             </h1>
-            <p style={{ margin: "14px 0 0", fontSize: "15px", lineHeight: 1.7, color: T.soft, maxWidth: "56ch" }}>
+            <p className="ac-row" style={{ margin: "14px 0 0", fontSize: "15px", lineHeight: 1.7, color: T.soft, maxWidth: "56ch" }}>
               It is free, takes a few minutes and needs no call. If you have a portfolio to move, or a question the
               FAQ does not cover, this form reaches the people doing the work rather than a sales desk.
             </p>
 
             <div style={{ marginTop: "26px", display: "flex", flexDirection: "column", gap: "14px" }}>
               {ROUTES.map((r) => (
-                <div key={r.label} style={{ ...CARD, borderRadius: "14px", padding: "18px 20px" }}>
+                <div key={r.label} className="ac-row" style={{ ...CARD, borderRadius: "14px", padding: "18px 20px" }}>
                   <div style={MICRO}>{r.label}</div>
                   <p style={{ margin: "7px 0 0", fontSize: "14px", lineHeight: 1.6, color: T.soft }}>{r.body}</p>
                 </div>
@@ -91,7 +94,7 @@ export default function ContactPage() {
             </div>
           </div>
 
-          <div style={{ ...CARD, padding: "26px", alignSelf: "start" }}>
+          <div className="ac-row" style={{ ...CARD, padding: "26px", alignSelf: "start" }}>
             <ContactForm />
           </div>
         </div>

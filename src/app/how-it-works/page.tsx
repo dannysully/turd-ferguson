@@ -14,7 +14,16 @@ import { ORG_REF, ld } from "@/config/schema";
  * the same restyle: it was still on Georgia headings and the navy-and-orange
  * palette that predates the token system. Built to the inbox.md rules rather
  * than to a board, matching /seo-agencies, which is the nearest thing to a
- * sibling it has. No motion, for the same reason as /what-is-aeo.
+ * sibling it has.
+ *
+ * This used to say "No motion, for the same reason as /what-is-aeo" - that a
+ * beat's vocabulary comes from a board's own keyframes, so inventing one for a
+ * boardless page was not following the rule. That was right when it was
+ * written and is not any more. `91101d6` generalised `.ac-row` out of the
+ * boards into globals.css as the site's one entrance, applied from two shared
+ * templates across seven pages, so using it here copies the site rather than
+ * inventing anything. The rule it was protecting - do not make up a beat - is
+ * intact; what changed is that there is now a beat not to make up.
  *
  * Three claims went, and the reasoning is the same as on that page - copy is
  * reversible, the claims were not sourced, and blocked.md had raised them
@@ -93,9 +102,12 @@ const P: React.CSSProperties = {
 
 const LINK: React.CSSProperties = { fontWeight: 600, textDecoration: "none", color: T.accent };
 
+/** One row, not one per paragraph. Prose arriving a line at a time is the
+ *  sparkle PostShell declined for the same reason: a card is one thing to
+ *  read, and staggering inside it competes with reading it. */
 function Body({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ ...CARD, padding: "26px 30px", display: "flex", flexDirection: "column", gap: "14px" }}>
+    <div className="ac-row" style={{ ...CARD, padding: "26px 30px", display: "flex", flexDirection: "column", gap: "14px" }}>
       {children}
     </div>
   );
@@ -113,8 +125,10 @@ function Section({
   return (
     <section>
       <div className="board-head" style={{ ...GRID12, marginBottom: "16px" }}>
-        <h2 style={{ ...H2, gridColumn: "span 4" }}>{title}</h2>
-        <p style={{ gridColumn: "span 8", margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>{lede}</p>
+        <h2 className="ac-row" style={{ ...H2, gridColumn: "span 4" }}>{title}</h2>
+        <p className="ac-row" style={{ gridColumn: "span 8", margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
+          {lede}
+        </p>
       </div>
       {children}
     </section>
@@ -138,8 +152,9 @@ export default function HowItWorksPage() {
       >
         <div className="board-head" style={{ ...GRID12, alignItems: "start" }}>
           <div style={{ gridColumn: "span 7" }}>
-            <div style={MICRO}>How it works</div>
+            <div className="ac-row" style={MICRO}>How it works</div>
             <h1
+              className="ac-row"
               style={{
                 margin: "10px 0 0",
                 fontSize: "36px",
@@ -151,13 +166,13 @@ export default function HowItWorksPage() {
             >
               How AI search citations are engineered.
             </h1>
-            <p style={{ margin: "14px 0 0", fontSize: "15px", lineHeight: 1.6, color: T.soft, maxWidth: "62ch" }}>
+            <p className="ac-row" style={{ margin: "14px 0 0", fontSize: "15px", lineHeight: 1.6, color: T.soft, maxWidth: "62ch" }}>
               An answer is assembled from pages. Get onto those pages and you get named in the answer. That is the
               whole mechanism, and the rest of this page is how we do it.
             </p>
           </div>
 
-          <div style={{ ...CARD, gridColumn: "span 5", padding: "24px" }}>
+          <div className="ac-row" style={{ ...CARD, gridColumn: "span 5", padding: "24px" }}>
             <div style={MICRO}>Start with the evidence</div>
             <p style={{ margin: "10px 0 0", fontSize: "14px", lineHeight: 1.65, color: T.soft }}>
               A free scan reads the answers in your category and records every page behind them, so the target list is
@@ -199,14 +214,14 @@ export default function HowItWorksPage() {
           lede="This is why it is not a second service to staff. The same article does both pieces of work."
         >
           <div className="two-up">
-            <div style={{ ...CARD, padding: "24px" }}>
+            <div className="ac-row" style={{ ...CARD, padding: "24px" }}>
               <div style={MICRO}>Google reads a link</div>
               <p style={{ margin: "10px 0 0", fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
                 Authority passes to the page the anchor points at, and the article itself ranks for the term. Measured
                 as a position, with a note on whether an AI Overview sits above it.
               </p>
             </div>
-            <div style={{ ...CARD, border: "1px solid " + T.accent, padding: "24px" }}>
+            <div className="ac-row" style={{ ...CARD, border: "1px solid " + T.accent, padding: "24px" }}>
               <div style={{ ...MICRO, color: T.accent }}>The engines read a source</div>
               <p style={{ margin: "10px 0 0", fontSize: "14px", lineHeight: 1.6, color: T.ink }}>
                 The article becomes one of the pages an answer is assembled from, so the brand gets named. Measured
@@ -222,7 +237,7 @@ export default function HowItWorksPage() {
         >
           <div className="seq-three">
             {WORK.map((w) => (
-              <div key={w.heading} style={{ ...CARD, padding: "24px" }}>
+              <div key={w.heading} className="ac-row" style={{ ...CARD, padding: "24px" }}>
                 <div style={{ fontSize: "14.5px", fontWeight: 600, color: T.ink, lineHeight: 1.4 }}>{w.heading}</div>
                 <p style={{ margin: "10px 0 0", fontSize: "14px", lineHeight: 1.65, color: T.soft }}>{w.body}</p>
               </div>

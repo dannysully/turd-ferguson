@@ -22,9 +22,16 @@ import { ORG_REF, ld } from "@/config/schema";
  *
  * No board means no board to copy, so the rules in inbox.md stand in for one:
  * tokens only, h1 36px/700/-0.03em, h2 19px, body 14-15px, the 1180 container,
- * sentence case, hyphens. No motion - the one-beat-per-page rule takes its
+ * sentence case, hyphens.
+ *
+ * This used to carry "No motion - the one-beat-per-page rule takes its
  * vocabulary from a board's own keyframes, and inventing a beat for a page
- * that has no board is a different thing from following the rule.
+ * that has no board is a different thing from following the rule." Sound when
+ * written, and overtaken since: `91101d6` lifted `.ac-row` out of the boards
+ * into globals.css as the site's single entrance and applied it from two
+ * shared templates, so the beat is now the site's rather than any one board's
+ * and using it here is copying rather than inventing. The rule stands; it no
+ * longer excludes this page. Same reversal on /how-it-works, same reason.
  *
  * On the copy: blocked.md listed seven unsourced claims across this page and
  * /how-it-works, twice, and Danny has not answered. AGENTS.md is not ambiguous
@@ -178,9 +185,11 @@ const P: React.CSSProperties = {
 
 const LINK: React.CSSProperties = { fontWeight: 600, textDecoration: "none", color: T.accent };
 
+/** One row, not one per paragraph - the same call PostShell made about body
+ *  prose. A card is one thing to read; staggering inside it competes. */
 function Body({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ ...CARD, padding: "26px 30px", display: "flex", flexDirection: "column", gap: "14px" }}>
+    <div className="ac-row" style={{ ...CARD, padding: "26px 30px", display: "flex", flexDirection: "column", gap: "14px" }}>
       {children}
     </div>
   );
@@ -198,8 +207,10 @@ function Section({
   return (
     <section>
       <div className="board-head" style={{ ...GRID12, marginBottom: "16px" }}>
-        <h2 style={{ ...H2, gridColumn: "span 4" }}>{title}</h2>
-        <p style={{ gridColumn: "span 8", margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>{lede}</p>
+        <h2 className="ac-row" style={{ ...H2, gridColumn: "span 4" }}>{title}</h2>
+        <p className="ac-row" style={{ gridColumn: "span 8", margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
+          {lede}
+        </p>
       </div>
       {children}
     </section>
@@ -224,8 +235,9 @@ export default function WhatIsAEOPage() {
       >
         <div className="board-head" style={{ ...GRID12, alignItems: "start" }}>
           <div style={{ gridColumn: "span 7" }}>
-            <div style={MICRO}>Answer engine optimisation</div>
+            <div className="ac-row" style={MICRO}>Answer engine optimisation</div>
             <h1
+              className="ac-row"
               style={{
                 margin: "10px 0 0",
                 fontSize: "36px",
@@ -237,13 +249,13 @@ export default function WhatIsAEOPage() {
             >
               What is AEO? A guide to answer engine optimisation.
             </h1>
-            <p style={{ margin: "14px 0 0", fontSize: "15px", lineHeight: 1.6, color: T.soft, maxWidth: "62ch" }}>
+            <p className="ac-row" style={{ margin: "14px 0 0", fontSize: "15px", lineHeight: 1.6, color: T.soft, maxWidth: "62ch" }}>
               AEO is getting a brand named inside the answer, rather than ranked in the links underneath it. Same
               buyer, different surface, and a different thing to measure.
             </p>
           </div>
 
-          <div style={{ ...CARD, gridColumn: "span 5", padding: "24px" }}>
+          <div className="ac-row" style={{ ...CARD, gridColumn: "span 5", padding: "24px" }}>
             <div style={MICRO}>The short version</div>
             <p style={{ margin: "10px 0 0", fontSize: "14px", lineHeight: 1.65, color: T.soft }}>
               AEO (answer engine optimisation) is the practice of getting a brand named and cited inside the answer an
@@ -382,7 +394,7 @@ export default function WhatIsAEOPage() {
             {COMPARISON.map((c, i) => (
               <div
                 key={c.row}
-                className="board-head"
+                className="board-head ac-row"
                 style={{ ...GRID12, padding: "16px 26px", borderTop: i ? "1px solid " + T.hair : undefined }}
               >
                 <div style={{ gridColumn: "span 4", fontSize: "14px", fontWeight: 600, color: T.ink }}>{c.row}</div>
@@ -396,7 +408,7 @@ export default function WhatIsAEOPage() {
         <Section title="Questions we get asked" lede="Answered here rather than on a call.">
           <div style={{ ...CARD, overflow: "hidden" }}>
             {FAQS.map((f) => (
-              <details key={f.q} className="faq-row" style={{ borderBottom: "1px solid " + T.hair }}>
+              <details key={f.q} className="faq-row ac-row" style={{ borderBottom: "1px solid " + T.hair }}>
                 <summary
                   className="board-head faq-summary"
                   style={{ ...GRID12, padding: "17px 26px", cursor: "pointer" }}

@@ -147,14 +147,22 @@ export default function CaseStudyPage() {
       <div style={{ ...SHELL, paddingTop: "40px", display: "flex", flexDirection: "column", gap: "26px" }}>
         <div className="confirm-top">
           <div>
+            {/* The beat, from globals.css. `display: block` on the back link
+                is load-bearing: transform does not apply to a non-replaced
+                inline element, so an inline <a> takes the opacity leg and
+                never lifts. The write-up itself is left still, the call
+                PostShell made - prose arriving a paragraph at a time competes
+                with reading it. */}
             <Link
+              className="ac-row"
               href="/case-studies"
-              style={{ fontSize: "13px", fontWeight: 600, textDecoration: "none", color: T.accent }}
+              style={{ display: "block", fontSize: "13px", fontWeight: 600, textDecoration: "none", color: T.accent }}
             >
               All evidence
             </Link>
-            <div style={{ ...MICRO, marginTop: "18px" }}>US retail SaaS - eight weeks</div>
+            <div className="ac-row" style={{ ...MICRO, marginTop: "18px" }}>US retail SaaS - eight weeks</div>
             <h1
+              className="ac-row"
               style={{
                 margin: "10px 0 0",
                 fontSize: "34px",
@@ -166,13 +174,13 @@ export default function CaseStudyPage() {
             >
               One listicle placement, on a page already ranking for the category
             </h1>
-            <p style={{ margin: "14px 0 0", fontSize: "15px", lineHeight: 1.6, color: T.soft, maxWidth: "64ch" }}>
+            <p className="ac-row" style={{ margin: "14px 0 0", fontSize: "15px", lineHeight: 1.6, color: T.soft, maxWidth: "64ch" }}>
               Client unnamed at the agency request. Figures are our own run across the tracked question set, plus
               Google positions from an independent tracker.
             </p>
           </div>
 
-          <div style={{ ...CARD, padding: "22px", alignSelf: "start" }}>
+          <div className="ac-row" style={{ ...CARD, padding: "22px", alignSelf: "start" }}>
             <div style={MICRO}>At a glance</div>
             <dl className="cs-glance">
               {GLANCE.map(([k, v]) => (
@@ -189,7 +197,7 @@ export default function CaseStudyPage() {
         </div>
 
         <div style={{ ...CARD, display: "flex", overflow: "hidden", flexWrap: "wrap" }}>
-          <div style={{ flexGrow: 1, flexBasis: "260px", padding: "22px 26px" }}>
+          <div className="ac-row" style={{ flexGrow: 1, flexBasis: "260px", padding: "22px 26px" }}>
             <div style={{ fontSize: "14px", color: T.soft }}>Money keyword position</div>
             <div style={{ fontSize: "36px", fontWeight: 700, letterSpacing: "-0.035em", lineHeight: 1.1, marginTop: "2px" }}>
               #83 to #4
@@ -198,7 +206,7 @@ export default function CaseStudyPage() {
               Over eight weeks, against the position at the start of the programme.
             </div>
           </div>
-          <div style={{ flexGrow: 1, flexBasis: "260px", padding: "22px 26px", borderLeft: "1px solid " + T.line }}>
+          <div className="ac-row" style={{ flexGrow: 1, flexBasis: "260px", padding: "22px 26px", borderLeft: "1px solid " + T.line }}>
             <div style={{ fontSize: "14px", color: T.soft }}>The same keyword, later</div>
             <div style={{ fontSize: "36px", fontWeight: 700, letterSpacing: "-0.035em", lineHeight: 1.1, marginTop: "2px" }}>
               #83 to #1
@@ -207,7 +215,7 @@ export default function CaseStudyPage() {
               Four months in, as the placements kept working.
             </div>
           </div>
-          <div style={{ flexGrow: 1, flexBasis: "260px", padding: "22px 26px", borderLeft: "1px solid " + T.line }}>
+          <div className="ac-row" style={{ flexGrow: 1, flexBasis: "260px", padding: "22px 26px", borderLeft: "1px solid " + T.line }}>
             <div style={{ fontSize: "14px", color: T.soft }}>ChatGPT brand visibility</div>
             <div style={{ fontSize: "36px", fontWeight: 700, letterSpacing: "-0.035em", lineHeight: 1.1, marginTop: "2px" }}>
               0% to 25%
@@ -216,7 +224,7 @@ export default function CaseStudyPage() {
               Share of the tracked prompts where ChatGPT names the brand. Nothing named it before the placement ran.
             </div>
           </div>
-          <div style={{ flexGrow: 1, flexBasis: "260px", padding: "22px 26px", borderLeft: "1px solid " + T.line }}>
+          <div className="ac-row" style={{ flexGrow: 1, flexBasis: "260px", padding: "22px 26px", borderLeft: "1px solid " + T.line }}>
             <div style={{ fontSize: "14px", color: T.soft }}>AI Overview citations</div>
             <div style={{ fontSize: "36px", fontWeight: 700, letterSpacing: "-0.035em", lineHeight: 1.1, marginTop: "2px" }}>
               3
@@ -309,7 +317,7 @@ export default function CaseStudyPage() {
           </article>
 
           <aside style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
-            <div style={{ ...CARD, padding: "22px" }}>
+            <div className="ac-row" style={{ ...CARD, padding: "22px" }}>
               <div style={MICRO}>Method</div>
               <p style={{ margin: "8px 0 0", fontSize: "13.5px", lineHeight: 1.6, color: T.soft }}>
                 Brand visibility here is the share of tracked buyer prompts where ChatGPT names the brand, against a
@@ -322,7 +330,7 @@ export default function CaseStudyPage() {
               </p>
             </div>
 
-            <div style={{ ...CARD, padding: "22px" }}>
+            <div className="ac-row" style={{ ...CARD, padding: "22px" }}>
               <div style={MICRO}>Run the same scan</div>
               <p style={{ margin: "8px 0 14px", fontSize: "13.5px", lineHeight: 1.6, color: T.soft }}>
                 On a client of yours, free.

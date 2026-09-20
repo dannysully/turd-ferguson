@@ -82,8 +82,11 @@ export default function AboutPage() {
       <section style={{ ...SHELL, paddingTop: "44px", display: "flex", flexDirection: "column", gap: "30px" }}>
         <div className="confirm-top">
           <div>
-            <div style={MICRO}>Who runs this</div>
+            {/* The beat, from globals.css - leaf content, never the wrapper
+                around it, so nothing animates twice. */}
+            <div className="ac-row" style={MICRO}>Who runs this</div>
             <h1
+              className="ac-row"
               style={{
                 margin: "10px 0 0",
                 fontSize: "36px",
@@ -95,7 +98,7 @@ export default function AboutPage() {
             >
               An agency built the tool it wanted, then sold it to other agencies.
             </h1>
-            <p style={{ margin: "14px 0 0", fontSize: "15px", lineHeight: 1.7, color: T.soft, maxWidth: "64ch" }}>
+            <p className="ac-row" style={{ margin: "14px 0 0", fontSize: "15px", lineHeight: 1.7, color: T.soft, maxWidth: "64ch" }}>
               <TierName tier="cited" /> is run by the senior team at{" "}
               <a
                 href="https://nomadadigital.co.uk"
@@ -108,7 +111,7 @@ export default function AboutPage() {
             </p>
           </div>
 
-          <div style={{ ...CARD, padding: "24px", alignSelf: "start" }}>
+          <div className="ac-row" style={{ ...CARD, padding: "24px", alignSelf: "start" }}>
             <div style={MICRO}>Why agencies only</div>
             <p style={{ margin: "10px 0 0", fontSize: "14px", lineHeight: 1.7, color: T.soft }}>
               Selling direct would put us in front of the clients our partners already have. That is a short-term
@@ -120,17 +123,17 @@ export default function AboutPage() {
 
         <section>
           <div className="board-head confirm-head" style={{ marginBottom: "16px" }}>
-            <h2 style={{ margin: 0, fontSize: "19px", fontWeight: 700, letterSpacing: "-0.022em", color: T.ink }}>
+            <h2 className="ac-row" style={{ margin: 0, fontSize: "19px", fontWeight: 700, letterSpacing: "-0.022em", color: T.ink }}>
               How we measure
             </h2>
-            <p style={{ margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
+            <p className="ac-row" style={{ margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
               These rules exist because each one caught a real error in a real client report. They are the part worth
               carrying into anything we build.
             </p>
           </div>
           <div className="two-up">
             {RULES.map((r) => (
-              <div key={r.title} style={{ ...CARD, padding: "22px 24px" }}>
+              <div key={r.title} className="ac-row" style={{ ...CARD, padding: "22px 24px" }}>
                 <div style={{ fontSize: "14.5px", fontWeight: 600 }}>{r.title}</div>
                 <p style={{ margin: "8px 0 0", fontSize: "14px", lineHeight: 1.65, color: T.soft }}>{r.body}</p>
               </div>
@@ -140,10 +143,10 @@ export default function AboutPage() {
 
         <section>
           <div className="board-head confirm-head" style={{ marginBottom: "16px" }}>
-            <h2 style={{ margin: 0, fontSize: "19px", fontWeight: 700, letterSpacing: "-0.022em", color: T.ink }}>
+            <h2 className="ac-row" style={{ margin: 0, fontSize: "19px", fontWeight: 700, letterSpacing: "-0.022em", color: T.ink }}>
               Who you deal with
             </h2>
-            <p style={{ margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
+            <p className="ac-row" style={{ margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
               Small team, no account managers between you and the people doing the work.
             </p>
           </div>
@@ -151,6 +154,7 @@ export default function AboutPage() {
             {TEAM.map((role, i) => (
               <div
                 key={role}
+                className="ac-row"
                 style={{
                   flexGrow: 1,
                   flexBasis: "220px",
