@@ -7,17 +7,18 @@ import { test } from "node:test";
 import { SETTINGS_FALLBACK } from "../lib/scan/settings-merge.ts";
 
 /**
- * The other three facts /legal says it "checked in the code".
+ * The other four facts /legal says it "checked in the code".
  *
  * That page's own header lists five, and names the file each was checked
  * against. `analytics-claim.test.mts` took one of them on 20 September 2026 and
  * found the sentence was true by a single `Array.isArray` that nothing held.
- * These are the three it left:
+ * These are the four it left:
  *
  *   - raw IPs are never stored, they are salted SHA-256;
  *   - the app sets no cookies of its own;
  *   - an unclaimed scan loses only its transcript, after seven days, and keeps
- *     its measured facts.
+ *     its measured facts;
+ *   - the one third-party script the page loads is Cloudflare Turnstile.
  *
  * All three were true when typed and none was falsifiable afterwards, which is
  * the species this queue keeps paying for. A privacy policy is the one page
@@ -169,16 +170,16 @@ test("the address arrives through one door, so A1's denominator is the whole set
  * switched off, and the sentence beside it is the only argument for switching
  * it off, so it is a field rather than a comment.
  */
-const RAW_IP_SINKS: { fn: string; why: string; offOrigin: boolean }[] = [
+const RAW_IP_SINKS: { fn: string; why: string; vendor: string | null }[] = [
   {
     fn: "hashIp",
     why: "salted SHA-256, and the only form of the address that reaches a column. lib/scan/ip.ts throws without IP_HASH_SALT rather than hashing unsalted.",
-    offOrigin: false,
+    vendor: null,
   },
   {
     fn: "verifyTurnstile",
     why: "posts remoteip to Cloudflare's siteverify endpoint. Cloudflare needs the address to score the challenge; it is not stored by us.",
-    offOrigin: true,
+    vendor: "Cloudflare",
   },
 ];
 
@@ -288,14 +289,11 @@ test("every off-origin recipient of the raw address is named on the page", () =>
   // sees it" for as long as Turnstile has been wired up.
   const who = LEGAL.match(/id: "who",[\s\S]*?id: "cookies",/)?.[0];
   assert.ok(who, 'the "Who else sees it" section is not where this rule expected to find it');
-  const RECIPIENTS: Record<string, string> = { verifyTurnstile: "Cloudflare" };
-  for (const { fn, offOrigin } of RAW_IP_SINKS) {
-    if (!offOrigin) continue;
-    const name = RECIPIENTS[fn];
-    assert.ok(name, `${fn} sends the raw address off-origin and this rule does not know who to. Name them.`);
+  for (const { fn, vendor } of RAW_IP_SINKS) {
+    if (!vendor) continue;
     assert.ok(
-      who!.includes(name),
-      `${fn} hands a visitor's IP address to ${name}, and /legal's "Who else sees it" does not say so. Never stored and never disclosed are different promises.`,
+      who!.includes(vendor),
+      `${fn} hands a visitor's IP address to ${vendor}, and /legal's "Who else sees it" does not say so. Never stored and never disclosed are different promises.`,
     );
   }
 });
@@ -384,6 +382,137 @@ test("the migration seed and the code default cannot drift apart", () => {
   assert.ok(seed.length > 0, "no migration seeds response_retention_days any more, so the page's number rests on the fallback alone");
   for (const v of seed) {
     assert.equal(v, SETTINGS_FALLBACK.response_retention_days, "the seeded retention and the code fallback disagree, so which number the page is telling the truth about depends on which one the row came from");
+  }
+});
+
+/* ------------------------------------------------------------------ *
+ * D. "The one third-party script the page loads is Cloudflare Turnstile"
+ * ------------------------------------------------------------------ */
+
+/**
+ * What `route-closure.test.mts` already holds, so this does not restate it: the
+ * CSP and the off-origin URLs in client code agree, in both directions. Every
+ * origin the browser is told to fetch is permitted, and every permitted origin
+ * is fetched by something.
+ *
+ * What agreement cannot tell you is **how many there are and whose they are**,
+ * and that is the whole of the sentence on the page. Two third parties, both
+ * loaded and both in the CSP, satisfy route-closure completely and make "the
+ * one third-party script" false. It is the same shape this queue keeps finding:
+ * a check right about everything it names, asked what it is not looking at.
+ *
+ * The CSP is read from `next.config.ts` rather than from the build, so this
+ * runs without one. route-closure reads the shipped manifest and is the half
+ * that proves the header is actually served.
+ */
+const THIRD_PARTIES: { origin: string; vendor: string; why: string }[] = [
+  {
+    origin: "https://challenges.cloudflare.com",
+    vendor: "Cloudflare",
+    why: "Turnstile: the api.js script, the widget's iframe, and the connection it makes to score the challenge. The only origin on this site that is not ours.",
+  },
+];
+
+/** Source expressions that are not a third party: us, or no fetch at all. */
+const FIRST_PARTY = /^(?:'self'|'none'|'unsafe-inline'|'unsafe-eval'|blob:|data:|ws:)$/;
+
+/**
+ * The CSP as directives, read out of the config's own array.
+ *
+ * Line-wise rather than by one regex over the block, and that is not tidiness.
+ * A source expression is itself quoted - `"default-src 'self'"` - so a naive
+ * "text between two quote characters" match stops at the inner `'` and reads
+ * `default-src` as having no sources at all. A policy parsed that way looks
+ * maximally strict no matter what it permits, which is the flattering
+ * direction of harness failure this repo has now paid for twice.
+ *
+ * `${...}` holes are replaced by the string literals inside them, so the
+ * dev-only sources are read too: a third party smuggled in behind `isDev`
+ * would otherwise be invisible here and still shipped to anyone running the
+ * dev server.
+ */
+function directives(): { name: string; sources: string[] }[] {
+  const config = readFileSync(join(ROOT, "next.config.ts"), "utf8");
+  const block = config.match(/const CSP = \[([\s\S]*?)\]\.join\(/)?.[1];
+  assert.ok(block, "the CSP array is not where this rule expected to find it in next.config.ts");
+
+  const out: { name: string; sources: string[] }[] = [];
+  for (const raw of block!.split("\n")) {
+    // `[^:]` and not a bare `//`, which is the guard `code()` above carries for
+    // the same reason: the one line this parse exists to read ends in
+    // `https://challenges.cloudflare.com`, and a bare comment strip eats the
+    // origin, closes no quote, and drops script-src from the policy silently.
+    const line = raw.replace(/(^|[^:])\/\/.*$/, "$1");
+    const open = line.search(/["`]/);
+    if (open === -1) continue;
+    const quote = line[open];
+    const close = line.lastIndexOf(quote);
+    if (close <= open) continue;
+    const entry = line
+      .slice(open + 1, close)
+      .replace(/\$\{([^}]*)\}/g, (_, hole: string) =>
+        ` ${[...hole.matchAll(/(["'])((?:\\.|(?!\1).)*)\1/g)].map((m) => m[2]).join(" ")} `,
+      )
+      .trim();
+    if (!entry) continue;
+    const [name, ...sources] = entry.split(/\s+/).filter(Boolean);
+    out.push({ name, sources });
+  }
+  return out;
+}
+
+test("the CSP parse read the real policy, so an empty set cannot pass as a strict one", () => {
+  const ds = directives();
+  assert.ok(ds.length >= 10, `the CSP parse found only ${ds.length} directives`);
+  for (const name of ["default-src", "script-src", "img-src", "font-src", "frame-src", "connect-src"]) {
+    assert.ok(ds.some((d) => d.name === name), `the CSP parse cannot see ${name}`);
+  }
+});
+
+test("the browser may reach exactly one third party, and it is the one on the page", () => {
+  const found = new Set<string>();
+  for (const { name, sources } of directives()) {
+    for (const src of sources) {
+      if (FIRST_PARTY.test(src)) continue;
+      if (!/^https?:\/\//.test(src)) continue; // 'unsafe-eval' and friends behind a template hole
+      const origin = new URL(src).origin;
+      assert.ok(
+        THIRD_PARTIES.some((t) => t.origin === origin),
+        `${name} permits ${origin}, which is not on the argued list. /legal tells a visitor the one third-party script the page loads is Cloudflare Turnstile - a second origin makes that sentence false, and route-closure passes on it the moment something in src/ loads it.`,
+      );
+      found.add(origin);
+    }
+  }
+  assert.deepEqual(
+    [...found].sort(),
+    THIRD_PARTIES.map((t) => t.origin).sort(),
+    "an argued third party is allowed by no directive. A stale entry here is an allowance nobody is watching.",
+  );
+});
+
+test("no directive smuggles a third party in through a source that is not a URL", () => {
+  // The sources that are neither first-party nor an absolute URL: a bare
+  // hostname, a scheme like https:, or a wildcard. Every one of those admits
+  // an origin the rule above cannot name.
+  const loose: string[] = [];
+  for (const { name, sources } of directives()) {
+    if (name === "upgrade-insecure-requests") continue;
+    for (const src of sources) {
+      if (FIRST_PARTY.test(src) || /^https?:\/\/[a-z0-9.-]+$/i.test(src)) continue;
+      loose.push(`${name} ${src}`);
+    }
+  }
+  assert.deepEqual(loose, [], "a CSP source that is a wildcard, a bare scheme or a hostname without an origin. The rule above reads origins, so anything in this list is a third party it cannot see.");
+});
+
+test("the page still claims the number this file just checked", () => {
+  assert.equal(THIRD_PARTIES.length, 1, "there is more than one third party now, so the sentence below has to change before this test can be made to pass");
+  assert.ok(
+    /The one third-party script the page loads is Cloudflare Turnstile/.test(LEGAL),
+    '/legal no longer says "The one third-party script the page loads is Cloudflare Turnstile". The rules above hold that sentence; if it was reworded, reword them with it rather than deleting them.',
+  );
+  for (const { vendor } of THIRD_PARTIES) {
+    assert.ok(LEGAL.includes(vendor), `${vendor} is a third party this site reaches and /legal does not name it`);
   }
 });
 

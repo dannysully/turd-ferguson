@@ -25,10 +25,10 @@ export const metadata: Metadata = {
  *  - the app sets no cookies of its own: no document.cookie, no cookies()
  *  - there is no analytics of any kind installed
  *
- * Four of those five are executable now, and a claim on this page that is not
- * executable is a claim that rots: `analytics-claim.test.mts` holds the last
- * one, `privacy-claims.test.mts` holds the other three. Read those before
- * rewording anything below - they fail on the wording as well as on the code,
+ * All five are executable now, and a claim on this page that is not executable
+ * is a claim that rots: `analytics-claim.test.mts` holds the analytics one,
+ * `privacy-claims.test.mts` holds the other four. Read those before rewording
+ * anything below - they fail on the wording as well as on the code,
  * deliberately, so a reworded promise cannot quietly outrun what enforces it.
  *
  * The board's processor list omits Anthropic, which the scan sends crawled
