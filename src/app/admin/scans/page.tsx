@@ -419,6 +419,17 @@ export default async function AdminScansPage() {
                 <td style={td}>{r.topic ?? "-"}</td>
                 <td style={td}>{r.market ?? "-"}</td>
                 <td style={td}>
+                  {/* Both lengths RAW - not filtered to the union and not
+                      deduped, deliberately, and this comment is why. Every
+                      other reader of these columns goes through `knownEngines`
+                      (`engine-list-readers.test.mts` walks for the ones that
+                      do not), because a repeated name on a row made the
+                      campaign headline count one answer twice and the waiting
+                      screen draw the same chip twice. This is the page an
+                      operator opens to SEE that row, so cleaning the figure
+                      here would hide the one thing it is for: a 4/5 that
+                      should read 4/4 is the symptom. Exempt by argument, not
+                      by oversight. */}
                   {(r.engines_answered ?? []).length}/{(r.engines ?? []).length}
                   {r.gated_status && r.gated_status !== "none" ? (
                     <span style={{ display: "block", color: C.muted, fontSize: "0.75rem" }}>

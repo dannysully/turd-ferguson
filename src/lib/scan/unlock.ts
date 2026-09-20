@@ -479,8 +479,17 @@ export async function opportunityShape(
    * So a database blip told a visitor standing at the gate that there were no
    * pages to be placed into. That is a measured finding on this product - a real
    * zero is as much an answer as a fourteen - which is exactly why it must never
-   * be the thing a failure degrades to. Thrown, and all three callers already
-   * have the branch for it.
+   * be the thing a failure degrades to. Thrown, and every caller has the
+   * branch for it.
+   *
+   * That last clause was "all three callers" and this function has two - the
+   * count belonged to `buildUnlockPayload` and had drifted onto the wrong
+   * function. **A census belongs in a test, not a comment**: a number in prose
+   * cannot notice a fourth caller, and the obligation this throw creates lands
+   * on callers that do not exist yet. `gate-read-callers.test.mts` walks for
+   * them, and holds the other end too - if either of these reads goes back to
+   * swallowing its error, every caller's branch becomes dead code and the gate
+   * reports a fault as a finding of zero again.
    */
   if (answersErr) {
     throw new Error("could not read the answers behind the gate: " + answersErr.message);
