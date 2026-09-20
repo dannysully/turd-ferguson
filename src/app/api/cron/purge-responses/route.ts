@@ -44,12 +44,37 @@ export async function GET(req: Request) {
 
   const db = supabaseAdmin();
 
-  let retentionDays = 7;
+  /**
+   * A settings read that fails purges nothing, and says so.
+   *
+   * This used to fall back to a hard-coded 7, with a comment claiming that
+   * refused to "guess wider". It guessed wider. The retention is subtracted
+   * from now, so a *smaller* number is a *later* cutoff and matches *more*
+   * rows: falling back to 7 where the stored setting is 30 deletes every
+   * transcript between eight and thirty days old, which the policy said to
+   * keep. And it answered 200 with ok:true while doing it, so the one signal
+   * anybody watches said the night's purge went fine.
+   *
+   * `response_text` cannot be fetched again - that is the premise this whole
+   * route is built on - so the damage is not recoverable and not visible.
+   *
+   * Refusing is the safe direction and it is cheap. This job is idempotent and
+   * runs nightly, so a skipped run keeps transcripts a few hours longer than
+   * promised and the next successful run clears exactly the same set; the
+   * other direction destroys data that no later run can put back. It is also
+   * the call already taken next door: `3f608e9` made the two volume ceilings
+   * refuse on a failed count read rather than read the failure as zero, for
+   * the same reason - a read that did not answer is not a fact.
+   */
+  let retentionDays: number;
   try {
     retentionDays = (await getSettings()).response_retention_days;
-  } catch {
-    // A settings read that fails must not turn into an unbounded purge. Fall
-    // back to the documented default rather than guessing wider.
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return NextResponse.json(
+      { error: `could not read the retention setting, so nothing was purged: ${message}` },
+      { status: 503 },
+    );
   }
   const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000).toISOString();
 
