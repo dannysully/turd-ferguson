@@ -2,6 +2,7 @@ import "server-only";
 
 import { Resend } from "resend";
 
+import { SITE_URL } from "@/config/schema";
 import { T } from "@/config/tokens";
 import { headerSafe } from "@/lib/email-header";
 import {
@@ -31,8 +32,16 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
  * a sweep of the rendered site, so the fix is to stop writing one.
  */
 
+/**
+ * The origin every email link is built on.
+ *
+ * The fallback is `SITE_URL` rather than a third copy of the literal. The site
+ * used to write its own origin out as three named constants - this one,
+ * `SITE_URL` in config/schema.ts and `BASE_URL` in app/sitemap.ts - so a domain
+ * change would update two and miss one, and the one it missed sends email.
+ */
 export function siteUrl(): string {
-  return process.env.NEXT_PUBLIC_SITE_URL ?? "https://alwayscited.com";
+  return process.env.NEXT_PUBLIC_SITE_URL ?? SITE_URL;
 }
 
 function verifyUrl(verifyToken: string): string {

@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-const BASE_URL = "https://alwayscited.com";
+import { SITE_URL as BASE_URL } from "@/config/schema";
 
 /**
  * The sitemap.

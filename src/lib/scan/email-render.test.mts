@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { test } from "node:test";
 
 import { T } from "../../config/tokens.ts";
@@ -21,23 +23,59 @@ import {
  * the allowlist. It is allowed now, so this is the real thing rather than
  * another regex read back over the source.
  *
- * The palette below is the one verify-email.ts builds, duplicated here on
- * purpose. If the two drift, `no colour outside the palette` fails - which is
- * the point: the two departures from the tokens are deliberate and documented,
- * and a third one appearing silently is the failure this catches.
+ * **The palette used to be hand-copied here, and the comment above it claimed
+ * that if the copy and verify-email.ts drifted, `no colour outside the palette`
+ * would fail. It could not.** That test rendered with the local copy and then
+ * checked the output against the same local copy - true by construction, for
+ * any values at all. Nothing in this file read verify-email.ts, so the one
+ * thing the duplicate existed to catch was the one thing it could not see. It
+ * is this repo's named defect species: a tripwire that passes because it is
+ * blind, and the fourth instance found.
+ *
+ * So the palette is read out of verify-email.ts instead of retyped. It cannot
+ * be imported - that module pulls in `server-only`, the Resend SDK and the
+ * `@/` alias, none of which load under `node --test`, which is the whole
+ * reason email-render.ts exists - so it is parsed from the source, the same
+ * way paid-get.test.mts and route-closure.test.mts read theirs.
  */
-const E: Palette = {
-  ground: T.bg,
-  card: T.surface,
-  ink: T.ink,
-  body: "#3d4451",
-  quiet: T.soft,
-  line: T.line,
-  accent: T.accent,
-  onAccent: T.surface,
-};
+const VERIFY_EMAIL = join(import.meta.dirname, "verify-email.ts");
 
-const FONT = "-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif";
+/** Where each field's value came from: a token name, or a literal hex. */
+type Origin = { token: string | null; value: string };
+
+function readEmailChrome(): { palette: Palette; origins: Record<string, Origin>; font: string } {
+  const src = readFileSync(VERIFY_EMAIL, "utf8");
+
+  // A counter-guard, not decoration. If `E` is renamed or reshaped, the parse
+  // must fail loudly rather than quietly matching nothing and leaving this
+  // file blind again in exactly the way it just was.
+  const block = src.match(/const E: Palette = \{([^}]*)\}/);
+  assert.ok(block, "verify-email.ts: no `const E: Palette = {...}` to read");
+
+  const origins: Record<string, Origin> = {};
+  for (const line of block[1].split("\n")) {
+    if (!line.trim() || line.trim().startsWith("//")) continue;
+    const m = line.match(/^\s*(\w+):\s*(?:T\.(\w+)|"([^"]*)")\s*,?\s*$/);
+    assert.ok(m, `verify-email.ts: cannot read palette line ${JSON.stringify(line)}`);
+    const [, key, tokenName, literal] = m;
+    if (tokenName) {
+      const value = (T as Record<string, string>)[tokenName];
+      assert.ok(value, `verify-email.ts: palette ${key} reads T.${tokenName}, which is not a token`);
+      origins[key] = { token: tokenName, value };
+    } else {
+      origins[key] = { token: null, value: literal };
+    }
+  }
+
+  const font = src.match(/const FONT = "([^"]*)"/)?.[1];
+  assert.ok(font, "verify-email.ts: no `const FONT` to read");
+
+  return { palette: Object.fromEntries(
+    Object.entries(origins).map(([k, o]) => [k, o.value]),
+  ) as unknown as Palette, origins, font };
+}
+
+const { palette: E, origins: ORIGINS, font: FONT } = readEmailChrome();
 
 const LINK = "https://alwayscited.com/scan/abc123";
 
@@ -108,6 +146,76 @@ test("no colour outside the palette reaches the inbox", () => {
     for (const hex of html.match(/(?<!&)#[0-9a-fA-F]{3,8}\b/g) ?? []) {
       assert.ok(allowed.has(hex.toLowerCase()), `${hex} is not in the email palette`);
     }
+  }
+});
+
+test("the email palette is the tokens, plus only its documented departures", () => {
+  // What the old duplicate was meant to be doing and could not. verify-email.ts
+  // documents exactly two departures from tokens.ts, and this is the assertion
+  // that keeps a third from appearing silently - which is how the messages came
+  // to carry #f6f6f8 and #eceef2 in the first place.
+  assert.deepEqual(
+    Object.keys(ORIGINS).sort(),
+    ["accent", "body", "card", "ground", "ink", "line", "onAccent", "quiet"],
+    "the email palette gained or lost a field",
+  );
+
+  // Departure one: `body` is deliberately darker than any token, for contrast
+  // in clients we do not control. It is the only literal allowed.
+  const literals = Object.entries(ORIGINS).filter(([, o]) => o.token === null);
+  assert.deepEqual(
+    literals.map(([k, o]) => `${k}:${o.value}`),
+    ["body:#3d4451"],
+    "a colour outside tokens.ts entered the email palette",
+  );
+
+  // Departure two: nothing here uses `faint`. tokens.ts says in its own doc
+  // comment that light-ground text does not, and every email ground is light.
+  assert.equal(
+    Object.entries(ORIGINS).find(([, o]) => o.token === "faint"),
+    undefined,
+    "the email palette uses T.faint on a light ground",
+  );
+});
+
+test("every text colour in the email clears WCAG AA on its own ground", () => {
+  /**
+   * Measured, not asserted from the doc comment. verify-email.ts claims
+   * "#3d4451 measures 9.79 on white where T.soft is 4.68" and both check out
+   * below - but they were reasoned about until now, and blocked.md item 9 is
+   * forty-three elements on the live site failing this exact check because
+   * nobody had run the numbers against the real ground.
+   *
+   * The email is the one surface that passes everywhere, and the reason is the
+   * two departures above: `body` was darkened on purpose, and `quiet` sits on
+   * the white card rather than on a tint. `T.soft` is 4.68 on white and 4.33 on
+   * the page ground - so if the card ever becomes the ground, the footnote and
+   * the aside fail. That is the regression this holds shut.
+   */
+  const lin = (c: number) => (c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
+  const luminance = (hex: string) => {
+    const h = hex.replace("#", "");
+    const [r, g, b] = [0, 2, 4].map((i) => lin(parseInt(h.slice(i, i + 2), 16) / 255));
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  const ratio = (fg: string, bg: string) => {
+    const [a, b] = [luminance(fg), luminance(bg)];
+    return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+  };
+
+  // Every place the shell puts text, with the colour it sits on. Read off
+  // shell() and linkFallback() rather than listed from memory.
+  const pairs: [string, string, string][] = [
+    ["heading", E.ink, E.card],
+    ["body", E.body, E.card],
+    ["footnote", E.quiet, E.card],
+    ["aside", E.quiet, E.card],
+    ["link fallback", E.accent, E.card],
+    ["button label", E.onAccent, E.accent],
+  ];
+  for (const [what, fg, bg] of pairs) {
+    const r = ratio(fg, bg);
+    assert.ok(r >= 4.5, `${what}: ${fg} on ${bg} measures ${r.toFixed(2)}, AA needs 4.5`);
   }
 });
 
