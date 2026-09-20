@@ -97,7 +97,7 @@ export default function RequestScanForm({ initialDomain = "" }: { initialDomain?
               setError("");
             }}
           />
-          {error && <p style={{ fontSize: "0.8125rem", color: T.badFg, marginTop: "0.75rem" }}>{error}</p>}
+          {error && <p role="alert" style={{ fontSize: "0.8125rem", color: T.badFg, marginTop: "0.75rem" }}>{error}</p>}
         </>
       )}
 
@@ -125,7 +125,7 @@ export default function RequestScanForm({ initialDomain = "" }: { initialDomain?
             style={field}
             required
           />
-          {error && <p style={{ fontSize: "0.8125rem", color: T.badFg, marginTop: "0.5rem" }}>{error}</p>}
+          {error && <p role="alert" style={{ fontSize: "0.8125rem", color: T.badFg, marginTop: "0.5rem" }}>{error}</p>}
 
           <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap", marginTop: "1rem" }}>
             <button type="submit" className="btn-primary" style={btn} disabled={busy}>

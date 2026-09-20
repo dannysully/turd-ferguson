@@ -70,7 +70,15 @@ export default function RerunButton({ token }: { token: string }) {
         {busy ? "Starting" : "Take another reading"}
       </button>
       <Turnstile onToken={setTurnstileToken} />
-      {error && <p style={{ margin: "10px 0 0", fontSize: "13px", color: T.badFg, lineHeight: 1.55 }}>{error}</p>}
+      {/* Announced. This button says "Starting", goes back to "Take another
+          reading", and the reason it did not start is the only new thing on
+          the page - so without a live region the whole outcome of pressing it
+          is invisible to a screen reader. */}
+      {error && (
+        <p role="alert" style={{ margin: "10px 0 0", fontSize: "13px", color: T.badFg, lineHeight: 1.55 }}>
+          {error}
+        </p>
+      )}
     </div>
   );
 }

@@ -47,7 +47,13 @@ export function DomainScreen(p: {
           {p.busy ? "Checking" : "Check"}
         </button>
       </div>
-      {p.error && <p id={`${id}-err`} style={{ fontSize: "0.8125rem", color: T.badFg, marginTop: "0.5rem" }}>{p.error}</p>}
+      {/* role=alert, and aria-describedby is not a substitute for it. The
+          description is read when focus arrives at the input; after a refused
+          submit focus is on the button the visitor just pressed, so the
+          sentence explaining why appeared on screen and was announced to
+          nobody. This is the domain field in the hero - the first control on
+          the site and the most-refused one on it. */}
+      {p.error && <p id={`${id}-err`} role="alert" style={{ fontSize: "0.8125rem", color: T.badFg, marginTop: "0.5rem" }}>{p.error}</p>}
     </form>
   );
 }

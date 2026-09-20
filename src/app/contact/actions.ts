@@ -20,10 +20,39 @@ const CONTACT_EMAIL_DESTINATION =
   process.env.CONTACT_EMAIL_DESTINATION ?? "hello@alwayscited.com";
 const FROM = process.env.SCAN_FROM_EMAIL ?? "alwayscited <onboarding@resend.dev>";
 
+/**
+ * What was typed, handed back so an error does not destroy it.
+ *
+ * React resets a `<form action={fn}>` on every submission, and it is not
+ * conditional on the action succeeding: `startHostTransition` in the shipped
+ * react-dom calls `requestFormReset` before it calls the action at all, the
+ * form fiber gets flag 1024, and the root's mutation commit ends in
+ * `recursivelyResetForms`, which calls `form.reset()`. So every error return
+ * below used to wipe all four fields - and the worst of them is the one that
+ * says "please email hello@alwayscited.com directly", which deletes the
+ * message at the moment it tells somebody to send it somewhere else.
+ *
+ * The reset restores each field to its `defaultValue`, and the commit order is
+ * what makes echoing work rather than a guess: host props are written by
+ * `commitHostUpdate` earlier in the same mutation pass than the reset runs, so
+ * a `defaultValue` fed from this state is already on the node when `reset()`
+ * reads it. ContactForm does exactly that.
+ *
+ * Bounded on the way out, for the same reason `website` is bounded on the way
+ * to the log. A real visitor can never trip this - the inputs carry
+ * CONTACT_LIMITS as maxLength, so the over-length branches below are only
+ * reachable by a post that never rendered the page - but that post is the one
+ * this echoes back into HTML, and an unbounded reflection is paid for by the
+ * megabyte whether or not React escapes it.
+ */
+export type ContactValues = { name: string; email: string; company: string; message: string };
+
 export type ContactFormState =
   | { status: "idle" }
   | { status: "success" }
-  | { status: "error"; message: string };
+  | { status: "error"; message: string; values: ContactValues };
+
+const clamp = (v: string | undefined, max: number) => (v ?? "").slice(0, max);
 
 export async function submitContactForm(
   _prevState: ContactFormState,
@@ -35,8 +64,19 @@ export async function submitContactForm(
   const website = formData.get("website")?.toString().trim();
   const message = formData.get("message")?.toString().trim();
 
+  // Built once, before the first refusal, so no branch below can be the one
+  // that forgot. The honeypot is deliberately not in it: nothing renders that
+  // field with a value, and echoing a bot's own string back at it is the tell
+  // the success return two screens down exists to withhold.
+  const values: ContactValues = {
+    name: clamp(name, LIMITS.name),
+    email: clamp(email, LIMITS.email),
+    company: clamp(company, LIMITS.company),
+    message: clamp(message, LIMITS.message),
+  };
+
   if (!name || !email || !message) {
-    return { status: "error", message: "Name, email, and message are required." };
+    return { status: "error", message: "Name, email, and message are required.", values };
   }
 
   // Bounded before the regex, because the regex is two unbounded runs either
@@ -44,11 +84,11 @@ export async function submitContactForm(
   // that becomes a header rather than a body line, and it was the one field
   // the comment above promised was bounded and was not.
   if (email.length > LIMITS.email) {
-    return { status: "error", message: "That email address is longer than an address can be." };
+    return { status: "error", message: "That email address is longer than an address can be.", values };
   }
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return { status: "error", message: "Please enter a valid email address." };
+    return { status: "error", message: "Please enter a valid email address.", values };
   }
 
   /**
@@ -82,10 +122,10 @@ export async function submitContactForm(
   }
 
   if (name.length > LIMITS.name) {
-    return { status: "error", message: "That name is longer than we can send. Please shorten it." };
+    return { status: "error", message: "That name is longer than we can send. Please shorten it.", values };
   }
   if (company && company.length > LIMITS.company) {
-    return { status: "error", message: "That agency name is longer than we can send. Please shorten it." };
+    return { status: "error", message: "That agency name is longer than we can send. Please shorten it.", values };
   }
   if (message.length > LIMITS.message) {
     return {
@@ -94,6 +134,7 @@ export async function submitContactForm(
         "That message is over " +
         LIMITS.message +
         " characters. Send the short version and we will ask for the rest.",
+      values,
     };
   }
 
@@ -116,6 +157,7 @@ export async function submitContactForm(
       status: "error",
       message:
         "We could not send that just now. Please email hello@alwayscited.com directly and we will pick it up.",
+      values,
     };
   }
 
@@ -144,6 +186,7 @@ export async function submitContactForm(
         status: "error",
         message:
           "We could not send that just now. Please email hello@alwayscited.com directly and we will pick it up.",
+        values,
       };
     }
   } catch (err) {
@@ -152,6 +195,7 @@ export async function submitContactForm(
       status: "error",
       message:
         "We could not send that just now. Please email hello@alwayscited.com directly and we will pick it up.",
+      values,
     };
   }
 

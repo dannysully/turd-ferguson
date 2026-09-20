@@ -239,7 +239,16 @@ export default function CoverageForm() {
             Coverage <span style={{ fontWeight: 400, color: T.soft }}>optional</span>
           </label>
           <input id="cc-coverage" type="file" accept=".csv,.txt,text/csv,text/plain" onChange={onFile} style={{ ...field, padding: "9px 11px" }} />
+          {/* The parse result, and the only feedback a chosen file gets. It is
+              polite rather than assertive because it is usually good news -
+              "2 links found" - and it must not cut across the file picker
+              closing. The case it exists for is the file whose link column
+              holds headlines: that note is the difference between an upload
+              that stored nothing and one that looks identical to a success,
+              and until now it was drawn in red and said out loud to nobody.
+              The colour is not the signal either way; the sentence is. */}
           <p
+            role="status"
             style={{
               margin: "6px 0 0",
               fontSize: "12.5px",
@@ -255,7 +264,9 @@ export default function CoverageForm() {
       <Turnstile onToken={setTurnstileToken} />
 
       {error && (
-        <p style={{ margin: "12px 0 0", fontSize: "13px", color: T.badFg, lineHeight: 1.55 }}>{error}</p>
+        <p role="alert" style={{ margin: "12px 0 0", fontSize: "13px", color: T.badFg, lineHeight: 1.55 }}>
+          {error}
+        </p>
       )}
 
       <button

@@ -54,6 +54,22 @@ const labelStyle: React.CSSProperties = {
 export default function ContactForm() {
   const [state, formAction, pending] = useActionState(submitContactForm, initialState);
 
+  /**
+   * What the visitor typed, put back as the fields' defaults.
+   *
+   * Not decoration. React resets a form with a function `action` on every
+   * submission whatever the action returns - see the note on ContactValues -
+   * so before this, an enquiry that failed the email regex came back as four
+   * empty boxes and the sender had to write it again. The reset restores each
+   * field to its `defaultValue` and runs after the new props are on the node,
+   * so feeding the defaults from state is what survives it.
+   *
+   * These stay uncontrolled. Making them controlled would fix the same thing
+   * and cost a re-render per keystroke on a form whose whole job is to be
+   * typed into.
+   */
+  const typed = state.status === "error" ? state.values : undefined;
+
   if (state.status === "success") {
     /**
      * role="status" because this panel replaces the whole form. The error
@@ -84,6 +100,7 @@ export default function ContactForm() {
         required
         maxLength={CONTACT_LIMITS.name}
         autoComplete="name"
+        defaultValue={typed?.name ?? ""}
         style={inputStyle}
       />
 
@@ -98,6 +115,7 @@ export default function ContactForm() {
         maxLength={CONTACT_LIMITS.email}
         autoComplete="email"
         placeholder="you@youragency.com"
+        defaultValue={typed?.email ?? ""}
         style={inputStyle}
       />
 
@@ -110,6 +128,7 @@ export default function ContactForm() {
         type="text"
         maxLength={CONTACT_LIMITS.company}
         autoComplete="organization"
+        defaultValue={typed?.company ?? ""}
         style={inputStyle}
       />
 
@@ -122,6 +141,7 @@ export default function ContactForm() {
         rows={4}
         required
         maxLength={CONTACT_LIMITS.message}
+        defaultValue={typed?.message ?? ""}
         style={{ ...inputStyle, resize: "vertical" }}
       />
 

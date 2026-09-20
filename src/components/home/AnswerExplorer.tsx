@@ -206,6 +206,35 @@ export default function AnswerExplorer() {
   const sel = DATA[picked];
   const selQ = workedQuestion(sel.id);
 
+  /**
+   * Whether any engine named the brand on the selected question - the same
+   * fact the pill in the list opposite is already drawn from.
+   *
+   * The two disagreed, and on three of the five questions. The list picks
+   * `WARN` or `BAD` off `q.engines.length`; the "You" row here was fixed at the
+   * bad palette, so `crm-b2b`, `xero` and `competitor-alternatives` rendered
+   * "Named by ChatGPT only" and "Named by Google AI Overviews and Gemini" in
+   * the site's failure red, inside a red card, under a heading that reads
+   * "The gap" - while the amber pill for the same question sat three inches to
+   * the left. A page whose argument is "count who named you" cannot colour a
+   * partial result as a nil one.
+   *
+   * The board does this too (Main.dc.html carries `pill: WARN` on three rows
+   * and a hardcoded `#b3372f` on the "You" span for all five), so this is a
+   * deliberate departure from it rather than a translation slip. It is the
+   * usual rule: the board is the source for the design, not for a state it
+   * only ever drew once.
+   *
+   * The named card takes `T.line` rather than a warn-coloured border because
+   * no `warnLine` token exists and the boards are exact - `T.line` is what the
+   * "Named instead" card directly below it already uses, so the pair still
+   * reads as one object. `warnFg` on white is 3.78 and sub-AA, which is
+   * blocked.md item 9 and Danny's call; this adds a fourth site to a token
+   * question rather than a fourth question, and the sentence carries the state
+   * without the colour either way.
+   */
+  const namedHere = selQ.engines.length > 0;
+
   return (
     <div style={{ ...SHELL, marginTop: "40px" }}>
       <div style={{ ...CARD, overflow: "hidden" }}>
@@ -312,13 +341,13 @@ export default function AnswerExplorer() {
                   alignItems: "center",
                   gap: "10px",
                   padding: "9px 12px",
-                  background: T.badBg,
-                  border: `1px solid ${T.badLine}`,
+                  background: namedHere ? T.warnBg : T.badBg,
+                  border: `1px solid ${namedHere ? T.line : T.badLine}`,
                   borderRadius: "10px",
                 }}
               >
                 <span style={{ fontSize: "13px", fontWeight: 600, color: T.ink, flexGrow: 1 }}>You</span>
-                <span style={{ ...pill(T.surface, T.badFg) }}>{namedBy(selQ.engines)}</span>
+                <span style={{ ...pill(T.surface, namedHere ? T.warnFg : T.badFg) }}>{namedBy(selQ.engines)}</span>
               </div>
               <div
                 style={{

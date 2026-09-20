@@ -59,6 +59,64 @@ test("every field the contact action accepts has a bound", () => {
   }
 });
 
+/**
+ * Every refusal hands back what was typed.
+ *
+ * React resets a `<form action={fn}>` on every submission and does not care
+ * whether the action succeeded - `startHostTransition` calls
+ * `requestFormReset` before it calls the action - so a refusal that returns
+ * only a sentence empties all four fields. The visitor is then asked to fix a
+ * mistake in text we have just deleted, and on the "email us directly" branch
+ * we delete the message in the same breath as telling them to send it
+ * somewhere else.
+ *
+ * Checked per return rather than per file, which is the lesson from the two
+ * tripwires in `75ff8d6`: a rule satisfied by "the word appears somewhere in
+ * this module" is satisfied by the nine correct returns while the tenth drops
+ * it. Each `status: "error"` object is sliced out by its own braces and has to
+ * carry `values` itself.
+ */
+function errorReturns(source: string): string[] {
+  const out: string[] = [];
+  for (const m of source.matchAll(/status: "error"/g)) {
+    // Walk back to the `{` that opens this object literal, then forward to its
+    // match. The object is what has to carry the field, not the function.
+    const open = source.lastIndexOf("{", m.index);
+    let depth = 0;
+    for (let i = open; i < source.length; i++) {
+      if (source[i] === "{") depth++;
+      else if (source[i] === "}" && --depth === 0) {
+        out.push(source.slice(open, i + 1));
+        break;
+      }
+    }
+  }
+  return out;
+}
+
+test("the error-return reader finds the returns this test thinks it does", () => {
+  const returns = errorReturns(SOURCE);
+  // The guard, for the same reason fieldsRead has one: a matcher that stops
+  // matching turns the assertion below into a loop over nothing that passes.
+  assert.ok(returns.length >= 8, `expected 8+ error returns in the action, found ${returns.length}`);
+  // And that each slice really is one object rather than the whole function -
+  // a runaway brace walk would swallow `values` from a neighbour and excuse
+  // every return in the file.
+  for (const r of returns) {
+    assert.ok(r.length < 500, `an error return sliced out ${r.length} characters, which is not one object`);
+  }
+});
+
+test("every refusal hands back what the visitor typed", () => {
+  for (const r of errorReturns(SOURCE)) {
+    assert.match(
+      r,
+      /\bvalues\b/,
+      "a contact-form refusal returns no `values`, so React's form reset will empty the fields:\n" + r,
+    );
+  }
+});
+
 test("no bound is large enough to be no bound", () => {
   // 5000 is the message, and it is the largest field the form has any reason
   // to carry. Anything above it is a bound somebody has stopped thinking about.
