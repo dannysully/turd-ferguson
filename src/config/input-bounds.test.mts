@@ -119,23 +119,59 @@ function inputs(): Field[] {
 }
 
 /**
- * The two inputs that are deliberately unbounded, each with the thing that
+ * The two fields that are deliberately unbounded, each with the thing that
  * bounds it instead. Earned in the test rather than assumed: the check below
  * fails if one of these stops being unbounded, so the list cannot quietly grow
  * into a blanket pass.
+ *
+ * ## `why` was prose and `holds` is the fix
+ *
+ * Every reason here names something that bounds the field instead of a
+ * `maxLength`, and until 20 September 2026 all of that was a string nothing
+ * read. Measured: deleting the route's
+ * `Buffer.byteLength(csv, "utf8") > MAX_COVERAGE_BYTES` left all 490 tests
+ * green, so the half of `cc-coverage`'s reason that says "and again by the
+ * route before it parses" - the last thing standing between the one form on
+ * this site that spends money and an unbounded upload - was a claim held by
+ * nobody. That is the `headerSafe` doc comment again, exactly: a census kept in
+ * prose, true when typed and unfalsifiable afterwards, and this is the third
+ * file to record it about itself.
+ *
+ * So an exemption now costs a `holds`: the file, and the substring in it that
+ * has to still be there. It is a weak assertion by design - a substring, not a
+ * behaviour - because the strong version is the route's own test and this is
+ * only here to stop the *reason* rotting away silently. A `holds` that names
+ * something no longer in the file fails, which is the whole point.
  */
-const EXEMPT: Record<string, string> = {
-  "c-website": [
-    "the contact honeypot. A bot does not honour maxLength, so a bound here buys",
-    "nothing, and a real visitor never reaches the field - it is tabIndex={-1}.",
-    "What protects the log is the server: contact/actions.ts slices it to",
-    "CONTACT_LIMITS.website before writing it.",
-  ].join(" "),
-  "cc-coverage": [
-    "type=file, which maxLength does not apply to at all. It is bounded by bytes",
-    "in onFile against MAX_COVERAGE_BYTES, and again by the route before it",
-    "parses.",
-  ].join(" "),
+type Exemption = { why: string; holds: { file: string; needs: string }[] };
+
+const EXEMPT: Record<string, Exemption> = {
+  "c-website": {
+    why: [
+      "the contact honeypot. A bot does not honour maxLength, so a bound here buys",
+      "nothing, and a real visitor never reaches the field - it is tabIndex={-1}.",
+      "What protects the log is the server: contact/actions.ts slices it to",
+      "CONTACT_LIMITS.website before writing it.",
+    ].join(" "),
+    holds: [{ file: "app/contact/actions.ts", needs: "website.slice(0, LIMITS.website)" }],
+  },
+  "cc-coverage": {
+    why: [
+      "type=file, which maxLength does not apply to at all. It is bounded by bytes",
+      "in onFile against MAX_COVERAGE_BYTES, and again by the route before it",
+      "parses.",
+    ].join(" "),
+    holds: [
+      // Both halves of the reason, because they are two different bounds and
+      // the route's is the one that survives a post that never rendered the
+      // page - which is the only kind this file is about.
+      { file: "components/coverage/CoverageForm.tsx", needs: "file.size > MAX_COVERAGE_BYTES" },
+      {
+        file: "app/api/coverage-check/route.ts",
+        needs: 'Buffer.byteLength(csv, "utf8") > MAX_COVERAGE_BYTES',
+      },
+    ],
+  },
 };
 
 test("the census still sees every field - a shrinking count is a blind probe", () => {
@@ -177,16 +213,45 @@ test("every input is bounded, or is on the exemption list with its reason", () =
   );
 });
 
-test("no exemption is stale - each one is still an input, and still unbounded", () => {
+test("no exemption is stale - each one is still a field, and still unbounded", () => {
   const found = inputs();
-  for (const [id, reason] of Object.entries(EXEMPT)) {
+  for (const [id, { why }] of Object.entries(EXEMPT)) {
     const field = found.find((f) => f.id === id);
-    assert.ok(field, `EXEMPT lists "${id}", which is no longer an input in the tree - drop it`);
+    assert.ok(field, `EXEMPT lists "${id}", which is no longer a field in the tree - drop it`);
     assert.ok(
       !/maxLength=/.test(field.tag),
       `EXEMPT lists "${id}" as deliberately unbounded, but it now carries a maxLength - drop it from the list`,
     );
-    assert.ok(reason.length > 40, `EXEMPT["${id}"] needs a reason, not a placeholder`);
+    assert.ok(why.length > 40, `EXEMPT["${id}"] needs a reason, not a placeholder`);
+  }
+});
+
+/**
+ * And that what the reason points at is still there.
+ *
+ * Comments stripped before matching, for the reason the census at the foot of
+ * this file strips them: a reason quoted back in a doc comment beside the code
+ * it describes would satisfy this against a file where the code had gone.
+ */
+test("every exemption's reason points at something that is still in the tree", () => {
+  for (const [id, { holds }] of Object.entries(EXEMPT)) {
+    assert.ok(
+      holds.length > 0,
+      `EXEMPT["${id}"] has no holds - an exemption whose reason nothing checks is the prose census this list replaced`,
+    );
+    for (const { file, needs } of holds) {
+      const path = join(SRC, file);
+      let source: string;
+      try {
+        source = readFileSync(path, "utf8");
+      } catch {
+        assert.fail(`EXEMPT["${id}"] says ${file} bounds it, and that file is gone`);
+      }
+      assert.ok(
+        code(source).includes(needs),
+        `EXEMPT["${id}"] says ${file} bounds it with \`${needs}\`, and that is no longer in the file. Either the bound moved - update holds - or it went, and this field is now unbounded end to end.`,
+      );
+    }
   }
 });
 
