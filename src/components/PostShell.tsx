@@ -77,13 +77,23 @@ export default function PostShell(p: {
   const meta = formatPostDate(p.post.date) + " - " + p.post.readMinutes + " min read";
   return (
     <div className="post-shell" style={{ ...SHELL, paddingTop: "40px" }}>
+      {/* The beat is on the header block and the two aside cards, and
+          deliberately not on the body: `p.children` is the argument, and prose
+          that arrives a paragraph at a time is the sparkle globals.css already
+          declined for the chart tables. The body div carries no `.ac-row`, so
+          it also takes no index and the five header rows stay contiguous. */}
       <article>
-        <Link href="/blog" style={{ fontSize: "13px", fontWeight: 600, textDecoration: "none", color: T.accent }}>
+        <Link
+          className="ac-row"
+          href="/blog"
+          style={{ display: "block", fontSize: "13px", fontWeight: 600, textDecoration: "none", color: T.accent }}
+        >
           Back to writing
         </Link>
 
-        <div style={{ ...MICRO, marginTop: "20px" }}>{p.post.kind}</div>
+        <div className="ac-row" style={{ ...MICRO, marginTop: "20px" }}>{p.post.kind}</div>
         <h1
+          className="ac-row"
           style={{
             margin: "10px 0 0",
             fontSize: "34px",
@@ -95,11 +105,15 @@ export default function PostShell(p: {
         >
           {p.post.title}
         </h1>
-        <p style={{ margin: "14px 0 0", fontSize: "16px", lineHeight: 1.6, color: T.soft, maxWidth: "68ch" }}>
+        <p
+          className="ac-row"
+          style={{ margin: "14px 0 0", fontSize: "16px", lineHeight: 1.6, color: T.soft, maxWidth: "68ch" }}
+        >
           {p.standfirst}
         </p>
 
         <div
+          className="ac-row"
           style={{
             marginTop: "18px",
             paddingTop: "14px",
@@ -119,7 +133,7 @@ export default function PostShell(p: {
       </article>
 
       <aside style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
-        <div style={{ ...CARD, padding: "22px" }}>
+        <div className="ac-row" style={{ ...CARD, padding: "22px" }}>
           <div style={MICRO}>Run it yourself</div>
           <p style={{ margin: "8px 0 14px", fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
             Your own buying questions, on your own domain. Free, no call.
@@ -156,7 +170,7 @@ export default function PostShell(p: {
         </div>
 
         {p.sections.length ? (
-          <div style={{ ...CARD, padding: "22px" }}>
+          <div className="ac-row" style={{ ...CARD, padding: "22px" }}>
             <div style={MICRO}>On this page</div>
             <ul
               style={{

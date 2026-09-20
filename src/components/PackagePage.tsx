@@ -114,13 +114,27 @@ export default function PackagePage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: ld(serviceSchema(tier, standfirst)) }}
       />
+      {/* The beat, from globals.css, on the groups that were already siblings.
+          These four pages shipped with no motion at all - `fa251a1` extended
+          coverage to "the sections that had none" and meant the homepage's, so
+          19 of the 22 prerendered pages had none of their own. Nothing here is
+          a new rule or a new class: `.ac-row` is the site's one entrance and the
+          index comes from the document's own structure, so the only decision
+          taken per group is which elements are the beat. Leaf content rather
+          than the wrappers around it, deliberately - a row inside a row animates
+          twice and reads as mush. */}
       <div className="confirm-top">
         <div>
-          <Link href="/#packages" style={{ fontSize: "13px", fontWeight: 600, textDecoration: "none", color: T.accent }}>
+          <Link
+            className="ac-row"
+            href="/#packages"
+            style={{ display: "block", fontSize: "13px", fontWeight: 600, textDecoration: "none", color: T.accent }}
+          >
             All packages
           </Link>
-          <div style={{ ...MICRO, marginTop: "18px" }}>Package</div>
+          <div className="ac-row" style={{ ...MICRO, marginTop: "18px" }}>Package</div>
           <h1
+            className="ac-row"
             style={{
               margin: "10px 0 0",
               fontSize: "36px",
@@ -132,12 +146,15 @@ export default function PackagePage({
           >
             <TierName tier={tier.key} qualifier={tier.qualifier} />
           </h1>
-          <p style={{ margin: "12px 0 0", fontSize: "15.5px", lineHeight: 1.65, color: T.soft, maxWidth: "60ch" }}>
+          <p
+            className="ac-row"
+            style={{ margin: "12px 0 0", fontSize: "15.5px", lineHeight: 1.65, color: T.soft, maxWidth: "60ch" }}
+          >
             <TierText>{standfirst}</TierText>
           </p>
         </div>
 
-        <div style={{ ...CARD, padding: "24px", alignSelf: "start" }}>
+        <div className="ac-row" style={{ ...CARD, padding: "24px", alignSelf: "start" }}>
           <div style={{ fontSize: "36px", fontWeight: 700, letterSpacing: "-0.035em", lineHeight: 1.1 }}>
             {tier.priceLabel}
           </div>
@@ -182,10 +199,10 @@ export default function PackagePage({
 
       <div>
         <div className="board-head confirm-head" style={{ marginBottom: "14px" }}>
-          <h2 style={{ margin: 0, fontSize: "19px", fontWeight: 700, letterSpacing: "-0.022em", color: T.ink }}>
+          <h2 className="ac-row" style={{ margin: 0, fontSize: "19px", fontWeight: 700, letterSpacing: "-0.022em", color: T.ink }}>
             What lands each month
           </h2>
-          <p style={{ margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
+          <p className="ac-row" style={{ margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
             Stated as deliverables rather than adjectives, so you can hold us to it.
           </p>
         </div>
@@ -200,7 +217,7 @@ export default function PackagePage({
               closes the gap rather than fixing a live defect. TierText is a
               no-op on a string with no tier name in it. */}
           {sections.map((s) => (
-            <div key={s.heading} className="deliverable" style={{ borderBottom: "1px solid " + T.hair }}>
+            <div key={s.heading} className="deliverable ac-row" style={{ borderBottom: "1px solid " + T.hair }}>
               <div style={{ fontSize: "14.5px", fontWeight: 600 }}>
                 <TierText>{s.heading}</TierText>
               </div>
@@ -209,7 +226,7 @@ export default function PackagePage({
               </div>
             </div>
           ))}
-          <div className="deliverable">
+          <div className="deliverable ac-row">
             <div style={{ fontSize: "14.5px", fontWeight: 600 }}>Also included</div>
             <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: "7px" }}>
               {included.map((item) => (
@@ -252,10 +269,10 @@ export default function PackagePage({
 
       <div>
         <div className="board-head confirm-head" style={{ marginBottom: "14px" }}>
-          <h2 style={{ margin: 0, fontSize: "19px", fontWeight: 700, letterSpacing: "-0.022em", color: T.ink }}>
+          <h2 className="ac-row" style={{ margin: 0, fontSize: "19px", fontWeight: 700, letterSpacing: "-0.022em", color: T.ink }}>
             Where it sits
           </h2>
-          <p style={{ margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
+          <p className="ac-row" style={{ margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
             Each tier contains the one below it. Nothing here is a different product.
           </p>
         </div>
@@ -266,6 +283,7 @@ export default function PackagePage({
             return (
               <a
                 key={t.id}
+                className="ac-row"
                 href={t.href}
                 style={{
                   flexGrow: 1,
@@ -291,7 +309,7 @@ export default function PackagePage({
         </div>
       </div>
 
-      <p style={{ margin: 0, fontSize: "13.5px", color: T.soft, lineHeight: 1.65 }}>
+      <p className="ac-row" style={{ margin: 0, fontSize: "13.5px", color: T.soft, lineHeight: 1.65 }}>
         Not sure which tier a client needs?{" "}
         <Link href="/#scan" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
           Run the free scan
