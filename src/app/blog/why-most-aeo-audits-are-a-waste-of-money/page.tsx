@@ -65,7 +65,7 @@ export default function Post() {
       {/* This paragraph used to read "LLMs don't cite vendor websites - they
           cite editorial publications about vendor websites". That is a flat
           statement about what an engine does, with no source and no date, and
-          our own code contradicts it: `SourceKind` in src/lib/scan/sources.ts
+          our own code contradicts it: `SourceKind` in src/lib/scan/source-kinds.ts
           is "own" | "competitor" | "review" | "placement" | "other", so the
           scan reports the client's own domain, and a competitor's, as source
           categories. /alwayscited sells schema work on the client's pages "so

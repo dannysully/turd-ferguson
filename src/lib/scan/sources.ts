@@ -5,80 +5,19 @@ import { selectAll } from "@/lib/supabase/page";
 
 import { classifySourceDomains } from "./anthropic";
 import { normalizeDomain } from "./domain";
+import { type SourceKind, sortSource } from "./source-kinds";
 
 /**
  * What kind of site a cited source is. This is the actionable half of the
  * report: a competitor's site and a trade publication call for different work,
  * and a review site for different work again.
+ *
+ * The type and the whole decision in front of the classifier now live in
+ * `source-kinds.ts`, which carries no `server-only` and no database, so a test
+ * can execute them. Re-exported here because this is where the rest of the
+ * tree imports it from.
  */
-export type SourceKind = "own" | "competitor" | "review" | "placement" | "other";
-
-/**
- * Review and directory sites. A brand gets onto these through reviews and
- * listings, which is a different job from placing an article, so the report
- * says so rather than lumping them in with publications.
- */
-const REVIEW_SITES: Record<string, string> = {
-  "g2.com": "Software review site",
-  "capterra.com": "Software review site",
-  "getapp.com": "Software review site",
-  "softwareadvice.com": "Software review site",
-  "trustradius.com": "Software review site",
-  "crozdesk.com": "Software review site",
-  "saasworthy.com": "Software review site",
-  "alternativeto.net": "Software directory",
-  "producthunt.com": "Product launch directory",
-  "trustpilot.com": "Consumer review site",
-  "reviews.io": "Consumer review site",
-  "feefo.com": "Consumer review site",
-  "clutch.co": "Agency review and directory site",
-  "goodfirms.co": "Agency review and directory site",
-  "designrush.com": "Agency directory",
-  "gartner.com": "Analyst reviews and rankings",
-  "yelp.com": "Local business reviews",
-  "tripadvisor.com": "Travel reviews",
-  "tripadvisor.co.uk": "Travel reviews",
-  "checkatrade.com": "Trade reviews and directory",
-  "glassdoor.com": "Employer reviews",
-  "glassdoor.co.uk": "Employer reviews",
-  "crunchbase.com": "Company directory",
-};
-
-/** Neither a competitor nor anywhere an article can be placed. */
-const OTHER_SITES: Record<string, string> = {
-  "wikipedia.org": "Reference site",
-  "youtube.com": "Video platform",
-  "reddit.com": "Community - earned through participation, not placement",
-  "quora.com": "Community - earned through participation, not placement",
-  "linkedin.com": "Social network",
-  "facebook.com": "Social network",
-  "instagram.com": "Social network",
-  "x.com": "Social network",
-  "twitter.com": "Social network",
-  "tiktok.com": "Social network",
-  "amazon.com": "Marketplace",
-  "amazon.co.uk": "Marketplace",
-  "google.com": "The engine's own property",
-  "bing.com": "The engine's own property",
-};
-
-function matchKnown(domain: string, table: Record<string, string>): string | null {
-  for (const [site, note] of Object.entries(table)) {
-    if (domain === site || domain.endsWith(`.${site}`)) return note;
-  }
-  return null;
-}
-
-/** Settles a domain without a model call, or returns null to ask the model. */
-function knownKind(domain: string): { kind: SourceKind; note: string } | null {
-  const review = matchKnown(domain, REVIEW_SITES);
-  if (review) return { kind: "review", note: review };
-  const other = matchKnown(domain, OTHER_SITES);
-  if (other) return { kind: "other", note: other };
-  if (/\.gov(\.[a-z]{2})?$/.test(domain)) return { kind: "other", note: "Government site" };
-  if (domain.endsWith(".ac.uk") || domain.endsWith(".edu")) return { kind: "other", note: "Academic site" };
-  return null;
-}
+export type { SourceKind };
 
 /**
  * Labels every cited source the scan has not labelled yet. Idempotent: the
@@ -185,13 +124,9 @@ export async function classifySources(
   const unknown: string[] = [];
 
   for (const d of domains) {
-    if (d === own || d.endsWith(`.${own}`)) {
-      rows.push({ scan_id: scanId, domain: d, kind: "own", note: "Your own site", on_topic: true });
-      continue;
-    }
-    const known = knownKind(d);
-    if (known) {
-      rows.push({ scan_id: scanId, domain: d, ...known, on_topic: true });
+    const settled = sortSource(d, own);
+    if (settled) {
+      rows.push({ scan_id: scanId, domain: d, ...settled });
       continue;
     }
     unknown.push(d);
