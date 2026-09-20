@@ -3,7 +3,7 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { test } from "node:test";
 
-import { PAID, apiRoutes, code, mailSenders, missingEntryPoints, spendingRoutes, vendors } from "./spenders.mts";
+import { PAID, apiRoutes, code, mailSenders, missingEntryPoints, spendingRoutes, spends, vendors } from "./spenders.mts";
 
 /**
  * Every **route** in this tree that can cause somebody to be billed, and what
@@ -44,7 +44,7 @@ import { PAID, apiRoutes, code, mailSenders, missingEntryPoints, spendingRoutes,
  * 3. **The kill switch's reach is measured, not assumed.** `scans_enabled` is
  *    documented in `settings-merge.ts` as the switch thrown in a hurry "by
  *    someone who will not then go and check that it took". It reaches three of
- *    the seven doors. That gap is real, it is Danny's call rather than mine
+ *    the eight doors. That gap is real, it is Danny's call rather than mine
  *    (docs/blocked.md), and pinning it here means it cannot widen silently
  *    while the question is open.
  *
@@ -239,6 +239,64 @@ test("the derived vendor walk still finds the mail senders", () => {
       `${v} is on the vendor list and is not a module any more`,
     );
   }
+});
+
+/**
+ * The detector shown finding what it is for, on text written here.
+ *
+ * A clean tree makes the set below correct and so does a detector that has
+ * stopped matching - the state every sweep in this repo has been caught in at
+ * least once. These three shapes are the ones the first version of `spends`
+ * could not see, and two of them were invisible *by construction* rather than
+ * by an oversight in a list:
+ *
+ *  - a route importing the vendor package itself, which `mailSenders` would
+ *    list under the route's own specifier - and no file's source contains its
+ *    own import path, so the set grew and the answer stayed `false`;
+ *  - a route importing a vendor by a relative path, which this tree uses on
+ *    purpose in two places and tells you not to tidy back.
+ *
+ * Found by asking the refill question of this file's own helper on the day it
+ * was written, which is the practice that has paid twelve times here.
+ */
+test("the spend detector sees a vendor reached three different ways", () => {
+  const v = vendors(ROOT);
+
+  assert.ok(
+    spends('import { Resend } from "resend";\nexport async function POST() {}', v),
+    "a route importing Resend itself does not read as a spender - the most direct spend there is",
+  );
+  assert.ok(
+    spends('import { readBrand } from "../../../lib/scan/anthropic";\nexport async function POST() {}', v),
+    "a vendor imported by a relative path does not read as a spender",
+  );
+  assert.ok(
+    spends('import { readBrand } from "@/lib/scan/anthropic";\nexport async function POST() {}', v),
+    "a vendor imported by its @/ specifier does not read as a spender",
+  );
+});
+
+/**
+ * And the other way, which is what makes the three above mean anything: a
+ * detector that answered `true` for everything would satisfy all of them.
+ *
+ * Its own test, not a fourth assertion above - the injection harness reports
+ * which named subtest fired, so a case landing in the wrong branch is
+ * indistinguishable from one landing in the right branch otherwise.
+ */
+test("the spend detector still refuses a route that only reads rows", () => {
+  const v = vendors(ROOT);
+
+  assert.ok(
+    !spends('import { supabaseAdmin } from "@/lib/supabase/admin";\nexport async function GET() {}', v),
+    "a route that only reads rows reads as a spender, so the detector answers true for everything",
+  );
+  // The comment strip, on the shape that is not a call. `start/route.ts`
+  // discusses runScan and completeUnlock in prose without calling either.
+  assert.ok(
+    !spends('// import { Resend } from "resend";\n/* runScan( */\nexport async function GET() {}', v),
+    "prose describing a paid call reads as one",
+  );
 });
 
 test("every paid entry point still exists under the name this file matches on", () => {

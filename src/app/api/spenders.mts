@@ -151,12 +151,50 @@ export function apiRoutes(root: string): Route[] {
   }));
 }
 
-/** Does this route's own source reach a paid call? */
+/**
+ * A specifier for `@/lib/scan/anthropic` that also matches
+ * `../../../../lib/scan/anthropic`, with or without an extension.
+ *
+ * Keyed on the last two path segments rather than the whole `@/` path, and
+ * that is the fix for the second hole below rather than tidiness: a relative
+ * import climbing out of `src/app` does not contain the leading segment at
+ * all, so `app/contact/actions` never appears in `../../contact/actions`.
+ * Two segments is specific enough that nothing else in this tree matches one.
+ */
+function importsModule(c: string, specifier: string): boolean {
+  const tail = specifier.replace(/^@\//, "").split("/").slice(-2).join("/");
+  const escaped = tail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`from "[^"]*${escaped}(\\.tsx?)?"`).test(c);
+}
+
+/**
+ * Does this route's own source reach a paid call?
+ *
+ * ## Two holes this had on the day it was written, both found by asking the
+ * refill question of it before the push had finished deploying
+ *
+ * 1. **A route that imports Resend itself read as not spending**, which is the
+ *    most direct way to spend there is. The specifier match could not see it
+ *    by construction: `mailSenders` walks all of `src`, so such a route is
+ *    listed under *its own* specifier, and a file's source never contains its
+ *    own import path. The set would have grown by one and the answer would
+ *    have stayed `false`. It is checked for the package directly now.
+ * 2. **A relative import of a vendor was invisible.** Nothing in `src/app/api`
+ *    imports relatively today - measured, not assumed - but this tree has a
+ *    standing rule that two modules import relatively on purpose and must not
+ *    be tidied back to `@/`, so the idiom is live here. `importsModule` keys
+ *    on the last two path segments, which survive any number of `../`.
+ *
+ * Both were one line, both were invisible to every assertion over the set, and
+ * both are the same error as the one this file was created for: the check was
+ * right about the shape in front of whoever wrote it.
+ */
 export function spends(routeSrc: string, vendorList: string[]): boolean {
   const c = code(routeSrc);
-  const calls = Object.keys(PAID).some((fn) => new RegExp(`\\b${fn}\\s*\\(`).test(c));
-  const vendor = vendorList.some((v) => c.includes(`"${v}"`));
-  return calls || vendor;
+  if (Object.keys(PAID).some((fn) => new RegExp(`\\b${fn}\\s*\\(`).test(c))) return true;
+  // The vendor package itself, not a module that wraps it. See (1) above.
+  if (/from "resend"/.test(c)) return true;
+  return vendorList.some((v) => importsModule(c, v));
 }
 
 /** The set both sweeps are about, sorted by route name. */
