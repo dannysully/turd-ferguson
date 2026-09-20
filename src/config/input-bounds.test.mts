@@ -319,6 +319,19 @@ test("the routes behind these fields compare against the same constants", () => 
  * check has - the same one the three-route check above carries. What holds the
  * derived half is the census at the foot of this file: `topicVariant` is a key
  * in a table now, so a route that stops reading it makes that census fail.
+ *
+ * **Both halves were keyed on the SHAPE of the fix until 20 Sep 2026**, and the
+ * cap half read `.slice(0, TOPIC_VARIANT_COUNT)` literally. When the cleaning
+ * moved into `normaliseTopicVariants` the cap became an argument, the property
+ * was still true, and this rule failed on it - `296739d`'s species arriving
+ * from the other side, where the walk can only see the files that still have
+ * the old fix in them. It asks for the constant now, not for the call that
+ * happens to consume it.
+ *
+ * The derived version of this rule lives in `src/lib/scan/topic-variants.test.mts`,
+ * which walks every door onto the column rather than naming two. What is kept
+ * here is the half that file does not do: that no typed number is compared
+ * against a variant length in these routes.
  */
 const VARIANT_ROUTES = ["confirm/route.ts", "questions/route.ts"];
 
@@ -328,8 +341,12 @@ test("both routes that take topic_variants read one cap, not two that match", ()
     assert.ok(file, `${route} was not found - this check has gone blind`);
     const text = code(readFileSync(file, "utf8"));
     assert.ok(
-      /\.slice\(\s*0\s*,\s*TOPIC_VARIANT_COUNT\s*\)/.test(text),
+      /\bTOPIC_VARIANT_COUNT\b/.test(text),
       `${route} caps topic_variants at something other than TOPIC_VARIANT_COUNT`,
+    );
+    assert.ok(
+      !/\bcap\s*:\s*\d/.test(text) && !/\.slice\(\s*0\s*,\s*\d/.test(text),
+      `${route} caps topic_variants at a typed number`,
     );
     assert.ok(
       text.includes("SCAN_LIMITS.topicVariant.min") && text.includes("SCAN_LIMITS.topicVariant.max"),

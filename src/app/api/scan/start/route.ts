@@ -1,6 +1,7 @@
 import { after } from "next/server";
 
-import { describeAnthropicError, QUESTION_COUNT, readBrand } from "@/lib/scan/anthropic";
+import { SCAN_LIMITS } from "@/config/contact";
+import { describeAnthropicError, QUESTION_COUNT, readBrand, TOPIC_VARIANT_COUNT } from "@/lib/scan/anthropic";
 import { checkCeilings } from "@/lib/scan/ceilings";
 import { type ReadFailure, readSite, UnreachableDomain } from "@/lib/scan/crawl";
 import { isMarket, isPlausibleDomain, normalizeDomain } from "@/lib/scan/domain";
@@ -8,6 +9,7 @@ import { estimateScanCost } from "@/lib/scan/engine-costs";
 import { clientIp, hashIp } from "@/lib/scan/ip";
 import { getSettings } from "@/lib/scan/settings";
 import { recordModelCallDebit } from "@/lib/scan/spend";
+import { normaliseTopicVariants } from "@/lib/scan/topic-variants";
 import { verifyTurnstile } from "@/lib/scan/turnstile";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
@@ -257,7 +259,20 @@ export async function POST(req: Request) {
       brand_name: read.brand_name,
       positioning: read.positioning,
       topic: read.confidence === "high" ? read.suggested_topic : null,
-      topic_variants: read.topic_variants ?? [],
+      /**
+       * Cleaned on the way in, rather than stored raw and cleaned twice later.
+       *
+       * This stored the model's array verbatim, and that row is what
+       * `ScanFlow` posts back to `/confirm` - so the list that reached the door
+       * folding the least was the least folded list there is. The topic passed
+       * is the one being stored, so a null topic folds nothing while the dedupe
+       * still applies. See `topic-variants.test.mts`.
+       */
+      topic_variants: normaliseTopicVariants(
+        read.confidence === "high" ? read.suggested_topic : null,
+        read.topic_variants ?? [],
+        { min: SCAN_LIMITS.topicVariant.min, max: SCAN_LIMITS.topicVariant.max, cap: TOPIC_VARIANT_COUNT },
+      ),
       market,
       status: "pending_topic",
       ip_hash: ipHash,

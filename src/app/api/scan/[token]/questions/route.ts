@@ -7,6 +7,7 @@ import {
   TOPIC_VARIANT_COUNT,
 } from "@/lib/scan/anthropic";
 import { isMarket } from "@/lib/scan/domain";
+import { normaliseTopicVariants } from "@/lib/scan/topic-variants";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -120,18 +121,23 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
    * capitalisation then counted nothing and toggled nothing - a dead control
    * on the first screen of the funnel, reading identically to the live one
    * beside it.
+   *
+   * What this route did NOT do, until 20 Sep 2026, is dedupe the variants
+   * against each other - and `clusters` below is `[topic, ...variants]`, which
+   * `ConfirmScreen` renders with `key={c}`. One repeated string is two chips
+   * under one React key, both toggling the same cluster, while the footer's
+   * `keptClusters` Set counts one. The model is asked for "up to 5 ways buyers
+   * phrase this category", so two spellings of one phrase is its ordinary
+   * failure rather than an edited payload.
+   *
+   * Both folds live in `normaliseTopicVariants` now, with `/confirm` and
+   * `/scan/start`, because this was the only one of the three doing either.
    */
-  const topicKey = topic.toLowerCase();
-  const variants = supplied
-    .filter((v): v is string => typeof v === "string")
-    .map((v) => v.trim().toLowerCase())
-    .filter(
-      (v) =>
-        v.length >= SCAN_LIMITS.topicVariant.min &&
-        v.length <= SCAN_LIMITS.topicVariant.max &&
-        v !== topicKey,
-    )
-    .slice(0, TOPIC_VARIANT_COUNT);
+  const variants = normaliseTopicVariants(topic, supplied, {
+    min: SCAN_LIMITS.topicVariant.min,
+    max: SCAN_LIMITS.topicVariant.max,
+    cap: TOPIC_VARIANT_COUNT,
+  });
 
   /**
    * One rewrite, taken before it is spent.

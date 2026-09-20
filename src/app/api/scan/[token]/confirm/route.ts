@@ -4,6 +4,7 @@ import { SCAN_LIMITS } from "@/config/contact";
 import { QUESTION_COUNT, QUESTION_KINDS, TOPIC_VARIANT_COUNT } from "@/lib/scan/anthropic";
 import { isMarket } from "@/lib/scan/domain";
 import { runScan } from "@/lib/scan/pipeline";
+import { normaliseTopicVariants } from "@/lib/scan/topic-variants";
 import { isFreePassDead, reapStalledFreePass } from "@/lib/scan/stall";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
@@ -147,13 +148,21 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
    * dropping everything past the fifth: the visitor confirms seven chips and
    * the scan runs five. A coincidence waiting to stop being one, which is what
    * `ConfirmScreen`'s `maxLength={200}` was.
+   *
+   * The cleaning itself moved to `normaliseTopicVariants` on 20 Sep 2026, and
+   * moving it is what showed this door was doing less than the one two screens
+   * earlier: `/questions` drops a variant identical to the topic and this did
+   * not, while *this* is the route that writes the set the rest of the scan
+   * trusts. Neither deduped. Both are that function's job now, and
+   * `topic-variants.test.mts` walks every door onto the column so a third
+   * cannot go on sanitising it its own way.
    */
   const variants = Array.isArray(body.topic_variants)
-    ? body.topic_variants
-        .filter((v): v is string => typeof v === "string")
-        .map((v) => v.trim().toLowerCase())
-        .filter((v) => v.length >= SCAN_LIMITS.topicVariant.min && v.length <= SCAN_LIMITS.topicVariant.max)
-        .slice(0, TOPIC_VARIANT_COUNT)
+    ? normaliseTopicVariants(topic, body.topic_variants, {
+        min: SCAN_LIMITS.topicVariant.min,
+        max: SCAN_LIMITS.topicVariant.max,
+        cap: TOPIC_VARIANT_COUNT,
+      })
     : undefined;
 
   /**
