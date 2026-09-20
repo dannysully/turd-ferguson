@@ -312,29 +312,29 @@ details summary::-webkit-details-marker {
    shared time axis. A line that draws left to right is that claim, shown.
    Staggered table rows would have been sparkle, so they are not built.
 
-   Scroll-driven, with no JavaScript. Where view() timelines are not
-   supported the @supports block never applies and the chart renders solid,
-   which is the correct resting state rather than a degraded one. The same is
-   true under prefers-reduced-motion. pathLength normalises both polylines to
-   1 so one rule draws either of them regardless of their real length. */
+   The timing is the board's - seqDash at 1.2s ease-out after .3s, the same
+   draw the waiting sequence uses - and the trigger is the section entering
+   view. Everything below sits under html[data-motion="on"], which only
+   Motion.tsx sets and only after it has cleared prefers-reduced-motion and
+   IntersectionObserver, so with no JavaScript the chart renders solid: the
+   correct resting state rather than a degraded one. pathLength normalises
+   both polylines to 1 so one rule draws either of them regardless of their
+   real length. */
 
-@media (prefers-reduced-motion: no-preference) {
-  @supports (animation-timeline: view()) {
-    .chart-line {
-      stroke-dasharray: 1;
-      stroke-dashoffset: 1;
-      animation: chart-draw linear both;
-      animation-timeline: view();
-      animation-range: entry 25% cover 40%;
-    }
+html[data-motion="on"] .chart-line {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+html[data-motion="on"] .chart-line.in-view {
+  animation: chart-draw 1.2s ease-out 0.3s both;
+}
 
-    .chart-dot {
-      opacity: 0;
-      animation: chart-dot linear both;
-      animation-timeline: view();
-      animation-range: cover 38% cover 48%;
-    }
-  }
+html[data-motion="on"] .chart-dot {
+  opacity: 0;
+}
+/* The dot is the reading the line arrives at, so it lands after the draw. */
+html[data-motion="on"] .chart-dot.in-view {
+  animation: chart-dot 0.45s ease-out 1.2s both;
 }
 
 @keyframes chart-draw {
@@ -427,24 +427,23 @@ details summary::-webkit-details-marker {
 
 /* The page's one beat: which coverage feeds an answer and which stops.
    Only the connectors move - the cards hold text and nothing that holds
-   text starts invisible. Same view() approach as the homepage charts, so
-   with no support or reduced motion the lines are simply drawn. */
-@media (prefers-reduced-motion: no-preference) {
-  @supports (animation-timeline: view()) {
-    .flow-line {
-      stroke-dasharray: 1;
-      stroke-dashoffset: 1;
-      animation: chart-draw linear both;
-      animation-timeline: view();
-      animation-range: entry 30% cover 45%;
-    }
-    .flow-line--2 {
-      animation-range: entry 35% cover 50%;
-    }
-    .flow-line--3 {
-      animation-range: entry 40% cover 55%;
-    }
-  }
+   text starts invisible. Same trigger and the same draw as the homepage
+   charts, so with no JavaScript or reduced motion the lines are simply
+   drawn, including the one that deliberately goes nowhere. The three fire
+   .15s apart, which reads as the paths being followed one after another
+   rather than the diagram assembling itself at once. */
+html[data-motion="on"] .flow-line {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+html[data-motion="on"] .flow-line.in-view {
+  animation: chart-draw 1.2s ease-out 0.3s both;
+}
+html[data-motion="on"] .flow-line--2.in-view {
+  animation-delay: 0.45s;
+}
+html[data-motion="on"] .flow-line--3.in-view {
+  animation-delay: 0.6s;
 }
 
 /* ── acIn and acGrow on a static page ────────────────────────────
@@ -453,24 +452,23 @@ details summary::-webkit-details-marker {
    intervals, and CoverageCheck.dc.html does the same at .07s. Both boards
    trigger on a state change: a tier starts playing, a check finishes. The
    built pages have no such state - all four tiers render in full and the
-   benchmark does not run - so the trigger here is scroll position, on the
-   same view() timeline as the charts above.
+   benchmark does not run - so the trigger is the group entering view, and
+   from there it is the board's own timing: acIn at .45s ease-out with the
+   stagger as a delay per row.
 
-   A scroll timeline has no seconds in it, so the board's .45s duration and
-   .09s stagger cannot be written down directly. What replaces the stagger is
-   geometry rather than taste: consecutive rows start their cover phase one
-   row-height of scroll apart, which against a viewport is about a sixth of
-   the animation's own span. At an ordinary scroll speed that is the same
-   .07-.09s the boards ask for, and it stays right at any speed because it is
-   measured in the same units as the scrolling.
+   `--ac-i` is set by Motion.tsx to the row's index among its `.ac-row`
+   siblings; `--ac-stagger` is .09s here and overridden to .07s on the
+   benchmark, which is what each board asks for. Custom properties inherit,
+   so a pill inside a row picks up its row's index without being counted
+   separately.
 
-   One deliberate departure from the boards. acIn is opacity 0 -> 1, and a
-   view() animation holds its from-state for everything still below the fold,
-   so a crawler rendering the page would find the placement table and the
-   prompt list empty. ac-row lifts 8px and comes up from .55 instead: the same
-   movement, never invisible. The charts may start at 0 because a dot is not
-   content; a table row is. Same reason acStamp loses its opacity leg and
-   keeps its scale.  */
+   One deliberate departure from the boards, unchanged from the version this
+   replaces. acIn is opacity 0 -> 1, and an element waiting for a trigger
+   holds its from-state, so a crawler rendering the page would find the
+   placement table and the prompt list empty. ac-row lifts 8px and comes up
+   from .55 instead: the same movement, never invisible. The charts may start
+   at 0 because a dot is not content; a table row is. Same reason acStamp
+   loses its opacity leg and keeps its scale.  */
 
 @keyframes ac-row {
   from {
@@ -505,28 +503,51 @@ details summary::-webkit-details-marker {
   }
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  @supports (animation-timeline: view()) {
-    .ac-row {
-      animation: ac-row linear both;
-      animation-timeline: view();
-      animation-range: cover 0% cover 28%;
-    }
+html[data-motion="on"] .ac-row {
+  opacity: 0.55;
+  transform: translateY(8px);
+}
+html[data-motion="on"] .ac-row.in-view {
+  animation: ac-row 0.45s ease-out both;
+  animation-delay: calc(var(--ac-i, 0) * var(--ac-stagger, 0.09s));
+}
 
-    .ac-grow {
-      transform-origin: left center;
-      animation: ac-grow linear both;
-      animation-timeline: view();
-      animation-range: cover 2% cover 26%;
-    }
+html[data-motion="on"] .ac-grow {
+  transform-origin: left center;
+  transform: scaleX(0);
+}
+/* The board's growth easing, the one seqGrow uses in the waiting sequence. */
+html[data-motion="on"] .ac-grow.in-view {
+  animation: ac-grow 0.8s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
 
-    /* The pill lands just after the row carrying it. */
-    .ac-stamp {
-      display: inline-block;
-      animation: ac-stamp linear both;
-      animation-timeline: view();
-      animation-range: cover 6% cover 34%;
-    }
+/* The pill lands just after the row carrying it, so it reads as a
+   consequence of the row rather than a second thing arriving beside it. */
+.ac-stamp {
+  display: inline-block;
+}
+html[data-motion="on"] .ac-stamp {
+  transform: scale(0.82);
+}
+html[data-motion="on"] .ac-stamp.in-view {
+  animation: ac-stamp 0.45s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  animation-delay: calc(var(--ac-i, 0) * var(--ac-stagger, 0.09s) + 0.12s);
+}
+
+/* Belt and braces. The attribute is only set after Motion.tsx has cleared
+   the query, but the setting can be changed after the page has loaded and
+   nothing would otherwise take it back off. */
+@media (prefers-reduced-motion: reduce) {
+  html[data-motion="on"] .ac-row,
+  html[data-motion="on"] .ac-grow,
+  html[data-motion="on"] .ac-stamp,
+  html[data-motion="on"] .chart-line,
+  html[data-motion="on"] .chart-dot,
+  html[data-motion="on"] .flow-line {
+    animation: none;
+    opacity: 1;
+    transform: none;
+    stroke-dashoffset: 0;
   }
 }
 

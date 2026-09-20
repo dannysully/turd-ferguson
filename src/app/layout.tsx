@@ -3,6 +3,7 @@ import { Hanken_Grotesk } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import Motion from "@/components/Motion";
 import { ld, siteGraph } from "@/config/schema";
 
 /**
@@ -62,8 +63,15 @@ export default function RootLayout({
 }>) {
   const htmlClass = "h-full " + hanken.variable;
   return (
-    <html lang="en-GB" className={htmlClass}>
+    // Motion sets data-motion on this element before first paint, so the
+    // server's html and the client's differ by that attribute by the time
+    // React looks. suppressHydrationWarning is scoped to this one node and
+    // does not reach its children.
+    <html lang="en-GB" className={htmlClass} suppressHydrationWarning>
       <body className="min-h-full flex flex-col">
+        {/* First in the body: it has to run before the rows below it paint,
+            or the page paints settled and then drops back to the from-state. */}
+        <Motion />
         {/*
           The one Organization and WebSite node, emitted here so it reaches
           every route - including the ones no page component owns. Every

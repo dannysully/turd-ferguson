@@ -206,7 +206,10 @@ export default function CoverageCheckPage() {
           </p>
         </div>
 
-        <div style={{ ...CARD, overflow: "hidden" }}>
+        {/* CoverageCheck.dc.html staggers this list at .07s, where Journey
+            uses .09s. The property inherits, so declaring it on the card is
+            what makes every row inside it the board's own interval. */}
+        <div style={{ ...CARD, overflow: "hidden", ["--ac-stagger" as string]: "0.07s" } as React.CSSProperties}>
           {PROMPTS.map((q, i) => (
             <div key={q.q} className="cc-prompt ac-row" style={{ padding: "14px 26px", borderTop: i ? `1px solid ${T.hair}` : undefined, alignItems: "baseline" }}>
               <div>
