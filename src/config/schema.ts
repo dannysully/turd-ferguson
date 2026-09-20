@@ -73,9 +73,18 @@ export const ORG_REF = { "@id": ORG_ID };
 export const SITE_REF = { "@id": SITE_ID };
 
 /**
- * Emitted once, from the root layout, so it is present on every route -
- * including the ones no page component owns: /scan/[token], the 404 and the
- * error boundary.
+ * Emitted once, from the root layout, so it is present on every route that
+ * renders inside that layout - including the ones no marketing page owns:
+ * /scan/[token], the 404, and the route-level error boundary in error.tsx.
+ *
+ * **Not every route.** Measured off the built pages: 30 of the 31 swept states
+ * carry this graph and `_global-error.html` does not, because Next's global
+ * error fallback renders its own document rather than the root layout. This
+ * said "the error boundary" flatly, which is true of error.tsx and false of
+ * the one route that has no layout at all. `layout.tsx` and `error.tsx` both
+ * already record that there is no global-error.tsx; this file was the copy
+ * that did not. `structured-data.test.mts` holds the absence and re-earns it,
+ * so the day that page gains a block the exemption fails rather than widens.
  *
  * `parentOrganization` was already published on /about, in prose and in that
  * page's own schema. It moves here rather than being asserted anew.

@@ -928,9 +928,15 @@ export async function runGatedScan(scanId: string): Promise<void> {
   };
   const remainingMs = () => deadline - Date.now();
 
-  // This pass re-asks every question on two more engines, so a failure part
+  // This pass re-asks every question on every gated engine, so a failure part
   // way through can be dozens of reads that were paid for. Accumulated here
   // and written on the way out through either exit.
+  //
+  // Not "two more engines", which is what this said until the count drifted.
+  // `GATED_ENGINES` is empty in this tree and `app_settings.scan_engines_gated`
+  // overrides it at runtime, so the size of this pass is a row nothing here can
+  // read - see docs/blocked.md 28. `unlock.ts` and `spend.ts` state the same
+  // fact derived; this was the one copy that typed it.
   const spend: Spend = { dfsCalls: 0, dfsCost: 0, anthropicCalls: 0 };
   let spendPersisted = false;
 
@@ -1099,7 +1105,7 @@ export async function runGatedScan(scanId: string): Promise<void> {
     const message = describeAnthropicError(err);
     // What this pass had already paid for when it failed. Without it a failed
     // gated pass was free as far as the cap could see, and this is the
-    // expensive pass - every question again, on two more engines. The guard
+    // expensive pass - every question again, on every gated engine. The guard
     // stops a throw raised after the bill above from billing the day twice.
     if (!spendPersisted) await billSpend(scanId, spend);
     await endWrite(scanId, "the failed gated status", () =>

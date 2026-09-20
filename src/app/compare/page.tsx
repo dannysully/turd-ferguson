@@ -25,7 +25,16 @@ export const metadata: Metadata = {
  *
  * The table is built as a column set rather than a fixed three-column grid,
  * so adding a competitor later is adding an entry to COLUMNS and a value per
- * row, with nothing else to restructure.
+ * row.
+ *
+ * **There is one thing else to restructure, and it is not in this file.**
+ * `.cmp-row`'s base rule is `2fr repeat(auto-fit, minmax(0, 1fr))`, which does
+ * grow. Its 860px rule is `1fr auto` - two tracks, hard-typed - so a third cell
+ * wraps under the feature name on a phone, in the header row as well as the
+ * body, because the header carries `.cmp-row` too. Both sibling families solved
+ * this the same way and neither is visible from here: `.q-row` and the `.res-*`
+ * set reflow to `1fr auto` and hide their header with `.q-head`/`.res-head
+ * { display: none }`. `.cmp-row` is the one member with no head class to hide.
  *
  * The best argument on the board survives untouched: the card saying when a
  * tracking tool is the better purchase. That needs nobody else's facts.
