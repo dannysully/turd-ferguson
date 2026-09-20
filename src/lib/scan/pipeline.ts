@@ -970,9 +970,17 @@ export async function runGatedScan(scanId: string): Promise<void> {
     // claims queued before it gets here, so this is the second lock rather than
     // the first - but a gated pass re-asks every question on every gated
     // engine, so a duplicate is dozens of reads paid for twice.
+    //
+    // The claim is also where the pass gets dated. gated_started_at is what
+    // makes this pass's spend visible to both day ceilings while it is still
+    // running rather than only once gated_completed_at lands - see activeWindow
+    // in spend.ts. Stamping it here rather than in a second statement is the
+    // point: this update is the compare-and-swap that already guarantees one
+    // winner, so the date is written exactly once per pass and a duplicate that
+    // loses the claim cannot re-date the row.
     const { data: gatedClaimed, error: gatedClaimErr } = await db
       .from("scans")
-      .update({ gated_status: "running" })
+      .update({ gated_status: "running", gated_started_at: new Date().toISOString() })
       .eq("id", scanId)
       .eq("gated_status", "queued")
       .select("id");

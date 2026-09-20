@@ -20,21 +20,43 @@ import { selectAll } from "@/lib/supabase/page";
  * penny of it. Once a scan is a day old its gated pass is free as far as both
  * ceilings can tell, however many of them are unlocked at once.
  *
- * So a scan counts if it was started in the window or if either of its passes
- * finished in it. One that straddles the boundary is counted whole in both
- * windows rather than split between them: these are ceilings, over-counting
- * costs a visitor a scan they could have had, and under-counting is how a
- * day's budget gets spent twice.
+ * So a scan counts if either of its passes STARTED in the window or if either
+ * of them finished in it. One that straddles the boundary is counted whole in
+ * both windows rather than split between them: these are ceilings,
+ * over-counting costs a visitor a scan they could have had, and under-counting
+ * is how a day's budget gets spent twice.
  *
- * What this does not close, said rather than implied: a pass still in flight
- * has no completion stamp yet, so its spend is invisible until it lands. That
- * is a window the length of one pass rather than for ever, and the count cap
- * and the per-IP cap sit in front of the same route.
+ * The free pass is dated by created_at, because the row is made as that pass
+ * starts. The gated pass is dated by gated_started_at, stamped by the same
+ * compare-and-swap in pipeline.ts that claims it. Before that column existed
+ * this filter asked only about completions, so the most expensive pass in the
+ * system - every question again on every gated engine - cost nothing either
+ * ceiling could see for as long as it was running. Ten unlocks clicked
+ * together were ten passes in flight and a day's budget that read as untouched.
+ * Danny decided this on 20 September 2026.
+ *
+ * ── What these two ceilings still under-count ──────────────────────────
+ *
+ * Said here, at the read, rather than left for someone to infer from the
+ * absence of it. Both numbers below are floors, not measurements.
+ *
+ * A pass the platform kills mid-flight was billed by the vendor for every read
+ * it had already made and never reached billSpend, so that spend is not on the
+ * row and no sweep can reconstruct it afterwards. gated_started_at now brings
+ * the ROW inside the window - the ceiling counts the scan - but the figure on
+ * it is short by whatever the killed pass spent before it died. Danny's
+ * instruction on 20 September 2026 was to leave the gap rather than close it
+ * with an estimate: a number nobody measured would read as measured, and the
+ * stall reaper deliberately writes no figure for the same reason.
+ *
+ * So: if either ceiling is close to its limit, the real spend is above what it
+ * says, never below. Treat a reading near the cap as already past it.
  */
 function activeWindow(since: string): string {
   return (
     "created_at.gte." + since +
     ",completed_at.gte." + since +
+    ",gated_started_at.gte." + since +
     ",gated_completed_at.gte." + since
   );
 }
