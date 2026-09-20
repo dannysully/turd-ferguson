@@ -158,6 +158,28 @@ export function verifyHtml(p: Palette, font: string, brand: string, link: string
 }
 
 /**
+ * The plain-text part of the verification message.
+ *
+ * Here rather than inline in verify-email.ts for the same reason the HTML is:
+ * a template literal in a module `node --test` cannot load is a thing served
+ * to somebody that nothing can render. Both text parts were exactly that until
+ * now - shipped, typechecked, and never once produced.
+ *
+ * **The brand is not escaped, and must not be.** This is `text/plain`: a reader
+ * whose client shows the text part would be sent `Ben &amp; Jerry&#39;s`. The
+ * HTML part escapes because it is HTML and the text part does not because it is
+ * not, and the two sitting one line apart in the same object is precisely how
+ * somebody tidies them into agreement and breaks this one.
+ */
+export function verifyText(brand: string, link: string): string {
+  return (
+    `We ran the check on ${brand}.\n\n` +
+    `Open the full report: ${link}\n\n` +
+    "If you did not ask for this, ignore it and nothing opens."
+  );
+}
+
+/**
  * What the report email is allowed to count, and over what.
  *
  * Five numbers rather than two, because the message was sending one pair and
@@ -215,6 +237,21 @@ export function reportSubject(brand: string, c: ReportCounts): string {
   return c.missedAnswers > 0
     ? `${c.missedAnswers} of ${c.totalAnswers} AI answers did not name ${brand}`
     : `Your ${brand} report`;
+}
+
+/**
+ * The plain-text part of the report message.
+ *
+ * Leads with the same headline the HTML body does, unescaped - see verifyText.
+ * The headline is shared rather than reworded because a client showing text
+ * only used to get the blandest version of the one thing worth saying.
+ */
+export function reportText(brand: string, link: string, counts: ReportCounts): string {
+  return (
+    `${reportHeadline(brand, counts)}\n\n` +
+    `Open your report: ${link}\n\n` +
+    "The link works on any device and does not expire."
+  );
 }
 
 export function reportHtml(

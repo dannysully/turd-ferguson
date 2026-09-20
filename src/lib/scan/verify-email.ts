@@ -8,10 +8,11 @@ import { headerSafe } from "@/lib/email-header";
 import {
   type Palette,
   type ReportCounts,
-  reportHeadline,
   reportHtml,
   reportSubject,
+  reportText,
   verifyHtml,
+  verifyText,
 } from "@/lib/scan/email-render";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
@@ -110,7 +111,7 @@ export async function sendVerificationEmail(input: {
       to: input.email,
       subject: headerSafe(`Open your ${input.brand} report`),
       html: verifyHtml(E, FONT, input.brand, link),
-      text: `We ran the check on ${input.brand}.\n\nOpen the full report: ${link}\n\nIf you did not ask for this, ignore it and nothing opens.`,
+      text: verifyText(input.brand, link),
     });
     if (error) {
       console.error("[scan] verification email rejected", error);
@@ -176,7 +177,7 @@ export async function sendReportReadyEmail(input: {
       to: input.email,
       subject,
       html: reportHtml(E, FONT, input.brand, link, input.counts),
-      text: `${reportHeadline(input.brand, input.counts)}\n\nOpen your report: ${link}\n\nThe link works on any device and does not expire.`,
+      text: reportText(input.brand, link, input.counts),
     });
     if (error) console.error("[scan] report email rejected", error);
   } catch (err) {

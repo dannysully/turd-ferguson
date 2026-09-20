@@ -11,7 +11,9 @@ import {
   reportHeadline,
   reportHtml,
   reportSubject,
+  reportText,
   verifyHtml,
+  verifyText,
 } from "./email-render.ts";
 
 /**
@@ -339,6 +341,49 @@ test("a scan of one question does not say 1 questions", () => {
   assert.equal(
     reportHeadline("Vibe Retail", { ...COUNTS, missedAnswers: 0, missedQuestions: 0, askedQuestions: 1 }),
     "We put 1 buying-intent question to the engines your buyers use.",
+  );
+});
+
+test("the text part is plain text, and is not escaped", () => {
+  /**
+   * Both text parts were template literals inside verify-email.ts until now,
+   * so nothing could render either one - the same blind spot as the palette,
+   * one object literal away.
+   *
+   * The assertion that matters is the negative. A brand is read off a crawled
+   * third-party site and goes into the HTML part escaped and the text part raw,
+   * one line apart in the same `emails.send` call. Making the two "consistent"
+   * is an obvious tidy and it sends `Ben &amp; Jerry&#39;s` to every reader
+   * whose client shows text.
+   */
+  const verify = verifyText("Ben & Jerry's", LINK);
+  assert.match(verify, /We ran the check on Ben & Jerry's\./);
+  assert.doesNotMatch(verify, /&amp;|&#39;|&quot;|&lt;/);
+
+  const report = reportText("Ben & Jerry's", LINK, COUNTS);
+  assert.match(report, /came back without Ben & Jerry's in the answer/);
+  assert.doesNotMatch(report, /&amp;|&#39;|&quot;|&lt;/);
+
+  // No markup in a text/plain part either - an <a> here is read as literal
+  // angle brackets by the client that asked for text.
+  for (const text of [verify, report]) {
+    assert.doesNotMatch(text, /<[a-z!/]/i);
+    // A text-only client has nothing to click, so the address has to be typed
+    // out. It dropping is silent and leaves that reader with no way in.
+    assert.ok(text.includes(LINK), "the text part does not carry the link");
+  }
+});
+
+test("the text part leads with the same headline the html does", () => {
+  // The text part used to drop the number entirely. Both parts of one message
+  // must say the same thing, so this reads the headline out of each.
+  const headline = reportHeadline("Vibe Retail", COUNTS);
+  assert.ok(reportText("Vibe Retail", LINK, COUNTS).startsWith(headline));
+  assert.ok(reportHtml(E, FONT, "Vibe Retail", LINK, COUNTS).includes(headline));
+
+  // And the no-miss shape is still a sentence rather than "0 of the 14".
+  assert.ok(
+    reportText("Vibe Retail", LINK, NOTHING_MISSED).startsWith("We put 14 buying-intent questions"),
   );
 });
 
