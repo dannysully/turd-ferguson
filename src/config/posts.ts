@@ -108,14 +108,27 @@ export function postUrl(post: Post): string {
  * Brands to Recommend". Sentence case is the rule on every other title on the
  * site and on the h1 six lines below the one that broke it.
  *
- * The descriptions stay arguments. They are copy, the SERP one and the share
- * one differ on purpose, and nothing else on the site holds a second copy of
- * either - so they are not a drift risk and do not belong in the registry.
+ * The descriptions stay arguments, because the SERP one and the share one
+ * differ on purpose. **The sentence that used to follow - "nothing else on the
+ * site holds a second copy of either" - was false, and it was the premise that
+ * kept the third surface out of this file.** `blogPostingSchema` took a loose
+ * `description: string`, so every post typed one of these two strings a second
+ * time by hand. Two posts copied the share line and the third copied the SERP
+ * line, and because neither copy referenced anything, nothing could say that
+ * the three posts had answered the same question three different ways.
+ *
+ * It takes the whole `copy` object now, so the second typing is gone by
+ * construction rather than by a rule. See `blogPostingSchema` for which of the
+ * two it reads and why.
  */
-export function postMetadata(
-  post: Post,
-  copy: { description: string; ogDescription: string },
-): Metadata {
+export type PostCopy = {
+  /** The meta description - the summary a search engine shows. */
+  description: string;
+  /** The share card. A hook, written to be clicked rather than to summarise. */
+  ogDescription: string;
+};
+
+export function postMetadata(post: Post, copy: PostCopy): Metadata {
   return {
     title: post.title,
     description: copy.description,
@@ -142,13 +155,27 @@ export function postMetadata(
  * `datePublished` was the other retyped fact. The registry date is what the
  * index sorts on, so the two could disagree about when a post was published
  * and only one of them would move it up the page.
+ *
+ * **`description` was the third, and it was the one still loose.** This took a
+ * bare string, so each page typed a fourth description beside its SERP one and
+ * its share one. Read off the shipped prerenders on 20 Sep 2026: two posts had
+ * copied the share line into it and one had copied the SERP line, so the node
+ * an answer engine reads was a hand copy of a different surface on different
+ * posts, and a rewrite of either line would have left it behind in silence.
+ *
+ * It reads `copy.description` - the SERP line - because that field and this one
+ * answer the same question, "summarise this article for a machine", where the
+ * share line is a hook written to be clicked. That collapses the two posts
+ * whose node had copied the hook onto their fuller summary; nothing is lost,
+ * since both hooks still publish on the share card where they were written to
+ * go. `post-description.test.mts` reads the join back off the built bytes.
  */
-export function blogPostingSchema(post: Post, description: string) {
+export function blogPostingSchema(post: Post, copy: PostCopy) {
   return {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
     headline: post.title,
-    description,
+    description: copy.description,
     url: postUrl(post),
     datePublished: post.date,
     author: ORG_REF,

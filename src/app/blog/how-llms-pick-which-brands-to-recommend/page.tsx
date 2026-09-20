@@ -3,23 +3,22 @@ import Link from "next/link";
 
 import PostShell, { H2, P } from "@/components/PostShell";
 import TierName from "@/components/TierName";
-import { blogPostingSchema, postMetadata, requirePost } from "@/config/posts";
+import { blogPostingSchema, postMetadata, requirePost, type PostCopy } from "@/config/posts";
 import { T } from "@/config/tokens";
 import { ld } from "@/config/schema";
 
 const post = requirePost("how-llms-pick-which-brands-to-recommend");
 
-export const metadata: Metadata = postMetadata(post, {
+const COPY: PostCopy = {
   description:
     "What we find behind an AI product recommendation in the campaigns we run: a small set of editorial sources, and the brands listed at the top of them.",
   ogDescription:
     "The mechanics of LLM citation are simpler - and more exploitable - than most agencies realise.",
-});
+};
 
-const postSchema = blogPostingSchema(
-  post,
-  "The mechanics of LLM citation are simpler - and more exploitable - than most agencies realise.",
-);
+export const metadata: Metadata = postMetadata(post, COPY);
+
+const postSchema = blogPostingSchema(post, COPY);
 
 const STANDFIRST =
   "The mechanics of LLM citation are simpler, and more exploitable, than most agencies realise.";

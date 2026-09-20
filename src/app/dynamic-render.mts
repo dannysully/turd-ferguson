@@ -476,8 +476,17 @@ export function schemaClaims(html: string): string[] {
 /** Attribute values arrive escaped - React writes an apostrophe as `&#x27;`,
  *  which splits "client's" into two tokens and would let an entity hide a word
  *  a rule is looking for. The five named entities plus numeric escapes are the
- *  whole set React emits into an attribute. */
-function decodeEntities(s: string): string {
+ *  whole set React emits into an attribute.
+ *
+ *  Exported because the escaping is asymmetric across the two machine-readable
+ *  surfaces and that asymmetry has already produced a false reading here: a
+ *  head attribute is entity-escaped and a JSON-LD string is not, so comparing
+ *  the two raw reports `og:description` and a schema `description` as different
+ *  when the source types one literal. This is the existing cut rather than a
+ *  new one - a stripper that differs in one case blinds the sweep that trusted
+ *  it, which is why the private copies elsewhere stay private and this one is
+ *  shared instead of retyped. */
+export function decodeEntities(s: string): string {
   return s
     .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
     .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(Number(d)))

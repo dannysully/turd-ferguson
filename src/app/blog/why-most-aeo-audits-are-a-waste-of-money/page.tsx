@@ -3,23 +3,22 @@ import Link from "next/link";
 
 import PostShell, { H2, P } from "@/components/PostShell";
 import TierName from "@/components/TierName";
-import { blogPostingSchema, postMetadata, requirePost } from "@/config/posts";
+import { blogPostingSchema, postMetadata, requirePost, type PostCopy } from "@/config/posts";
 import { T } from "@/config/tokens";
 import { ld } from "@/config/schema";
 
 const post = requirePost("why-most-aeo-audits-are-a-waste-of-money");
 
-export const metadata: Metadata = postMetadata(post, {
+const COPY: PostCopy = {
   description:
     "The agency industry has a new product to sell, and most of it is a report you do not need. Why a standalone AEO audit is the wrong thing to be sold.",
   ogDescription:
     "The agency industry has a new product to sell. Most of it is a report you don't need.",
-});
+};
 
-const postSchema = blogPostingSchema(
-  post,
-  "The agency industry has a new product to sell, and most of it is a report you do not need. Why a standalone AEO audit is the wrong thing to be sold.",
-);
+export const metadata: Metadata = postMetadata(post, COPY);
+
+const postSchema = blogPostingSchema(post, COPY);
 
 const STANDFIRST =
   "The agency industry has a new product to sell. Most of it is a report nobody acts on.";

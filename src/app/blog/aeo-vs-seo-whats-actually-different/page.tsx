@@ -3,23 +3,22 @@ import Link from "next/link";
 
 import PostShell, { H2, P } from "@/components/PostShell";
 import TierName from "@/components/TierName";
-import { blogPostingSchema, postMetadata, requirePost } from "@/config/posts";
+import { blogPostingSchema, postMetadata, requirePost, type PostCopy } from "@/config/posts";
 import { T } from "@/config/tokens";
 import { ld } from "@/config/schema";
 
 const post = requirePost("aeo-vs-seo-whats-actually-different");
 
-export const metadata: Metadata = postMetadata(post, {
+const COPY: PostCopy = {
   description:
     "AEO and SEO are overlapping channels with different target surfaces, measurement and time horizons. What differs and what does not, from people who do both.",
   ogDescription:
     "The clearest comparison of AEO and SEO you'll read this year - written by people who actually do both.",
-});
+};
 
-const postSchema = blogPostingSchema(
-  post,
-  "The clearest comparison of AEO and SEO you'll read this year - written by people who actually do both.",
-);
+export const metadata: Metadata = postMetadata(post, COPY);
+
+const postSchema = blogPostingSchema(post, COPY);
 
 const STANDFIRST =
   "The clearest comparison of AEO and SEO you will read this year, written by people who do both.";
