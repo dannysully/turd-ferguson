@@ -132,10 +132,19 @@ export default function Post() {
 
       <H2 id="the-strategic-call">The strategic call.</H2>
       <P>
+        {/* The closing clause here was "and that channel is where buying
+            decisions are increasingly being made before buyers ever click a
+            search result" - a claim about how buyers behave, with no source
+            and no date, which is the exact species the 19 Sep sweep cut from
+            /what-is-aeo as the "most B2B buyers research through AI search"
+            statistic. That sweep is recorded as having run over these three
+            posts; this one survived it in prose rather than as a number. The
+            argument does not need it - the post has already shown that a page
+            can rank first and still not be named. */}
         For most B2B brands in 2026, AEO + SEO from a single integrated campaign is the right
         answer. AEO-only campaigns leave too much SEO upside on the table. SEO-only campaigns
-        leave the AI search channel completely uncovered - and that channel is where buying
-        decisions are increasingly being made before buyers ever click a search result.
+        leave the answer itself uncovered - and, as above, ranking first on the query is no
+        guarantee of being named in the answer above it.
       </P>
       <P>
         Two separate retainers with two different agencies is the worst option: duplicate cost,
@@ -145,12 +154,16 @@ export default function Post() {
 
       <P>
         {/* Reordered so the brand does not open the sentence. AGENTS.md calls
-            for the rewrite rather than a capital, and the claim is unchanged. */}
+            for the rewrite rather than a capital, and the claim is unchanged.
+
+            The CTA was "Book a call" pointing at /contact, which books nothing
+            and whose own h1 says most questions are answered by running a
+            scan. Same swap on all three posts. */}
         One campaign, two outcomes - that is how <TierName tier="cited" /> runs AEO and SEO.{" "}
-        <Link href="/contact" style={{ color: T.accent, fontWeight: 600 }}>
-          Book a call
-        </Link>
-        .
+        <Link href="/#scan" style={{ color: T.accent, fontWeight: 600 }}>
+          Run a free scan
+        </Link>{" "}
+        and see the gap between where you rank and where you are named.
       </P>
       </PostShell>
     </>

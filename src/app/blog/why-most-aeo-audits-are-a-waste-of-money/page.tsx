@@ -126,13 +126,19 @@ export default function Post() {
       </P>
 
       <P>
-        {/* Reordered so the brand does not open the sentence, per AGENTS.md. */}
+        {/* Reordered so the brand does not open the sentence, per AGENTS.md.
+
+            The CTA was "Book a call" pointing at /contact, which books
+            nothing - and on a post arguing that the diagnosis should be a free
+            byproduct rather than a product, sending the reader to a sales
+            conversation was the argument's own opposite. The scan is the free
+            diagnosis this post says an audit should have been. */}
         AEO audits are not something <TierName tier="cited" /> sells. We engineer AI citations and
         report on the outcomes.{" "}
-        <Link href="/contact" style={{ color: T.accent, fontWeight: 600 }}>
-          Book a call
-        </Link>
-        .
+        <Link href="/#scan" style={{ color: T.accent, fontWeight: 600 }}>
+          Run a free scan
+        </Link>{" "}
+        - it is the diagnosis, and it costs nothing.
       </P>
       </PostShell>
     </>

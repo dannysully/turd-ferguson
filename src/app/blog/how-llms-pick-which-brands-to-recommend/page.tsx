@@ -135,13 +135,20 @@ export default function Post() {
 
       <P>
         {/* Reordered so the brand does not open the sentence, per AGENTS.md.
-            The audience clause was already the subject of the claim. */}
+            The audience clause was already the subject of the claim.
+
+            The CTA was "Book a call" pointing at /contact. Nothing on this
+            site books a call - /contact is a form whose own h1 is "Most
+            questions are answered by running a scan", and five other surfaces
+            say a call should not be needed. "Book a call" is real vocabulary
+            here, but it belongs to the alwayseverywhere price label, where
+            there genuinely is no number without one. */}
         For B2B brands that want to be cited by AI when their buyers ask,{" "}
         <TierName tier="cited" /> is the AI search agency.{" "}
-        <Link href="/contact" style={{ color: T.accent, fontWeight: 600 }}>
-          Book a call
-        </Link>
-        .
+        <Link href="/#scan" style={{ color: T.accent, fontWeight: 600 }}>
+          Run a free scan
+        </Link>{" "}
+        and see which sources are deciding your category.
       </P>
       </PostShell>
     </>
