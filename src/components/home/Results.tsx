@@ -1,3 +1,4 @@
+import TierName from "@/components/TierName";
 import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
 import Link from "next/link";
 
@@ -124,7 +125,16 @@ export default function Results() {
             follow it. 37512ae swept 46 light-ground sites from faint to soft
             and never looked at the dark grounds, which is how this one kept a
             token that is correct everywhere else it appears. */}
-        <p style={{ margin: "12px 0 0", fontSize: "13px", color: T.faint }}>- alwayscited methodology</p>
+        {/* The name is a lockup here, not a plain word. This attribution is
+            visible body copy, which is the context TierName owns - the
+            TIER_PLAIN form is for the ones that strip colour, and an
+            attribution under a pull quote strips nothing. The dark ground is
+            already handled: .on-dark lifts the accent to #a78bfa, which is
+            6.98 on #0f1115 where #7C3AED would have been 3.34. The stem keeps
+            the faint the comment above argues for. */}
+        <p style={{ margin: "12px 0 0", fontSize: "13px", color: T.faint }}>
+          - <TierName tier="cited" /> methodology
+        </p>
       </div>
     </section>
   );

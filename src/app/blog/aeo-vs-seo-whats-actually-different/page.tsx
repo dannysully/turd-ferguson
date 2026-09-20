@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import PostShell, { H2, P } from "@/components/PostShell";
+import TierName from "@/components/TierName";
 import { blogPostingSchema, postMetadata, requirePost } from "@/config/posts";
 import { T } from "@/config/tokens";
 import { ld } from "@/config/schema";
@@ -92,8 +93,9 @@ export default function Post() {
         The trade is durability. SEO investments compound for years; a strong link profile
         from five years ago still contributes. AEO citation positions can shift faster because
         LLM training data and citation behaviour both evolve - a newer, fresher placement on
-        the same domain can displace an older one. This is why alwayscited operates on retainer
-        rather than one-off engagements: citation maintenance requires ongoing attention.
+        the same domain can displace an older one. This is why <TierName tier="cited" /> operates
+        on retainer rather than one-off engagements: citation maintenance requires ongoing
+        attention.
       </P>
 
       <H2 id="the-measurement-is-different">The measurement is different.</H2>
@@ -122,8 +124,8 @@ export default function Post() {
         separately, rather than claiming one of them bought the other.
       </P>
       <P>
-        Same placement, two jobs. This is why alwayscited treats AEO and SEO as one campaign with
-        two outcomes rather than two campaigns. If you are paying one agency for SEO and
+        Same placement, two jobs. This is why <TierName tier="cited" /> treats AEO and SEO as one
+        campaign with two outcomes rather than two campaigns. If you are paying one agency for SEO and
         another for AEO, it is worth asking what is actually distinct about the second scope -
         or whether you are buying the same placements twice.
       </P>
@@ -142,7 +144,9 @@ export default function Post() {
       </P>
 
       <P>
-        alwayscited runs AEO and SEO as one campaign with two outcomes.{" "}
+        {/* Reordered so the brand does not open the sentence. AGENTS.md calls
+            for the rewrite rather than a capital, and the claim is unchanged. */}
+        One campaign, two outcomes - that is how <TierName tier="cited" /> runs AEO and SEO.{" "}
         <Link href="/contact" style={{ color: T.accent, fontWeight: 600 }}>
           Book a call
         </Link>

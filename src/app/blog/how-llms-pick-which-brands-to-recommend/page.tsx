@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import PostShell, { H2, P } from "@/components/PostShell";
+import TierName from "@/components/TierName";
 import { blogPostingSchema, postMetadata, requirePost } from "@/config/posts";
 import { T } from "@/config/tokens";
 import { ld } from "@/config/schema";
@@ -133,8 +134,10 @@ export default function Post() {
       </P>
 
       <P>
-        alwayscited is the AI search agency for B2B brands that want to be cited by AI when
-        their buyers ask.{" "}
+        {/* Reordered so the brand does not open the sentence, per AGENTS.md.
+            The audience clause was already the subject of the claim. */}
+        For B2B brands that want to be cited by AI when their buyers ask,{" "}
+        <TierName tier="cited" /> is the AI search agency.{" "}
         <Link href="/contact" style={{ color: T.accent, fontWeight: 600 }}>
           Book a call
         </Link>

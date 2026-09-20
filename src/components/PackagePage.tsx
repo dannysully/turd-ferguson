@@ -191,10 +191,22 @@ export default function PackagePage({
         </div>
 
         <div style={{ ...CARD, overflow: "hidden" }}>
+          {/* Through TierText like every other prose prop on this component.
+              `sections` was the one that was not, which is the only reason it
+              is worth a comment: standfirst, `included` and `notIncluded.text`
+              all went through it and these two did not, so a tier name written
+              into a deliverable would have shipped as an uncoloured word with
+              nothing to catch it. No section body names a tier today - this
+              closes the gap rather than fixing a live defect. TierText is a
+              no-op on a string with no tier name in it. */}
           {sections.map((s) => (
             <div key={s.heading} className="deliverable" style={{ borderBottom: "1px solid " + T.hair }}>
-              <div style={{ fontSize: "14.5px", fontWeight: 600 }}>{s.heading}</div>
-              <div style={{ fontSize: "14px", lineHeight: 1.6, color: T.soft }}>{s.body}</div>
+              <div style={{ fontSize: "14.5px", fontWeight: 600 }}>
+                <TierText>{s.heading}</TierText>
+              </div>
+              <div style={{ fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
+                <TierText>{s.body}</TierText>
+              </div>
             </div>
           ))}
           <div className="deliverable">
@@ -271,7 +283,7 @@ export default function PackagePage({
                 <div style={{ fontSize: "13px", color: T.soft, marginTop: "4px" }}>{t.priceLabel}</div>
                 <div style={{ fontSize: "13px", color: T.soft, marginTop: "8px", lineHeight: 1.55 }}>
                   {here ? "You are here. " : ""}
-                  {GLOSS[t.key]}
+                  <TierText>{GLOSS[t.key]}</TierText>
                 </div>
               </a>
             );

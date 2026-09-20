@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import PostShell, { H2, P } from "@/components/PostShell";
+import TierName from "@/components/TierName";
 import { blogPostingSchema, postMetadata, requirePost } from "@/config/posts";
 import { T } from "@/config/tokens";
 import { ld } from "@/config/schema";
@@ -78,9 +79,9 @@ export default function Post() {
         The audit becomes a shelf document. The visibility doesn&apos;t change.
       </P>
       <P>
-        This isn&apos;t hypothetical - it&apos;s the outcome we see most often when clients come to
-        alwayscited after buying an AEO audit from another agency. They have a detailed
-        document. They don&apos;t have any citations.
+        This isn&apos;t hypothetical - it&apos;s the outcome we see most often when clients come to{" "}
+        <TierName tier="cited" /> after buying an AEO audit from another agency. They have a
+        detailed document. They don&apos;t have any citations.
       </P>
 
       <H2 id="why-this-exists">Why this exists.</H2>
@@ -125,8 +126,9 @@ export default function Post() {
       </P>
 
       <P>
-        alwayscited doesn&apos;t sell AEO audits. We engineer AI citations and report on the
-        outcomes.{" "}
+        {/* Reordered so the brand does not open the sentence, per AGENTS.md. */}
+        AEO audits are not something <TierName tier="cited" /> sells. We engineer AI citations and
+        report on the outcomes.{" "}
         <Link href="/contact" style={{ color: T.accent, fontWeight: 600 }}>
           Book a call
         </Link>
