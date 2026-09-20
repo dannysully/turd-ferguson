@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
-import { pageText, sweptPages, type Page } from "./dynamic-render.mts";
+import { headClaims, pageText, sweptPages, type Page } from "./dynamic-render.mts";
 import { isPriceLabel } from "../config/price-label.ts";
 import { TIER_PLAIN, type TierKey } from "../lib/tier-text.ts";
 
@@ -117,9 +117,23 @@ const pages: Page[] = sweptPages();
  * The 404's "Four tiers, every price published on the page" was MISSED exactly
  * that way on the first pass of the injection harness, and it was MISSED in the
  * flattering direction: the sweep was green over a page carrying the defect.
+ *
+ * **The head is in here too, added 20 Sep.** `pageText` strips whole tags, so a
+ * meta description - which lives in an attribute - was outside every rule in
+ * this file. Measured rather than assumed: a description carrying "Every price
+ * is published, from tracking alone up to alwayseverywhere", the exact sentence
+ * this file was written for, was injected into `compare.html`'s head and every
+ * assertion here passed over it. Three of the three tier pages with a numeric
+ * price put that price in their description as well, so it is the surface a
+ * buyer reads first and it was the one surface nothing checked.
+ *
+ * The prohibitions take the head. `contentOf` below, which serves the single
+ * rule that REQUIRES a disclosure, deliberately does not - a description holds
+ * at most one price label, so it can never carry "the whole priced list", and
+ * widening a requirement is how that rule became unfireable the first time.
  */
 function sentencesOf(page: Page): string[] {
-  return splitSentences(pageText(page.html));
+  return [...splitSentences(pageText(page.html)), ...headClaims(page.html).flatMap(splitSentences)];
 }
 
 function splitSentences(text: string): string[] {

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
-import { blocksOf, pageText, sweptPages, type Page } from "./dynamic-render.mts";
+import { blocksOf, headClaims, pageText, sweptPages, type Page } from "./dynamic-render.mts";
 
 /**
  * What the site says about where the white-label line sits.
@@ -37,10 +37,11 @@ import { blocksOf, pageText, sweptPages, type Page } from "./dynamic-render.mts"
  * six "Yours" rows, these rules step aside, and the copy is free to say so.
  * Nothing here holds a copy of a sentence it is checking.
  *
- * **Proved against eight injections, 8/8, by `docs/inject-white-label.mjs`** -
+ * **Proved against ten injections, 10/10, by `docs/inject-white-label.mjs`** -
  * both original sentences put back through a real `next build`, the table
  * flattened to all-"Yours", a not-the-agency's surface claimed as the agency's,
- * the row parse broken, `blocksOf` broken, and two green-expected cases.
+ * the row parse broken, `blocksOf` broken, a claim hidden in a meta description
+ * for this file and for `price-claims`, and two green-expected cases.
  *
  * **The homepage fix is NOT held by anything here, and that is deliberate
  * rather than an omission.** "carry your logo and your domain" against the
@@ -113,9 +114,19 @@ const pages: Page[] = sweptPages();
  * of the vocabulary rule reported three defects that way and all three were
  * true copy read eleven rows apart - "Places your brand into those source
  * pages" paired with "your own outreach team", from opposite ends of a table.
+ *
+ * **The head is in the denominator too, and it was not in the first draft.**
+ * `pageText` and `blocksOf` both strip whole tags, so a meta description - an
+ * attribute - is invisible to either. That is the surface a reader sees BEFORE
+ * the page, and `/alwayseverywhere`'s description and `/seo-agencies`'s are
+ * both white-label claims. Injecting "White-labelled throughout." into a
+ * description on 20 Sep passed every rule in this file. Found by asking the
+ * refill question of this sweep minutes after writing it, which is the whole
+ * argument for asking it then: a run later this would have read as a sweep over
+ * the pages, with no sign that "the page" had ever meant only half of one.
  */
 function claimsOf(page: Page): string[] {
-  return blocksOf(page.html);
+  return [...blocksOf(page.html), ...headClaims(page.html)];
 }
 
 /**

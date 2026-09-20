@@ -376,6 +376,58 @@ export function blocksOf(html: string): string[] {
     .filter(Boolean);
 }
 
+/**
+ * The copy in the HEAD: title, description, and every OG and Twitter string.
+ *
+ * **Every claim sweep on this site reads `pageText`, and `pageText` drops the
+ * head by construction** - it strips whole tags, and a meta description lives
+ * in an attribute. So the one piece of copy a reader sees *before* the page was
+ * outside the denominator of every rule written to police what the pages say.
+ *
+ * That is measured rather than reasoned about. A meta description carrying
+ * "Every price is published, from tracking alone up to alwayseverywhere" and
+ * "White-labelled throughout." - two sentences those sweeps exist to forbid,
+ * both of which have actually shipped on this site in body copy - was injected
+ * into `compare.html`'s head on 20 Sep and `price-claims.test.mts` and
+ * `white-label-claims.test.mts` both passed over it.
+ *
+ * (`privacy-claims.test.mts` reads source, SQL and the CSP rather than rendered
+ * pages, so it never had this hole. It was in the first draft of that finding
+ * and it was wrong - a sweep that does not read pages cannot be blind to part
+ * of one.)
+ *
+ * Image alts are included: AGENTS.md governs the tier names in alt text, so an
+ * alt is copy in the sense that matters here. `og:url` and the image
+ * dimensions are not - they are addresses and numbers, and `page-head` already
+ * owns them.
+ */
+export function headClaims(html: string): string[] {
+  const end = html.indexOf("</head>");
+  const head = end === -1 ? html : html.slice(0, end);
+  const out: string[] = [];
+  const title = /<title[^>]*>([\s\S]*?)<\/title>/i.exec(head);
+  if (title) out.push(title[1]!);
+  const re =
+    /<meta\s+(?:name|property)="(?:description|og:title|og:description|og:image:alt|twitter:title|twitter:description|twitter:image:alt)"\s+content="([^"]*)"/gi;
+  for (const m of head.matchAll(re)) out.push(m[1]!);
+  return out.map(decodeEntities).map((s) => s.replace(/\s+/g, " ").trim()).filter(Boolean);
+}
+
+/** Attribute values arrive escaped - React writes an apostrophe as `&#x27;`,
+ *  which splits "client's" into two tokens and would let an entity hide a word
+ *  a rule is looking for. The five named entities plus numeric escapes are the
+ *  whole set React emits into an attribute. */
+function decodeEntities(s: string): string {
+  return s
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(Number(d)))
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, "&");
+}
+
 export const BUILD_DIR = BUILD;
 export const PRERENDER_DIR = PRERENDER;
 
