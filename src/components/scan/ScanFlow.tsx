@@ -13,6 +13,12 @@ import type {
   ScanQuestion,
 } from "@/lib/scan";
 import { ENGINE_SPECS, isEngine } from "@/lib/scan/engines";
+// The words the pipeline writes into `scans.step`, mapped back to a position.
+// Derived from the same list the captions and the bar come from, because this
+// map used to be a hand-typed second copy of that vocabulary: a step renamed
+// in the pipeline read as `undefined` here and silently froze the progress bar
+// for the rest of the run. See lib/scan/run-steps.ts.
+import { STEP_INDEX } from "@/lib/scan/run-steps";
 
 import ConfirmScreen from "./ConfirmScreen";
 import HeroSequence from "./HeroSequence";
@@ -137,24 +143,6 @@ function toBreakdown(rows: ByEngine[] | null): EngineBreakdown[] {
     }));
 }
 
-/**
- * A Map, because the key is a string off a JSON response.
- *
- * As an object literal the membership test next to it was `data.step in
- * STEP_INDEX`, and `in` answers for the whole prototype chain: `"constructor"
- * in {}` is true, so the guard passed and the lookup handed `setProgress` the
- * Object constructor rather than a number. `scans.step` is written only by the
- * pipeline, so nothing outside could put that word there today - but the guard
- * was doing none of the work it looked like it was doing, and this is the same
- * shape as the `/scan?verify=` fix: a plain object indexed by a string from
- * somewhere else. A Map has no inherited keys, so `get` returns undefined for
- * everything that is not one of these three.
- */
-const STEP_INDEX: ReadonlyMap<string, number> = new Map([
-  ["questions", 0],
-  ["reading", 1],
-  ["sources", 2],
-]);
 const POLL_MS = 2500;
 /**
  * When to admit this is running long. It has to sit above a normal finish or

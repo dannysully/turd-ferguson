@@ -12,6 +12,9 @@ import {
 import { brandKey, displayNamesFor, namesBrand } from "./brand-name";
 import { readEngine, readSearchVolumes, volumeKey } from "./dataforseo";
 import { type Market, normalizeDomain } from "./domain";
+// The words this file writes into `scans.step`, so a typo here is a compile
+// error rather than a progress bar that freezes on the waiting screen.
+import { STEP } from "./run-steps";
 import { type Engine, isEngine, type OrganicHit } from "./engines";
 import { classifySources } from "./sources";
 
@@ -693,7 +696,7 @@ export async function runScan(scanId: string): Promise<void> {
      */
     const { data: claimed, error: claimErr } = await db
       .from("scans")
-      .update({ status: "running", step: "questions", started_at: new Date().toISOString() })
+      .update({ status: "running", step: STEP.questions, started_at: new Date().toISOString() })
       .eq("id", scanId)
       .eq("status", "queued")
       .select("id");
@@ -775,7 +778,7 @@ export async function runScan(scanId: string): Promise<void> {
     // the whole of the longest part of the run and so reads as a stall. Warned
     // rather than retried: it is cosmetic per scan, but every scan going quiet
     // at the same step is a signal, and a discarded error makes that invisible.
-    const { error: stepErr } = await db.from("scans").update({ step: "reading" }).eq("id", scanId);
+    const { error: stepErr } = await db.from("scans").update({ step: STEP.reading }).eq("id", scanId);
     if (stepErr) console.warn(`[scan] could not set the reading step for ${scanId}: ${stepErr.message}`);
     // --- Step 3: "Finding the sources they cited" ---
     // readAndStore raises this itself, the moment the reads are in and the
@@ -796,7 +799,7 @@ export async function runScan(scanId: string): Promise<void> {
       onSources: async () => {
         const { error: srcStepErr } = await db
           .from("scans")
-          .update({ step: "sources" })
+          .update({ step: STEP.sources })
           .eq("id", scanId);
         if (srcStepErr) {
           console.warn(`[scan] could not set the sources step for ${scanId}: ${srcStepErr.message}`);

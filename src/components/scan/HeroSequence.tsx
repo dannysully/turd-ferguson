@@ -6,6 +6,7 @@ import TierName, { type TierKey } from "@/components/TierName";
 import { TIERS } from "@/config/pricing";
 import { CARD, MICRO, T } from "@/config/tokens";
 import { ENGINE_SPECS, isEngine } from "@/lib/scan/engines";
+import { stepCaption, stepPct } from "@/lib/scan/run-steps";
 
 import { seqClimb, seqStep } from "./seq-stagger";
 
@@ -83,13 +84,6 @@ const ACTS: Act[] = [
 const TIER_ORDER: TierKey[] = ["tracked", "mentioned", "cited", "everywhere"];
 
 const ACT_MS = 5200;
-
-/** The three steps the pipeline reports, in the words the visitor is given. */
-export const RUN_STEPS = [
-  "Building the questions buyers ask",
-  "Reading what the engines answered",
-  "Finding the sources they cited",
-];
 
 const pill = (bg: string, fg: string): React.CSSProperties => ({
   fontSize: "11px",
@@ -736,8 +730,10 @@ const ACT_BODIES = [
   ActEverywhere,
 ];
 
-/** How far through the pipeline, by its own step rather than by the story. */
-const STEP_PCT = [15, 55, 85, 100];
+// How far through the pipeline, and the words under it, both by its own step
+// rather than by the story. The two used to be separate arrays on this file -
+// one four long and deriving its ceiling, one three long and typing it - which
+// is why they now come from lib/scan/run-steps.ts together.
 
 // headingRef is destructured out of the props bag for the same reason as in
 // screens.tsx: a ref held in `p` makes every read of `p` a ref access to the
@@ -765,7 +761,7 @@ export default function HeroSequence({ headingRef, ...p }: {
 
   const current = ACTS[act];
   const Body = ACT_BODIES[act];
-  const pct = STEP_PCT[Math.min(Math.max(p.step, 0), STEP_PCT.length - 1)];
+  const pct = stepPct(p.step);
   const engines = p.engines.filter(isEngine);
 
   return (
@@ -818,7 +814,7 @@ export default function HeroSequence({ headingRef, ...p }: {
           />
         </div>
         <p aria-live="polite" style={{ margin: "9px 0 0", fontSize: "13px", color: T.soft }}>
-          {p.slow ? "This is taking longer than usual. Still working on it." : RUN_STEPS[Math.min(p.step, 2)]}
+          {p.slow ? "This is taking longer than usual. Still working on it." : stepCaption(p.step)}
         </p>
       </div>
 
