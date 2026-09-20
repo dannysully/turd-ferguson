@@ -1,31 +1,50 @@
 # Project state and build spec
 
-Written 18 September 2026 by the Claude session that did the design work, for
-whichever session picks this up next. Read `AGENTS.md` first for the rules;
-this is the state and the spec.
+Written 18 September 2026 by the Claude session that did the design work.
+Read `AGENTS.md` first for the rules. **This file is the spec, not the queue.**
+
+**Where the live picture actually is, as of 20 September 2026:**
+
+- `docs/inbox.md` is the present tense - the current instructions, rewritten
+  rather than appended to. Work from that.
+- `docs/blocked.md`, OPEN section only, is what needs Danny.
+- `docs/worklog.md` is the history. Do not work from it.
+
+The status and queue sections of this file were a day stale by 20 September -
+they said the redesign was unbuilt and listed five jobs that were done - and a
+session that read them first lost time re-deriving it. They have been replaced
+with the paragraph above. **The spec below is still current and is why this
+file exists**: the tokens, type, layout rules, motion rule, the homepage in
+scroll order, and the four screens of the scan flow.
 
 **The design lives in a Claude Design canvas you cannot see** - 29 artboards,
-owned by Danny. Everything in "The design, in words" below is the spec derived
-from it. Build from that. Where it is ambiguous, ask Danny rather than guessing,
-because he can see the artboards and you cannot.
+owned by Danny. All 23 that were exported are now in `docs/design/` as
+`.dc.html`, and every one except the parked `VsTool` is referenced from `src/`.
+Read the board before changing a page it covers; "The design, in words" below
+is the derived spec and the board is the source.
 
 ---
 
-## Where this got to on 18 September
+## Where this got to
 
-Thirteen commits. The site refresh groundwork is live; the redesign is not.
+**18 September:** thirteen commits of refresh groundwork - sentence case
+throughout; the wordmark fixed on the dark comparison block; AI search volume
+removed from the report; Hanken Grotesk self-hosted via `@fontsource-variable`;
+every heading dropped to 700; source kinds and Google position on the scan
+result; the placement opportunity derivation; `on_topic` on the classifier;
+brand spellings merged before the leaderboard; source classification batched;
+Next 16.3.5; the pricing basis beside the number.
 
-**Shipped and live:** sentence case throughout; the wordmark fixed on the dark
-comparison block; AI search volume removed from the report; Hanken Grotesk
-self-hosted via `@fontsource-variable`; every heading dropped to 700; source
-kinds and Google position rendered on the scan result; the placement
-opportunity derivation; `on_topic` on the classifier; brand spellings merged
-before the leaderboard; source classification batched; Next 16.3.5 clearing all
-nine advisories; the pricing basis beside the number.
-
-**Designed, not built:** the homepage (hero sequence, four-tier journey,
-packages, FAQ), the scan flow rework, the gated placement table, the vertical
-landing pages, the campaign benchmark tool, and most content pages.
+**19-20 September:** the redesign shipped. The homepage including the eight-act
+hero sequence, the four-tier journey, packages and FAQ; the scan flow as four
+screens at `/scan/[token]`; the gated placement table and the narrowed blur;
+the four vertical pages rebuilt against their real boards; the coverage-check
+stub; `/compare` without competitor columns; the template pages; `/legal`;
+`/example` removed and redirected. Then roughly thirty commits of defect
+sweeps - reads and writes that ignored their errors, RPCs invisible to both
+sweeps, plain objects indexed by outside strings, typed counts that said
+"1 questions", two ways one scan's spend erased itself, and two URLs that
+normalised to a different company's domain.
 
 ---
 
@@ -151,48 +170,39 @@ campaign benchmark tool for PR teams.
 
 ---
 
-## Work queue, in the order I would do it
+## Work queue
 
-1. **Brand extraction is measuring the wrong population.** On an analytics
-   consultant scan it ranked Shopify, Meta, Upwork, WordPress, LinkedIn,
-   Screaming Frog and Tealium as brands - platforms, marketplaces and tools, not
-   competitors. The headline reads "13th of 124 brands" and 124 is the count of
-   proper nouns. Fix the same way the source classifier was fixed: judge whether
-   each name supplies this category. Note the two halves disagree today - the
-   source classifier knows a tool domain, the brand extractor does not.
+**Gone, because it was done and the list outlived it.** All five items this
+section used to carry are closed: brand extraction now judges whether a name
+supplies the category (`42fc1ee`, verified on a real scan - 62 of 108 names
+kept); `on_topic` was verified on live data; the gated placement table is built
+and the gate points at it; the homepage is built; and `search_volume` is off
+the teaser payload. Dropping the column itself is destructive DDL and is not
+ours under any instruction.
 
-2. **Verify `on_topic` actually works.** It has shipped but never successfully
-   run. Read `/api/scan/<token>/full` for a recent scan and check nothing
-   obviously off-topic survived into `opportunities`. Before the fix, a ski
-   retailer's list contained `racingpost.com`, whose own note read "Horse racing
-   news, unrelated category".
-
-3. **Build the gated placement table** and move the gate onto it. This is the
-   last piece of stage 2 and the screen a prospect trades an email for.
-
-4. **Then the homepage**, which is the largest unbuilt piece of the design and
-   needs nothing from the scan pipeline.
-
-5. Remove `search_volume` from the teaser payload and the `scan_questions`
-   column - its own additive migration.
+**The queue now lives in `docs/inbox.md`.** It is rewritten each time rather
+than appended to, so it is the only file that can tell you what is outstanding.
 
 ---
 
 ## Decisions still sitting with Danny
 
-- **Vibe Retail "#83 to #1"** appears in the hero sequence. The repo records
-  #83 to #4 at eight weeks. #1 is later, from memory, with no dated reading.
-  Date it from the tracker or ship #4. Do not ship it undated.
-- **Legal page** needs retention periods, company number, registered address and
-  the sub-processor list. These matter more once the benchmark tool collects
-  emails.
-- **About** needs team names.
-- **The live CTA is "Book a 20-minute walkthrough"**; the design replaces it
-  with the email gate onto the placement list. Those collide when the table
-  lands - pick one.
-- **Case study generator**: which KPI thresholds trigger a new study, and
-  whether a generated one auto-publishes. Recommendation on file: it waits for a
-  human yes. An auto-published claim about a named client cannot be withdrawn.
+**Do not maintain a second list here.** `docs/blocked.md`, OPEN section, is the
+one that is kept current, and every item this section used to hold has either
+moved there or been settled:
+
+- **Vibe Retail "#83 to #1"** - settled. Danny attested it on 19 Sep 2026 as
+  the account owner, with the four-month window. The page carries both
+  readings, each with its own window. What is still open is the dates, the
+  tracker, the prompt count and the AI Overview citations - blocked.md item 8.
+- **Legal** - still open, blocked.md item 4, and visible as `[TO CONFIRM]`
+  markers on the page itself.
+- **About team names** - still open, blocked.md item 7.
+- **The CTA collision** - resolved by building it: the email gate onto the
+  placement list is what ships.
+- **Case study generator** - not built, and the recommendation on file stands:
+  it waits for a human yes, because an auto-published claim about a named
+  client cannot be withdrawn.
 
 ---
 

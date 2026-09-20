@@ -109,8 +109,32 @@ const KEYWORDS: [string, string][] = [
   ["cloud based pos system, cloud based pos systems, cloud pos software", "newly ranking on page 2"],
 ];
 
+/**
+ * The client's own result stays; the four companies it used to name do not.
+ *
+ * "named Best Overall, ahead of Shopify POS, Lightspeed, Square and KORONA"
+ * is three prohibited things in one clause, not one: a claim about a client's
+ * result, a claim about named competitors, and a statement about what an
+ * engine put in its answer - and it carried no date, no screenshot and no
+ * tracker for any of them. AGENTS.md puts all three behind a dated source and
+ * says to leave the field out until there is one, and that rule sits under
+ * "whatever the instruction".
+ *
+ * The 19 Sep 09:30 sweep cut this exact claim off /what-is-aeo and said in
+ * blocked.md that it was the one it would push hardest to leave out. It ran
+ * over /what-is-aeo, /how-it-works and the three posts and never reached this
+ * page, so the most persuasive unsourced claim on the site stayed live on the
+ * page a buyer is sent to. The competitor half is the worst of it: /compare
+ * and VsTool are both parked rather than state undated facts about other
+ * companies, and this line was doing it anyway, two clicks away.
+ *
+ * What is left is what the page is for - this client, on this question - and
+ * it already sits under the two visible [TO CONFIRM] markers asking for the
+ * dates and the tracker. Restoring the names needs a dated reading, per
+ * blocked.md item 8.
+ */
 const OVERVIEWS: [string, string][] = [
-  ["best retail pos systems", "named Best Overall, ahead of Shopify POS, Lightspeed, Square and KORONA"],
+  ["best retail pos systems", "named Best Overall"],
   ["best pos system for retail 2026", "featured as rated best for growing retailers"],
   ["pos systems with inventory management 2026", "named Best Overall POS with Inventory Management for 2026"],
 ];
