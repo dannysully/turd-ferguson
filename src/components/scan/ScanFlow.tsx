@@ -20,7 +20,7 @@ import { ENGINE_SPECS, isEngine, knownEngines } from "@/lib/scan/engines";
 // map used to be a hand-typed second copy of that vocabulary: a step renamed
 // in the pipeline read as `undefined` here and silently froze the progress bar
 // for the rest of the run. See lib/scan/run-steps.ts.
-import { STEP_INDEX } from "@/lib/scan/run-steps";
+import { RUN_STEPS, STEP_INDEX } from "@/lib/scan/run-steps";
 
 import ConfirmScreen from "./ConfirmScreen";
 import HeroSequence from "./HeroSequence";
@@ -567,7 +567,24 @@ export default function ScanFlow(p: {
         if (step !== undefined) setProgress(step);
 
         if (data.status === "complete") {
-          setProgress(3);
+          /**
+           * `RUN_STEPS.length`, not a typed 3.
+           *
+           * This said `setProgress(3)` and it meant "one past the last rung",
+           * which `stepPct` answers with `DONE_PCT`. That was true while the
+           * ladder had three rungs and stopped being true the moment it gained
+           * two more on 20 September 2026: step 3 became a real rung at 91%, so
+           * a completed scan would have finished its run by moving the bar to
+           * 91% and then swapping the panel out.
+           *
+           * **This repo's own named defect species** - a fixed rung picked by
+           * index against a list that can grow - arriving in the same push that
+           * grew the list, in the one file the change did not otherwise touch.
+           * The fixed-index census was run and declared exhausted on 20 Sep;
+           * this line was inside it and correct at the time, which is the point.
+           * Derived now, so the next rung costs nothing here.
+           */
+          setProgress(RUN_STEPS.length);
           setTeaser(await loadTeaser());
           setPhase("result");
           track("scan_completed", { cached: false });

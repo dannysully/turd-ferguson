@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { test } from "node:test";
+
+import { code, sourceFiles } from "../source-read.mts";
 
 import { DONE_PCT, RUN_STEPS, STEP, STEP_INDEX, stepCaption, stepPct } from "./run-steps.ts";
 
@@ -156,4 +160,71 @@ test("every rung is further along than the one before it", () => {
         `${RUN_STEPS[i - 1].pct}% - the bar would run backwards`,
     );
   }
+});
+
+/* ── Nobody may pick a rung by typing its number ── */
+
+/**
+ * The defect this rule is named after shipped in the push that added two rungs,
+ * in the one file that change did not otherwise touch.
+ *
+ * `ScanFlow.tsx` had `setProgress(3)` on `status === "complete"`. It meant "one
+ * past the last rung", which `stepPct` answers with `DONE_PCT`, and it was
+ * correct for as long as the ladder had three rungs. Adding `brands` and
+ * `ranking` turned 3 into a real rung at 91%, so a finished scan would have
+ * ended its run by moving the bar *backwards* to 91% and then swapping the
+ * panel out. Nothing failed, nothing logged, and the only witness is the one
+ * screen on this site nobody has ever watched render.
+ *
+ * **This is the repo's own named defect species** - "a ladder with a ceiling",
+ * a fixed rung picked by index against a list that can grow - and the
+ * fixed-index census over `src` was run and declared exhausted earlier the same
+ * day. It was: this line was inside it and was correct when it was measured.
+ * That is the lesson worth keeping. A census is true on the day it is taken,
+ * and the thing that invalidates it is the change you are making right now.
+ *
+ * ## Why a positive literal and not any literal
+ *
+ * `setProgress(0)` is fine and stays. A ladder always has a first rung, so zero
+ * cannot drift; every other index is a position in a list whose length is the
+ * thing that moves. `RUN_STEPS.length` is how you say "done" and
+ * `STEP_INDEX.get(word)` is how you say anything else.
+ *
+ * The denominator is derived - every `.tsx` and `.ts` under `src` that imports
+ * from `run-steps` - rather than named, because the next file to render this
+ * bar is the one this rule needs to cover and it does not exist yet.
+ */
+test("no file picks a step by typing its index", () => {
+  const SRC = new URL("../../../", import.meta.url).pathname;
+  const readers = sourceFiles(SRC).filter((f) =>
+    /from\s+"[^"]*run-steps"/.test(readFileSync(join(SRC, f), "utf8")),
+  );
+  assert.ok(readers.length >= 2, `only ${readers.length} files import run-steps - this rule has gone blind`);
+
+  const typed: string[] = [];
+  for (const file of readers) {
+    const src = code(readFileSync(join(SRC, file), "utf8"));
+    for (const m of src.matchAll(/\bsetProgress\(\s*([^)]*)\)/g)) {
+      const arg = m[1]!.trim();
+      if (/^[1-9]\d*$/.test(arg)) typed.push(`${file}: setProgress(${arg})`);
+    }
+  }
+  assert.deepEqual(
+    typed,
+    [],
+    "these pick a rung of the progress bar by typing its number. The ladder's length is the thing that " +
+      "moves - say RUN_STEPS.length for done, or STEP_INDEX.get(word) for a named step. setProgress(0) " +
+      "is exempt because a ladder always has a first rung",
+  );
+});
+
+/**
+ * And that the exemption above is real rather than a hole: `setProgress(0)` has
+ * to still exist somewhere, or the rule is written around a caller that is gone
+ * and the next person deletes the reasoning with it.
+ */
+test("the zero exemption is still earned by a live caller", () => {
+  const SRC = new URL("../../../", import.meta.url).pathname;
+  const found = sourceFiles(SRC).some((f) => /\bsetProgress\(\s*0\s*\)/.test(code(readFileSync(join(SRC, f), "utf8"))));
+  assert.ok(found, "nothing calls setProgress(0) any more - drop the exemption from the rule above");
 });
