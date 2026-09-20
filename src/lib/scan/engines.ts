@@ -25,6 +25,34 @@ export function isEngine(v: unknown): v is Engine {
 }
 
 /**
+ * A stored engine list, as the pass actually read it: known names, each once.
+ *
+ * `scans.engines` and `scans.gated_engines` are jsonb arrays. `settings-merge`
+ * stops a repeat reaching a new row, but `pipeline.ts` still dedupes both
+ * columns on the way out - explicitly "for rows already written" - so a row
+ * whose list repeats a name is a shape this repo already believes exists, and
+ * the pass asks that engine once and stores one answer for it.
+ *
+ * Every other reader filtered and did not dedupe, so each of them disagreed
+ * with the pass about the same row:
+ *
+ * - the campaign headline built a column per entry, counting one answer twice
+ *   on both sides of its fraction, while the history strip below it counted
+ *   answer rows and counted it once - the page contradicting itself, which is
+ *   the whole thing `reading-figures.ts` exists to stop;
+ * - the waiting screen rendered a chip per entry, keyed on the engine name, so
+ *   the visitor was shown the same engine twice under a duplicate React key
+ *   and told the scan reads five engines when it reads four.
+ *
+ * One door, here rather than beside either of them, because it is a fact about
+ * the column and both of those are readers of it. `engines.test.mts` holds the
+ * behaviour and `engine-list-readers.test.mts` holds the walk.
+ */
+export function knownEngines(list: readonly string[] | null | undefined): Engine[] {
+  return [...new Set((list ?? []).filter(isEngine))];
+}
+
+/**
  * Client-safe. This module is imported by the result screen, so it must carry
  * nothing commercially sensitive: what each call costs us lives in
  * engine-costs.ts, which is server-only.

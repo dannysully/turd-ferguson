@@ -1,7 +1,7 @@
 // Relative and extensionful, not `@/`, which Node's runner does not resolve -
 // the same reason `scan-shape.ts` and `worked-example.ts` import this module
 // this way. Do not tidy it back.
-import { type Engine, isEngine } from "../scan/engines.ts";
+import { type Engine, isEngine, knownEngines } from "../scan/engines.ts";
 
 /**
  * Every figure on the campaign reading page, counted from rows.
@@ -34,8 +34,25 @@ import { type Engine, isEngine } from "../scan/engines.ts";
  * headline's own comment names - two counts of the same rows under two
  * different rules - fixed there and left standing twelve lines further down.
  *
- * `countNamed` is now the only place either number is produced, and
- * `historyAgreesWithHeadline` in the test asserts the two cannot drift again.
+ * `countNamed` and `summariseReading` are the only two places either number is
+ * produced - two rather than one because the strip cannot afford a grid per
+ * reading - and the agreement test drives both over a list of shapes so they
+ * cannot drift again. **Two implementations pinned to agree is what this is,
+ * not one implementation**: a property the shape list holds, so a shape it does
+ * not contain is a way they can still disagree. That is how the repeated-engine
+ * case below was found.
+ *
+ * ## Both of them take the engine list through `knownEngines`
+ *
+ * Which lives in `scan/engines.ts`, because it is a fact about the column
+ * rather than about this page - the waiting screen had the same defect and now
+ * goes through the same door. Its header carries the argument. What it means
+ * here: a row whose list repeats a name used to reach the grid as two columns,
+ * so one answer was counted twice in the headline's numerator *and* its
+ * denominator, while the strip - which counts answer rows - counted it once.
+ * The page said *named in 2 of 2* at the top and *1 of 2* twelve lines below,
+ * for one reading, which is exactly the contradiction this module exists to
+ * stop.
  *
  * It matters beyond one page being self-consistent: the history strip is the
  * only place the product's actual promise - the same questions again,
@@ -109,8 +126,12 @@ export type AnswerRow = {
 export function buildQuestions(
   questionRows: QuestionRow[],
   answerRows: AnswerRow[],
-  engines: Engine[],
+  engines: readonly string[],
 ): ReadingQuestion[] {
+  // Through `knownEngines` rather than trusting the caller: the grid's width is
+  // the headline's denominator, so a repeated name here is a doubled figure on
+  // the page. See the header.
+  const columns = knownEngines(engines);
   const byQuestion = new Map<string, ReadingAnswer[]>();
   for (const a of answerRows) {
     if (!isEngine(a.engine)) continue;
@@ -123,7 +144,7 @@ export function buildQuestions(
     .sort((a, b) => a.idx - b.idx)
     .map((q) => {
       const found = byQuestion.get(q.id) ?? [];
-      const answers = engines.map(
+      const answers = columns.map(
         (engine) => found.find((f) => f.engine === engine) ?? { engine, answered: false, brandNamed: false },
       );
       return { idx: q.idx, kind: q.kind, question: q.question, answers };
@@ -150,8 +171,10 @@ export function countNamed(questions: ReadingQuestion[]): { count: number; of: n
  * grid for each would mean reading every question and answer of every past
  * reading. The numbers have to come out identical to `countNamed` all the
  * same, so this reproduces its arithmetic rather than a cheaper version of it:
- * the denominator is `questions x engines` and the numerator drops any engine
- * the union does not know, exactly as `buildQuestions` does.
+ * the denominator is `questions x engines` over the same `knownEngines` list
+ * the grid's columns are built from - filtered to the union and deduplicated -
+ * and the numerator drops any engine the union does not know, exactly as
+ * `buildQuestions` does.
  *
  * `named` is capped at `of`. A brand named twice for one question and engine
  * would otherwise report *named in 21 of 20*; `scan_answers` is unique on
@@ -167,7 +190,7 @@ export function summariseReading(input: {
   questionCount: number;
   answers: { engine: string; brand_named: boolean }[];
 }): ReadingSummary {
-  const engines = input.engines.filter(isEngine);
+  const engines = knownEngines(input.engines);
   const of = input.questionCount * engines.length;
   const named = input.answers.filter((a) => isEngine(a.engine) && a.brand_named).length;
   return {

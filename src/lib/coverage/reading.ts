@@ -12,7 +12,7 @@ import {
   countNamed,
   summariseReading,
 } from "@/lib/coverage/reading-figures";
-import { type Engine, isEngine } from "@/lib/scan/engines";
+import { type Engine, isEngine, knownEngines } from "@/lib/scan/engines";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { selectAll } from "@/lib/supabase/page";
 
@@ -159,7 +159,17 @@ export async function readCampaign(token: string): Promise<CampaignReading | nul
   if (!current) return base;
 
   const readingId = current.id as string;
-  const engines = ((current.engines as string[] | null) ?? []).filter(isEngine);
+  /**
+   * Through `knownEngines`, which dedupes as well as filtering.
+   *
+   * This was `.filter(isEngine)` alone, and `pipeline.ts` takes the same column
+   * through `[...new Set(...)]` before it asks anything - explicitly "for rows
+   * already written". So a row whose list repeats a name was read one way by
+   * the pass and another way by the page: one answer stored, two columns
+   * rendered, and the headline counting the same answer twice on both sides of
+   * its fraction while the history strip counted it once.
+   */
+  const engines = knownEngines(current.engines as string[] | null);
 
   base.reading = {
     id: readingId,

@@ -81,8 +81,14 @@ function isEngineKey(key: string): key is EngineKey {
 /**
  * The widest a number setting may be.
  *
- * Every one of the nine numbers here is a count of days, scans, calls or
- * dollars, and none of them is meaningfully negative. The ceilings fail closed
+ * Every number setting here is a count of days, scans, emails, model calls or
+ * dollars, and none of them is meaningfully negative. The count is not typed:
+ * it said "the nine numbers" while there were seven of them and two booleans,
+ * which is the arithmetic of a sentence written when the two kinds were one
+ * list. `settings-merge.test.mts` walks
+ * `Object.keys(SETTINGS_FALLBACK).filter(k => typeof ... === "number")`, so a
+ * new number setting is under this rule the day it is added. The ceilings fail
+ * closed
  * on a negative - `spentToday >= -5` refuses everything - but
  * `domain_cache_days` fails the other way, putting the cache window in the
  * future so every scan misses it and runs for real.

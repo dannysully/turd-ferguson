@@ -194,12 +194,41 @@ test("one below every limit is allowed - the boundary is >= and not >", async ()
   assert.equal(refusal, null, "a caller one under the cap was refused a scan they were owed");
 });
 
+/**
+ * The two ways a ceiling refuses when its own read fails, split by which it is.
+ *
+ * A count comes back with an `error` set and is turned into a refusal here; the
+ * two spend reads throw, and that reaches the route as a 500. Both are a
+ * refusal and neither is "the cap is off", which is what `?? 0` used to make
+ * them.
+ *
+ * These two lists are the only hand-typed denominator in this file, and the
+ * test below is what stops them being one: `CLEAR` is the runtime list of every
+ * ceiling, so a new one that lands in neither list fails there rather than
+ * quietly having no failed-read behaviour under test. Everything else here
+ * derives from `CLEAR` already, and a plan missing a key throws the moment the
+ * decision reaches it - which is why adding a ceiling cannot slip past the
+ * other tests.
+ */
+const REFUSES = ["todayScans", "ipScans", "ipCampaigns"] as const;
+const THROWS = ["spentToday", "modelCallsToday"] as const;
+
+test("every ceiling is under one of the two failed-read rules, and only one", () => {
+  const covered = [...REFUSES, ...THROWS];
+  assert.deepEqual(
+    [...covered].sort(),
+    Object.keys(CLEAR).sort(),
+    "a ceiling was added with no failed-read behaviour under test - see REFUSES and THROWS",
+  );
+  assert.equal(new Set(covered).size, covered.length, "a ceiling is claimed by both rules");
+});
+
 test("a ceiling that could not be read refuses, and is not read as zero", async () => {
   const s = settings();
   // Every other reading is far over its cap, so a decision that treated the
   // failed read as zero would sail past this ceiling and refuse at a later one
   // with a different code. Asserting only "refused" would pass on that.
-  for (const which of ["todayScans", "ipScans", "ipCampaigns"] as const) {
+  for (const which of REFUSES) {
     const plan: Partial<Record<keyof CeilingReads, Reading>> = { ...CLEAR };
     plan[which] = { failed: "connection terminated unexpectedly" };
     const { refusal, warnings, taken } = await decide({ countCampaigns: true, subject: "scan" }, plan);
@@ -219,7 +248,7 @@ test("a ceiling that could not be read refuses, and is not read as zero", async 
   // And the two that throw still throw: spentSince and anthropicCallsSince
   // refuse by reaching the route as a 500 rather than by returning a refusal,
   // which is the behaviour this split had to preserve.
-  for (const which of ["spentToday", "modelCallsToday"] as const) {
+  for (const which of THROWS) {
     const plan: Partial<Record<keyof CeilingReads, Reading>> = { ...CLEAR };
     plan[which] = new Error("PostgREST said no");
     await assert.rejects(

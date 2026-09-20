@@ -6,7 +6,7 @@ import TierName, { type TierKey } from "@/components/TierName";
 import { CHATGPT_VISIBILITY, KEYWORD_FOUR_MONTHS } from "@/config/client-results";
 import { TIERS } from "@/config/pricing";
 import { CARD, MICRO, T } from "@/config/tokens";
-import { ENGINE_SPECS, isEngine } from "@/lib/scan/engines";
+import { ENGINE_SPECS, knownEngines } from "@/lib/scan/engines";
 import { stepCaption, stepPct } from "@/lib/scan/run-steps";
 
 import { seqClimb, seqStep } from "./seq-stagger";
@@ -770,7 +770,17 @@ export default function HeroSequence({ headingRef, ...p }: {
   const current = ACTS[act];
   const Body = ACT_BODIES[act];
   const pct = stepPct(p.step);
-  const engines = p.engines.filter(isEngine);
+  /**
+   * Through `knownEngines`, which dedupes as well as filtering.
+   *
+   * The chips below are keyed on the engine name, so a row whose frozen list
+   * repeats one rendered two identical children under one React key - and told
+   * the visitor, on the screen they watch for six minutes, that their scan
+   * reads more engines than it does. `pipeline.ts` takes the same column
+   * through a Set before it asks anything, so this was the page disagreeing
+   * with the pass about the same row.
+   */
+  const engines = knownEngines(p.engines);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>

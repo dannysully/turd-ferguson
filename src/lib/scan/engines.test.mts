@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
+  ENGINES,
+  knownEngines,
   parseChatGpt,
   parseGoogleAio,
   parsePerplexity,
@@ -228,4 +230,42 @@ test("link URLs do not survive into the prose brand matching reads", () => {
   // A brand whose name appears only inside a URL must not count as named.
   assert.equal(stripMarkdownLinks("Try [Vibe Retail](https://viberetail.com)."), "Try Vibe Retail.");
   assert.equal(stripMarkdownLinks("See https://viberetail.com for more."), "See for more.");
+});
+
+/* ------------------------------------------------------------------ *
+ * knownEngines - the one door every reader of a stored list goes through
+ * ------------------------------------------------------------------ */
+
+test("a repeated name in a stored engine list is read once", () => {
+  /**
+   * The behaviour. `pipeline.ts` has always done this to `scans.engines`
+   * before asking anything; three readers did not, and each of them then
+   * disagreed with the pass about the same row. `engine-list-readers.test.mts`
+   * is what holds the walk - this only holds the value, and on its own it
+   * would have passed on the tree that carried the defect.
+   */
+  assert.deepEqual(knownEngines(["chatgpt", "chatgpt", "google_aio"]), ["chatgpt", "google_aio"]);
+});
+
+test("the first occurrence keeps its place, so the grid's columns do not reshuffle", () => {
+  // The campaign grid's cells are built by walking this list, and the page
+  // renders one column per entry in this order.
+  assert.deepEqual(knownEngines(["google_aio", "chatgpt", "google_aio"]), ["google_aio", "chatgpt"]);
+});
+
+test("a name the union does not know is dropped, not passed through", () => {
+  assert.deepEqual(knownEngines(["chatgpt", "gemini_ultra_9", "bard"]), ["chatgpt"]);
+});
+
+test("a column that is null or absent reads as an empty list, not a throw", () => {
+  // jsonb holds whatever was typed into it and the column is nullable, so both
+  // reach this from a real row.
+  assert.deepEqual(knownEngines(null), []);
+  assert.deepEqual(knownEngines(undefined), []);
+});
+
+test("every engine the union knows survives the door", () => {
+  // A floor derived from ENGINES rather than typed: a filter that quietly
+  // stopped recognising one would otherwise look like a clean dedupe.
+  assert.deepEqual(knownEngines([...ENGINES]), [...ENGINES]);
 });

@@ -14,7 +14,7 @@ import type {
   ScanOpportunity,
   ScanQuestion,
 } from "@/lib/scan";
-import { ENGINE_SPECS, isEngine } from "@/lib/scan/engines";
+import { ENGINE_SPECS, isEngine, knownEngines } from "@/lib/scan/engines";
 // The words the pipeline writes into `scans.step`, mapped back to a position.
 // Derived from the same list the captions and the bar come from, because this
 // map used to be a hand-typed second copy of that vocabulary: a step renamed
@@ -126,8 +126,22 @@ type FullPayload = {
   gated_status?: string;
 };
 
+/**
+ * The gated engine list, in prose: "ChatGPT, Gemini and Perplexity".
+ *
+ * `knownEngines` rather than a bare filter. The only caller passes
+ * `gatedEngines`, which is the `scans.gated_engines` jsonb column - straight
+ * off the row on first render, and off the poll response after that. A
+ * repeated name read back as "Gemini and Gemini" in the sentence that tells a
+ * visitor what their email bought, while the pass that name belongs to asked
+ * it once: `pipeline.ts` takes the same column through a Set.
+ *
+ * Found by `engine-list-readers.test.mts` while that sweep was being written,
+ * against an exemption claiming this list was `Object.keys` and could not
+ * repeat. It was not; the exemption was wrong and is gone.
+ */
 function engineLabels(keys: string[]): string {
-  const names = keys.filter(isEngine).map((k) => ENGINE_SPECS[k].label);
+  const names = knownEngines(keys).map((k) => ENGINE_SPECS[k].label);
   if (names.length <= 1) return names[0] ?? "";
   return names.slice(0, -1).join(", ") + " and " + names[names.length - 1];
 }

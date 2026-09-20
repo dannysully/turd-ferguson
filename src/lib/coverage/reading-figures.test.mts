@@ -17,7 +17,7 @@ import {
  * it. The first draft of this file did exactly that and passed while naming
  * an engine (`google_ai`) that does not exist.
  */
-import { isEngine } from "../scan/engines.ts";
+import { isEngine, knownEngines } from "../scan/engines.ts";
 
 /**
  * The campaign reading page's figures, executed.
@@ -73,6 +73,31 @@ test("an engine that stored no row keeps its place as a measured absence", () =>
 test("questions are ordered by idx, not by the order the rows arrived", () => {
   const grid = buildQuestions([Q("c", 3), Q("a", 1), Q("b", 2)], [], ["chatgpt"]);
   assert.deepEqual(grid.map((q) => q.idx), [1, 2, 3]);
+});
+
+test("a repeated engine on the row is one column, not two", () => {
+  /**
+   * Agreement is not enough on its own here. Dropping the dedupe from *both*
+   * functions leaves them agreeing at *2 of 2* - the same wrong figure twice -
+   * so the shape in the agreement list below cannot hold this by itself. The
+   * absolute value is pinned here, against what the pass actually did: one
+   * question, one engine asked once, one answer stored.
+   */
+  const grid = buildQuestions([Q("a", 1)], [A("a", "chatgpt", true)], ["chatgpt", "chatgpt"]);
+  assert.deepEqual(grid[0].answers.map((x) => x.engine), ["chatgpt"]);
+  assert.deepEqual(countNamed(grid), { count: 1, of: 1 });
+});
+
+test("the grid's columns are the same list the page counts beside the headline", () => {
+  /**
+   * The page renders `reading.engines.length` as *on N engines* in the same
+   * sentence as *named in N of M*, and `reading.ts` builds that list with
+   * `knownEngines`. If the grid were built from anything else the copy and the
+   * fraction beside it would be counting two different things.
+   */
+  const stored = ["chatgpt", "chatgpt", "gemini_ultra_9", "google_aio"];
+  const grid = buildQuestions([Q("a", 1)], [], stored);
+  assert.deepEqual(grid[0].answers.map((x) => x.engine), knownEngines(stored));
 });
 
 test("an engine value the union does not know is dropped from the grid", () => {
@@ -155,6 +180,27 @@ test("the history row for a reading agrees with that reading's headline", () => 
       questions: [Q("a", 1), Q("b", 2)],
       answers: [A("a", "chatgpt", false), A("a", "gemini_ultra_9", true)],
       engines: ["chatgpt", "gemini_ultra_9"],
+    },
+    {
+      /**
+       * The row's engine list repeats a name, which is the shape the other six
+       * could not see and the one that was live.
+       *
+       * `pipeline.ts` dedupes this column before it asks anything, saying it is
+       * doing so "for rows already written" - so the pass asks chatgpt once and
+       * stores one answer row. The page built a column per entry: the headline
+       * counted that one answer in two cells and doubled its own denominator to
+       * match, while the strip counted answer rows and did neither. *named in 2
+       * of 2* above *named in 1 of 2*, for one reading.
+       *
+       * Two questions, and only one of them named, so the two halves of the
+       * fraction cannot both be wrong and still agree by accident - the trap
+       * the unknown-engine shape above fell into first time.
+       */
+      name: "the row's frozen engine list repeats a name",
+      questions: [Q("a", 1), Q("b", 2)],
+      answers: [A("a", "chatgpt", true), A("b", "chatgpt", false)],
+      engines: ["chatgpt", "chatgpt"],
     },
     {
       name: "nothing was asked at all",
