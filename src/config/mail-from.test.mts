@@ -13,14 +13,15 @@ import { MAIL_FROM_FALLBACK, mailFrom } from "./mail-from.ts";
  * `email-header.test.mts` already walks every `emails.send` in the tree - it
  * was written for exactly this denominator, after `contact.test.mts` was found
  * to be right about every assertion while reading one file. It reads **one of
- * the five fields**: the subject. `to` is either a constant or a verified
- * address and is swept by `contact.test.mts` and `mail-doors.test.mts`;
- * `replyTo` is guarded by `isPlausibleEmail`, whose `[^\s@]` idiom makes a
- * header terminator unreachable, so wrapping it would be a guard with no
- * effect and this repo deletes those. `from` was read by nothing at all.
+ * the five fields**: the subject. `replyTo` is guarded by `isPlausibleEmail`,
+ * whose `[^\s@]` idiom makes a header terminator unreachable, so wrapping it
+ * would be a guard with no effect and this repo deletes those. `from` and
+ * `to` were read by nothing at all.
  *
  * Take a check that is right about everything it names and ask what it is not
- * looking at. It was looking at four subjects and not at four From lines.
+ * looking at. It was looking at four subjects and not at four From lines -
+ * and not at four recipients, which is the refill at the bottom of this file
+ * and the more serious of the two.
  *
  * **What it found.** `process.env.SCAN_FROM_EMAIL ?? "alwayscited
  * <onboarding@resend.dev>"`, typed verbatim four times in three files - the
@@ -50,8 +51,8 @@ import { MAIL_FROM_FALLBACK, mailFrom } from "./mail-from.ts";
  * the same device `organization-entity.test.mts` uses for the missing
  * `sameAs`.
  *
- * Proved against nine injections (`docs/inject-mail-from.mjs`), 9/9, two of
- * them green-expected. The green cases are not decoration: the first of them
+ * Proved against twelve injections (`docs/inject-mail-from.mjs`), 12/12, two
+ * of them green-expected. The green cases are not decoration: the first of them
  * caught this push's own defect, a `readiness.test.mts` census reading raw
  * source and reporting a doc comment as a reader. The fifth-send case is what
  * earns the list below over a floor, and it had to be injected as an ADDED
@@ -82,17 +83,23 @@ const FILES = sourceFiles(SRC);
 const HOME = "src/config/mail-from.ts";
 
 /**
- * The `from:` of one send, read to the end of its line.
+ * One named field of a send, read to the end of its line.
  *
  * Same reasoning as `subjectOf` one file over: to the end of the line rather
  * than to the next comma, because a comma-terminated read cuts a call
  * expression in half and would report `mailFrom()` as something else the day
- * it takes an argument.
+ * it takes an argument. It also keeps the whole of
+ * `process.env.CONTACT_EMAIL_DESTINATION ?? CONTACT_EMAIL`, which a
+ * comma-terminated read would not, and that expression is the thing the
+ * recipient rule has to judge rather than half of it.
  */
-function fromOf(call: string): string | null {
-  const m = /\n\s*from:\s*(.+?),?\s*\n/.exec(call);
+function fieldOf(call: string, name: string): string | null {
+  const m = new RegExp(`\\n\\s*${name}:\\s*(.+?),?\\s*\\n`).exec(call);
   return m ? m[1]!.trim() : null;
 }
+
+const fromOf = (call: string) => fieldOf(call, "from");
+const toOf = (call: string) => fieldOf(call, "to");
 
 // ------------------------------------------------------------- the reader
 
@@ -168,10 +175,12 @@ test("the environment variable is read in exactly one file", () => {
  * imported it straight out of `email-header.test.mts`, which works and
  * silently makes node run that entire suite a second time.
  */
-function sends(): { file: string; from: string | null }[] {
-  const out: { file: string; from: string | null }[] = [];
+function sends(): { file: string; from: string | null; to: string | null }[] {
+  const out: { file: string; from: string | null; to: string | null }[] = [];
   for (const f of FILES) {
-    for (const call of sendCalls(readFileSync(f, "utf8"))) out.push({ file: posix(f), from: fromOf(call) });
+    for (const call of sendCalls(readFileSync(f, "utf8"))) {
+      out.push({ file: posix(f), from: fromOf(call), to: toOf(call) });
+    }
   }
   return out;
 }
@@ -224,6 +233,72 @@ test("every send takes its From from the one reader", () => {
   for (const s of all) {
     assert.equal(s.from, "mailFrom()", `${s.file} sets its own From: ${s.from}`);
   }
+});
+
+// ------------------------------------------ the refill: the field beside it
+
+/**
+ * Who each send is addressed to, and why that is somebody we may write to.
+ *
+ * Asked of the sweep above the moment it went green, which is the rule this
+ * tree keeps paying for: every test you write creates the next candidate.
+ * That one reads the `from` of every send. The field beside it decides
+ * whether this product mails a stranger, and **AGENTS.md puts contacting
+ * anyone on the absolute list** - above "ship it rough", alongside
+ * credentials and destructive DDL.
+ *
+ * It was asserted nowhere. The property is written down three times in prose
+ * - blocked.md 24 ("Both anonymous doors send to `CONTACT_EMAIL_DESTINATION`,
+ * so neither can be used to mail somebody else from us"), the queue, and
+ * `mail-doors.test.mts`'s own header - and `mail-doors` walks modules,
+ * bounds, honeypots and the action manifest without ever reading a
+ * recipient. A stated reason for a safety property is a claim about the tree
+ * and it costs a `holds` now; that is the lesson `349dcda` left.
+ *
+ * **The defect it refuses is one word.** `waitlist.ts` has a stranger's
+ * address in scope on the line above its send, as `replyTo: email`. Typing
+ * it into `to` instead turns an anonymous, captcha-free, unrate-limited POST
+ * into something that mails an arbitrary address from our domain. Nothing in
+ * this tree noticed that before.
+ *
+ * Per call, not per file, for the reason `email-header.test.mts` records
+ * about this exact file: `verify-email.ts` has two sends, so a rule satisfied
+ * by "the right recipient appears somewhere in this module" is satisfied by
+ * the correct send while the one beside it addresses somebody else.
+ */
+const RECIPIENTS: { to: string; why: string }[] = [
+  {
+    to: "process.env.CONTACT_EMAIL_DESTINATION ?? CONTACT_EMAIL",
+    why: "us - the waitlist door, whose destination a deployment may repoint but which is never a value a caller supplies",
+  },
+  {
+    to: "CONTACT_EMAIL_DESTINATION",
+    why: "us - the contact door, the same constant read once at the top of that module",
+  },
+  {
+    to: "input.email",
+    why: "the visitor's own address, for their own scan - the verification mail proves it and the report mail is sent after it was proved. Not a third party's under any branch: nothing else writes that field",
+  },
+];
+
+test("every send is addressed to somebody we are allowed to write to", () => {
+  const all = sends();
+  assert.equal(all.length, 4, `expected 4 sends, the walk found ${all.length}`);
+
+  const allowed = new Map(RECIPIENTS.map((r) => [r.to, r.why]));
+  for (const s of all) {
+    assert.ok(
+      s.to !== null && allowed.has(s.to),
+      `${s.file} mails ${s.to} - an unlisted recipient. If it is legitimate, add it to RECIPIENTS with the reason it is not a stranger`,
+    );
+  }
+  for (const r of RECIPIENTS) assert.ok(r.why.length > 20, `${r.to} is allowed with no reason`);
+});
+
+test("the recipient reader can still see a send addressed to a caller's string", () => {
+  const bad = sendCalls("emails.send({\n  from: mailFrom(),\n  to: email,\n  subject: x,\n})");
+  assert.equal(toOf(bad[0]!), "email", "the recipient reader no longer sees a bare identifier");
+  assert.equal(toOf(sendCalls("emails.send({\n  from: mailFrom(),\n  to: input.email,\n})")[0]!), "input.email");
 });
 
 test("the From reader can still see a send that sets its own address", () => {
