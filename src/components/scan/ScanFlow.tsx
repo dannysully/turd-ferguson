@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { SCAN_LIMITS } from "@/config/contact";
 import { QUESTIONS } from "@/config/scan-shape";
 import { MICRO, SHELL, T } from "@/config/tokens";
+import { track } from "@/lib/analytics";
 import type {
   EngineAnswer,
   EngineBreakdown,
@@ -197,12 +198,6 @@ const STUCK_MS = 6 * 60 * 1000;
  */
 const RUN_FAILED =
   "We could not finish that check. You can run it again - a run that fails on our side does not count against your free scans.";
-
-function track(event: string, props: Record<string, unknown> = {}) {
-  if (typeof window === "undefined") return;
-  const w = window as unknown as { dataLayer?: unknown[] };
-  if (Array.isArray(w.dataLayer)) w.dataLayer.push({ event, ...props });
-}
 
 /**
  * The unlock payload, as the screens need it.

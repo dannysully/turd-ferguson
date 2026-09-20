@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { track } from "@/lib/analytics";
 import type { Market } from "@/lib/scan";
 
 import { DomainScreen } from "./screens";
@@ -26,12 +27,6 @@ export default function LiveScanChecker({ initialDomain = "" }: { initialDomain?
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-
-  function track(event: string, props: Record<string, unknown> = {}) {
-    if (typeof window === "undefined") return;
-    const w = window as unknown as { dataLayer?: unknown[] };
-    if (Array.isArray(w.dataLayer)) w.dataLayer.push({ event, ...props });
-  }
 
   async function onDomain(e: React.FormEvent) {
     e.preventDefault();
