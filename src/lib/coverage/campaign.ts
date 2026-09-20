@@ -116,22 +116,72 @@ export async function startBenchmark(req: BenchmarkRequest): Promise<BenchmarkSt
     if (coverageErr) throw new BenchmarkStoreError("coverage", coverageErr.message);
   }
 
+  const scanId = await addReading({
+    campaignId: campaign.id as string,
+    brand: req.brand,
+    domain: req.domain,
+    topic: req.topic,
+    segment: req.segment,
+    market: req.market,
+    ipHash: req.ipHash,
+    engines: req.engines,
+  });
+
+  return {
+    token: campaign.public_token as string,
+    campaignId: campaign.id as string,
+    scanId,
+    coverageStored: req.coverage.length,
+  };
+}
+
+/**
+ * A reading of an existing campaign.
+ *
+ * Split out of `startBenchmark` when the re-run needed it, and the re-run is
+ * what the whole feature is for: the first reading is only worth taking because
+ * the same five questions can be asked again afterwards and the two compared.
+ * Both callers go through here so a re-run cannot drift into asking a different
+ * set - the one failure that would be invisible, because it would finish, it
+ * would look like a result, and the comparison would silently be against a
+ * different question.
+ *
+ * The prompts are rebuilt from the campaign's own stored brand, topic and
+ * segment rather than copied off the previous reading's rows. The same inputs
+ * through the same deterministic template give the same five strings, which
+ * `prompts.test.mts` pins - so this is the same set by construction rather than
+ * by a copy that somebody could edit one half of.
+ *
+ * Returns the new scan id, for the caller's `after(() => runScan(id))`.
+ */
+export async function addReading(input: {
+  campaignId: string;
+  brand: string;
+  domain: string;
+  topic: string;
+  segment: string | null;
+  market: Market;
+  ipHash: string;
+  engines: Engine[];
+}): Promise<string> {
+  const db = supabaseAdmin();
+
   /**
-   * The reading, born at `pending_topic` so that nothing can run it until its
-   * questions are on the table. See the header: this is the step that stops a
-   * benchmark quietly asking the generated set.
+   * Born at `pending_topic` so that nothing can run it until its questions are
+   * on the table. See the header: this is the step that stops a reading quietly
+   * asking the generated set.
    */
   const { data: scan, error: scanErr } = await db
     .from("scans")
     .insert({
-      campaign_id: campaign.id,
-      domain: req.domain,
-      brand_name: req.brand,
-      topic: req.topic,
-      market: req.market,
+      campaign_id: input.campaignId,
+      domain: input.domain,
+      brand_name: input.brand,
+      topic: input.topic,
+      market: input.market,
       status: "pending_topic",
-      ip_hash: req.ipHash,
-      engines: req.engines,
+      ip_hash: input.ipHash,
+      engines: input.engines,
       /**
        * Empty, whatever the settings say. The gated pass is what an email
        * address buys on a free scan, and a benchmark takes no address - there
@@ -148,9 +198,9 @@ export async function startBenchmark(req: BenchmarkRequest): Promise<BenchmarkSt
   }
 
   const prompts = coveragePrompts({
-    brand: req.brand,
-    topic: req.topic,
-    segment: req.segment ?? undefined,
+    brand: input.brand,
+    topic: input.topic,
+    segment: input.segment ?? undefined,
   });
   const { error: qErr } = await db.from("scan_questions").insert(
     prompts.map((p, idx) => ({
@@ -185,10 +235,5 @@ export async function startBenchmark(req: BenchmarkRequest): Promise<BenchmarkSt
     throw new BenchmarkStoreError("queue", queueErr?.message ?? "the reading did not leave pending_topic");
   }
 
-  return {
-    token: campaign.public_token as string,
-    campaignId: campaign.id as string,
-    scanId: scan.id as string,
-    coverageStored: req.coverage.length,
-  };
+  return scan.id as string;
 }

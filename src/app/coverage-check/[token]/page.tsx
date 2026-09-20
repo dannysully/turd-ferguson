@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import ReadingPoll from "@/components/coverage/ReadingPoll";
+import RerunButton from "@/components/coverage/RerunButton";
 import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
 import { readCampaign, type ReadingAnswer } from "@/lib/coverage/reading";
 import { count, isAre } from "@/lib/plural";
@@ -67,6 +68,21 @@ function verdict(a: ReadingAnswer) {
 function dateOf(iso: string | null): string {
   if (!iso) return "";
   return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+}
+
+/**
+ * The time, shown only when the date alone would not tell two readings apart.
+ *
+ * Two readings of one campaign on one day is not a hypothetical - it is what a
+ * re-run after a failed pass looks like, and what the first live test of this
+ * page produced: two rows both reading "20 September 2026", with different
+ * findings and nothing to say which was which. The date is what matters for a
+ * benchmark, so it stays the label; the time is added only where it is needed
+ * to disambiguate.
+ */
+function timeOf(iso: string | null): string {
+  if (!iso) return "";
+  return new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 }
 
 export default async function CampaignReadingPage({ params }: { params: Promise<{ token: string }> }) {
@@ -174,14 +190,9 @@ export default async function CampaignReadingPage({ params }: { params: Promise<
                 we can name and does not name it sends the reader to guess at
                 their own campaign. */}
             {reading?.error ? reading.error : "We could not complete it."} Nothing was measured, so there is nothing
-            here to read against. Running it again starts a fresh reading.
+            here to read against. The button below takes a fresh reading of this same campaign - your uploaded
+            coverage list is still on it, so there is nothing to re-enter.
           </p>
-          <Link
-            href="/coverage-check"
-            style={{ display: "inline-block", marginTop: "12px", fontSize: "14px", fontWeight: 600, color: T.accent, textDecoration: "none" }}
-          >
-            Run it again
-          </Link>
         </div>
       )}
 
@@ -313,15 +324,27 @@ export default async function CampaignReadingPage({ params }: { params: Promise<
         </section>
       )}
 
-      {history.length > 1 && (
+      {(complete || failed) && (
         <section>
           <div className="board-head" style={{ ...GRID12, marginBottom: "14px" }}>
-            <h2 style={{ ...H2, gridColumn: "span 4" }}>Every reading of this campaign</h2>
+            <h2 style={{ ...H2, gridColumn: "span 4" }}>
+              {history.length > 1 ? "Every reading of this campaign" : "After the campaign"}
+            </h2>
             <p style={{ gridColumn: "span 8", margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
-              Each one is kept as it was taken. A re-run writes a new reading and never edits an old one, which is what
-              makes the first one worth having.
+              {history.length > 1
+                ? "Each one is kept as it was taken. A re-run writes a new reading and never edits an old one, which is what makes the first one worth having."
+                : "Run it again once the coverage has had time to land. The same questions, word for word, against the same uploaded list - so what changed is the answer rather than the question."}
             </p>
           </div>
+
+          <div style={{ marginBottom: history.length > 1 ? "14px" : 0 }}>
+            <RerunButton token={token} />
+          </div>
+        </section>
+      )}
+
+      {history.length > 1 && (
+        <section>
           <div style={{ ...CARD, overflow: "hidden" }}>
             {history.map((h, i) => (
               <div
@@ -336,7 +359,12 @@ export default async function CampaignReadingPage({ params }: { params: Promise<
                 }}
               >
                 <span style={{ fontSize: "14px", color: T.ink }}>
-                  {h.takenAt ? dateOf(h.takenAt) : h.status}
+                  {h.takenAt
+                    ? dateOf(h.takenAt) +
+                      (history.filter((o) => o.takenAt && dateOf(o.takenAt) === dateOf(h.takenAt)).length > 1
+                        ? `, ${timeOf(h.takenAt)}`
+                        : "")
+                    : h.status}
                 </span>
                 <span style={{ fontSize: "12.5px", color: T.soft }}>
                   {h.answers ? `named in ${h.named} of ${h.answers} answers` : "no answers stored"}
