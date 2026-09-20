@@ -130,7 +130,7 @@ export default function CoverageCheckPage() {
           </h1>
           <p style={{ margin: "14px 0 0", fontSize: "15px", lineHeight: 1.65, color: T.soft, maxWidth: "62ch" }}>
             The questions are built from the brand and what the campaign is about. We ask the same engines a free scan
-            reads - {listOf(FREE_ENGINE_LABELS)} - keep the answers word for word, and check every source they cite
+            reads - {listOf(FREE_ENGINE_LABELS)} - read every answer in full, and check every source they cite
             against the coverage you upload. Dated, stored, and re-runnable - so the next reading is a comparison
             rather than another snapshot.
           </p>

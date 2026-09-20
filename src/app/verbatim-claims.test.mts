@@ -13,10 +13,11 @@ import { test } from "node:test";
  * puts outside "ship it rough". **This file decides nothing about the
  * wording.** It fixes the denominator underneath it, which was wrong.
  *
- * **It is not five surfaces. It is fourteen sites, and the five the census
+ * **It is not five surfaces. It was fourteen sites, and the five the census
  * found are exactly the five a page walk can reach** - because it read the
  * rendered pages, and three whole classes of published copy on this site are
- * not pages:
+ * not pages. Thirteen now: `/coverage-check`'s came off on 20 Sep for a reason
+ * that is not the wording call, recorded above the count below.
  *
  * - **The live scan screens.** `ResultView.tsx`, `ScanFlow.tsx` and
  *   `HeroSequence.tsx` render only behind a running scan, so no prerender and
@@ -86,11 +87,6 @@ const SURFACES: { file: string; sites: number; why: string }[] = [
     file: "src/app/compare/page.tsx",
     sites: 1,
     why: "rendered page - a feature row answering Yes",
-  },
-  {
-    file: "src/app/coverage-check/page.tsx",
-    sites: 1,
-    why: "rendered page - the benchmark explainer, in the sentence describing what a reading keeps",
   },
   {
     file: "src/components/home/TierJourney.tsx",
@@ -220,11 +216,24 @@ test("every listed surface still publishes it, and as many times as recorded", (
  *
  * Stated as one number because that is the thing that was wrong: blocked.md 29
  * said five, and five is exactly what a page walk can see - nine of the
- * fourteen are off it.
+ * thirteen are off it.
+ *
+ * **Fourteen until 20 Sep, and the one that came off was not the wording call
+ * landing.** `/coverage-check` said "keep the answers word for word" about a
+ * campaign reading, and for that product the claim was not an overstatement -
+ * it was false. A reading takes no email, so nothing ever reaches
+ * `completeUnlock` and `unlocked_at` stays null for ever; the nightly purge
+ * selects exactly `unlocked_at is null` past the retention window, with no
+ * campaign exclusion. So a benchmark's prose is cleared a week after it is
+ * taken - and `reading.ts` renders none of it in the first place, deliberately.
+ * The page promised a visitor something they could never read, on a surface
+ * that then deletes it. That clause is gone; the retention decision behind it
+ * is blocked.md 30, and `reading-retention.test.mts` holds the facts so the
+ * sentence cannot come back while they are still true.
  */
-test("the claim is published on fourteen sites, not the five a page walk sees", () => {
+test("the claim is published on thirteen sites, not the five a page walk sees", () => {
   const total = SURFACES.reduce((a, s) => a + s.sites, 0);
-  assert.equal(total, 14);
+  assert.equal(total, 13);
 
   const offPage = SURFACES.filter((s) => s.why.startsWith("NOT")).reduce((a, s) => a + s.sites, 0);
   assert.equal(offPage, 9, "the surfaces no page sweep can reach");
