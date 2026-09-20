@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { OG_IMAGE } from "@/config/og";
 import Link from "next/link";
 
+import { CHATGPT_VISIBILITY, KEYWORD_EIGHT_WEEKS, KEYWORD_FOUR_MONTHS } from "@/config/client-results";
 import { CARD, MICRO, SHELL, T } from "@/config/tokens";
 
 /**
@@ -16,6 +17,11 @@ import { CARD, MICRO, SHELL, T } from "@/config/tokens";
  * question set, 14% against the same, and 14% against ChatGPT alone - until
  * Danny settled it as the account owner on 19 Sep 2026: ChatGPT brand
  * visibility, 25%, with no window attached because none is sourced.
+ *
+ * All three figures now come from `config/client-results.ts` rather than
+ * being typed here, which is what stops a fourth form appearing. This page
+ * was already the one that scoped them correctly - "Over eight weeks", "Of
+ * the tracked prompts", "Four months in" - and the homepage was not.
  */
 
 export const metadata: Metadata = {
@@ -97,9 +103,9 @@ export default function CaseStudiesPage() {
                   color: T.ink,
                 }}
               >
-                #83 to #4
+                {KEYWORD_EIGHT_WEEKS.value}
               </div>
-              <div style={{ fontSize: "12px", color: T.soft, marginTop: "5px" }}>Over eight weeks</div>
+              <div style={{ fontSize: "12px", color: T.soft, marginTop: "5px" }}>Over {KEYWORD_EIGHT_WEEKS.scope}</div>
             </div>
             <div style={{ flexGrow: 1, flexBasis: 0, padding: "18px 20px", borderLeft: "1px solid " + T.line }}>
               <div style={{ fontSize: "12.5px", color: T.soft }}>ChatGPT brand visibility</div>
@@ -113,9 +119,9 @@ export default function CaseStudiesPage() {
                   color: T.ink,
                 }}
               >
-                0% to 25%
+                {CHATGPT_VISIBILITY.value}
               </div>
-              <div style={{ fontSize: "12px", color: T.soft, marginTop: "5px" }}>Of the tracked prompts</div>
+              <div style={{ fontSize: "12px", color: T.soft, marginTop: "5px" }}>Of the {CHATGPT_VISIBILITY.scope}</div>
             </div>
             <div style={{ flexGrow: 1, flexBasis: 0, padding: "18px 20px", borderLeft: "1px solid " + T.line }}>
               <div style={{ fontSize: "12.5px", color: T.soft }}>The same keyword</div>
@@ -129,9 +135,13 @@ export default function CaseStudiesPage() {
                   color: T.ink,
                 }}
               >
-                #83 to #1
+                {KEYWORD_FOUR_MONTHS.value}
               </div>
-              <div style={{ fontSize: "12px", color: T.soft, marginTop: "5px" }}>Four months in</div>
+              <div style={{ fontSize: "12px", color: T.soft, marginTop: "5px" }}>
+                {/* The scope is lowercase so it reads inside a label; this is
+                    the one site that opens a sentence with it. */}
+                Four months in
+              </div>
             </div>
           </div>
         </div>

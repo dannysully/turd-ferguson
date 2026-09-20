@@ -3,6 +3,7 @@ import { WAITLIST_LIMITS } from "@/config/contact";
 import { OG_IMAGE } from "@/config/og";
 import Link from "next/link";
 
+import { CHATGPT_VISIBILITY, KEYWORD_EIGHT_WEEKS, KEYWORD_FOUR_MONTHS } from "@/config/client-results";
 import { CARD, MICRO, SHELL, T } from "@/config/tokens";
 import ToConfirm from "@/components/ToConfirm";
 import { ORG_REF, ld } from "@/config/schema";
@@ -29,13 +30,13 @@ import { ORG_REF, ld } from "@/config/schema";
 export const metadata: Metadata = {
   title: "One placement, three AI Overview citations",
   description:
-    "One listicle placement on a page already ranking for the category. Three AI Overview citations. The money keyword #83 to #4 in eight weeks, #1 at four months.",
+    `One listicle placement on a page already ranking for the category. Three AI Overview citations. The money keyword ${KEYWORD_EIGHT_WEEKS.value} in ${KEYWORD_EIGHT_WEEKS.scope}, #1 at ${KEYWORD_FOUR_MONTHS.scope}.`,
   alternates: { canonical: "https://alwayscited.com/case-studies/vibe-retail" },
   openGraph: {
     images: OG_IMAGE,
     title: "One placement, three AI Overview citations",
     description:
-      "Three AI Overview citations. The money keyword went from #83 to #4 in eight weeks, and reached #1 four months in.",
+      `Three AI Overview citations. The money keyword went from ${KEYWORD_EIGHT_WEEKS.value} in ${KEYWORD_EIGHT_WEEKS.scope}, and reached #1 ${KEYWORD_FOUR_MONTHS.scope} in.`,
     url: "https://alwayscited.com/case-studies/vibe-retail",
   },
 };
@@ -50,8 +51,15 @@ const articleSchema = {
   // one, and after the visibility figure had had its invented window taken
   // off. A stale claim in the head is still a published claim - and on this
   // site it is the copy a machine reads first.
+  //
+  // Which is also why the denominator is spelled out here rather than left to
+  // the page. This string is read detached from the body that carries "Share
+  // of the tracked prompts" two hundred words down, so an engine quoting it
+  // gets a percentage with nothing to measure it against - the exact thing
+  // /about publishes a rule against. `client-results.test.mts` reads every
+  // JSON-LD string as its own surface for that reason.
   description:
-    "A US retail SaaS: three AI Overview citations, ChatGPT brand visibility from 0% to 25%, and the money keyword from #83 to #4 in eight weeks, reaching #1 four months in.",
+    `A US retail SaaS: three AI Overview citations, ChatGPT brand visibility from ${CHATGPT_VISIBILITY.value} of the ${CHATGPT_VISIBILITY.scope}, and the money keyword from ${KEYWORD_EIGHT_WEEKS.value} in ${KEYWORD_EIGHT_WEEKS.scope}, reaching #1 ${KEYWORD_FOUR_MONTHS.scope} in.`,
   url: "https://alwayscited.com/case-studies/vibe-retail",
   author: ORG_REF,
   publisher: ORG_REF,
@@ -86,7 +94,7 @@ const GLANCE: [string, string][] = [
 ];
 
 const KEYWORDS: [string, string][] = [
-  ["cloud based pos system for retail", "#83 to #4 (+79)"],
+  ["cloud based pos system for retail", `${KEYWORD_EIGHT_WEEKS.value} (+79)`],
   ["multi-location retail pos", "#13 to #3 (+10)"],
   ["cloud pos for multi-location retail", "#39 to #15 (+24)"],
   ["cloud based retail pos, cloud retail pos, cloud pos retail, cloud retail pos software", "all newly ranking inside the top 10"],
@@ -184,16 +192,16 @@ export default function CaseStudyPage() {
           <div className="ac-row" style={{ flexGrow: 1, flexBasis: "260px", padding: "22px 26px" }}>
             <div style={{ fontSize: "14px", color: T.soft }}>Money keyword position</div>
             <div style={{ fontSize: "36px", fontWeight: 700, letterSpacing: "-0.035em", lineHeight: 1.1, marginTop: "2px" }}>
-              #83 to #4
+              {KEYWORD_EIGHT_WEEKS.value}
             </div>
             <div style={{ fontSize: "13px", color: T.soft, marginTop: "6px", maxWidth: "34ch" }}>
-              Over eight weeks, against the position at the start of the programme.
+              Over {KEYWORD_EIGHT_WEEKS.scope}, against the position at the start of the programme.
             </div>
           </div>
           <div className="ac-row" style={{ flexGrow: 1, flexBasis: "260px", padding: "22px 26px", borderLeft: "1px solid " + T.line }}>
             <div style={{ fontSize: "14px", color: T.soft }}>The same keyword, later</div>
             <div style={{ fontSize: "36px", fontWeight: 700, letterSpacing: "-0.035em", lineHeight: 1.1, marginTop: "2px" }}>
-              #83 to #1
+              {KEYWORD_FOUR_MONTHS.value}
             </div>
             <div style={{ fontSize: "13px", color: T.soft, marginTop: "6px", maxWidth: "34ch" }}>
               Four months in, as the placements kept working.
@@ -202,10 +210,11 @@ export default function CaseStudyPage() {
           <div className="ac-row" style={{ flexGrow: 1, flexBasis: "260px", padding: "22px 26px", borderLeft: "1px solid " + T.line }}>
             <div style={{ fontSize: "14px", color: T.soft }}>ChatGPT brand visibility</div>
             <div style={{ fontSize: "36px", fontWeight: 700, letterSpacing: "-0.035em", lineHeight: 1.1, marginTop: "2px" }}>
-              0% to 25%
+              {CHATGPT_VISIBILITY.value}
             </div>
             <div style={{ fontSize: "13px", color: T.soft, marginTop: "6px", maxWidth: "34ch" }}>
-              Share of the tracked prompts where ChatGPT names the brand. Nothing named it before the placement ran.
+              Share of the {CHATGPT_VISIBILITY.scope} where ChatGPT names the brand. Nothing named it before the
+              placement ran.
             </div>
           </div>
           <div className="ac-row" style={{ flexGrow: 1, flexBasis: "260px", padding: "22px 26px", borderLeft: "1px solid " + T.line }}>

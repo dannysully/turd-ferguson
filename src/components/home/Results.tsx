@@ -1,4 +1,10 @@
 import TierName from "@/components/TierName";
+import {
+  AI_OVERVIEW_CITATIONS,
+  CHATGPT_VISIBILITY,
+  KEYWORD_EIGHT_WEEKS,
+  KEYWORD_FOUR_MONTHS,
+} from "@/config/client-results";
 import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
 import Link from "next/link";
 
@@ -41,17 +47,21 @@ import Link from "next/link";
  * different dates and collapsing them would imply the #1 arrived in eight
  * weeks. The eight-week numbers are what the campaign produced; the #1 is a
  * later reading, attested by Danny as the account owner on 19 Sep 2026.
+ *
+ * Every label below interpolates its figure's own `scope`, so a row cannot be
+ * written without the thing that makes its number a reading. That is not
+ * tidiness: this panel is where the visibility figure was published as a bare
+ * "0% to 25%" with no denominator anywhere on the homepage, while
+ * `/case-studies` and the case study both said "of the tracked prompts" and
+ * /about published the rule that a percentage without its denominator is not
+ * a finding. The denominator was in a comment on this line instead of on the
+ * page. See `config/client-results.ts`.
  */
 const FACTS = [
-  { label: "Money keyword, at eight weeks", val: "#83 to #4" },
-  { label: "Money keyword, at four months", val: "#83 to #1" },
-  // One denominator, and it is ChatGPT. This figure was published here as
-  // 25% against the full question set and on the case study as 14% against
-  // both that and ChatGPT alone - three readings of one number. Danny
-  // settled it as the account owner on 19 Sep 2026: ChatGPT brand
-  // visibility, 25%. No window, because no window is sourced for it.
-  { label: "ChatGPT brand visibility", val: "0% to 25%" },
-  { label: "AI Overview citations on commercial questions", val: "3" },
+  { label: `Money keyword, at ${KEYWORD_EIGHT_WEEKS.scope}`, val: KEYWORD_EIGHT_WEEKS.value },
+  { label: `Money keyword, at ${KEYWORD_FOUR_MONTHS.scope}`, val: KEYWORD_FOUR_MONTHS.value },
+  { label: `ChatGPT brand visibility, of the ${CHATGPT_VISIBILITY.scope}`, val: CHATGPT_VISIBILITY.value },
+  { label: `AI Overview citations ${AI_OVERVIEW_CITATIONS.scope}`, val: AI_OVERVIEW_CITATIONS.value },
 ];
 
 export default function Results() {

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import TierName, { type TierKey } from "@/components/TierName";
+import { CHATGPT_VISIBILITY, KEYWORD_FOUR_MONTHS } from "@/config/client-results";
 import { TIERS } from "@/config/pricing";
 import { CARD, MICRO, T } from "@/config/tokens";
 import { ENGINE_SPECS, isEngine } from "@/lib/scan/engines";
@@ -590,12 +591,17 @@ const ONSITE = [
 /**
  * The two real client figures in the sequence, both attested by Danny as the
  * account owner on 19 September 2026. The keyword carries its window, because
- * the window is what makes it a claim rather than a boast; the visibility
- * figure carries none, because none is sourced and an invented window is worse
- * than no window at all.
+ * the window is what makes it a claim rather than a boast.
+ *
+ * They used to be typed here, which made this the fourth copy of a set that
+ * has already drifted into three forms once - and the copy on the one surface
+ * of this site nobody has ever watched render (blocked.md 15), so a drift here
+ * would be seen by visitors before it was seen by anyone working on it. Both
+ * now come from `config/client-results.ts`, which binds each figure to the
+ * scope that makes it a reading. See `client-results.test.mts`.
  */
-const VIBE_VISIBILITY = "0% to 25%";
-const VIBE_KEYWORD = "#83 to #1";
+const VIBE_VISIBILITY = CHATGPT_VISIBILITY;
+const VIBE_KEYWORD = KEYWORD_FOUR_MONTHS;
 
 function ActCited() {
   return (
@@ -646,15 +652,17 @@ function ActCited() {
           <div style={MICRO}>Vibe Retail, US retail SaaS</div>
           <div style={{ ...CARD, marginTop: "8px", display: "flex", overflow: "hidden", flexWrap: "wrap" }}>
             <div style={{ flexGrow: 1, flexBasis: 0, padding: "14px 16px" }}>
-              <div style={{ fontSize: "12px", color: T.soft }}>ChatGPT brand visibility</div>
+              <div style={{ fontSize: "12px", color: T.soft }}>
+                ChatGPT brand visibility, of the {VIBE_VISIBILITY.scope}
+              </div>
               <div style={{ fontSize: "22px", fontWeight: 700, letterSpacing: "-0.03em", marginTop: "2px" }}>
-                {VIBE_VISIBILITY}
+                {VIBE_VISIBILITY.value}
               </div>
             </div>
             <div style={{ flexGrow: 1, flexBasis: 0, padding: "14px 16px", borderLeft: "1px solid " + T.line }}>
-              <div style={{ fontSize: "12px", color: T.soft }}>Money keyword, in four months</div>
+              <div style={{ fontSize: "12px", color: T.soft }}>Money keyword, in {VIBE_KEYWORD.scope}</div>
               <div style={{ fontSize: "22px", fontWeight: 700, letterSpacing: "-0.03em", marginTop: "2px" }}>
-                {VIBE_KEYWORD}
+                {VIBE_KEYWORD.value}
               </div>
             </div>
           </div>
