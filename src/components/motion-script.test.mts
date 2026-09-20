@@ -100,17 +100,18 @@ function stagger(els: Fake[], opts: { reducedMotion?: boolean; noIO?: boolean } 
    * the callback instead makes the sweep something a test can run on purpose.
    */
   const timers: { fn: () => void; ms: number }[] = [];
-  /** Handlers the script registers on `document`, by event type. */
+  /** Handlers the script registers on `document` or `window`, by event type. */
   const handlers: Record<string, (() => void)[]> = {};
+  const listen = (type: string, fn: () => void) => {
+    (handlers[type] ??= []).push(fn);
+  };
 
   const doc = {
     documentElement: root,
     body: {},
     readyState: "complete",
     visibilityState: "visible",
-    addEventListener(type: string, fn: () => void) {
-      (handlers[type] ??= []).push(fn);
-    },
+    addEventListener: listen,
     querySelectorAll: () => els,
   };
 
@@ -131,6 +132,10 @@ function stagger(els: Fake[], opts: { reducedMotion?: boolean; noIO?: boolean } 
       return timers.length;
     },
     clearTimeout: () => {},
+    // `window.addEventListener` for the scroll path. Shares the handler map
+    // with `document`, which is safe here only because no event name is
+    // registered on both.
+    addEventListener: listen,
     innerWidth: VIEWPORT.width,
     innerHeight: VIEWPORT.height,
   } as Record<string, unknown>;
@@ -445,6 +450,55 @@ test("the failsafe is armed once, not once per mutation", () => {
   run.runTimers();
   run.fire("visibilitychange");
   assert.equal(run.timers.length, 1, "after firing, the failsafe can no longer be re-armed");
+});
+
+test("scrolling to a below-fold row rescues it when the observer is dead", () => {
+  /**
+   * The case the timer and `visibilitychange` both miss, and the reason the
+   * script listens for scroll at all.
+   *
+   * The one-shot sweep reveals what is on screen at 1.5s and correctly leaves
+   * everything below the fold to its trigger. But if the OBSERVER is the
+   * broken thing, that trigger never comes - so a row the visitor scrolls to
+   * would sit at .15 for the life of the page. Danny's property is "nothing
+   * may sit in a from-state once the page is visible and settled", and a row
+   * somebody has just scrolled to is the plainest case of it.
+   */
+  const top = row("ac-row");
+  const lower = below(row("ac-row"));
+  const run = stagger([top, lower]);
+
+  run.runTimers();
+  assert.equal(top.classes.has("in-view"), true);
+  assert.equal(lower.classes.has("in-view"), false, "the below-fold row should not have been swept");
+
+  // The visitor scrolls. The row is on screen now; the observer still is not
+  // delivering, because in this harness it never does.
+  lower.top = 100;
+  run.fire("scroll");
+  assert.equal(run.timers.length, 1, "scroll did not arm a sweep");
+  run.runTimers();
+
+  assert.equal(
+    lower.classes.has("in-view"),
+    true,
+    "a row scrolled into view stayed in its from-state. With the observer broken nothing else " +
+      "will ever reveal it.",
+  );
+});
+
+test("scrolling hard arms at most one sweep at a time", () => {
+  const r = below(row("ac-row"));
+  const run = stagger([r]);
+  run.runTimers();
+
+  for (let i = 0; i < 50; i++) run.fire("scroll");
+  assert.equal(
+    run.timers.length,
+    1,
+    `50 scroll events armed ${run.timers.length} sweeps - the arm-once guard is not holding, and ` +
+      `a sweep is a querySelectorAll plus a rect per element`,
+  );
 });
 
 test("reduced motion arms no failsafe, because there is nothing to fail", () => {

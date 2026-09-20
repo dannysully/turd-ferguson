@@ -495,6 +495,14 @@ test("the failsafe that lets rule 2 be this low", () => {
     /io\.observe\(el\);\s*\}\s*arm\(\);/,
     "scan() no longer arms the failsafe, so content inserted by a client navigation has none",
   );
+  assert.match(
+    MOTION_SCRIPT,
+    /addEventListener\('scroll',arm,\{passive:true\}\)/,
+    "nothing re-arms the failsafe on scroll. The one-shot sweep reveals what was on screen when " +
+      "it fired and correctly leaves the rest to the observer - so if the observer is the broken " +
+      "thing, a row the visitor scrolls to sits in its from-state for good. Passive, or it can " +
+      "delay scrolling.",
+  );
 
   /**
    * Armed only when idle. Re-arming on every insertion would let a page that

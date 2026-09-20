@@ -136,9 +136,21 @@
  *
  * It also runs on `visibilitychange` to visible, which is the background-tab
  * case resolving itself: rAF resumes, and the sweep covers the window before
- * the observer catches up. Both paths are idempotent - `classList.add` of a
- * class already present is a no-op, and the observer having already fired
- * leaves nothing for the sweep to find.
+ * the observer catches up. And on `scroll`, which is the case the other two
+ * miss: the one-shot timer reveals what was on screen at 1.5s, and a row
+ * BELOW the fold at that moment correctly keeps its trigger - but if the
+ * observer is the thing that is broken, scrolling to that row would otherwise
+ * leave it at .15 for good. Danny's property is "nothing may sit in a
+ * from-state once the page is visible and settled", and a row a visitor has
+ * just scrolled to is the plainest case of that. The arm-once guard makes it
+ * at most one sweep per window however hard the page is scrolled, and the
+ * listener is passive so it cannot delay scrolling.
+ *
+ * All three paths are idempotent - `classList.add` of a class already present
+ * is a no-op, and the observer having already fired leaves nothing for the
+ * sweep to find. On a page whose observer works, every sweep after the first
+ * finds nothing and costs one `querySelectorAll` plus a rect per unrevealed
+ * element, which by then is only the below-fold ones.
  *
  * `FAILSAFE_MS` is 1500. The longest legitimate arrival is .45s of animation
  * behind eight beats of .09s stagger, which is 1.17s, so the failsafe cannot
@@ -210,6 +222,7 @@ function start(){
 scan();
 try{new MutationObserver(queue).observe(d.body,{childList:true,subtree:true})}catch(e){}
 d.addEventListener('visibilitychange',function(){if(d.visibilityState==='visible')arm()});
+window.addEventListener('scroll',arm,{passive:true});
 }
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',start);else start();
 })();`;
