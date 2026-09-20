@@ -156,14 +156,14 @@ export function blogPostingSchema(post: Post, description: string) {
   };
 }
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-/** "2026-04-30" -> "30 Apr 2026". Fixed table, so server and browser agree. */
-export function formatPostDate(iso: string): string {
-  const parts = iso.slice(0, 10).split("-").map(Number);
-  const y = parts[0];
-  const m = parts[1];
-  const d = parts[2];
-  if (!y || !m || !d) return iso;
-  return d + " " + MONTHS[m - 1] + " " + y;
-}
+/**
+ * "2026-04-30" -> "30 Apr 2026".
+ *
+ * One line, because this used to be its own copy of the formatter and it was
+ * the copy without the guard: a month past twelve rendered
+ * "30 undefined 2026" on the blog index and on all three post headers, where
+ * the identical function in the result view fell back to the raw string. See
+ * `lib/format-date.ts`. The name is kept so the three call sites read the
+ * same.
+ */
+export { formatDate as formatPostDate } from "../lib/format-date";

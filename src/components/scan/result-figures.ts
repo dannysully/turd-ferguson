@@ -33,17 +33,15 @@ import type {
   SourceEntry,
 } from "../../lib/scan/contract.ts";
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-/** "20 Sep 2026" off an ISO date, and the raw string back if it is not one. */
-export function fmtDate(iso: string): string {
-  const parts = iso.slice(0, 10).split("-").map(Number);
-  const y = parts[0];
-  const m = parts[1];
-  const d = parts[2];
-  if (!y || !m || !d || m > 12) return iso;
-  return d + " " + MONTHS[m - 1] + " " + y;
-}
+/**
+ * "20 Sep 2026" off an ISO date, and the raw string back if it is not one.
+ *
+ * One line, because this used to be a second copy of the formatter in
+ * `config/posts.ts` and the two had drifted - this one guarded the month and
+ * that one did not. See `lib/format-date.ts`. The name is kept so the call
+ * sites and the tests that already point here still read the same.
+ */
+export { formatDate as fmtDate } from "../../lib/format-date.ts";
 
 export function ordinal(n: number): string {
   const s = ["th", "st", "nd", "rd"];
