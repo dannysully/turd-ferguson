@@ -303,7 +303,7 @@ export default function PrAgenciesPage() {
       </section>
 
       <p style={{ margin: 0, fontSize: "13.5px", color: T.soft, lineHeight: 1.65 }}>
-        White-labelled throughout.{" "}
+        White-labelled on everything your client sees.{" "}
         <Link href="/#packages" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
           See all packages
         </Link>

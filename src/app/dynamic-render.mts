@@ -333,6 +333,49 @@ export function pageText(html: string): string {
     .replace(/<[^>]*>/g, "");
 }
 
+/**
+ * A page as a reader sees it, one BLOCK at a time.
+ *
+ * `pageText` strips tags to nothing, which it must - a price is three inline
+ * spans and a tier name is two - and the documented cost is that block
+ * boundaries collapse with them: two adjacent paragraphs arrive as "...on the
+ * page.How it works...". Sweeps have so far paid that cost by splitting the
+ * result on sentence punctuation, which works only while the copy has
+ * punctuation. **A list does not.** `/compare`'s table and `/alwaystracked`'s
+ * includes list carry no full stop until the paragraph after them, so the whole
+ * table arrives as one run - and a run that long pairs any two words on the
+ * page with each other. A rule asking whether one sentence says two things
+ * therefore fires on a page where the two things are eleven rows apart. That is
+ * the flattering direction's opposite and it is just as useless: three false
+ * positives on true copy, each of which would have wanted its own exemption.
+ *
+ * So this splits on closing block tags FIRST, then strips what is left of each
+ * fragment to nothing. Both properties survive - inline elements inside a
+ * block still close up, blocks no longer run together - and it is the
+ * granularity a "does one sentence claim both of these" rule actually wants.
+ *
+ * Lives here rather than beside the first sweep that needed it for the reason
+ * `pageText` does: it was about to be a second copy of the same three facts.
+ */
+export function blocksOf(html: string): string[] {
+  return bodyOf(html)
+    .replace(/<script[\s\S]*?<\/script>/g, "")
+    .replace(/<!--[\s\S]*?-->/g, "")
+    /** Block elements only. `</a>`, `</label>` and `</button>` are deliberately
+     *  absent even though this site styles several anchors as cards: an inline
+     *  link inside a claim would split the claim in two, and a rule blind to
+     *  half a sentence is a worse failure than one that reads a card twice. */
+    .split(/<\/(?:p|div|li|h[1-6]|td|th|tr|section|main|header|footer|figcaption|blockquote|ul|ol|dt|dd)>/i)
+    .flatMap((fragment) =>
+      fragment
+        .replace(/<[^>]*>/g, "")
+        .replace(/\s+/g, " ")
+        .split(/(?<=[.?!])\s+|(?<=[.?!])(?=[A-Z])/),
+    )
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 export const BUILD_DIR = BUILD;
 export const PRERENDER_DIR = PRERENDER;
 

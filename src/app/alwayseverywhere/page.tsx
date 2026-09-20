@@ -26,7 +26,7 @@ export default function Page() {
         "Multiple brands under one agreement",
         "A dedicated strategist who knows your client base",
         "Reporting consolidated for you, and split per client for them",
-        "White-label throughout, including the partner agreement",
+        "White-label on every surface your client sees, across every brand",
       ]}
       notIncluded={{
         text: "A published price is the one thing this tier does not come with. The number of brands, the number of markets, and how hard the answer box is to win in each all change what the work costs, so we quote it rather than post a figure we would have to renegotiate. A partner call covers how many clients you are thinking about, which markets, and what you already have running - and we say what we would do first, and roughly what it costs, before you commit to anything.",

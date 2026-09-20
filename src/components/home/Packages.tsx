@@ -215,8 +215,8 @@ export default function Packages() {
           <div className="ac-row">
             <div style={{ ...MICRO, color: T.faint }}>Your brand on everything the client sees</div>
             <p style={{ margin: "10px 0 0", fontSize: "14.5px", lineHeight: 1.65, color: "#e8e8ea" }}>
-              Dashboards, reports and placement summaries carry your logo and your domain. Nothing a client opens says{" "}
-              <TierName tier="cited" /> on it.
+              Dashboards, reports and placement summaries carry your logo, and the dashboard can sit on your own
+              subdomain. Nothing a client opens says <TierName tier="cited" /> on it.
             </p>
           </div>
           <div className="ac-row">
