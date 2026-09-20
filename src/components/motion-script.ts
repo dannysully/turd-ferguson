@@ -60,11 +60,30 @@
  * unfixed for two runs. At desktop width the same fault flips and puts the
  * empty beat in front of the h1, which is the LCP element.
  *
- * Computed `display` rather than `offsetParent`, which is also null for a
- * `position: fixed` element and would drop rows that are perfectly visible. One
- * `getComputedStyle` per previous sibling, once per element, at scan time -
- * nothing beside the DOM walk it is already inside, and it never runs again for
- * an element already marked `data-ac-seen`.
+ * ### Ask for a box, not for a style property
+ *
+ * The check is `!el.getClientRects().length`, and the two obvious alternatives
+ * are both wrong:
+ *
+ * - `getComputedStyle(el).display === 'none'` is what shipped first, and it only
+ *   catches an element hidden *in its own right*. `display` is not inherited, so
+ *   an element inside a `display: none` **ancestor** still computes `block` -
+ *   the subtree is simply never laid out. The cloud session measured the gap on
+ *   the live page at 2160px on 20 September 2026: two elements were `none`
+ *   themselves, and three more - the `ScanFacts` rows, inside a hidden
+ *   `section.phone-only` - had no box at all while computing `block`. Nothing
+ *   was visibly wrong, because those three are a group of their own with no
+ *   visible siblings to mis-count against, but that is luck. The next
+ *   responsive pair built as a hidden **wrapper** rather than a hidden element
+ *   puts the phantom beat straight back.
+ * - `offsetParent` is null for a `position: fixed` element too, so it would drop
+ *   rows that are perfectly visible. Client rects are correct there - a fixed
+ *   element has them.
+ *
+ * So the question being asked is "does this take up space", and client rects are
+ * that question rather than a proxy for it. One call per previous sibling, once
+ * per element, at scan time - nothing beside the DOM walk it is already inside,
+ * and it never runs again for an element already marked `data-ac-seen`.
  *
  * Width changes are not re-scanned, deliberately. A visitor who rotates a phone
  * mid-page keeps the indices the layout had when the row was first seen, which
@@ -90,7 +109,7 @@ io.unobserve(e.target);
 }
 },{rootMargin:'0px 0px -8% 0px',threshold:0});
 function hidden(el){
-try{return getComputedStyle(el).display==='none'}catch(e){return false}
+try{return !el.getClientRects().length}catch(e){return false}
 }
 function scan(){
 var els=d.querySelectorAll(SEL);

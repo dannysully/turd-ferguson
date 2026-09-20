@@ -22,6 +22,8 @@ import { MOTION_SCRIPT } from "./motion-script.ts";
 type Fake = {
   className: string;
   display: string;
+  /** How many client rects the element has. 0 means it takes up no space. */
+  rects: number;
   attrs: Record<string, string>;
   vars: Record<string, string>;
   classes: Set<string>;
@@ -33,12 +35,29 @@ function row(className: string, display = "block"): Fake {
   return {
     className,
     display,
+    // An element that is `display: none` in its own right has no box. That is
+    // the only way to lose one here; `inHiddenWrapper` models the other.
+    rects: display === "none" ? 0 : 1,
     attrs: {},
     vars: {},
     classes: new Set(className.split(" ").filter(Boolean)),
     previousElementSibling: null,
     observed: false,
   };
+}
+
+/**
+ * An element with no box that still computes `display: block`, because an
+ * ancestor is `display: none`.
+ *
+ * This is the case `getComputedStyle(el).display` cannot see, and the reason
+ * the check is client rects: `display` is not an inherited property, so hiding
+ * a wrapper leaves every computed `display` inside it exactly as it was. The
+ * subtree is just never laid out.
+ */
+function inHiddenWrapper(el: Fake): Fake {
+  el.rects = 0;
+  return el;
 }
 
 /**
@@ -86,6 +105,8 @@ function stagger(els: Fake[], opts: { reducedMotion?: boolean; noIO?: boolean } 
         add: (c: string) => el.classes.add(c),
       },
       style: { setProperty: (k: string, v: string) => { el.vars[k] = v; } },
+      // `new Array(n)` is length-n, which is all the script reads.
+      getClientRects() { return new Array((this as unknown as Fake).rects); },
     });
   }
 
@@ -132,6 +153,42 @@ test("the same fault flipped: a hidden row first does not push the h1 off zero",
   ]);
   assert.equal(indices[1], "0", "the first visible row is the first beat");
   assert.equal(indices[2], "1");
+});
+
+/**
+ * The case with no coverage until now, and the one the first fix could not see.
+ *
+ * `getComputedStyle(el).display === 'none'` catches a row hidden in its own
+ * right. It does not catch a row inside a hidden wrapper, because `display` is
+ * not inherited - the child still computes `block`. The cloud session found
+ * three such elements live at 2160px on 20 September 2026 and they happened to
+ * be harmless, having no visible siblings to displace. Built as a responsive
+ * pair instead, they are the original defect again.
+ *
+ * This test fails against the computed-display check and passes against client
+ * rects, which is the whole reason the check changed.
+ */
+test("a row inside a hidden wrapper holds no slot either", () => {
+  const { indices } = stagger([
+    row("ac-row"),
+    row("ac-row"),
+    // Computes `display: block`. Has no box, because its wrapper is hidden.
+    inHiddenWrapper(row("ac-row desktop-only")),
+    row("ac-row"),
+    row("ac-row"),
+  ]);
+  const visible = [indices[0], indices[1], indices[3], indices[4]];
+  assert.deepEqual(visible, ["0", "1", "2", "3"], "a phantom wrapper must not hold a beat");
+});
+
+test("a fixed-position row is not mistaken for a hidden one", () => {
+  // Why not `offsetParent`, which is the other obvious way to ask this: it is
+  // null for `position: fixed`, so it would drop rows that are plainly visible.
+  // A fixed element has client rects, so this check keeps it.
+  const fixed = row("ac-row");
+  fixed.rects = 1;
+  const { indices } = stagger([row("ac-row"), fixed, row("ac-row")]);
+  assert.deepEqual(indices, ["0", "1", "2"], "a fixed row still takes its beat");
 });
 
 test("the stagger is capped at eight so a long table still arrives", () => {
