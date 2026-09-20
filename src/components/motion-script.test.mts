@@ -1,10 +1,9 @@
 import assert from "node:assert/strict";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join, relative, sep } from "node:path";
-import { fileURLToPath } from "node:url";
+import { existsSync } from "node:fs";
 import { test } from "node:test";
 
 import { MOTION_SCRIPT } from "./motion-script.ts";
+import { PRERENDER_DIR as PRERENDER, sweptPages } from "../app/dynamic-render.mts";
 
 /**
  * The entrance script, executed.
@@ -277,9 +276,6 @@ test("an ordinary run does set the attribute", () => {
  * here cannot flatten at a width this did not think of.
  */
 
-const ROOT = join(fileURLToPath(import.meta.url), "..", "..", "..");
-const PRERENDER = join(ROOT, ".next", "server", "app");
-
 /** Read the cap out of the shipped script, so the two cannot drift apart. */
 function capFromScript(): number {
   const found = /k>(\d+)\?\1:k/.exec(MOTION_SCRIPT);
@@ -397,21 +393,6 @@ function nestedRows(html: string): string[] {
   return hits;
 }
 
-function prerenderedPages(): { page: string; html: string }[] {
-  const out: { page: string; html: string }[] = [];
-  const walk = (dir: string) => {
-    for (const entry of readdirSync(dir, { withFileTypes: true })) {
-      const full = join(dir, entry.name);
-      if (entry.isDirectory()) walk(full);
-      else if (entry.name.endsWith(".html")) {
-        out.push({ page: relative(PRERENDER, full).split(sep).join("/"), html: readFileSync(full, "utf8") });
-      }
-    }
-  };
-  walk(PRERENDER);
-  return out;
-}
-
 test("no shipped page has an .ac-row group long enough to flatten its tail", (t) => {
   if (!existsSync(PRERENDER)) {
     // Skipped rather than passed. `npm run build` is part of the push gate, so
@@ -427,7 +408,7 @@ test("no shipped page has an .ac-row group long enough to flatten its tail", (t)
   // that makes two share one.
   const limit = cap + 1;
 
-  const groups = prerenderedPages().flatMap(({ page, html }) =>
+  const groups = sweptPages().flatMap(({ page, html }) =>
     acRowGroups(html).map((rows) => ({ page, rows })),
   );
   assert.ok(groups.length, "no .ac-row in the build at all - the class or the markup has moved");
@@ -478,7 +459,7 @@ test("no .ac-row on any shipped page sits inside another", (t) => {
     return;
   }
 
-  const pages = prerenderedPages();
+  const pages = sweptPages();
   const offenders = pages.flatMap(({ page, html }) => nestedRows(html).map((el) => `${page}  ${el}`));
 
   t.diagnostic(`${pages.length} pages checked for rows inside rows; ${offenders.length} found`);

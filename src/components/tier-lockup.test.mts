@@ -1,10 +1,9 @@
 import assert from "node:assert/strict";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join, relative, sep } from "node:path";
-import { fileURLToPath } from "node:url";
+import { existsSync } from "node:fs";
 import { test } from "node:test";
 
 import { splitTierNames } from "../lib/tier-text.ts";
+import { PRERENDER_DIR as PRERENDER, sweptPages } from "../app/dynamic-render.mts";
 
 /**
  * A tier name that reaches the page as a plain word rather than as the lockup.
@@ -62,9 +61,6 @@ import { splitTierNames } from "../lib/tier-text.ts";
  *    `.sr-only` paragraph was flagged for contrast.
  */
 
-const HERE = join(fileURLToPath(import.meta.url), "..");
-const PRERENDER = join(HERE, "..", "..", ".next", "server", "app");
-
 /** The lockup as `TierName` renders it: a stem and an accent span inside one span. */
 const LOCKUP = /<span class="tier-name">[\s\S]*?<\/span><\/span>/g;
 const SR_ONLY = /<(\w+)[^>]*class="[^"]*\bsr-only\b[^"]*"[^>]*>[\s\S]*?<\/\1>/g;
@@ -90,21 +86,6 @@ export function visibleText(html: string): string {
 export function bareTierNames(html: string): string[] {
   return splitTierNames(visibleText(html))
     .flatMap((seg) => ("tier" in seg ? [seg.tier] : []));
-}
-
-function prerenderedPages(): { page: string; html: string }[] {
-  const out: { page: string; html: string }[] = [];
-  const walk = (dir: string) => {
-    for (const entry of readdirSync(dir, { withFileTypes: true })) {
-      const full = join(dir, entry.name);
-      if (entry.isDirectory()) walk(full);
-      else if (entry.name.endsWith(".html")) {
-        out.push({ page: relative(PRERENDER, full).split(sep).join("/"), html: readFileSync(full, "utf8") });
-      }
-    }
-  };
-  walk(PRERENDER);
-  return out;
 }
 
 /**
@@ -159,7 +140,7 @@ test("no shipped page renders a tier name as a plain word", (t) => {
     return;
   }
 
-  const pages = prerenderedPages();
+  const pages = sweptPages();
   assert.ok(pages.length >= 20, `expected the whole site prerendered, walked ${pages.length} pages`);
 
   const hits = pages.flatMap(({ page, html }) =>
