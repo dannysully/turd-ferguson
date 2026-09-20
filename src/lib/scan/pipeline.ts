@@ -9,7 +9,7 @@ import {
   generateQuestions,
   QUESTION_COUNT,
 } from "./anthropic";
-import { brandKey, namesBrand, pickDisplayName } from "./brand-name";
+import { brandKey, displayNamesFor, namesBrand } from "./brand-name";
 import { readEngine, readSearchVolumes, volumeKey } from "./dataforseo";
 import { type Market, normalizeDomain } from "./domain";
 import { type Engine, isEngine, type OrganicHit } from "./engines";
@@ -499,7 +499,35 @@ async function readAndStore(input: {
       variants.set(key, seen);
     }
   }
-  const displayFor = new Map([...variants].map(([key, seen]) => [key, pickDisplayName(seen)]));
+  /**
+   * The spellings this scan has already stored, so a second write cannot
+   * introduce a second one. See displayNamesFor for what that costs when it
+   * does - the unique key on scan_brands carries the spelling, so the row is
+   * inserted beside the first rather than replacing it.
+   *
+   * Never fatal, and the direction is the same one the extraction and the
+   * judgement above it already take: every engine read on this scan is paid for
+   * by the time we get here, so a failed read falls back to picking from this
+   * pass alone - which is exactly what happened before this existed - rather
+   * than throwing all of it away. Logged, because that fallback is the case
+   * that can split a leaderboard row and nothing else would say so.
+   */
+  let storedNames: string[] = [];
+  if (variants.size) {
+    const { data: priorBrands, error: priorErr } = await db
+      .from("scan_brands")
+      .select("brand")
+      .eq("scan_id", scanId)
+      .eq("is_subject", false);
+    if (priorErr) {
+      console.warn(
+        `[scan] could not read the spellings already on ${scanId}, so this pass picks its own: ${priorErr.message}`,
+      );
+    } else {
+      storedNames = (priorBrands ?? []).map((r) => r.brand as string);
+    }
+  }
+  const displayFor = displayNamesFor(variants, storedNames);
 
   /**
    * Which of those names are actually competitors.
@@ -905,11 +933,37 @@ export async function runGatedScan(scanId: string): Promise<void> {
       return;
     }
 
-    const { data: questionRows } = await db
+    /**
+     * A read that failed is not a free pass that left no questions.
+     *
+     * The error was discarded, so a database that did not answer arrived here
+     * as an empty list and was reported as "the free pass left no questions to
+     * re-ask" - a sentence about a scan whose questions are sitting on the
+     * table, written into `gated_error` by the catch below and rendered on the
+     * report screen. It is the same read as the free pass's confirmed-questions
+     * one a few hundred lines up, which `c68db3b` fixed.
+     *
+     * This one was not missed by that sweep - it was excused by it, with an
+     * entry in `reads.test.mts` reading "throws on the next line either way".
+     * That is true of the control flow and was the wrong question: both
+     * branches stopping is not the same as both branches being right, and what
+     * the two throws SAY differs by a fact.
+     *
+     * It matters more here than it did there, because this state is terminal:
+     * the gated claim is `.eq("gated_status", "queued")`, so nothing anywhere
+     * can pick the row up once the catch writes `failed`. A blip on this one
+     * read ends the pass somebody gave an email address for, and leaves behind
+     * a reason that sends whoever reads it to look at a question set that is
+     * not the problem.
+     */
+    const { data: questionRows, error: questionsErr } = await db
       .from("scan_questions")
       .select("id, idx, question")
       .eq("scan_id", scanId)
       .order("idx", { ascending: true });
+    if (questionsErr) {
+      throw new Error(`could not read the questions to re-ask: ${questionsErr.message}`);
+    }
     if (!questionRows?.length) throw new Error("the free pass left no questions to re-ask");
 
     // The same claim as the free pass, and for the same reason. The unlock path

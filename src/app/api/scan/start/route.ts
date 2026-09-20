@@ -221,7 +221,15 @@ export async function POST(req: Request) {
   // The fresh scan is itself locked, so it becomes the entry the next visitor
   // hits, and the caps above bound it either way.
   const cacheSince = new Date(Date.now() - settings.domain_cache_days * 86_400_000).toISOString();
-  const { data: cached } = await db
+  //
+  // The error is bound and logged rather than discarded. It is the one read in
+  // this route whose failure is not refused, and that is deliberate: a cache
+  // miss runs a real scan, which is correct data at the cost of a scan we did
+  // not need to pay for. Refusing instead would turn a blip on an optimisation
+  // into a visitor turned away. But it is spend, on the free tool the two
+  // ceilings above exist to bound, and unlogged it looked exactly like a domain
+  // nobody had scanned before.
+  const { data: cached, error: cacheErr } = await db
     .from("scans")
     .select("public_token, brand_name, topic, topic_variants, market, status, engines")
     .eq("domain", domain)
@@ -233,6 +241,13 @@ export async function POST(req: Request) {
     .order("completed_at", { ascending: false })
     .limit(1)
     .maybeSingle();
+
+  if (cacheErr) {
+    console.warn(
+      `[scan] could not read the domain cache for ${domain} (${market}), so this scan runs and is paid for ` +
+        `whether or not a fresh one already existed: ${cacheErr.message}`,
+    );
+  }
 
   if (cached?.public_token) {
     return Response.json({

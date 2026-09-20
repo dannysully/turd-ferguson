@@ -121,20 +121,35 @@ function tidy(destructure: string): string {
  * to be argued for in the comment beside it, which is the point.
  */
 const EXEMPT: Record<string, string> = {
-  // A failed cache read reads as a cache miss, so the visitor gets a fresh scan
-  // rather than an error. That costs one scan and fails in the safe direction;
-  // making it fatal would take the funnel down whenever the cache hiccuped.
-  "src/app/api/scan/start/route.ts:cached":
-    "a failed read is a cache miss, which is the safe direction",
   // Falls through to the insert below it, and the insert's own error is read.
   // An address that is neither insertable nor findable ends at the logged warn
   // at the bottom of resolveAccount.
   "src/lib/scan/unlock.ts:existing": "covered by the insert below it, which reads its error",
   "src/lib/scan/unlock.ts:raced": "the last read before resolveAccount's logged failure",
-  // `if (!questionRows?.length) throw` on the next line. A failed read and an
-  // empty table both stop the gated pass, which is the correct end for both.
-  "src/lib/scan/pipeline.ts:questionRows": "throws on the next line either way",
 };
+
+/**
+ * Two entries came off this list on 20 September 2026, and how they read is
+ * worth keeping.
+ *
+ * `pipeline.ts:questionRows` was excused as "throws on the next line either
+ * way", which is true of the control flow and was the wrong question. The line
+ * it threw was `the free pass left no questions to re-ask` - and the gated
+ * catch writes that into `gated_error`, where the report screen renders it, on
+ * a state nothing can leave: the gated claim is `.eq("gated_status", "queued")`,
+ * so once it says `failed` no pass can pick the row up again. A blip on one
+ * read therefore ended the pass somebody gave an email address for and blamed a
+ * question set that was sitting on the table. Both branches stopping is not the
+ * same as both branches being right, and an exemption that reasons about
+ * whether the code continues will keep missing what it continues to say.
+ *
+ * `start/route.ts:cached` was sound on correctness - a failed cache read is a
+ * cache miss, which serves a real scan rather than an error - and it is off the
+ * list because the read now binds its error to log it. The behaviour is
+ * deliberately unchanged; what was missing was that a cache that has stopped
+ * answering looked exactly like a domain nobody had scanned before, while
+ * quietly paying for a scan each time.
+ */
 
 /**
  * The local name the rows - or the count - came back as, which is how EXEMPT
@@ -483,5 +498,31 @@ test("every exemption still points at a read that exists", () => {
     const [file, bound] = key.split(":");
     const found = READS.some((r) => r.file === file && boundName(r.destructure) === bound);
     assert.ok(found, `EXEMPT lists ${key}, but there is no such read any more - delete the entry`);
+  }
+});
+
+test("every exemption still excuses a read that needs excusing", () => {
+  /**
+   * The second way this list goes stale, and the one the check above cannot
+   * see: the read is still there, but somebody has since made it check its
+   * error, so the entry excuses nothing.
+   *
+   * That is not tidiness. An exemption is keyed by file and bound name, not by
+   * line, precisely so it survives edits above it - which means a dead entry
+   * goes on standing over that binding for ever. The next person to add a read
+   * bound to the same name in the same file inherits an excuse written for
+   * different code, and the sweep stays green over it. Both entries removed on
+   * 20 September 2026 would have become exactly that, one of them over
+   * `questionRows` in the pipeline.
+   */
+  for (const key of Object.keys(EXEMPT)) {
+    const [file, bound] = key.split(":");
+    const stillUnchecked = READS.some(
+      (r) => r.file === file && boundName(r.destructure) === bound && !/\berror\b/.test(r.destructure),
+    );
+    assert.ok(
+      stillUnchecked,
+      `EXEMPT lists ${key}, but that read binds its error now - delete the entry rather than leaving it over the binding`,
+    );
   }
 });

@@ -59,6 +59,70 @@ export function pickDisplayName(variants: Map<string, number>): string {
   return rows[0]?.[0] ?? "";
 }
 
+/**
+ * One spelling per brand key for a whole scan, preferring one already stored.
+ *
+ * `pickDisplayName` chooses from the variants in front of it, which is right
+ * within a single extraction and not enough across two. The population differs
+ * between passes, so the same company can win under one spelling now and
+ * another later - and `scan_brands` is unique on (scan_id, engine, brand), so
+ * the spelling is part of the conflict target. A second write under a second
+ * spelling therefore INSERTS rather than replaces, and the company appears
+ * twice on its own leaderboard with its mentions split between the two rows.
+ *
+ * That is the defect this file's header opens with - "London Ski Co" at 24 and
+ * "London Ski Co." at 12, understating the client by a third and costing five
+ * places - reappearing one level up, between writes instead of within one.
+ *
+ * Two routes to it, and they are not equally live. The reachable one today is
+ * a re-run: a free pass that fails after the leaderboard is written leaves
+ * those rows behind, and the confirm route lets a failed scan be run again by
+ * design, so the retry re-extracts freshly read prose and may well land on the
+ * other spelling.
+ *
+ * The second is the gated pass, which extracts over its own engines only and so
+ * picks without sight of what the free pass stored. That one is dormant rather
+ * than live - `GATED_ENGINES` is empty, so no gated pass runs - but it is armed
+ * by an `app_settings` row rather than by a deploy, because `scan_engines_gated`
+ * is read from the table and edited by hand in the Supabase editor. Worth
+ * closing now rather than when somebody turns the engines back on and the
+ * leaderboard quietly starts double-counting.
+ *
+ * Preferring the stored spelling fixes both at the write, which is what makes
+ * it worth doing here rather than merging in each reader: `scan_teaser` groups
+ * by the raw text in SQL and `buildUnlockPayload` keys a Map on it, so a fix in
+ * one reader would leave the other disagreeing with it. One spelling per key on
+ * the way in keeps both correct and needs no migration.
+ *
+ * Which stored spelling wins, when the table already holds more than one, is
+ * settled by `pickDisplayName` over the stored set - so this is stable rather
+ * than merely first-seen, and a row set that is already split converges instead
+ * of picking a third spelling.
+ */
+export function displayNamesFor(
+  variants: Map<string, Map<string, number>>,
+  stored: Iterable<string> = [],
+): Map<string, string> {
+  const storedByKey = new Map<string, Map<string, number>>();
+  for (const name of stored) {
+    const trimmed = name.trim();
+    const key = brandKey(trimmed);
+    if (!key) continue;
+    const seen = storedByKey.get(key) ?? new Map<string, number>();
+    // Counted, not collected, so pickDisplayName's tie-breaks decide a split
+    // set the same way they decide a fresh one.
+    seen.set(trimmed, (seen.get(trimmed) ?? 0) + 1);
+    storedByKey.set(key, seen);
+  }
+
+  const out = new Map<string, string>();
+  for (const [key, seen] of variants) {
+    const already = storedByKey.get(key);
+    out.set(key, already ? pickDisplayName(already) : pickDisplayName(seen));
+  }
+  return out;
+}
+
 /** Folded away only at the end of a name. See namesBrand. */
 const COMPANY_SUFFIX = /\s+(ltd|limited|inc|llc|plc|gmbh|co|company)$/;
 

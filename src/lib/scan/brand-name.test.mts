@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { brandKey, namesBrand, pickDisplayName } from "./brand-name.ts";
+import { brandKey, displayNamesFor, namesBrand, pickDisplayName } from "./brand-name.ts";
 
 /**
  * `namesBrand` decides `scan_answers.brand_named`, which is the number this
@@ -91,4 +91,68 @@ test("the most-mentioned spelling is shown, and a tie does not shout", () => {
   assert.equal(pickDisplayName(new Map([["London Ski Co", 24], ["London Ski Co.", 12]])), "London Ski Co");
   assert.equal(pickDisplayName(new Map([["NET-A-PORTER", 6], ["Net-a-Porter", 6]])), "Net-a-Porter");
   assert.equal(pickDisplayName(new Map()), "");
+});
+
+/**
+ * `displayNamesFor` is what stops one company holding two rows on its own
+ * leaderboard.
+ *
+ * `scan_brands` is unique on (scan_id, engine, brand), so the spelling is part
+ * of the conflict target: a second write under a second spelling inserts beside
+ * the first instead of replacing it, and the company's mentions split across
+ * the two rows. `scan_teaser` then groups by the raw text and counts
+ * `distinct brand`, so the free result's "Nth of M brands" moves as well.
+ *
+ * Two writes on one scan is not hypothetical. A free pass that fails after the
+ * leaderboard is written leaves those rows behind and the confirm route lets a
+ * failed scan run again, and the gated pass extracts over its own engines with
+ * no sight of what the free pass stored.
+ */
+
+test("a spelling already stored wins over this pass's own pick", () => {
+  // The defect. This pass saw "London Ski Co." twelve times and nothing else,
+  // so left alone it would write that - beside the "London Ski Co" an earlier
+  // pass had already stored, splitting 24 and 12 across two rows.
+  const variants = new Map([["londonskico", new Map([["London Ski Co.", 12]])]]);
+  assert.equal(displayNamesFor(variants, ["London Ski Co"]).get("londonskico"), "London Ski Co");
+});
+
+test("an unrelated stored spelling does not steer a different brand", () => {
+  const variants = new Map([["snowrock", new Map([["Snow + Rock", 9]])]]);
+  const out = displayNamesFor(variants, ["London Ski Co", "Ellis Brigham"]);
+  assert.equal(out.get("snowrock"), "Snow + Rock");
+  // Only the keys this pass extracted are returned: a name on the table that
+  // this pass did not see again must not be re-asserted as a current finding.
+  assert.equal(out.size, 1);
+});
+
+test("stored spellings are matched through brandKey, not by exact text", () => {
+  // The stored row and this pass's extraction differ by punctuation and case
+  // alone, which is exactly what brandKey folds - so this is the same company
+  // and the stored spelling is the one that ships.
+  const variants = new Map([["netaporter", new Map([["NET-A-PORTER", 6]])]]);
+  assert.equal(displayNamesFor(variants, ["Net-a-Porter"]).get("netaporter"), "Net-a-Porter");
+});
+
+test("a table already split converges rather than picking a third spelling", () => {
+  // Rows written before this existed can hold both spellings. pickDisplayName
+  // settles which of the stored ones wins, so repeated passes land on the same
+  // answer instead of adding to the pile.
+  const variants = new Map([["londonskico", new Map([["London Ski Company", 3]])]]);
+  const stored = ["London Ski Co", "London Ski Co", "London Ski Co."];
+  assert.equal(displayNamesFor(variants, stored).get("londonskico"), "London Ski Co");
+});
+
+test("with nothing stored it is pickDisplayName, unchanged", () => {
+  const seen = new Map([["London Ski Co", 24], ["London Ski Co.", 12]]);
+  const variants = new Map([["londonskico", seen]]);
+  assert.equal(displayNamesFor(variants).get("londonskico"), pickDisplayName(seen));
+  assert.equal(displayNamesFor(variants, []).get("londonskico"), "London Ski Co");
+});
+
+test("a stored name that folds to nothing is ignored rather than chosen", () => {
+  // brandKey("---") is "", which is not a key any extraction produces. A row
+  // like that must not become the display name for something else.
+  const variants = new Map([["snowrock", new Map([["Snow+Rock", 4]])]]);
+  assert.equal(displayNamesFor(variants, ["---", "  "]).get("snowrock"), "Snow+Rock");
 });
