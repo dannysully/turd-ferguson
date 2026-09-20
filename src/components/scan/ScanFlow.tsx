@@ -197,7 +197,17 @@ const STUCK_MS = 6 * 60 * 1000;
  * a re-run for both kinds of failure. What was missing is the sentence saying
  * why they are looking at it.
  */
-const RUN_FAILED = "We could not finish that check. You can run it again.";
+/**
+ * The second sentence is a promise the code now keeps rather than reassurance.
+ * Danny decided on 20 September 2026 that a pass we failed is ours and must not
+ * be charged against the visitor's allowance, and /api/scan/start no longer
+ * counts rows at status 'failed' towards the per-IP limit. Saying it here is
+ * the half of that decision the visitor can see: the retry link is in front of
+ * somebody who has just watched a scan die, and "you can run it again" reads as
+ * a suggestion they may have already paid for unless the cost is named.
+ */
+const RUN_FAILED =
+  "We could not finish that check. You can run it again - a run that fails on our side does not count against your free scans.";
 
 function track(event: string, props: Record<string, unknown> = {}) {
   if (typeof window === "undefined") return;

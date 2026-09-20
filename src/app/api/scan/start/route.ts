@@ -183,11 +183,27 @@ export async function POST(req: Request) {
    * statement about them that we have no basis for. We do not know how many
    * they have used - that is the whole failure - so this answers the same 503 as
    * the cap above rather than accusing them of something unmeasured.
+   *
+   * Scans that failed are not counted, decided by Danny on 20 September 2026:
+   * "If our pass failed, that is ours. Do not charge a retry against their
+   * allowance." A row only reaches status 'failed' once the pipeline has
+   * started and died - a domain we cannot reach is refused with a 422 before
+   * any row is inserted - so every row this excludes is one of ours, not a
+   * scan the visitor got the benefit of.
+   *
+   * Deliberately narrower than it looks, and the narrowness is the point. This
+   * is the per-IP ALLOWANCE, which is about what is fair to one visitor. The
+   * daily scan cap, the dollar cap and the model call ceiling above all still
+   * count failures, because those are about spend, and a pass that died still
+   * spent. So a visitor cannot lose a scan to our bug, and we cannot lose a
+   * day's budget to a loop of them: the two concerns are held by different
+   * ceilings rather than one ceiling being asked to do both jobs badly.
    */
   const { count: ipCount, error: ipErr } = await db
     .from("scans")
     .select("id", { count: "exact", head: true })
     .eq("ip_hash", ipHash)
+    .neq("status", "failed")
     .gte("created_at", since);
   if (ipErr) {
     console.warn("[scan] could not count scans for this address, so the per-IP limit is unverified: " + ipErr.message);
