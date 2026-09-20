@@ -49,6 +49,12 @@ function pill(active: boolean): React.CSSProperties {
     padding: "8px 15px",
     borderRadius: "999px",
     textDecoration: "none",
+    // `transform` does not apply to a non-replaced inline element, and a
+    // `Link` is an `<a>`. These pills sit in a flex container, which blockifies
+    // its items and would make the lift work anyway - this is stated rather
+    // than relied on, so that moving them out of the flex row cannot silently
+    // cost them the transform and leave only the opacity leg.
+    display: "inline-block",
   };
 }
 
@@ -69,10 +75,22 @@ export default async function BlogIndexPage({
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ld(blogSchema) }} />
 
       <section style={{ ...SHELL, paddingTop: "44px", display: "flex", flexDirection: "column", gap: "26px" }}>
+        {/* The beat. `/blog` was the one linked, indexed content page serving
+            the motion script and `data-motion="on"` with nothing to animate -
+            a third zero beside `_global-error` and `_not-found`, both of which
+            are expected and this is not. It fell through both earlier sweeps
+            because `PostShell` covers the three posts rather than the index,
+            and the index is not on the ten-page list in `3c42983`.
+
+            Additive class names only: no new rule, no keyframe, no class.
+            Leaf content rather than the wrappers, so nothing nests - the
+            `rest` card and the pill row stay bare and their children carry the
+            class. Five groups of 2, 1, 3, 1 and 2 against a cap of nine. */}
         <div className="board-head confirm-head">
           <div>
-            <div style={MICRO}>Writing</div>
+            <div className="ac-row" style={MICRO}>Writing</div>
             <h1
+              className="ac-row"
               style={{
                 margin: "8px 0 0",
                 fontSize: "27px",
@@ -84,18 +102,18 @@ export default async function BlogIndexPage({
               What we have actually found
             </h1>
           </div>
-          <p style={{ margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
+          <p className="ac-row" style={{ margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
             Written for people who run agencies, not for search engines. Every number says where it came from and
             when it was taken. No explainers on what an AI Overview is.
           </p>
         </div>
 
         <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-          <Link href="/blog" style={pill(!active)}>
+          <Link className="ac-row" href="/blog" style={pill(!active)}>
             All
           </Link>
           {kinds.map((k) => (
-            <Link key={k} href={"/blog?kind=" + encodeURIComponent(k)} style={pill(active === k)}>
+            <Link className="ac-row" key={k} href={"/blog?kind=" + encodeURIComponent(k)} style={pill(active === k)}>
               {k}
             </Link>
           ))}
@@ -103,6 +121,7 @@ export default async function BlogIndexPage({
 
         {lead ? (
           <Link
+            className="ac-row"
             href={"/blog/" + lead.slug}
             style={{ ...CARD, display: "block", padding: "28px 30px", textDecoration: "none" }}
           >
@@ -135,7 +154,7 @@ export default async function BlogIndexPage({
               <Link
                 key={post.slug}
                 href={"/blog/" + post.slug}
-                className="post-row"
+                className="post-row ac-row"
                 style={{ borderTop: "1px solid " + T.hair, textDecoration: "none" }}
               >
                 <div style={MICRO}>{post.kind}</div>
