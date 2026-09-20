@@ -194,27 +194,59 @@ test("only one module in the tree carries an address pattern", () => {
 });
 
 /**
- * And that the three doors call it, which is the other direction.
+ * And that every door calls it, which is the other direction and the half the
+ * census above cannot ask.
  *
- * A module nothing imports passes the rule above trivially: deleting every
- * caller leaves exactly one pattern in the tree. The doors are named here
- * because the set is not derivable - "a place that takes an address from a
- * stranger" is not a thing a walk can recognise - and each is re-earned by being
- * read, so a renamed file fails rather than silently leaving the list.
+ * A module nothing imports passes "only one pattern in the tree" trivially:
+ * delete every caller and exactly one pattern remains. So this is the direction
+ * that fails when a door quietly stops checking.
+ *
+ * **Derived, after a first draft that typed the three doors by name.** That
+ * draft carried a paragraph explaining that "a place that takes an address from
+ * a stranger" is not a thing a walk can recognise, which was wrong the moment it
+ * was written - a door that takes an address is a door that has to bound one,
+ * and every bound in this tree is a key in `config/contact.ts` because
+ * `input-bounds.test.mts` fails a bound typed as a literal. So **the set of
+ * address doors is the set of server files that read a `.email` bound**, and
+ * that is a grep rather than a list. The typed version would have been the sixth
+ * instance of this repo's recurring defect, in the test written about the fifth.
+ *
+ * `.tsx` is excluded for the reason the bound census excludes it: a component
+ * reading `CONTACT_LIMITS.email` is setting a `maxLength`, which is a promise to
+ * whoever renders the form and not a check on whoever posts to it.
  */
-test("every door that takes an address from a stranger calls the shared check", () => {
-  const doors = [
+function addressDoors(): string[] {
+  return SOURCES.filter(({ file, source }) => file !== OWNER && !file.endsWith(".tsx"))
+    .filter(({ source }) => /\w*LIMITS\.email\b/.test(source))
+    .map(({ file }) => file);
+}
+
+test("the door census finds the doors this test thinks it does", () => {
+  // The floor, and it is not decoration: this derivation is a grep, and a grep
+  // that stops matching reports no doors, which passes the rule below and reads
+  // exactly like a tree where every door is checked.
+  const doors = addressDoors();
+  assert.ok(doors.length >= 3, `expected 3+ address doors, found ${doors.join(", ") || "none"}`);
+  // Named here as a staleness check on the derivation rather than as the
+  // denominator: if one of these three stops appearing, the grep has rotted or
+  // the door has moved, and either is worth failing over.
+  for (const known of [
     "app/contact/actions.ts",
     "app/actions/waitlist.ts",
     "app/api/scan/[token]/unlock/route.ts",
-  ];
-  for (const door of doors) {
-    const found = SOURCES.find(({ file }) => file === door);
-    assert.ok(found, `${door} is not in the tree - this list has gone stale`);
-    assert.match(
-      found.source,
-      /\bisPlausibleEmail\(/,
-      `${door} takes an address from a stranger without the shared check`,
-    );
+  ]) {
+    assert.ok(doors.includes(known), `${known} no longer reads a .email bound - the derivation has gone blind`);
   }
+});
+
+test("every door that bounds an address also checks its shape", () => {
+  const doors = new Set(addressDoors());
+  const bad = SOURCES.filter(({ file }) => doors.has(file))
+    .filter(({ source }) => !/\bisPlausibleEmail\(/.test(source))
+    .map(({ file }) => file);
+  assert.deepEqual(
+    bad,
+    [],
+    "this bounds an address and never checks its shape - import isPlausibleEmail from @/lib/email-address",
+  );
 });
