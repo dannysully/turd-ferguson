@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { test } from "node:test";
 
 import { code } from "../source-read.mts";
+import { RUN_STEPS } from "./run-steps.ts";
 
 /**
  * The two changes Danny asked for on 20 September 2026 (item 3), held as
@@ -193,4 +194,87 @@ test("every phase is timed through the helper, and the helper records on a throw
   assert.ok(keys.length >= 5, `only ${keys.length} timed phases (${keys.join(", ")}) - a phase stopped being measured`);
   assert.equal(new Set(keys).size, keys.length, `two phases share a name: ${keys.join(", ")}`);
   assert.ok(!keys.includes("total"), "a phase is called `total`, which is the key sealTimings adds for the wall clock");
+});
+
+/* ── The progress bar's rungs, and whether the pipeline reaches them ── */
+
+/**
+ * Every rung in `RUN_STEPS` is a caption the visitor can actually be shown.
+ *
+ * `run-steps.ts` makes a typo at a write site a compile error - `STEP.questinos`
+ * does not exist - so the direction TypeScript already covers is a word the
+ * reader has never heard of. The direction it cannot cover is the other one: a
+ * rung added to the ladder that the pipeline never writes. That is a caption
+ * nobody sees and, worse, a percentage the bar skips over, which looks exactly
+ * like the freeze this whole module was built to end.
+ *
+ * Not hypothetical. Danny's item 3 added two rungs on 20 September 2026, and
+ * the writes for them go in a different file from the array - `brands` and
+ * `ranking` are written from inside `readAndStore`, while `sources` is written
+ * by its caller. Three writers across two functions, and nothing joined the
+ * list to any of them.
+ *
+ * Derived on both sides: the keys come from the module and the writes are read
+ * out of the source, so adding a sixth rung fails until something writes it.
+ */
+test("every rung of the progress bar is a step the pipeline actually writes", () => {
+  const src = pipeline();
+  const unwritten = RUN_STEPS.map((s) => s.key).filter(
+    (key) => !new RegExp(`STEP\\.${key}\\b`).test(src),
+  );
+  assert.deepEqual(
+    unwritten,
+    [],
+    "these captions are in RUN_STEPS and the pipeline never writes them, so the bar jumps over their " +
+      "percentage and the visitor never sees the words. Either write the step where that phase begins, " +
+      "or take the rung out of the ladder",
+  );
+});
+
+/**
+ * And that the steps are written through the caller's hook rather than by
+ * `readAndStore` reaching for the database itself.
+ *
+ * The gated pass calls the same function and must NOT write `scans.step`: it
+ * runs after the visitor already has a result on screen, so a step word from it
+ * rewinds a bar nobody is watching and leaves a stale value in a column the
+ * free pass has finished with. `onStep` being optional is what makes that
+ * true - a direct `.update({ step })` inside `readAndStore` would apply to both
+ * callers and nothing else in the tree would notice.
+ */
+test("readAndStore reports steps through its caller, never by writing the column itself", () => {
+  const src = pipeline();
+  /**
+   * `\n\}\n` and not `\n\}`, and the difference is the whole span.
+   *
+   * `readAndStore` takes one big object parameter whose type literal closes
+   * with a `}` at column 0 - `}): Promise<{` - so a non-greedy walk to the
+   * first newline-then-brace stops at the end of the SIGNATURE and reads none
+   * of the body. Both assertions below then pass over an empty string: no
+   * `.update({ step` in it, and zero `onStep` calls reported as zero. The
+   * count is what caught it; a bare "does not contain" rule would have been
+   * green and blind.
+   *
+   * Requiring a newline after the brace picks the function's own closing brace,
+   * because a `}` at column 0 followed by a newline is a top-level declaration
+   * ending and nothing else in this file is one.
+   */
+  const readAndStore = /async function readAndStore\([\s\S]*?\n\}\n/.exec(src);
+  assert.ok(readAndStore, "readAndStore is gone or no longer a top-level function");
+  assert.ok(
+    readAndStore[0].length > 8_000,
+    `the readAndStore span read back as ${readAndStore[0].length} chars, which is its signature and not ` +
+      `its body - the two assertions below would pass over almost nothing`,
+  );
+  assert.ok(
+    !/\.update\(\{\s*step[,:\s}]/.test(readAndStore[0]),
+    "readAndStore writes scans.step directly. It is called by the gated pass too, which must not move " +
+      "the free progress bar - the step writes belong behind the optional onStep hook",
+  );
+  const hooked = [...readAndStore[0].matchAll(/onStep\?\.\(/g)];
+  assert.ok(
+    hooked.length >= 3,
+    `readAndStore reports ${hooked.length} steps through onStep and the ladder has ${RUN_STEPS.length} ` +
+      `rungs - the phases inside the reading half should each announce themselves`,
+  );
 });

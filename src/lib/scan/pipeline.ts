@@ -14,7 +14,7 @@ import { readEngine } from "./dataforseo";
 import { type Market, normalizeDomain } from "./domain";
 // The words this file writes into `scans.step`, so a typo here is a compile
 // error rather than a progress bar that freezes on the waiting screen.
-import { STEP } from "./run-steps";
+import { type RunStep, STEP } from "./run-steps";
 import { type Engine, isEngine, type OrganicHit } from "./engines";
 import { classifySources } from "./sources";
 
@@ -337,9 +337,19 @@ async function readAndStore(input: {
    * is however long the read already in flight decides to take.
    */
   remainingMs: () => number;
-  /** Called once the reads are in and the citation work begins, so the screen
-   *  can move off "reading" rather than sitting on it for the whole run. */
-  onSources?: () => Promise<void>;
+  /**
+   * Called as each phase inside the reading half begins, so the bar moves while
+   * the work happens rather than freezing on the last caption the caller set.
+   *
+   * Optional, and the gated pass passes nothing: it runs after the visitor
+   * already has a result on screen, and `scans.step` drives the FREE progress
+   * bar. A gated pass writing steps would rewind a bar nobody is watching and
+   * leave a word in a column the free pass has finished with.
+   *
+   * Was `onSources` - one callback for one moment - until 20 September 2026.
+   * See the header of `run-steps.ts` for why that is now three.
+   */
+  onStep?: (step: RunStep) => Promise<void>;
   /** Written into per phase. See Timings. */
   timings: Timings;
 }): Promise<{
@@ -352,7 +362,7 @@ async function readAndStore(input: {
   leaderboardPartial: boolean;
 }> {
   const db = supabaseAdmin();
-  const { scanId, spend, domain, brand, topic, positioning, market, engines, questions, checkDeadline, onSources, remainingMs, timings } =
+  const { scanId, spend, domain, brand, topic, positioning, market, engines, questions, checkDeadline, onStep, remainingMs, timings } =
     input;
 
   // Every question against every engine, flattened so one queue paces the lot.
@@ -424,9 +434,9 @@ async function readAndStore(input: {
     }),
   );
 
-  // Every read is in. What follows - storing citations and extracting the
-  // leaderboard - is the third step the screen names, so say so.
-  await onSources?.();
+  // Every read is in. What follows - storing the citations and starting the
+  // source classification over them - is the third step the screen names.
+  await onStep?.(STEP.sources);
 
   const answered = [...new Set(answers.filter((a) => a.answered).map((a) => a.engine))];
 
@@ -561,6 +571,13 @@ async function readAndStore(input: {
 
   // One extraction per engine, run together. Serially this was four Anthropic
   // round trips bolted onto the end of every scan, all of them independent.
+  // The bar moves here rather than sitting on "sources" for the whole of the
+  // model work. The source classification started on the line above and runs
+  // alongside this, so it gets no caption of its own: there is no moment when
+  // it is the thing being waited for, and a caption that claimed otherwise
+  // would be the exact lie run-steps.ts exists to stop.
+  await onStep?.(STEP.brands);
+
   const extractions = await timed(timings, "extract", () =>
     Promise.all(
       engines.map(async (engine) => {
@@ -655,6 +672,12 @@ async function readAndStore(input: {
   const suppliers = new Set<string>();
   let failedJudgements = 0;
   if (displayFor.size) {
+    // Inside the guard on purpose: with no names to judge there is no classify
+    // call, and moving the bar to a caption about sorting competitors when
+    // nothing is being sorted is a caption describing work that is not
+    // happening. A scan with an empty leaderboard goes straight from `brands`
+    // to done, which is the truth.
+    await onStep?.(STEP.ranking);
     const judged = await timed(timings, "classify", () =>
       classifyBrands({ topic, brand, positioning, names: [...displayFor.values()] }),
     );
@@ -920,13 +943,19 @@ export async function runScan(scanId: string): Promise<void> {
       questions: ordered,
       checkDeadline,
       remainingMs,
-      onSources: async () => {
-        const { error: srcStepErr } = await db
-          .from("scans")
-          .update({ step: STEP.sources })
-          .eq("id", scanId);
-        if (srcStepErr) {
-          console.warn(`[scan] could not set the sources step for ${scanId}: ${srcStepErr.message}`);
+      /**
+       * One writer for every step inside the reading half.
+       *
+       * A lost marker is not a lost scan - warned, never thrown - which is the
+       * rule the two step writes above this call already keep. What it costs is
+       * the progress screen, and it costs more now than it did: with five rungs
+       * instead of three, a write that fails leaves the bar on the previous
+       * caption while two phases go by instead of one.
+       */
+      onStep: async (step) => {
+        const { error: stepErr } = await db.from("scans").update({ step }).eq("id", scanId);
+        if (stepErr) {
+          console.warn(`[scan] could not set the ${step} step for ${scanId}: ${stepErr.message}`);
         }
       },
     });

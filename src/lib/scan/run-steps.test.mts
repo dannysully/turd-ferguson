@@ -107,8 +107,53 @@ test("the shipped values are unchanged for every step a scan actually reaches", 
     "Reading what the engines answered",
     "Finding the sources they cited",
   ]);
-  // STEP_PCT's fourth entry was 100 and RUN_STEPS had no third index, so step 3
-  // took the last caption. Both preserved.
-  assert.equal(stepPct(3), 100);
-  assert.equal(stepCaption(3), "Finding the sources they cited");
+});
+
+/**
+ * Two rungs were added on 20 September 2026 and the clause about step 3 that
+ * used to live above them was retired rather than quietly edited.
+ *
+ * It read: "STEP_PCT's fourth entry was 100 and RUN_STEPS had no third index,
+ * so step 3 took the last caption. Both preserved." That was a pin on a
+ * refactor being frame-for-frame identical, and it was the right pin for the
+ * change it was written for. It is not a promise about the product: step 3 was
+ * off the end of the ladder, and the whole of Danny's item 3 is that the ladder
+ * should be longer, because `sources` covered four API phases with the bar
+ * frozen at 85% for all of them.
+ *
+ * So step 3 is a real rung now and answers 91, not 100. Said out loud because
+ * the alternative - deleting two assertions in a test named "unchanged" - is
+ * how a deliberate change comes to look like a regression somebody papered
+ * over. The first three rungs above are genuinely unchanged, which is the part
+ * that still matters: a scan in flight across this deploy sees the same bar for
+ * every step it has already reported.
+ */
+test("the two new rungs extend the ladder rather than moving the old ones", () => {
+  assert.equal(RUN_STEPS.length, 5, "a rung was added or removed without this test being read");
+  assert.deepEqual([3, 4].map(stepPct), [91, 96]);
+  assert.deepEqual([3, 4].map(stepCaption), [
+    "Reading which brands got named",
+    "Sorting competitors from suppliers",
+  ]);
+  // And past the end is still done, which is what step 3 used to be answering.
+  assert.equal(stepPct(RUN_STEPS.length), DONE_PCT);
+});
+
+/**
+ * The bar only ever moves forwards.
+ *
+ * With three rungs this was self-evident by inspection. With five it is worth
+ * executing, because the pipeline now writes `brands` and `ranking` from inside
+ * `readAndStore` while `sources` is written by the caller - three writers
+ * across two functions - and a rung inserted in the wrong place sends the bar
+ * backwards mid-scan on the one screen nobody has ever watched render.
+ */
+test("every rung is further along than the one before it", () => {
+  for (let i = 1; i < RUN_STEPS.length; i++) {
+    assert.ok(
+      RUN_STEPS[i].pct > RUN_STEPS[i - 1].pct,
+      `${RUN_STEPS[i].key} sits at ${RUN_STEPS[i].pct}% and ${RUN_STEPS[i - 1].key} before it is at ` +
+        `${RUN_STEPS[i - 1].pct}% - the bar would run backwards`,
+    );
+  }
 });

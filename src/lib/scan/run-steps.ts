@@ -51,7 +51,39 @@ export const RUN_STEPS = [
   { key: "questions", caption: "Building the questions buyers ask", pct: 15 },
   { key: "reading", caption: "Reading what the engines answered", pct: 55 },
   { key: "sources", caption: "Finding the sources they cited", pct: 85 },
+  { key: "brands", caption: "Reading which brands got named", pct: 91 },
+  { key: "ranking", caption: "Sorting competitors from suppliers", pct: 96 },
 ] as const;
+
+/**
+ * ## Why there are five of these and not three, since 20 September 2026
+ *
+ * Danny, item 3: "that one caption covers the longest stretch of the scan with
+ * the bar frozen at 85%. Split it so the screen moves while it works."
+ *
+ * `sources` used to cover everything from the last engine read to the finished
+ * report - storing citations, one brand extraction per engine, one classify
+ * call over the whole name set, and the source classification alongside them.
+ * Four API phases under one caption, with the bar not moving for any of it. On
+ * a scan where the reads finish fast and the model work does not, that is most
+ * of the visible wait spent looking at a frozen 85%.
+ *
+ * The two new rungs are the two phases that were already separately measurable
+ * and are now separately *visible*: `brands` is `extractBrands`, `ranking` is
+ * `classifyBrands`. They are named for what is happening rather than for how
+ * far along it is, because "almost done" is a promise this pipeline cannot
+ * keep - the deadline is a ceiling, not an estimate.
+ *
+ * **The source classification is deliberately not a rung.** Since the same
+ * commit it runs *alongside* `brands` and `ranking` rather than after them, so
+ * there is no moment at which it is the thing being waited for. A caption for
+ * it would be a lie about what the bar is measuring - the one thing this module
+ * was built to prevent.
+ *
+ * Nothing needed changing to add them. Both readers derive - `HeroSequence`
+ * calls `stepCaption`/`stepPct`, `ScanFlow` reads `STEP_INDEX` - which is the
+ * whole argument this file's header makes, tested by having been true.
+ */
 
 /** The three words, as a type. A typo at a write site is a compile error. */
 export type RunStep = (typeof RUN_STEPS)[number]["key"];
