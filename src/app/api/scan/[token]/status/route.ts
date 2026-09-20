@@ -1,3 +1,4 @@
+import { parseEngineResults } from "@/lib/scan/engine-results";
 import { isFreePassDead, isGatedPassDead } from "@/lib/scan/stall";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
@@ -36,7 +37,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ token: string 
   // would send them looking for a bad token.
   const { data, error: readErr } = await supabaseAdmin()
     .from("scans")
-    .select("status, step, gated_status, started_at, queued_at, unlocked_at")
+    .select("status, step, gated_status, started_at, queued_at, unlocked_at, engine_results")
     .eq("public_token", token)
     .maybeSingle();
 
@@ -78,6 +79,26 @@ export async function GET(_req: Request, ctx: { params: Promise<{ token: string 
       step: status === "failed" ? null : data.step,
       // Polled again after unlock, while the email-gated engines run.
       gated_status: gatedStatus,
+      /**
+       * The engines that have already finished, with what each one found -
+       * Danny, 20 September 2026, item 4.
+       *
+       * This is the one thing on this route that is a *result* rather than a
+       * status, and it is here rather than on the teaser deliberately: it
+       * exists only while the scan is running, the teaser needs a completed
+       * scan, and the point is to say something true before the report exists.
+       *
+       * Sent even on a failed pass, where the column holds whatever landed
+       * before the pass died. That is not a contradiction the flow can show -
+       * it drops the visitor back on confirm - and withholding a measurement we
+       * have because the run later failed would be the more arbitrary rule.
+       *
+       * It carries no answer text and no source. Three integers per engine, the
+       * same three the finished report publishes, which is the whole reason the
+       * gate holds nothing back here: the free result shows these figures to
+       * everyone the moment the scan ends.
+       */
+      engine_results: parseEngineResults(data.engine_results),
     },
     { headers: { "cache-control": "no-store" } },
   );

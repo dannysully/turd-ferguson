@@ -6,6 +6,11 @@ import TierName, { type TierKey } from "@/components/TierName";
 import { CHATGPT_VISIBILITY, KEYWORD_FOUR_MONTHS } from "@/config/client-results";
 import { TIERS } from "@/config/pricing";
 import { CARD, MICRO, T } from "@/config/tokens";
+import {
+  type EngineResult,
+  engineVerdict,
+  landingAnnouncement,
+} from "@/lib/scan/engine-results";
 import { ENGINE_SPECS, knownEngines } from "@/lib/scan/engines";
 import { stepCaption, stepPct } from "@/lib/scan/run-steps";
 
@@ -750,6 +755,17 @@ export default function HeroSequence({ headingRef, ...p }: {
   domain: string;
   /** The engines this scan actually reads, frozen onto the row at start. */
   engines: string[];
+  /**
+   * The engines that have already finished, in the order they finished, with
+   * what each one found. Empty until the first one lands.
+   *
+   * Danny's item 4, and the reason it is the biggest perceived win here: a
+   * two-minute scan that says nothing for two minutes and then everything is
+   * a two-minute wait. One that answers after twenty seconds is a scan that is
+   * working, and somebody who has watched two engines land waits for the other
+   * two.
+   */
+  landed?: EngineResult[];
   /** 0 questions, 1 reading, 2 sources, 3 done. */
   step: number;
   slow?: boolean;
@@ -781,6 +797,16 @@ export default function HeroSequence({ headingRef, ...p }: {
    * with the pass about the same row.
    */
   const engines = knownEngines(p.engines);
+  /**
+   * The verdicts, keyed by engine, and the last one to arrive.
+   *
+   * A Map rather than a `find` per chip, and keyed off the parsed rows rather
+   * than off anything this component derives: `parseEngineResults` has already
+   * refused a row whose numbers cannot be true of one engine, so a chip either
+   * has a measurement behind it or shows nothing.
+   */
+  const verdicts = new Map((p.landed ?? []).map((r) => [r.engine, r]));
+  const newest = (p.landed ?? [])[(p.landed?.length ?? 0) - 1];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
@@ -789,8 +815,19 @@ export default function HeroSequence({ headingRef, ...p }: {
         <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
           <span style={MICRO}>{"Running your scan - " + p.domain}</span>
           <div style={{ flexGrow: 1 }} />
+          {/* Each engine's own chip, which gains its verdict the moment that
+              engine's last question comes back - rather than every chip
+              standing there saying nothing until all of them are in.
+
+              The words are `engineVerdict`'s, which are the same three the
+              report's question pills use, so the chip a visitor reads here
+              cannot say something different from the report that replaces this
+              screen half a minute later. The colour is decoration: each verdict
+              is distinguishable by its words alone, which is the rule the
+              pricing table keeps for the tier names. */}
           {engines.map((key) => {
             const spec = ENGINE_SPECS[key];
+            const found = verdicts.get(key);
             return (
               <div
                 key={key}
@@ -799,9 +836,10 @@ export default function HeroSequence({ headingRef, ...p }: {
                   alignItems: "center",
                   gap: "7px",
                   background: T.surface,
-                  border: "1px solid " + T.line,
+                  border: "1px solid " + (found ? T.accent : T.line),
                   borderRadius: "999px",
                   padding: "3px 11px 3px 3px",
+                  transition: "border-color .4s ease",
                 }}
               >
                 <span
@@ -816,10 +854,23 @@ export default function HeroSequence({ headingRef, ...p }: {
                   }}
                 />
                 <span style={{ fontSize: "12px", color: T.soft }}>{spec.label}</span>
+                {found ? (
+                  <span style={{ fontSize: "12px", fontWeight: 600, color: found.named > 0 ? T.ink : T.soft }}>
+                    {engineVerdict(found)}
+                  </span>
+                ) : null}
               </div>
             );
           })}
         </div>
+
+        {/* The reveal is a figure appearing beside a label, which is nothing at
+            all to a screen reader unless it is said. Only the newest landing,
+            so each engine is announced once as it arrives rather than the whole
+            list being re-read every time one more lands. */}
+        <p aria-live="polite" className="sr-only">
+          {newest ? landingAnnouncement(newest) : ""}
+        </p>
         <div style={{ marginTop: "9px", height: "3px", background: T.line, borderRadius: "3px", overflow: "hidden" }}>
           <div
             style={{

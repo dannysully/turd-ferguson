@@ -14,6 +14,7 @@ import type {
   ScanOpportunity,
   ScanQuestion,
 } from "@/lib/scan";
+import { type EngineResult, parseEngineResults } from "@/lib/scan/engine-results";
 import { ENGINE_SPECS, isEngine, knownEngines } from "@/lib/scan/engines";
 // The words the pipeline writes into `scans.step`, mapped back to a position.
 // Derived from the same list the captions and the bar come from, because this
@@ -447,6 +448,15 @@ export default function ScanFlow(p: {
 
   const [progress, setProgress] = useState(0);
   const [slow, setSlow] = useState(false);
+  /**
+   * The engines that have already finished, with what each one found.
+   *
+   * Danny's item 4: the screen showed nothing until every read was in, so the
+   * visitor waited out the slowest engine to learn the first fact. These arrive
+   * on the ordinary status poll and the waiting screen reveals them one at a
+   * time.
+   */
+  const [landed, setLanded] = useState<EngineResult[]>([]);
 
   const [teaser, setTeaser] = useState<Teaser | null>(p.initialTeaser ?? null);
   const [full, setFull] = useState<FullPayload | null>(p.initialFull ? asFull(p.initialFull) : null);
@@ -565,6 +575,21 @@ export default function ScanFlow(p: {
 
         const step = typeof data.step === "string" ? STEP_INDEX.get(data.step) : undefined;
         if (step !== undefined) setProgress(step);
+
+        /**
+         * An engine that has landed never un-lands.
+         *
+         * The list only grows within a pass, so the longer answer is always the
+         * newer one - and taking only the longer one is what makes a stale read
+         * harmless. Two engines finishing within a few milliseconds issue two
+         * writes of one column, and `readAndStore` chains them for exactly this
+         * reason; this is the same guarantee at the other end, where it costs a
+         * comparison. A chip that appears and then disappears reads as a
+         * measurement being withdrawn, on the screen this feature exists to put
+         * a fact on.
+         */
+        const rows = parseEngineResults(data.engine_results);
+        setLanded((prev) => (rows.length > prev.length ? rows : prev));
 
         if (data.status === "complete") {
           /**
@@ -705,6 +730,10 @@ export default function ScanFlow(p: {
       }
       setProgress(0);
       setSlow(false);
+      // A re-run measures again from nothing. Carrying the previous attempt's
+      // verdicts into it would show the visitor figures from the pass that
+      // failed, under a bar that has just gone back to the start.
+      setLanded([]);
       setPhase("running");
       track("scan_confirmed", { topic: input.topic, market: input.market, questions: input.questions.length });
       return null;
@@ -890,6 +919,7 @@ export default function ScanFlow(p: {
           <HeroSequence
             domain={p.domain}
             engines={p.engines}
+            landed={landed}
             step={progress}
             slow={slow}
             headingRef={headingRef}

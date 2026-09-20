@@ -12,6 +12,11 @@ import {
 import { brandKey, displayNamesFor, namesBrand } from "./brand-name";
 import { readEngine } from "./dataforseo";
 import { type Market, normalizeDomain } from "./domain";
+// What one engine found, and the order the reads are issued in so that engines
+// finish at different times rather than in lockstep. Both live outside this
+// file because this one imports `server-only` and so can never be executed by
+// a test - see the header of engine-results.ts.
+import { type EngineResult, readOrder, tallyEngine } from "./engine-results";
 // The words this file writes into `scans.step`, so a typo here is a compile
 // error rather than a progress bar that freezes on the waiting screen.
 import { type RunStep, STEP } from "./run-steps";
@@ -350,6 +355,22 @@ async function readAndStore(input: {
    * See the header of `run-steps.ts` for why that is now three.
    */
   onStep?: (step: RunStep) => Promise<void>;
+  /**
+   * Called with every engine that has landed, each time one does - Danny,
+   * 20 September 2026, item 4.
+   *
+   * The whole list every time rather than the one that just landed, so a write
+   * that is lost costs one tick of the waiting screen instead of an engine
+   * that never appears. The rows are cumulative and the calls are serialised by
+   * the caller of this callback, so the last one carries everything.
+   *
+   * Optional, and the gated pass passes nothing, for the same reason it passes
+   * no `onStep`: this drives the FREE waiting screen, which has been replaced
+   * by the report long before a gated pass runs, and writing its own engines
+   * over the free pass's would replace a finished record with a partial one
+   * nobody is watching.
+   */
+  onEngines?: (landed: EngineResult[]) => Promise<void>;
   /** Written into per phase. See Timings. */
   timings: Timings;
 }): Promise<{
@@ -362,14 +383,79 @@ async function readAndStore(input: {
   leaderboardPartial: boolean;
 }> {
   const db = supabaseAdmin();
-  const { scanId, spend, domain, brand, topic, positioning, market, engines, questions, checkDeadline, onStep, remainingMs, timings } =
+  const { scanId, spend, domain, brand, topic, positioning, market, engines, questions, checkDeadline, onStep, onEngines, remainingMs, timings } =
     input;
 
-  // Every question against every engine, flattened so one queue paces the lot.
-  const jobs = questions.flatMap((q) => engines.map((engine) => ({ q, engine })));
+  /**
+   * Every question against every engine, flattened so one queue paces the lot -
+   * and ordered engine-major so the engines do not all finish together.
+   *
+   * `readOrder` rather than a `flatMap` here because the order is the load
+   * bearing half of item 4 and it is invisible to any assertion about a number.
+   * Read its header before changing this line.
+   */
+  const jobs = readOrder(questions, engines);
 
-  const answers = await timed(timings, "reading", () =>
-    mapWithConcurrency(jobs, CONCURRENCY, async ({ q, engine }): Promise<Answer> => {
+  /**
+   * Each engine's verdict, published the moment that engine's last question
+   * comes back rather than when all of them have - Danny, item 4.
+   *
+   * `done` counts the reads in per engine and `landed` accumulates the rows.
+   * Both are plain maps mutated from inside the pool, which is safe because
+   * this is one thread: a job's tally and its landing test happen between two
+   * awaits, so no two jobs are ever half-counted.
+   *
+   * The writes are chained rather than fired off as they happen. Two engines
+   * landing within a few milliseconds of each other issue two updates of the
+   * same column, and without the chain the earlier one can land last and drop
+   * the engine that had just appeared - for the rest of the run, because the
+   * column is only written again when another engine lands. The chain costs one
+   * awaited round trip on four of the fifty-six jobs, against reads measured in
+   * seconds.
+   */
+  const done = new Map<Engine, { answered: boolean; brandNamed: boolean }[]>();
+  const landed: EngineResult[] = [];
+  let writes: Promise<void> = Promise.resolve();
+
+  /**
+   * A landing write that fails is a chip that does not appear, never a scan
+   * that dies.
+   *
+   * Every other step write in this pass is warned about and swallowed for the
+   * same reason - the run is the thing the visitor is paying for and the screen
+   * is cosmetic beside it. It matters more here than for `onStep` because this
+   * one is awaited inside the read pool: an unswallowed rejection would come
+   * back out of `mapWithConcurrency` and end a pass that had already paid for
+   * dozens of reads.
+   */
+  function noteEngines(rows: EngineResult[]): Promise<void> {
+    if (!onEngines) return Promise.resolve();
+    return onEngines(rows).catch((err: unknown) => {
+      console.warn(
+        `[scan] could not publish the landed engines for ${scanId}, so the waiting screen is ` +
+          `short a verdict: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    });
+  }
+
+  function noteRead(engine: Engine, a: Answer): Promise<void> {
+    const reads = done.get(engine) ?? [];
+    reads.push({ answered: a.answered, brandNamed: a.brandNamed });
+    done.set(engine, reads);
+    if (reads.length < questions.length) return Promise.resolve();
+    landed.push(tallyEngine(engine, questions.length, reads));
+    const snapshot = [...landed];
+    writes = writes.then(() => noteEngines(snapshot));
+    return writes;
+  }
+
+  /**
+   * One read, retried where a retry is worth making. Lifted out of the pool
+   * callback so the landing tally above has a single place to sit: the body has
+   * three exits and a tally bolted onto each of them is three places for the
+   * next change to miss one.
+   */
+  async function readOne({ q, engine }: { q: StoredQuestion; engine: Engine }): Promise<Answer> {
     checkDeadline();
     const base = {
       questionId: q.id,
@@ -430,9 +516,28 @@ async function readAndStore(input: {
         };
       }
     }
-      return { ...base, answered: false, brandNamed: false, error: "no answer", cost: 0 };
+    return { ...base, answered: false, brandNamed: false, error: "no answer", cost: 0 };
+  }
+
+  const answers = await timed(timings, "reading", () =>
+    mapWithConcurrency(jobs, CONCURRENCY, async (job): Promise<Answer> => {
+      const a = await readOne(job);
+      await noteRead(job.engine, a);
+      return a;
     }),
   );
+
+  /**
+   * Every engine, once, at the end of the reading phase.
+   *
+   * The chained landing writes above already leave the full list on the row, so
+   * this is the belt: a landing write that failed - they are never fatal, like
+   * every other step write in this pass - would otherwise leave that engine
+   * missing from the column until another one landed, and the last engine has
+   * no other one after it. One small update per scan to close that.
+   */
+  await writes;
+  if (landed.length) await noteEngines([...landed]);
 
   // Every read is in. What follows - storing the citations and starting the
   // source classification over them - is the third step the screen names.
@@ -956,6 +1061,29 @@ export async function runScan(scanId: string): Promise<void> {
         const { error: stepErr } = await db.from("scans").update({ step }).eq("id", scanId);
         if (stepErr) {
           console.warn(`[scan] could not set the ${step} step for ${scanId}: ${stepErr.message}`);
+        }
+      },
+      /**
+       * Each engine's verdict onto the row as it lands, so the waiting screen
+       * can show it while the other engines are still reading - Danny's item 4.
+       *
+       * The free pass only. `runGatedScan` passes nothing, which is what keeps
+       * this column the free pass's record; the reason is in the callback's own
+       * contract and in the migration.
+       *
+       * Warned and swallowed exactly like the step write above it: a verdict
+       * that does not reach the row costs the reveal, and the scan is what the
+       * visitor is waiting for.
+       */
+      onEngines: async (rows) => {
+        const { error: landErr } = await db
+          .from("scans")
+          .update({ engine_results: rows })
+          .eq("id", scanId);
+        if (landErr) {
+          console.warn(
+            `[scan] could not record the landed engines for ${scanId}: ${landErr.message}`,
+          );
         }
       },
     });
