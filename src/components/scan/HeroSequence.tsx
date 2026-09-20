@@ -7,6 +7,8 @@ import { TIERS } from "@/config/pricing";
 import { CARD, MICRO, T } from "@/config/tokens";
 import { ENGINE_SPECS, isEngine } from "@/lib/scan/engines";
 
+import { seqIn } from "./seq-stagger";
+
 /**
  * The waiting sequence, from HeroSequence.dc.html.
  *
@@ -155,7 +157,7 @@ function ActQuestions() {
       {QUESTION_ROWS.map((r, n) => (
         <div
           key={r.q}
-          className={"seq-in" + (n ? n + 1 : "")}
+          className={seqIn(n)}
           style={{ borderBottom: "1px solid " + T.hair }}
         >
           <div className="seq-qrow">
@@ -311,7 +313,7 @@ function ActOpportunities() {
     <div>
       <div style={panel}>
         {OPPS.map((o, n) => (
-          <div key={o.url} className={"seq-in" + (n ? n + 1 : "")} style={{ borderBottom: "1px solid " + T.hair }}>
+          <div key={o.url} className={seqIn(n)} style={{ borderBottom: "1px solid " + T.hair }}>
             <div className="seq-orow">
               <div style={{ fontSize: "13.5px", fontWeight: 500 }}>{o.url}</div>
               <div>
@@ -367,7 +369,7 @@ function ActPlacement() {
     <div>
       <div className="seq-three">
         {PLACEMENT_STEPS.map((s, n) => (
-          <div key={s.k} className={"seq-in" + (n ? n + 1 : "")} style={soft}>
+          <div key={s.k} className={seqIn(n)} style={soft}>
             <div style={{ ...MICRO, color: T.accent }}>{s.k}</div>
             <div style={{ fontSize: "14px", fontWeight: 600, marginTop: "7px" }}>{s.t}</div>
             <p style={{ margin: "6px 0 0", fontSize: "13px", lineHeight: 1.6, color: T.soft }}>{s.b}</p>
@@ -445,8 +447,15 @@ function SerpPanel(p: { keyword: string; count: string; from: number; to: number
           {p.rows.map((r, n) => (
             <div
               key={r.site + r.path}
-              className={r.you ? climb : "seq-settle seq-in" + (n ? n + 1 : "")}
+              className={r.you ? climb : "seq-settle"}
               style={{
+                // One animation, staggered by delay. This row used to carry
+                // `seq-settle` and a `seq-in` rung together; both rules set the
+                // `animation` shorthand at equal specificity, so `.seq-settle`
+                // took the property outright and the rung was dead markup. The
+                // .5s base is `.seq-settle`'s own default, restated because an
+                // inline animation-delay replaces it rather than adding to it.
+                animationDelay: r.you ? undefined : (0.5 + n * 0.06).toFixed(2) + "s",
                 background: r.you ? T.wash : T.surface,
                 border: "1px solid " + (r.you ? T.accent : T.hair),
                 borderRadius: "10px",
@@ -693,7 +702,7 @@ function ActEverywhere() {
     <div>
       <div className="seq-four">
         {LADDER.map((l, n) => (
-          <div key={l.step + n} className={"seq-in" + (n ? n + 1 : "")} style={l.on ? accented : soft}>
+          <div key={l.step + n} className={seqIn(n)} style={l.on ? accented : soft}>
             <div style={{ ...MICRO, color: l.on ? T.accent : T.soft }}>{l.step}</div>
             <div style={{ fontSize: "15px", fontWeight: 700, letterSpacing: "-0.022em", marginTop: "7px" }}>
               {l.tier ? <TierName tier={l.tier} /> : l.label}
