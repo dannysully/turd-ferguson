@@ -85,12 +85,29 @@ function triggerClasses(): string[] {
 const CONTENT_CLASSES = ["ac-row", "ac-stamp"];
 
 /**
- * The floor for rule 2. The board's own departure lands at .55; this is not a
- * test of that number, which is a design call, but of the property the number
- * exists to hold - that the text is legible while it waits. A value under this
- * is invisible in practice whether or not it is literally zero.
+ * The floor for rule 2, and it is no longer a legibility floor.
+ *
+ * It was 0.4, guarding the property that a content class stays readable while
+ * it waits. Danny's instruction on 20 Sep took `.ac-row` to 0.15 to make the
+ * entrance read, which argues with that rule directly - and he asked for the
+ * rule to be restated rather than deleted.
+ *
+ * So the property has changed shape. It used to be "a waiting element is
+ * legible", held by a number. It is now "a waiting element cannot wait
+ * indefinitely", held by the failsafe in `motion-script.ts` and checked by
+ * `the failsafe that lets rule 2 be this low` below. What survives as a number
+ * is only the weaker half: **present rather than absent.** A from-state of
+ * literally 0, or so close to it that the element cannot be seen at all, is
+ * still refused - a visitor who looks at the page during the failsafe window
+ * should see something arriving rather than a blank area that later fills in,
+ * and an element at 0 with a failsafe that regresses is a blank page again.
+ *
+ * 0.1 rather than 0.15, deliberately: this is the floor, not the value. Pinning
+ * it to exactly what the CSS says today would make the test a copy of the thing
+ * it checks - the blind-tripwire recipe this repo has been bitten by four
+ * times - and would fail on any future amplitude tweak that is not a defect.
  */
-const LEGIBLE = 0.4;
+const LEGIBLE = 0.1;
 
 type Rule = { selector: string; decls: string };
 
@@ -379,5 +396,139 @@ test("a class that carries content never rests invisible, even with motion on", 
     `.in-view arrives from IntersectionObserver, and a background tab suspends its delivery - so ` +
       `a content class resting below ${LEGIBLE} is a blank page for as long as that lasts:\n  ` +
       offenders.join("\n  "),
+  );
+});
+
+test("the rest state and the keyframe's from-state say the same thing", () => {
+  /**
+   * `.in-view` sets `animation: ... both`, so the element holds the rule's
+   * from-state until its stagger delay elapses and then holds the keyframe's
+   * `from` for an instant before the animation moves. If the two disagree the
+   * element jumps at the moment its animation starts - a step in the middle
+   * of what is meant to be one movement, worst on the rows furthest down a
+   * group because they wait longest at the first value.
+   *
+   * It is two numbers in two places that have to be kept by hand, which is
+   * this repo's most reliable source of drift, and Danny's note taking the
+   * amplitude to `.15 / 16px` said "both places, they must stay identical"
+   * without anything holding it. Now something does.
+   */
+  const restRule = rules.find((r) => /html\[data-motion="on"\]\s*\.ac-row$/.test(r.selector.trim()));
+  assert.ok(restRule, "no bare `html[data-motion=\"on\"] .ac-row` rule found - teach this test the new shape");
+
+  const rest: Record<string, string> = {};
+  for (const d of declarations(restRule.decls)) rest[d.prop] = d.value.trim();
+
+  const frame = parse(keyframes.get("ac-row")!).rules.find((r) =>
+    r.selector.split(",").map((s) => s.trim().toLowerCase()).some((s) => s === "from" || s === "0%"),
+  );
+  assert.ok(frame, "@keyframes ac-row has no from block");
+
+  const from: Record<string, string> = {};
+  for (const d of declarations(frame.decls)) from[d.prop] = d.value.trim();
+
+  for (const prop of ["opacity", "transform"]) {
+    assert.ok(rest[prop], `the rest rule no longer sets ${prop}`);
+    assert.ok(from[prop], `@keyframes ac-row { from } no longer sets ${prop}`);
+    assert.equal(
+      rest[prop],
+      from[prop],
+      `the rest state says ${prop}: ${rest[prop]} and @keyframes ac-row { from } says ` +
+        `${from[prop]}. With \`animation: ... both\` the element holds one and then the other, ` +
+        `so it jumps the moment its stagger delay elapses.`,
+    );
+  }
+});
+
+test("the failsafe that lets rule 2 be this low", () => {
+  /**
+   * The other half of rule 2, and now the half carrying the weight.
+   *
+   * `.ac-row` rests at 0.15. That is only defensible because the window it can
+   * last for is bounded: `motion-script.ts` reveals anything on screen a short
+   * time after each scan, and again when the tab becomes visible. Take that
+   * away and 0.15 becomes a blank page for the life of the tab, which is
+   * exactly the failure the old 0.55 floor was insurance against.
+   *
+   * Every value is read out of the script rather than retyped here. A test
+   * that duplicates the thing it checks is true by construction, which is the
+   * species this repo has been bitten by four times.
+   */
+  const ms = /var FAILSAFE_MS=(\d+)/.exec(MOTION_SCRIPT);
+  assert.ok(ms, "motion-script.ts no longer declares `var FAILSAFE_MS=<n>` - teach this test the new shape");
+  const window = Number(ms[1]);
+
+  /**
+   * The longest legitimate arrival, derived rather than assumed: the stagger
+   * cap times the stagger, plus the animation. Read the cap out of the script
+   * and the durations out of the stylesheet, so raising either moves this
+   * bound with it.
+   */
+  const cap = Number(/k>(\d+)\?/.exec(MOTION_SCRIPT)?.[1] ?? NaN);
+  assert.ok(Number.isFinite(cap), "the stagger cap is no longer `k>N?` in the script");
+  const stagger = Number(/--ac-stagger,\s*([\d.]+)s/.exec(CSS)?.[1] ?? NaN);
+  assert.ok(Number.isFinite(stagger), "no --ac-stagger fallback found in globals.css");
+  const longest = (cap * stagger + 0.45) * 1000;
+
+  assert.ok(
+    window >= longest,
+    `FAILSAFE_MS is ${window}ms and the longest legitimate arrival is ${longest}ms (${cap} beats ` +
+      `of ${stagger}s plus the .45s animation). A failsafe shorter than that fires while a group ` +
+      `is still arriving normally.`,
+  );
+  assert.ok(
+    window <= 4000,
+    `FAILSAFE_MS is ${window}ms. A content class rests at an opacity this test only permits ` +
+      `because the wait is bounded - four seconds of near-invisible text is not bounded enough.`,
+  );
+
+  // The sweep must be reachable from both paths, and armed from the scan.
+  assert.match(MOTION_SCRIPT, /function sweep\(\)/, "the failsafe sweep is gone");
+  assert.match(
+    MOTION_SCRIPT,
+    /visibilitychange[\s\S]{0,80}visibilityState==='visible'[\s\S]{0,20}arm\(\)/,
+    "nothing re-arms the failsafe when the tab becomes visible - this is the background-tab case, " +
+      "which is the one that made the old 0.55 floor necessary",
+  );
+  assert.match(
+    MOTION_SCRIPT,
+    /io\.observe\(el\);\s*\}\s*arm\(\);/,
+    "scan() no longer arms the failsafe, so content inserted by a client navigation has none",
+  );
+
+  /**
+   * Armed only when idle. Re-arming on every insertion would let a page that
+   * mutates constantly - `/scan` during a live run - postpone its own failsafe
+   * for as long as it keeps mutating, which is the one page where a stuck row
+   * would be least visible and longest lived.
+   */
+  assert.match(
+    MOTION_SCRIPT,
+    /function arm\(\)\{\s*if\(armed\)return;/,
+    "arm() no longer refuses to re-arm while a sweep is pending, so a constantly mutating page " +
+      "can slide its failsafe indefinitely",
+  );
+
+  /**
+   * And it must stay a targeted reveal rather than a blanket one. Without the
+   * rect test every section below the fold plays at once, unseen - the trigger
+   * defeating itself, which is the trap Danny named when he asked for this.
+   */
+  assert.match(
+    MOTION_SCRIPT,
+    /getBoundingClientRect\(\)/,
+    "the sweep no longer measures position, so it reveals below-fold content that nobody has " +
+      "scrolled to",
+  );
+  assert.match(
+    MOTION_SCRIPT,
+    /b\.bottom<0\|\|b\.top>h/,
+    "the sweep no longer bounds vertically - off-screen rows must keep their scroll trigger",
+  );
+  assert.match(
+    MOTION_SCRIPT,
+    /if\(!b\.width&&!b\.height\)continue/,
+    "the sweep no longer skips boxless elements, so the hidden half of a responsive pair is " +
+      "revealed as though somebody were looking at it",
   );
 });

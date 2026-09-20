@@ -99,6 +99,51 @@
  * is a stagger that is off by one beat for rows they have already watched
  * arrive. Re-scanning on resize would instead re-time rows that are already
  * on screen and settled, which is the worse of the two.
+ *
+ * ## The failsafe, and why the from-state can be as low as it now is
+ *
+ * Danny's instruction on 20 Sep was that the motion is correct and too quiet
+ * to notice, so `.ac-row` went from `opacity: .55 / translateY(8px)` to
+ * `.15 / 16px`. The old floor was not arbitrary: it was insurance against the
+ * one failure that leaves an element holding its from-state forever, which is
+ * JavaScript running and IntersectionObserver never delivering. A background
+ * tab has `document.hidden`, and Chrome suspends rAF and IO with it. At .55
+ * those rows were degraded but legible; at .15 they are effectively gone.
+ *
+ * So the insurance is now a mechanism rather than a number. **Nothing may sit
+ * in a from-state once the page is visible and settled**, and that property is
+ * what `motion-rest-state.test.mts` rule 2 checks - not a floor.
+ *
+ * `sweep()` adds `.in-view` to any target whose rect currently intersects the
+ * viewport. Three things make it the right shape rather than a blanket reveal:
+ *
+ * - **It is bounded, not repeating.** `arm()` sets one timer, `FAILSAFE_MS`
+ *   after a scan, and refuses to set a second while one is pending. A page
+ *   that mutates constantly - `/scan` during a live run - would otherwise
+ *   postpone its own failsafe indefinitely if the timer were re-armed on every
+ *   insertion. Arming only when idle means it fires 1.5s after the first scan
+ *   and 1.5s after any later insertion, and never slides.
+ * - **It only reveals what is on screen.** A blanket "reveal everything after
+ *   N seconds" would play every section below the fold at once, unseen, which
+ *   is the trigger defeating itself. An element off screen keeps its observer
+ *   and its scroll trigger. An element with no box - the hidden half of a
+ *   responsive pair - is skipped for the same reason it is skipped when
+ *   counting siblings: it is not something anybody is looking at.
+ * - **It does not flatten the stagger.** The delay is
+ *   `calc(var(--ac-i) * var(--ac-stagger))` in CSS, per element, so revealing
+ *   a group in one pass still plays it as a staggered run. The sweep changes
+ *   when the group starts, never whether it is a group.
+ *
+ * It also runs on `visibilitychange` to visible, which is the background-tab
+ * case resolving itself: rAF resumes, and the sweep covers the window before
+ * the observer catches up. Both paths are idempotent - `classList.add` of a
+ * class already present is a no-op, and the observer having already fired
+ * leaves nothing for the sweep to find.
+ *
+ * `FAILSAFE_MS` is 1500. The longest legitimate arrival is .45s of animation
+ * behind eight beats of .09s stagger, which is 1.17s, so the failsafe cannot
+ * pre-empt a group that is animating normally - and if it did, it would only
+ * add a class those elements were about to receive anyway.
  */
 
 export const MOTION_SCRIPT = `(function(){
@@ -109,6 +154,7 @@ if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matc
 }catch(e){return}
 r.setAttribute('data-motion','on');
 var SEL='.ac-row,.ac-grow,.ac-stamp,.chart-line,.chart-dot,.flow-line';
+var FAILSAFE_MS=1500;
 var io=new IntersectionObserver(function(es){
 for(var i=0;i<es.length;i++){
 var e=es[i];
@@ -133,6 +179,26 @@ el.style.setProperty('--ac-i',String(k>8?8:k));
 }
 io.observe(el);
 }
+arm();
+}
+function sweep(){
+var els=d.querySelectorAll(SEL);
+var h=window.innerHeight||r.clientHeight||0;
+var w=window.innerWidth||r.clientWidth||0;
+for(var i=0;i<els.length;i++){
+var el=els[i];
+if(el.classList.contains('in-view'))continue;
+var b=el.getBoundingClientRect();
+if(!b.width&&!b.height)continue;
+if(b.bottom<0||b.top>h||b.right<0||b.left>w)continue;
+el.classList.add('in-view');
+try{io.unobserve(el)}catch(e){}
+}
+}
+var armed=null;
+function arm(){
+if(armed)return;
+armed=setTimeout(function(){armed=null;sweep()},FAILSAFE_MS);
 }
 var queued=false;
 function queue(){
@@ -143,6 +209,7 @@ requestAnimationFrame(function(){queued=false;scan()});
 function start(){
 scan();
 try{new MutationObserver(queue).observe(d.body,{childList:true,subtree:true})}catch(e){}
+d.addEventListener('visibilitychange',function(){if(d.visibilityState==='visible')arm()});
 }
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',start);else start();
 })();`;

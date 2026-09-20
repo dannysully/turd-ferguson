@@ -21,16 +21,23 @@ import { PRERENDER_DIR as PRERENDER, sweptPages } from "../app/dynamic-render.mt
  * loudly rather than passing against a mock that quietly says yes.
  */
 
+/** The fake viewport every positioned element below is measured against. */
+const VIEWPORT = { width: 1200, height: 800 };
+
 type Fake = {
   className: string;
   display: string;
   /** How many client rects the element has. 0 means it takes up no space. */
   rects: number;
+  /** Where the element sits relative to the viewport, for the failsafe sweep. */
+  top: number;
+  height: number;
   attrs: Record<string, string>;
   vars: Record<string, string>;
   classes: Set<string>;
   previousElementSibling: Fake | null;
   observed: boolean;
+  unobserved: boolean;
 };
 
 function row(className: string, display = "block"): Fake {
@@ -40,12 +47,23 @@ function row(className: string, display = "block"): Fake {
     // An element that is `display: none` in its own right has no box. That is
     // the only way to lose one here; `inHiddenWrapper` models the other.
     rects: display === "none" ? 0 : 1,
+    // On screen unless a test says otherwise, which is the common case and
+    // the one the stagger tests care nothing about.
+    top: 0,
+    height: 20,
     attrs: {},
     vars: {},
     classes: new Set(className.split(" ").filter(Boolean)),
     previousElementSibling: null,
     observed: false,
+    unobserved: false,
   };
+}
+
+/** Put an element below the fold, where the failsafe must leave it alone. */
+function below(el: Fake): Fake {
+  el.top = VIEWPORT.height + 200;
+  return el;
 }
 
 /**
@@ -72,24 +90,49 @@ function stagger(els: Fake[], opts: { reducedMotion?: boolean; noIO?: boolean } 
 
   const root = { attrs: {} as Record<string, string>, setAttribute(k: string, v: string) { this.attrs[k] = v; } };
 
-  const sandbox = {
-    document: {
-      documentElement: root,
-      body: {},
-      readyState: "complete",
-      addEventListener() {},
-      querySelectorAll: () => els,
+  /**
+   * A fake clock, not the real one.
+   *
+   * The script arms a timer on every scan. Left as the global `setTimeout`
+   * that timer outlives the test, fires against a DOM that no longer has the
+   * methods it needs, and node reports it as asynchronous activity after the
+   * test ended - which is how this harness first met the failsafe. Capturing
+   * the callback instead makes the sweep something a test can run on purpose.
+   */
+  const timers: { fn: () => void; ms: number }[] = [];
+  /** Handlers the script registers on `document`, by event type. */
+  const handlers: Record<string, (() => void)[]> = {};
+
+  const doc = {
+    documentElement: root,
+    body: {},
+    readyState: "complete",
+    visibilityState: "visible",
+    addEventListener(type: string, fn: () => void) {
+      (handlers[type] ??= []).push(fn);
     },
+    querySelectorAll: () => els,
+  };
+
+  const sandbox = {
+    document: doc,
     getComputedStyle: (el: Fake) => ({ display: el.display }),
     IntersectionObserver: class {
       observe(el: Fake) { el.observed = true; }
-      unobserve() {}
+      unobserve(el: Fake) { el.unobserved = true; }
     },
     MutationObserver: class {
       observe() {}
     },
     requestAnimationFrame: () => 0,
     matchMedia: () => ({ matches: Boolean(opts.reducedMotion) }),
+    setTimeout: (fn: () => void, ms: number) => {
+      timers.push({ fn, ms });
+      return timers.length;
+    },
+    clearTimeout: () => {},
+    innerWidth: VIEWPORT.width,
+    innerHeight: VIEWPORT.height,
   } as Record<string, unknown>;
 
   if (opts.noIO) delete sandbox.IntersectionObserver;
@@ -109,13 +152,45 @@ function stagger(els: Fake[], opts: { reducedMotion?: boolean; noIO?: boolean } 
       style: { setProperty: (k: string, v: string) => { el.vars[k] = v; } },
       // `new Array(n)` is length-n, which is all the script reads.
       getClientRects() { return new Array((this as unknown as Fake).rects); },
+      /**
+       * A boxless element reports a zero rect, which is what the browser does
+       * and what the sweep's width/height test is looking for. Everything
+       * else is placed at its own `top`, full viewport width.
+       */
+      getBoundingClientRect() {
+        const e = this as unknown as Fake;
+        if (!e.rects) return { top: 0, bottom: 0, left: 0, right: 0, width: 0, height: 0 };
+        return {
+          top: e.top,
+          bottom: e.top + e.height,
+          left: 0,
+          right: VIEWPORT.width,
+          width: VIEWPORT.width,
+          height: e.height,
+        };
+      },
     });
   }
 
   const keys = Object.keys(sandbox);
   new Function(...keys, MOTION_SCRIPT)(...keys.map((k) => sandbox[k]));
 
-  return { indices: els.map((e) => e.vars["--ac-i"]), motion: root.attrs["data-motion"] };
+  return {
+    indices: els.map((e) => e.vars["--ac-i"]),
+    motion: root.attrs["data-motion"],
+    /** Run every timer the script has armed, as the clock would. */
+    runTimers() {
+      const due = timers.splice(0);
+      for (const t of due) t.fn();
+      return due.map((t) => t.ms);
+    },
+    /** Fire a registered document event, as the browser would. */
+    fire(type: string) {
+      for (const fn of handlers[type] ?? []) fn();
+    },
+    timers,
+    handlers,
+  };
 }
 
 test("a plain run of rows is staggered 0, 1, 2, 3", () => {
@@ -244,6 +319,138 @@ test("no IntersectionObserver means no attribute either", () => {
 test("an ordinary run does set the attribute", () => {
   const { motion } = stagger([row("ac-row")]);
   assert.equal(motion, "on");
+});
+
+// ------------------------------------------------------------ the failsafe
+
+/**
+ * Danny's instruction on 20 Sep took `.ac-row` from `opacity: .55` to `.15`,
+ * which is only defensible if nothing can sit in that state indefinitely.
+ *
+ * The observer in this harness never delivers - it records `observe()` and
+ * calls nobody back - so every test below is already running in exactly the
+ * failure the failsafe exists for: JavaScript ran, the attribute is set, and
+ * `.in-view` never arrives on its own. That is the background tab, where
+ * Chrome suspends rAF and IntersectionObserver delivery together.
+ *
+ * He asked for two proofs, and they are the two tests here: that it fires
+ * when the observer does not, and that it does NOT reach below-fold rows,
+ * because a blanket reveal plays every section nobody has scrolled to.
+ */
+
+test("the failsafe reveals on-screen rows when the observer never delivers", () => {
+  const rows = [row("ac-row"), row("ac-row"), row("ac-row")];
+  const run = stagger(rows);
+
+  // Precondition, asserted rather than assumed: the observer has taken them
+  // and given nothing back. Without this the test could pass on a harness
+  // that revealed everything for some other reason.
+  assert.ok(rows.every((r) => r.observed), "the script did not observe the rows");
+  assert.deepEqual(
+    rows.map((r) => r.classes.has("in-view")),
+    [false, false, false],
+    "something revealed these before the failsafe ran - the precondition is gone",
+  );
+
+  const fired = run.runTimers();
+  assert.equal(fired.length, 1, `expected exactly one armed timer, got ${fired.length}`);
+
+  assert.deepEqual(
+    rows.map((r) => r.classes.has("in-view")),
+    [true, true, true],
+    "the failsafe did not reveal rows that are on screen, so at opacity .15 they stay invisible " +
+      "for the life of the page",
+  );
+
+  // And it stops observing what it has revealed, like the observer's own path.
+  assert.ok(rows.every((r) => r.unobserved), "the failsafe revealed without unobserving");
+});
+
+test("the failsafe leaves below-fold rows to their scroll trigger", () => {
+  const onScreen = row("ac-row");
+  const offScreen = below(row("ac-row"));
+  const run = stagger([onScreen, offScreen]);
+
+  run.runTimers();
+
+  assert.equal(onScreen.classes.has("in-view"), true, "the on-screen row should have been revealed");
+  assert.equal(
+    offScreen.classes.has("in-view"),
+    false,
+    "the failsafe revealed a row below the fold. A blanket reveal plays every section nobody " +
+      "has scrolled to, which is the scroll trigger defeating itself.",
+  );
+  assert.equal(offScreen.unobserved, false, "the below-fold row must keep its observer");
+});
+
+test("the failsafe skips the hidden half of a responsive pair", () => {
+  // No box, so nobody is looking at it. Revealing it would be harmless to the
+  // eye and wrong in the same way counting it as a stagger slot was wrong.
+  const shown = row("ac-row");
+  const hiddenTwin = row("ac-row", "none");
+  const run = stagger([shown, hiddenTwin]);
+
+  run.runTimers();
+
+  assert.equal(shown.classes.has("in-view"), true);
+  assert.equal(hiddenTwin.classes.has("in-view"), false, "a boxless element was swept in");
+});
+
+test("a visible tab re-arms the failsafe, which is the background-tab case", () => {
+  const r = row("ac-row");
+  const run = stagger([r]);
+
+  // Spend the timer the initial scan armed, and leave the row unrevealed by
+  // putting it off screen for that pass.
+  r.top = VIEWPORT.height + 500;
+  run.runTimers();
+  assert.equal(r.classes.has("in-view"), false);
+
+  // The visitor comes back to the tab, having scrolled - the row is on screen
+  // now and the observer, suspended all along, still has not delivered.
+  r.top = 0;
+  run.fire("visibilitychange");
+  assert.equal(run.timers.length, 1, "visibilitychange did not arm a sweep");
+  run.runTimers();
+
+  assert.equal(
+    r.classes.has("in-view"),
+    true,
+    "returning to the tab did not clear a stuck row, which is the exact case the old .55 floor " +
+      "was insurance against",
+  );
+});
+
+test("the failsafe is armed once, not once per mutation", () => {
+  /**
+   * `/scan` mutates constantly during a live run. If every insertion re-armed
+   * the timer, the page where a stuck row is least visible and longest lived
+   * would postpone its own failsafe for as long as it kept mutating.
+   */
+  const r = row("ac-row");
+  const run = stagger([r]);
+  assert.equal(run.timers.length, 1, "the first scan should arm exactly one timer");
+
+  // A second scan, as a client navigation or an insertion would cause. The
+  // script refuses to stack a second timer while one is pending.
+  run.fire("visibilitychange");
+  assert.equal(
+    run.timers.length,
+    1,
+    `a second arm stacked another timer (${run.timers.length} pending) - a mutating page can now ` +
+      `slide its failsafe`,
+  );
+
+  // Once it has fired, the next one may arm again.
+  run.runTimers();
+  run.fire("visibilitychange");
+  assert.equal(run.timers.length, 1, "after firing, the failsafe can no longer be re-armed");
+});
+
+test("reduced motion arms no failsafe, because there is nothing to fail", () => {
+  // The whole system is off: no attribute, no from-state, nothing hidden.
+  const run = stagger([row("ac-row")], { reducedMotion: true });
+  assert.equal(run.timers.length, 0, "a settled page armed a sweep it does not need");
 });
 
 // ------------------------------------------ the cap, against the real pages

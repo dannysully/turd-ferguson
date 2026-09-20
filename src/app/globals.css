@@ -462,18 +462,37 @@ html[data-motion="on"] .flow-line--3.in-view {
    so a pill inside a row picks up its row's index without being counted
    separately.
 
-   One deliberate departure from the boards, unchanged from the version this
-   replaces. acIn is opacity 0 -> 1, and an element waiting for a trigger
-   holds its from-state, so a crawler rendering the page would find the
-   placement table and the prompt list empty. ac-row lifts 8px and comes up
-   from .55 instead: the same movement, never invisible. The charts may start
-   at 0 because a dot is not content; a table row is. Same reason acStamp
-   loses its opacity leg and keeps its scale.  */
+   One deliberate departure from the boards. acIn is opacity 0 -> 1, and an
+   element waiting for a trigger holds its from-state, so a crawler rendering
+   the page would find the placement table and the prompt list empty. ac-row
+   comes up from .15 rather than 0: faint, but present rather than absent.
+   The charts may start at 0 because a dot is not content; a table row is.
+   Same reason acStamp loses its opacity leg and keeps its scale.
+
+   The floor was .55 and 8px until 20 Sep, and Danny's instruction that
+   morning is why it is not any more: the motion was correct on twelve pages
+   and too quiet to notice. At .55 over 8px, .45s reads as a faint brightening
+   rather than an arrival. This is amplitude only - the duration, the easing
+   and the .09s stagger are the board's and are untouched.
+
+   **The old floor was insurance against one failure, and that failure is now
+   handled properly instead.** It was not the crawler - rule 1 covers that,
+   because every from-state here is scoped to `html[data-motion="on"]` and
+   only the script sets it. It was the case where JavaScript runs and the
+   observer never delivers, which is real: a background tab has
+   `document.hidden`, and Chrome suspends rAF and IntersectionObserver with
+   it. At .55 those rows were degraded but readable; at .15 they would be
+   gone. So motion-script.ts now carries a bounded failsafe that reveals
+   anything on screen a short while after the scan and again when the tab
+   becomes visible, and `motion-rest-state.test.mts` rule 2 checks THAT rather
+   than a floor - a from-state this low is only allowed because the window it
+   can last for is bounded. Lower the floor further, or take the failsafe
+   away, and that test is what fails.  */
 
 @keyframes ac-row {
   from {
-    opacity: 0.55;
-    transform: translateY(8px);
+    opacity: 0.15;
+    transform: translateY(16px);
   }
   to {
     opacity: 1;
@@ -504,8 +523,8 @@ html[data-motion="on"] .flow-line--3.in-view {
 }
 
 html[data-motion="on"] .ac-row {
-  opacity: 0.55;
-  transform: translateY(8px);
+  opacity: 0.15;
+  transform: translateY(16px);
 }
 html[data-motion="on"] .ac-row.in-view {
   animation: ac-row 0.45s ease-out both;
