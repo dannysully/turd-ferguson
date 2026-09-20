@@ -647,6 +647,19 @@ html[data-motion="on"] .ac-stamp.in-view {
 .seq-in3 { animation: seqIn .45s ease-out .20s both; }
 .seq-in4 { animation: seqIn .45s ease-out .30s both; }
 .seq-in5 { animation: seqIn .45s ease-out .40s both; }
+/* The same beats as the ladder above, indexed rather than written out. The
+   ladder is five rungs and the acts index it by list position, so a list that
+   grows past five gave every row after the fifth the same beat - a stagger
+   with a flat tail, which reads as perfectly correct in the markup and is the
+   shape of defect this board keeps producing. QUESTION_ROWS is at exactly five
+   today, so the next row added is the one that breaks it.
+
+   `--ac-i` is the row's index, set by seqStep. n * .10s reproduces .seq-in
+   through .seq-in5 exactly, so every list that exists renders frame for frame
+   as it did and only the ceiling is gone. The ladder stays because the acts
+   also use it as fixed choreography - `.seq-in3` meaning the third beat of
+   this act, not the third item of a list. */
+.seq-step { animation: seqIn .45s ease-out both; animation-delay: calc(var(--ac-i, 0) * 0.10s); }
 .seq-bar { transform-origin: left center; animation: seqGrow .8s cubic-bezier(.2,.7,.3,1) both; }
 .seq-flow { stroke-dasharray: 220; stroke-dashoffset: 220; animation: seqDash 1.2s ease-out .3s both; }
 .seq-climb5 { animation: seqClimb5 1.3s cubic-bezier(.22,.72,.24,1) .45s both; position: relative; z-index: 2; }
@@ -660,7 +673,7 @@ html[data-motion="on"] .ac-stamp.in-view {
 /* Nothing is hidden at rest with motion off: every act renders in full and
    the rail is what moves between them. */
 @media (prefers-reduced-motion: reduce) {
-  .seq-in, .seq-in2, .seq-in3, .seq-in4, .seq-in5,
+  .seq-in, .seq-in2, .seq-in3, .seq-in4, .seq-in5, .seq-step,
   .seq-bar, .seq-flow, .seq-climb5, .seq-climb4, .seq-settle, .seq-rise {
     animation: none;
     opacity: 1;

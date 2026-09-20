@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 
-import { SEQ_LADDER, seqIn } from "./seq-stagger.ts";
+import { seqStep } from "./seq-stagger.ts";
 
 /**
  * The stylesheet, read as a stylesheet.
@@ -100,16 +100,37 @@ test("the sheet is being parsed at all", () => {
   assert.equal(SPANS.length > 0, true, "expected a prefers-reduced-motion block");
 });
 
-test("the stagger ladder only ever emits a class the sheet defines", () => {
-  // The lists it is indexed by are 3, 4, 5 and 8 long today. Well past all of
-  // them, because the point is that growing a list must not break the stagger.
+test("the stagger emits a class the sheet defines, and never runs out", () => {
+  // The lists it is indexed by are 3, 3, 4 and 5 long today - and the five is
+  // QUESTION_ROWS, which sat exactly on the old five-rung ceiling. Well past
+  // all of them, because the point is that growing a list must not quietly
+  // flatten the tail of the stagger the way the clamped ladder did.
+  const beats = new Set<unknown>();
   for (let n = 0; n < 40; n++) {
-    const cls = seqIn(n);
-    assert.ok(DECLARED.has(cls), "seqIn(" + n + ") gave ." + cls + ", which no rule in globals.css matches");
+    const { className, style } = seqStep(n);
+    assert.ok(
+      DECLARED.has(className),
+      "seqStep(" + n + ") gave ." + className + ", which no rule in globals.css matches",
+    );
+    beats.add((style as Record<string, unknown>)["--ac-i"]);
   }
-  assert.equal(seqIn(0), "seq-in", "the first rung has no number");
-  assert.equal(seqIn(SEQ_LADDER - 1), "seq-in" + SEQ_LADDER, "the last rung is the ladder depth");
-  assert.equal(seqIn(99), seqIn(SEQ_LADDER - 1), "past the end, the tail shares the last beat");
+  assert.equal(beats.size, 40, "every list position must get its own beat - a repeat is a flattened tail");
+  assert.equal((seqStep(0).style as Record<string, unknown>)["--ac-i"], 0, "the first row is not delayed");
+});
+
+test("the delay is computed from the index rather than written out as rungs", () => {
+  const step = ALL.find((r) => bareClasses(r.sel).includes("seq-step"));
+  assert.ok(step, "expected a .seq-step rule in globals.css");
+  assert.match(
+    step!.body,
+    /animation-delay\s*:\s*calc\([^)]*--ac-i/,
+    ".seq-step must take its delay from --ac-i, or the index seqStep sets goes nowhere",
+  );
+  // The shorthand resets animation-delay, so the longhand has to come after it.
+  assert.ok(
+    step!.body.indexOf("animation-delay") > step!.body.indexOf("animation:"),
+    "the animation shorthand would reset a delay declared before it",
+  );
 });
 
 test("no element carries two classes that both set `animation`", () => {

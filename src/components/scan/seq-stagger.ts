@@ -1,27 +1,45 @@
+import type { CSSProperties } from "react";
+
 /**
- * The waiting sequence's stagger ladder.
+ * The waiting sequence's stagger, for the acts that map a list.
  *
  * In its own module rather than in `HeroSequence.tsx` for the reason
  * `motion-script.ts` is: `node --test` cannot load a `.tsx`, so anything left
  * inside one is untestable, and this is a piece of motion nobody has ever
  * watched in a browser.
  *
- * The ladder is `.seq-in` through `.seq-in5` in `globals.css` - five rungs,
- * .00s to .40s. Callers index it by list position, which is what makes the
- * clamp necessary: an eight-row list indexing it directly emitted `.seq-in6`,
- * `.seq-in7` and `.seq-in8`, none of which any rule matches. The tail of the
- * list then arrived with no animation while the head staggered.
+ * This used to hand back a rung of the `.seq-in` .. `.seq-in5` ladder, indexed
+ * by list position and clamped to five so it could not emit a class no rule
+ * matches. The clamp was correct and it was not enough: a clamped stagger gives
+ * every row past the fifth the same beat, so the tail of a longer list arrives
+ * together while the head staggers. That is invisible in the markup - the class
+ * name reads perfectly well - and it is the same species as the two defects
+ * `9f64c63` and `bcf799a` were about.
  *
- * A stagger that runs out and lets the tail share the last beat is a stagger.
- * A stagger with a hole in it is the defect `bcf799a` was about, and it is
- * invisible from the markup - the class name looks perfectly reasonable.
+ * `QUESTION_ROWS` is five rows long, which is exactly the ladder depth, so the
+ * next row anybody adds to it is the one that flattens. Rather than leave that
+ * for someone to find in a browser nobody has, the delay is computed from the
+ * index: `.seq-step` reads `--ac-i` and there is no rung to run out of.
+ *
+ * `n * .10s` is the ladder's own spacing, so for every list on the board today
+ * this renders frame for frame as the rungs did. The ladder rules stay in
+ * `globals.css` because the acts also use them as fixed choreography, where
+ * `.seq-in3` means the third beat of this act rather than the third item of a
+ * list. Those are hand-written on single elements and have no index to run out.
  */
 
-/** Rungs that exist in globals.css. Raising this means adding rules there. */
-export const SEQ_LADDER = 5;
-
-/** The ladder class for list position `n`, clamped to a rung that exists. */
-export function seqIn(n: number): string {
-  const rung = Math.min(Math.max(n, 0) + 1, SEQ_LADDER);
-  return "seq-in" + (rung > 1 ? rung : "");
+/**
+ * Class and index for list position `n`, spread onto the element.
+ *
+ * Takes the element's own style rather than returning a bare class, because the
+ * index has to travel as a custom property on the same element and every call
+ * site already had a `style` of its own to merge it into.
+ */
+export function seqStep(n: number, style?: CSSProperties): { className: string; style: CSSProperties } {
+  return {
+    className: "seq-step",
+    // Spread first: a caller's own `--ac-i` would be a mistake, and the index
+    // this function was given is the one thing it is responsible for.
+    style: { ...style, ["--ac-i" as string]: Math.max(Math.trunc(n), 0) } as CSSProperties,
+  };
 }
