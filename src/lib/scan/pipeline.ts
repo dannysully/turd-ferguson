@@ -672,7 +672,12 @@ export async function runScan(scanId: string): Promise<void> {
 
     const brand = scan.brand_name ?? scan.domain;
     const market = scan.market;
-    const engines = (scan.engines ?? []).filter(isEngine);
+    // Deduped, not just filtered. The job list below is
+    // `questions.flatMap(q => engines.map(...))`, so a name that appears twice
+    // on this row asks every question twice and pays twice for one answer.
+    // `settings-merge.ts` stops a repeat reaching a new row; this is for rows
+    // already written, and costs a Set either way.
+    const engines = [...new Set((scan.engines ?? []).filter(isEngine))];
     if (!engines.length) throw new Error("no engines were selected for this scan");
 
     /**
@@ -935,7 +940,9 @@ export async function runGatedScan(scanId: string): Promise<void> {
     if (error || !scan) throw new Error(`scan ${scanId} not found`);
     if (!scan.market) throw new Error("the market was never confirmed");
 
-    const engines = (scan.gated_engines ?? []).filter(isEngine);
+    // Deduped for the same reason as the free pass above, and this is the
+    // expensive one: every question again, on every name in this list.
+    const engines = [...new Set((scan.gated_engines ?? []).filter(isEngine))];
     if (!engines.length) {
       // Nothing to run, but the row still has to say so. Lost, it leaves the
       // gated pass at running for ever with no work left to move it, and the
