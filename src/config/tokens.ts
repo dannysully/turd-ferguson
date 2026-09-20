@@ -5,11 +5,35 @@
  * navy/soft palette: ink is #0f1115, not #0B1220, and the page ground is
  * #f6f6f7, not #F8F7FF.
  *
- * There is one palette now, and this is it. No file defines the old values
- * any more - the `C` object on the ops page is a set of named aliases onto
- * these, kept so forty call sites did not have to be rewritten to prove a
- * point about spelling. The same values are mirrored as CSS custom properties
- * in globals.css for anything that needs them in a stylesheet.
+ * No file defines the old values any more - the `C` object on the ops page is
+ * a set of named aliases onto these, kept so forty call sites did not have to
+ * be rewritten to prove a point about spelling. The same values are mirrored
+ * as CSS custom properties in globals.css for anything that needs them in a
+ * stylesheet.
+ *
+ * **This used to open "There is one palette now, and this is it", and that was
+ * false.** Measured 20 September 2026 by `palette.test.mts`, which was written
+ * for it: fifteen hex values and six `rgba()` values are written outside this
+ * file, at 47 sites. Ten of the fifteen are drawn by between two and 23 of the
+ * artboards in `docs/design/` - they are palette members that never got a name
+ * here, not typos. Two are drawn by no board at all, and both sit in the only
+ * two files no page sweep can reach: the transactional email, which is not a
+ * page, and the ops page, which answers 401.
+ *
+ * The sentence was not inert. The clause after it - the `C` object being pure
+ * aliases - is true, and it is offered as the evidence for the sentence; the
+ * file it points at carries eight of the off-palette values one line from that
+ * object. A true clause joined to a false one is what makes a sentence read as
+ * settled, and nothing here could have told you, because `contrast.test.mts`
+ * asks whether a colour is readable on its ground rather than whether it is
+ * one of these. A hand-typed hex that clears AA is invisible to it - which is
+ * exactly how `#f6f6f8` and `#eceef2` reached production through the sweep
+ * that was meant to end the old palette (`verify-email.ts` records both).
+ *
+ * `palette.test.mts` is the denominator this file did not have. Whether the
+ * ten board values should become tokens here is a design-system call and is
+ * blocked.md 33; until it is answered they are recorded there with the board
+ * that draws each one, and a sixteenth cannot be typed without failing.
  */
 export const T = {
   bg: "#f6f6f7",

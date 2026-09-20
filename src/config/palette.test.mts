@@ -1,0 +1,481 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { test } from "node:test";
+
+import { blankComments, sourceFiles } from "../lib/source-read.mts";
+import { T } from "./tokens.ts";
+
+/**
+ * Every colour value written in shipped source, and whether the palette
+ * contains it.
+ *
+ * ## The claim this was written for
+ *
+ * `config/tokens.ts` opens: "There is one palette now, and this is it. No file
+ * defines the old values any more - the `C` object on the ops page is a set of
+ * named aliases onto these." Three clauses, and the census in
+ * `docs/prose-claims.mjs` found it by the second one. Measured on
+ * 20 September 2026:
+ *
+ * - "No file defines the old values any more" - **true**. `#0B1220`, `#F8F7FF`,
+ *   `#0D1B2A`, `#D85A30` and the Georgia stack appear nowhere in `src`.
+ * - "the `C` object is a set of named aliases onto these" - **true**. All eight
+ *   members of `C` in `admin/scans/page.tsx` are `T.` reads.
+ * - "There is one palette now, and this is it" - **false**. Fifteen hex values
+ *   and six `rgba()` values are written outside this file, at 47 sites. And the
+ *   file offered as the evidence for the sentence, the ops page, carries eight
+ *   of them one line away from the `C` object that makes the clause true.
+ *
+ * That is the shape `1ff1336` records: a true clause joined to a false one is
+ * what makes a sentence read as settled.
+ *
+ * ## Why nothing could see it
+ *
+ * `contrast.test.mts` reads every colour on this site and asks whether it is
+ * **readable on its ground**. This asks whether it is **in the palette**, and
+ * the two come apart in the direction that matters: a hand-typed hex that
+ * clears AA is invisible to the contrast sweep while looking straight at it.
+ * That is not hypothetical. `verify-email.ts` records two of exactly these -
+ * "#f6f6f8 where the ground is #f6f6f7, #eceef2 where the rule is #ececee" -
+ * which went "straight through a sweep that moved all 21 pages onto the
+ * tokens". Both were found by hand, both were fixed by hand, and nothing was
+ * left behind that would catch the third. This is the thing left behind.
+ *
+ * It also needs no build, where `contrast.test.mts` skips without one: a value
+ * typed into a server module never reaches a rendered page at all.
+ *
+ * ## How an entry earns its place, and who decides
+ *
+ * Not by my taste. `docs/design/` holds the 23 artboards, and the question
+ * "did somebody type this, or did the design draw it" is answered by grepping
+ * them. Measured 20 September 2026, and it split the set cleanly:
+ *
+ * - ten of the fifteen hex values are drawn by between two and 23 boards. They
+ *   are palette members that never got a name, not typos.
+ * - `#3d4451` and `#92400e` are drawn by **no board at all**, and both sit in
+ *   the two files no page sweep can reach - the transactional email, which is
+ *   not a page, and the ops page, which answers 401 (blocked.md 19).
+ *
+ * The boards are untracked, so this file cannot read them; the count and the
+ * date are recorded per entry instead, and what is re-earned in-tree is the
+ * **occurrence**: the files a value may appear in and how many times in each.
+ * Keyed that way rather than to a file for the reason the queue records - an
+ * exemption keyed to a FILE excuses whatever lands in it next - and counted per
+ * file because two of these files carry the same value twice.
+ *
+ * ## Two things it cannot see, asked while the denominator is fresh
+ *
+ * - **A colour built rather than written.** `T.accent + "22"`, a template
+ *   literal, a value out of a `.json`. Nothing here parses expressions. The one
+ *   live instance of the shape is `rgba(124,58,237,0.28)` in `globals.css`, and
+ *   it is not on the list below: rule 2 derives it from `T.accent` instead,
+ *   because a value that can be proved should not be excused.
+ * - **A colour named rather than numbered.** `red`, `white`, `transparent` are
+ *   CSS keywords and no rule here matches one. Checked rather than assumed:
+ *   `color: white` and `background: red` appear nowhere in `src`, so there is
+ *   no live instance and a rule for it would be decoration today.
+ */
+
+const ROOT = join(fileURLToPath(import.meta.url), "..", "..", "..");
+
+/**
+ * The walk, and it is deliberately wider than `sourceFiles`.
+ *
+ * That helper covers `.tsx?`/`.mts` and cannot see a stylesheet, and three of
+ * the values below are in `globals.css` - including the CTA gradient stop
+ * blocked.md 31 is open on. The queue's own rule is that the stylesheet is a
+ * fourth surface every page sweep here was blind to, so a palette census that
+ * skipped it would be making the same mistake one file along.
+ */
+const STYLESHEETS = ["src/app/globals.css"];
+const FILES = [...sourceFiles(ROOT), ...STYLESHEETS].filter((f) => !f.endsWith("config/tokens.ts"));
+
+/**
+ * A colour literal.
+ *
+ * The `(?<![&\w])` guard is not decoration and it was found by running this:
+ * `email-render.ts` contains `&#8203;`, the zero-width space, and a bare
+ * `#[0-9a-f]{3,8}` reads the `8203` out of an HTML entity as a four-digit hex.
+ * A census reporting a defect in a file that has none is the noisy direction,
+ * and the queue records why that is not harmless - the obvious fix is an
+ * exemption, and the exemption then excuses the real value that lands there.
+ *
+ * Lengths are enumerated rather than given as `{3,8}` for the same reason: 3,
+ * 4, 6 and 8 are the hex forms CSS has, and `{3,8}` matches five-digit and
+ * seven-digit runs that are not colours at all.
+ */
+const LITERAL =
+  /(?<![&\w])#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{4}|[0-9a-fA-F]{3})\b|\b(?:rgba?|hsla?)\([^)]*\)/g;
+
+/** Every value the palette contains, as written. */
+const PALETTE = new Set(Object.values(T).map((v) => v.toLowerCase()));
+
+type Site = { value: string; file: string };
+
+/**
+ * Every colour literal in the tree that the palette does not contain.
+ *
+ * Comments blanked rather than stripped, which is load-bearing twice over
+ * here: this file's own subject is hex values, and `tokens.ts`, `verify-email.ts`
+ * and `what-is-aeo/page.tsx` all quote off-palette hexes **in prose** while
+ * explaining them. A stripper that left the prose in would report the
+ * explanation of a defect as the defect - the `0a3aa9e` failure, on a sweep
+ * whose whole subject is the thing the prose names.
+ */
+function offPalette(): Site[] {
+  const out: Site[] = [];
+  for (const file of FILES) {
+    const src = blankComments(readFileSync(join(ROOT, file), "utf8"));
+    for (const m of src.matchAll(LITERAL)) {
+      const value = m[0].toLowerCase().replace(/\s+/g, "");
+      if (PALETTE.has(value)) continue;
+      out.push({ value, file });
+    }
+  }
+  return out;
+}
+
+/**
+ * The colours written outside the palette, each with what makes it one and the
+ * occurrences it is allowed at.
+ *
+ * `boards` is how many of the 23 artboards in `docs/design/` draw the value,
+ * read on 20 September 2026. It is the evidence and it is not re-earnable from
+ * here - the boards are untracked - so it is dated rather than asserted, and
+ * `sites` is the part this file holds.
+ */
+type Entry = { why: string; boards: number; sites: Record<string, number> };
+
+const OFF_PALETTE: Record<string, Entry> = {
+  // ---- board values the tokens file never got a name for -------------------
+  "#fbfbfc": {
+    why: "the raised panel ground, and the most-typed value in this list. blocked.md 9 already treats it as a real ground - its table measures `soft` at 4.53 on it - so it is a palette member in everything but a name.",
+    boards: 10,
+    sites: {
+      "src/app/compare/page.tsx": 1,
+      "src/app/pr-agencies/page.tsx": 1,
+      "src/app/what-is-aeo/page.tsx": 1,
+      "src/app/white-label/page.tsx": 1,
+      "src/components/home/AnswerExplorer.tsx": 1,
+      "src/components/home/TierJourney.tsx": 2,
+      "src/components/scan/ConfirmScreen.tsx": 1,
+      "src/components/scan/HeroSequence.tsx": 3,
+      "src/components/scan/ResultView.tsx": 4,
+    },
+  },
+  "#3f4451": {
+    why: "body prose on the two long-form templates, drawn by BlogPost.dc.html and CaseStudy.dc.html - the two boards whose pages these are. Darker than `T.soft` because long-form body text is, at 9.74 on white against soft's 4.68.",
+    boards: 2,
+    sites: { "src/app/case-studies/vibe-retail/page.tsx": 2, "src/components/PostShell.tsx": 1 },
+  },
+  "#e8e8ea": {
+    why: "the divider inside a dark or tinted card, one step heavier than `T.line`.",
+    boards: 3,
+    sites: { "src/components/home/Packages.tsx": 2, "src/components/home/TierJourney.tsx": 2 },
+  },
+  "#d6d8dd": {
+    why: "the inactive step marker on the PR agencies ladder, from PRAgencies.dc.html.",
+    boards: 2,
+    sites: { "src/app/pr-agencies/page.tsx": 2 },
+  },
+  "#c8cad0": {
+    why: "the 'not you' bar on a share-of-voice chart, from Flow2Free.dc.html and HeroSequence.dc.html.",
+    boards: 2,
+    sites: { "src/components/scan/HeroSequence.tsx": 1, "src/components/scan/ResultView.tsx": 1 },
+  },
+  "#c9ccd3": {
+    why:
+      "the 'not you' dot, from HeroSequence.dc.html and Journey.dc.html. **Do not tidy this into `#c8cad0`.** " +
+      "They are one character apart, they mean the same thing, and they sit in the same file - which is what a " +
+      "drift looks like. It is not one: the boards draw both, and two of them draw this value specifically. " +
+      "Checking the boards is what stopped this being 'fixed' on 20 September 2026.",
+    boards: 2,
+    sites: { "src/components/scan/HeroSequence.tsx": 1 },
+  },
+  "#16181e": {
+    why: "the near stop of the dark card gradient on the journey board.",
+    boards: 2,
+    sites: { "src/components/home/TierJourney.tsx": 1 },
+  },
+  "#23262d": {
+    why: "the far stop of that same gradient, on the same line.",
+    boards: 2,
+    sites: { "src/components/home/TierJourney.tsx": 1 },
+  },
+  "#a78bfa": {
+    why: "the lockup accent lifted for a dark ground, in `.on-dark .tier-name__accent`. `T.accent` is unreadable on near-black, and this still goes through `TierName` rather than a hand-coloured span.",
+    boards: 2,
+    sites: { "src/app/globals.css": 1 },
+  },
+  "#a855f7": {
+    why: "the far stop of the primary CTA gradient, and the subject of blocked.md 31 - white measures 3.96 on it, under AA. `contrast.test.mts` pins both stops by measurement and fails if either moves, so this entry is the palette half of a value that already has a contrast half.",
+    boards: 23,
+    sites: { "src/app/globals.css": 1 },
+  },
+
+  // ---- somebody else's brand, which must never become a token --------------
+  //
+  // These five are one row each in `ENGINE_SPECS`, and they are the one group
+  // here that must stay off the palette rather than joining it: a token is a
+  // value this design system owns, and none of these is ours to move.
+  "#ea4335": {
+    why: "Google's own brand red, on the engine chip for AI Overviews. Not ours to change or to tokenise.",
+    boards: 0,
+    sites: { "src/lib/scan/engines.ts": 1 },
+  },
+  "#10a37f": {
+    why: "OpenAI's own brand green, on the ChatGPT chip. Not ours to change or to tokenise.",
+    boards: 0,
+    sites: { "src/lib/scan/engines.ts": 1 },
+  },
+  "#4285f4": {
+    why: "Google's own brand blue, on the Gemini chip. Not ours to change or to tokenise.",
+    boards: 0,
+    sites: { "src/lib/scan/engines.ts": 1 },
+  },
+  "#20808d": {
+    why: "Perplexity's own brand teal, on its engine chip. Not ours to change or to tokenise.",
+    boards: 0,
+    sites: { "src/lib/scan/engines.ts": 1 },
+  },
+  "#d97757": {
+    why: "Anthropic's own brand clay, on the Claude chip. Not ours to change or to tokenise.",
+    boards: 0,
+    sites: { "src/lib/scan/engines.ts": 1 },
+  },
+  "#1a0dab": {
+    why: "Google's SERP link blue, in the HeroSequence mock of a result page. A rendering of somebody else's interface, the same class as the five above.",
+    boards: 1,
+    sites: { "src/components/scan/HeroSequence.tsx": 1 },
+  },
+
+  // ---- the two no board draws ----------------------------------------------
+  "#3d4451": {
+    why:
+      "the transactional email's body prose, and it is deliberate rather than a hand-copy - `verify-email.ts` " +
+      "states the departure and measures it. Rule 5 below re-earns that measurement. Worth knowing: the " +
+      "comparison it makes is against `T.soft` at 4.68, and the value the design system actually draws for body " +
+      "prose is `#3f4451` at 9.74, so the departure over the board is 0.05 rather than the 5.11 the reason " +
+      "reads as. No board draws this value.",
+    boards: 0,
+    sites: { "src/lib/scan/verify-email.ts": 1 },
+  },
+  "#92400e": {
+    why:
+      "the ops page's status amber, hand-rolled beside the `C` object that aliases every other colour to a " +
+      "token. No board draws it. **Do not point it at `T.warnFg`** - rule 6 below proves why: the token " +
+      "measures 3.78 on white and this measures 7.09, so the obvious tidy is a contrast regression onto a " +
+      "value blocked.md 9 is already open about.",
+    boards: 0,
+    sites: { "src/app/admin/scans/page.tsx": 2 },
+  },
+  "rgba(220,38,38,0.1)": {
+    why: "the ops page's error panel ground. Same hand-rolled status set as `#92400e`, in the one file no page sweep reaches.",
+    boards: 0,
+    sites: { "src/app/admin/scans/page.tsx": 1 },
+  },
+  "rgba(220,38,38,0.35)": {
+    why: "the border of that same error panel, and the same hand-rolled status set. No board draws it either.",
+    boards: 0,
+    sites: { "src/app/admin/scans/page.tsx": 1 },
+  },
+  "rgba(245,158,11,0.10)": {
+    why: "the ops page's warning panel ground, at the readiness list.",
+    boards: 0,
+    sites: { "src/app/admin/scans/page.tsx": 1 },
+  },
+  "rgba(245,158,11,0.12)": {
+    why: "the same warning ground at the kill-switch banner, two hundredths lighter than the one above and on no board either. The clearest single illustration of what this file is for.",
+    boards: 0,
+    sites: { "src/app/admin/scans/page.tsx": 1 },
+  },
+  "rgba(245,158,11,0.35)": {
+    why: "the border of both warning panels, written twice so the two panels can disagree the way their grounds already do.",
+    boards: 0,
+    sites: { "src/app/admin/scans/page.tsx": 2 },
+  },
+};
+
+/**
+ * The floor. A census that stops finding things reads exactly like a tree with
+ * one palette, which is the state this file exists to disprove.
+ */
+test("the scanner still finds the colour literals it found when this was written", () => {
+  const found = offPalette();
+  assert.ok(
+    found.length >= 47,
+    `only ${found.length} off-palette colour literals were found and there were 47 - a falling count means the scanner broke, not that the tree was tidied`,
+  );
+  const files = new Set(found.map((s) => s.file));
+  assert.ok(files.size >= 13, `only ${files.size} files carry one, and 13 did`);
+  // And that both forms are still seen. A count of 47 is also what you get from
+  // 47 hex values and a scanner that has quietly lost `rgba(`, which is the
+  // shape `input-bounds` was in when it lost `<textarea>`.
+  assert.ok(found.some((s) => s.value.startsWith("#")), "no hex value found at all - the scanner is broken");
+  assert.ok(found.some((s) => s.value.startsWith("rgba(")), "no rgba() value found - the scanner has lost a form");
+});
+
+/**
+ * Rule 2: the one off-palette value that can be derived is derived, not
+ * excused.
+ *
+ * `globals.css` writes the CTA's focus ring as `rgba(124,58,237,0.28)`, and
+ * 124/58/237 is `T.accent` in decimal. An exemption for it would be a reason
+ * nobody checks; this is the assertion that fails if the accent ever moves and
+ * the ring does not follow it. An exemption a derivation removes was never one.
+ */
+test("the translucent accent in the stylesheet is the accent, not a fourth copy of it", () => {
+  const css = readFileSync(join(ROOT, "src/app/globals.css"), "utf8");
+  const ring = /rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*[\d.]+\s*\)/.exec(css);
+  assert.ok(ring, "globals.css no longer writes an rgba() - if the focus ring moved, this rule has gone blind");
+  const n = parseInt(T.accent.slice(1), 16);
+  assert.deepEqual(
+    [Number(ring[1]), Number(ring[2]), Number(ring[3])],
+    [(n >> 16) & 255, (n >> 8) & 255, n & 255],
+    `globals.css writes rgba(${ring[1]},${ring[2]},${ring[3]},...) where T.accent is ${T.accent}. Either the accent moved and the ring did not follow it, or a second translucent colour was added - in which case this rule needs to find the right one rather than the first.`,
+  );
+});
+
+/**
+ * Values rule 2 proves rather than excuses, so rule 3 does not ask for a reason
+ * for them. Kept as its own set rather than as an `OFF_PALETTE` entry because
+ * the two are different claims: an entry says "this is a palette member nobody
+ * named", and this says "this is not a second value at all".
+ */
+const DERIVED = new Set(["rgba(124,58,237,0.28)"]);
+
+/** Rule 3: nothing is off-palette without a recorded reason. */
+test("every colour written outside the palette is on the list, with its reason", () => {
+  const strays = offPalette()
+    .filter((s) => !(s.value in OFF_PALETTE) && !DERIVED.has(s.value))
+    .map((s) => `${s.value} in ${s.file}`);
+  assert.deepEqual(
+    [...new Set(strays)],
+    [],
+    "a colour is written in source that config/tokens.ts does not contain. Grep docs/design for it: if a board draws it, add it to OFF_PALETTE with the count and the reason; if no board draws it, somebody typed a colour and it wants a token or a correction",
+  );
+});
+
+/**
+ * Rule 4: and no entry is stale, counted per file.
+ *
+ * Per file rather than per value because two of these files carry the same
+ * value twice - `vibe-retail` writes `#3f4451` for a paragraph and again for a
+ * row label - and a membership check waves a third through.
+ */
+test("no entry on the list is stale, and none has quietly grown a site", () => {
+  const found = offPalette();
+  for (const [value, { why, sites }] of Object.entries(OFF_PALETTE)) {
+    assert.ok(why.length > 40, `OFF_PALETTE["${value}"] needs a reason, not a placeholder`);
+    const actual: Record<string, number> = {};
+    for (const s of found.filter((s) => s.value === value)) actual[s.file] = (actual[s.file] ?? 0) + 1;
+    assert.deepEqual(
+      actual,
+      sites,
+      `OFF_PALETTE["${value}"] records where it is written and that is no longer where it is written. A new site means the value spread - decide whether it should be a token before adding it here. A missing site means it went, and the entry should go with it.`,
+    );
+  }
+});
+
+/** sRGB relative luminance, for the two rules that re-earn a stated measurement. */
+function luminance(hex: string): number {
+  const n = parseInt(hex.slice(1), 16);
+  const channel = (c: number) => {
+    const s = c / 255;
+    return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * channel((n >> 16) & 255) + 0.7152 * channel((n >> 8) & 255) + 0.0722 * channel(n & 255);
+}
+
+/**
+ * Written here rather than imported from `contrast.test.mts` for the reason
+ * that file's own header gives about its neighbours: importing a reader out of
+ * a `.test.mts` registers that file's tests a second time, and the subtest
+ * count is the only column that tells a real pass from a duplicated one.
+ */
+function contrast(a: string, b: string): number {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (hi! + 0.05) / (lo! + 0.05);
+}
+
+const round = (n: number) => Math.round(n * 100) / 100;
+
+/**
+ * Rule 5: the one entry that justifies itself with a number re-earns it.
+ *
+ * `verify-email.ts` departs from the palette on purpose and says why: "#3d4451
+ * measures 9.79 on white where `T.soft` is 4.68". Both halves are exact - and a
+ * reason stated as a measurement is the kind that rots silently, because
+ * changing the value leaves the sentence behind. This is the `holds` shape
+ * `input-bounds` records: the reason costs an assertion.
+ *
+ * **Both sides are read out of that file, and the first draft of this rule read
+ * neither.** It compared a typed `"#3d4451"` against a typed `9.79` - two
+ * constants inside this test, agreeing with each other for ever, on a tree that
+ * could have said anything. The injection harness is what said so: changing the
+ * value was caught by rules 3 and 4 and never by this one, which is the
+ * blind-tripwire recipe the queue names - when a test duplicates a value to
+ * compare against, ask what reads the original.
+ */
+test("the email's deliberate departure still measures what it says it does", () => {
+  const src = readFileSync(join(ROOT, "src/lib/scan/verify-email.ts"), "utf8");
+
+  const value = /\n\s*body:\s*"(#[0-9a-fA-F]{6})"/.exec(blankComments(src));
+  assert.ok(value, "verify-email.ts no longer sets `body` to a hex literal - if the departure ended, this rule and its OFF_PALETTE entry both go");
+
+  // The reason is a doc comment, so it wraps: "9.79 on white where\n *
+  // `T.soft` is 4.68". Read it with the comment markers and the wrapping taken
+  // out, or a rule keyed on the sentence is really keyed on where the line
+  // happened to break.
+  const prose = src.replace(/^\s*\*\s?/gm, " ").replace(/\s+/g, " ");
+
+  const stated = /measures (\d+\.\d+) on white/.exec(prose);
+  assert.ok(stated, "verify-email.ts no longer states what its body colour measures - the departure is unexplained");
+
+  assert.equal(
+    round(contrast(value[1]!, "#ffffff")),
+    Number(stated[1]),
+    `verify-email.ts sets body to ${value[1]} and says it measures ${stated[1]} on white. It measures ${round(contrast(value[1]!, "#ffffff"))}. Change the value and the sentence together.`,
+  );
+
+  // The baseline the same sentence compares against, which is a token and so
+  // can move underneath it.
+  const baseline = /where `T\.soft` is (\d+\.\d+)/.exec(prose);
+  assert.ok(baseline, "verify-email.ts no longer names the baseline it departs from");
+  assert.equal(
+    round(contrast(T.soft, "#ffffff")),
+    Number(baseline[1]),
+    `verify-email.ts compares its body colour against T.soft at ${baseline[1]} on white, and T.soft now measures ${round(contrast(T.soft, "#ffffff"))} - blocked.md 9 is the entry that moves it`,
+  );
+});
+
+/**
+ * Rule 6: the tidy that must not be taken, proved rather than asserted.
+ *
+ * `#92400e` in `admin/scans` is the one colour here that looks most like an
+ * oversight: a raw hex beside a `C` object whose entire job is to alias colours
+ * to tokens, in a file `tokens.ts` names as its evidence, when `T.warnFg`
+ * exists and means the same thing. Pointing it at the token is a one-line
+ * change and it is a regression - so the queue's rule about a prohibition with
+ * no live instance does not apply, because the instance is the obvious fix.
+ *
+ * This is also a live reading for blocked.md 9: the tree already contains an
+ * amber that clears AA with headroom, in the one page nobody looks at.
+ */
+test("the ops page's amber is darker than the token, so tidying it onto T.warnFg is a regression", () => {
+  // Read out of the page rather than typed here, for the reason rule 5 records
+  // about its own first draft.
+  const page = blankComments(readFileSync(join(ROOT, "src/app/admin/scans/page.tsx"), "utf8"));
+  const amber = /"(#92400[eE])"/.exec(page);
+  assert.ok(amber, "the ops page no longer writes its own amber - if it moved onto a token, check which one and delete this rule with its OFF_PALETTE entry");
+
+  const ops = round(contrast(amber[1]!, "#ffffff"));
+  const token = round(contrast(T.warnFg, "#ffffff"));
+  assert.equal(ops, 7.09, "the ops amber has moved");
+  assert.ok(
+    ops > 4.5 && token < 4.5,
+    `this rule exists because the ops amber (${ops}) clears AA and T.warnFg (${token}) does not. If T.warnFg has been answered and now clears it - blocked.md 9 - then the two should be merged and this rule should go.`,
+  );
+});
