@@ -11,6 +11,14 @@ import RequestScanForm from "./RequestScanForm";
  * The domain field is the single call to action. There is no button pair
  * here by design: the scan is the offer, and anything beside it competes
  * with it.
+ *
+ * The stack is one `.ac-row` group, so it arrives top to bottom at the
+ * board's .09s and resolves on the field - the sequence ends on the thing we
+ * want used rather than trailing off after it. The two inline pills are
+ * `.ac-stamp`, which lands .12s behind the line carrying them because
+ * `--ac-i` inherits from the row. Nothing here waits at opacity 0: ac-row
+ * holds at .55, so the h1 is painted at first paint and is still the LCP
+ * element, and with no JavaScript the whole hero is simply settled.
  */
 
 const pill: React.CSSProperties = {
@@ -46,11 +54,12 @@ export default function HeroSection({
         }}
       >
         {/* Phone board only: the desktop board has no label above the h1. */}
-        <div className="phone-only" style={{ ...MICRO, marginBottom: "10px" }}>
+        <div className="phone-only ac-row" style={{ ...MICRO, marginBottom: "10px" }}>
           AI search visibility, white-labelled
         </div>
 
         <h1
+          className="ac-row"
           style={{
             margin: 0,
             /* 25px is the phone board's h1, 46px the desktop board's. */
@@ -70,7 +79,7 @@ export default function HeroSection({
             wrapped across three lines at 390px. Both are real text; CSS
             shows one. */}
         <p
-          className="desktop-only"
+          className="desktop-only ac-row"
           style={{
             margin: "16px auto 0",
             fontSize: "16px",
@@ -79,12 +88,18 @@ export default function HeroSection({
             maxWidth: "62ch",
           }}
         >
-          We run the questions your buyers actually ask, find the <span style={pill}>sources</span> the answers are
-          built from, then get you <span style={pill}>named inside them</span>. Built white-label for agencies, and
-          it works the same if you are the brand.
+          We run the questions your buyers actually ask, find the{" "}
+          <span className="ac-stamp" style={pill}>
+            sources
+          </span>{" "}
+          the answers are built from, then get you{" "}
+          <span className="ac-stamp" style={pill}>
+            named inside them
+          </span>
+          . Built white-label for agencies, and it works the same if you are the brand.
         </p>
 
-        <p className="phone-only" style={{ margin: "12px 0 0", fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
+        <p className="phone-only ac-row" style={{ margin: "12px 0 0", fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
           Free scan, then editorial placements in the pages the engines actually cite. White-label for agencies, and
           the same if you are the brand.
         </p>
@@ -94,6 +109,7 @@ export default function HeroSection({
         {notice ? (
           <p
             role="status"
+            className="ac-row"
             style={{
               margin: "22px auto 0",
               maxWidth: "400px",
@@ -111,7 +127,7 @@ export default function HeroSection({
           </p>
         ) : null}
 
-        <div style={{ margin: "26px auto 0", maxWidth: "400px", textAlign: "left" }}>
+        <div className="ac-row" style={{ margin: "26px auto 0", maxWidth: "400px", textAlign: "left" }}>
           {scanReady() ? <LiveScanChecker initialDomain={initialDomain} /> : <RequestScanForm initialDomain={initialDomain} />}
         </div>
       </div>

@@ -228,7 +228,14 @@ export default function AnswerExplorer() {
         </div>
 
         <div className="answer-explorer">
-          {/* Left: the questions */}
+          {/* Left: the questions.
+              `.ac-row` is on the question list and deliberately not on the
+              answer panel opposite. The panel's contents are replaced on every
+              click, and Motion.tsx observes inserted nodes, so classing it
+              would replay an entrance each time somebody picks a question -
+              motion as a response to a click rather than an entrance, which is
+              not what this vocabulary is for. The list is static, so it
+              animates once on scroll and never again. */}
           <div className="answer-explorer__list">
             <div
               style={{
@@ -249,6 +256,7 @@ export default function AnswerExplorer() {
               <button
                 key={row.id}
                 type="button"
+                className="ac-row"
                 onClick={() => setPicked(i)}
                 aria-pressed={i === picked}
                 style={{

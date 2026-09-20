@@ -104,7 +104,7 @@ export default function HomeFaq() {
 
         <div style={{ ...CARD, overflow: "hidden" }}>
           {FAQS.map((f) => (
-            <details key={f.q} className="faq-row" style={{ borderBottom: `1px solid ${T.hair}` }}>
+            <details key={f.q} className="faq-row ac-row" style={{ borderBottom: `1px solid ${T.hair}` }}>
               <summary className="board-head faq-summary" style={{ ...GRID12, padding: "17px 26px", cursor: "pointer" }}>
                 <span style={{ gridColumn: "span 5", fontSize: "15px", fontWeight: 600, color: T.ink }}>{f.q}</span>
                 <span style={{ gridColumn: "span 7", fontSize: "13.5px", color: T.soft }}>{f.hint}</span>
@@ -120,7 +120,7 @@ export default function HomeFaq() {
       </section>
 
       <section style={{ ...SHELL, marginTop: "34px", marginBottom: "44px" }}>
-        <div className="board-head closing-scan" style={{ ...CARD, ...GRID12, alignItems: "center", padding: "34px 40px" }}>
+        <div className="board-head closing-scan ac-row" style={{ ...CARD, ...GRID12, alignItems: "center", padding: "34px 40px" }}>
           <div style={{ gridColumn: "span 6" }}>
             <h2 style={{ margin: 0, fontSize: "25px", fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.22, color: T.ink }}>
               Pick a domain and find out.

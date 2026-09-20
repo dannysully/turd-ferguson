@@ -36,7 +36,7 @@ export default function TwoWays() {
       </div>
 
       <div className="two-up">
-        <div style={{ ...CARD, padding: "24px" }}>
+        <div className="ac-row" style={{ ...CARD, padding: "24px" }}>
           <div style={MICRO}>Join a page that already feeds answers</div>
           <p style={{ margin: "10px 0 0", fontSize: "14px", lineHeight: 1.65, color: T.soft }}>
             The scan names the listicles, round-ups and review pages the engines keep drawing on. Where inclusion is
@@ -49,7 +49,7 @@ export default function TwoWays() {
           </ul>
         </div>
 
-        <div style={{ ...CARD, border: `1px solid ${T.accent}`, padding: "24px" }}>
+        <div className="ac-row" style={{ ...CARD, border: `1px solid ${T.accent}`, padding: "24px" }}>
           <div style={{ ...MICRO, color: T.accent }}>Create the page that should exist</div>
           <p style={{ margin: "10px 0 0", fontSize: "14px", lineHeight: 1.65, color: T.ink }}>
             Where no page covers the cut a buyer is asking about, we write one on a third-party site with the

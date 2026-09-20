@@ -40,7 +40,7 @@ export default function ScanFacts() {
 
       <div style={{ ...CARD, borderRadius: "14px", overflow: "hidden" }}>
         {facts.map((f, i) => (
-          <div key={f.label} style={{ padding: "16px 18px", borderTop: i ? `1px solid ${T.line}` : undefined }}>
+          <div key={f.label} className="ac-row" style={{ padding: "16px 18px", borderTop: i ? `1px solid ${T.line}` : undefined }}>
             <div style={{ fontSize: "13px", color: T.soft }}>{f.label}</div>
             <div style={{ fontSize: "27px", fontWeight: 700, lineHeight: 1.15, marginTop: "2px", letterSpacing: "-0.035em", color: T.ink }}>
               {f.value}

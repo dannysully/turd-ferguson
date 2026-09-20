@@ -118,6 +118,7 @@ function Card({
 }) {
   return (
     <div
+      className="ac-row"
       style={{
         ...CARD,
         border: `1px solid ${featured ? T.accent : T.line}`,
@@ -130,7 +131,10 @@ function Card({
         <div style={tierWord}>
           <TierName tier={tier} />
         </div>
-        {flag ? <div style={{ ...MICRO, color: T.accent }}>{flag}</div> : null}
+        {/* The badge belongs to its card, so it stamps .12s behind it rather
+            than arriving as a second thing beside it. `--ac-i` inherits from
+            the card, so it never needs to know which column it is in. */}
+        {flag ? <div className="ac-stamp" style={{ ...MICRO, color: T.accent }}>{flag}</div> : null}
       </div>
       <div style={under}>{sub}</div>
       <div style={priceStyle}>{price}</div>
@@ -221,14 +225,14 @@ export default function Packages() {
         </div>
 
         <div className="on-dark white-label" style={{ background: T.ink, borderRadius: "18px", padding: "32px" }}>
-          <div>
+          <div className="ac-row">
             <div style={{ ...MICRO, color: T.faint }}>Your brand on everything the client sees</div>
             <p style={{ margin: "10px 0 0", fontSize: "14.5px", lineHeight: 1.65, color: "#e8e8ea" }}>
               Dashboards, reports and placement summaries carry your logo and your domain. Nothing a client opens says{" "}
               <TierName tier="cited" /> on it.
             </p>
           </div>
-          <div>
+          <div className="ac-row">
             <div style={{ ...MICRO, color: T.faint }}>How the account runs</div>
             <p style={{ margin: "10px 0 0", fontSize: "14.5px", lineHeight: 1.65, color: "#e8e8ea" }}>
               Monthly, no minimum term, one invoice to you. We work through you and never contact your client, which is

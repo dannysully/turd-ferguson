@@ -74,6 +74,7 @@ export default function Results() {
           {FACTS.map((f) => (
             <div
               key={f.label}
+              className="ac-row"
               style={{
                 display: "grid",
                 gridTemplateColumns: "1fr auto",
@@ -111,7 +112,7 @@ export default function Results() {
         </Link>
       </div>
 
-      <div className="on-dark" style={{ background: T.ink, borderRadius: "18px", padding: "32px 40px", marginTop: "20px" }}>
+      <div className="on-dark ac-row" style={{ background: T.ink, borderRadius: "18px", padding: "32px 40px", marginTop: "20px" }}>
         <p style={{ margin: 0, fontSize: "17px", fontWeight: 600, lineHeight: 1.55, letterSpacing: "-0.01em", color: "#ffffff", maxWidth: "680px" }}>
           &ldquo;The goal is not to get a link. The goal is to be inside the source that the buyer, Google, and AI all
           agree to trust.&rdquo;
