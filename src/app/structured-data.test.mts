@@ -428,3 +428,102 @@ test("every image the head points at is a route the build actually serves", (t) 
   t.diagnostic(`${checked.size} distinct image URLs in the heads, ${bad.length} unresolved`);
   assert.deepEqual(bad, [], bad.join("\n"));
 });
+
+// ------------------------------------------------- what an article is dated
+
+/**
+ * Every node that declares itself a piece of writing carries a publication
+ * date, or is recorded here with the reason it does not.
+ *
+ * Form 2 of the queue's method aimed at this file: the walk is exactly right -
+ * every block on every page - and the four rules above are all about *shape*.
+ * Does it parse, does an `@id` resolve, is an FAQ string on the page, is a URL
+ * a route. An `Article` announcing itself to an answer engine with no date on
+ * it passes every one of them, the same way an `Offer` carrying the wrong
+ * number did until `price-schema.test.mts`.
+ *
+ * `config/posts.ts` already treats this as settled for the blog and says why
+ * in its own header: `datePublished` "was the other retyped fact", so the
+ * registry date is the single source and the three `BlogPosting` nodes derive
+ * it. **Three `Article` nodes sit outside that rule entirely** - and blocked.md
+ * item 10 names two of them. The third is `/case-studies/vibe-retail`, which is
+ * the page publishing this site's only attested client figures, and AGENTS.md
+ * is explicit that a number about a client's result carries `[VERIFY]` until
+ * there is a dated source. So the one undated article that matters most was the
+ * one missing from the list. Same shape as blocked 29, where a count of five
+ * was fourteen: **a hand-written list of surfaces is not a census**, and both
+ * were found by walking rather than by remembering.
+ *
+ * This dates nothing - that is Danny's call, either a date each or a decision
+ * that they are evergreen and should be `WebPage`. What it does is stop the
+ * absence being prose. The device is the one `organization-entity.test.mts`
+ * uses for `sameAs`: the day one of these gains a `datePublished` the entry
+ * below stops being true and the test says so, so the answer cannot half-land
+ * across three pages.
+ *
+ * **What it cannot see, and why that is safe rather than lucky:** schema.org
+ * allows `"@type"` to be an array, and `WRITING.has()` on an array is false,
+ * so such a node drops out of both counts. Nothing on this site types one
+ * today. It fails in the harmless direction either way: an *undated* node
+ * going to array form leaves `undated` and the equality below fires, while a
+ * *dated* one going missing costs a count on a node that already carries the
+ * thing being checked. Recorded rather than guarded, because a guard that
+ * cannot fire is deleted in this tree, not tested.
+ */
+const UNDATED: Record<string, string> = {
+  "case-studies/vibe-retail.html":
+    "blocked.md 3 - the readings behind the figures are unconfirmed, so a publication date would be the one dated thing on a page whose numbers are not",
+  "how-it-works.html": "blocked.md 10 - evergreen, or WebPage instead of Article. Danny's call",
+  "what-is-aeo.html": "blocked.md 10 - evergreen, or WebPage instead of Article. Danny's call",
+};
+
+/** The types that assert a page is a piece of writing with a publication. */
+const WRITING = new Set(["Article", "BlogPosting", "NewsArticle", "TechArticle"]);
+
+test("every article node is dated, or is recorded as deliberately undated", (t) => {
+  if (!existsSync(PRERENDER)) {
+    t.skip(NEEDS_BUILD);
+    return;
+  }
+
+  const dated: string[] = [];
+  const undated: string[] = [];
+
+  for (const { page, html } of sweptPages()) {
+    for (const raw of ldBlocks(html)) {
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(raw);
+      } catch {
+        // Parsing is the first test's assertion. Reporting one defect twice,
+        // from a rule that is not about it, is what that test's own comment
+        // refuses.
+        continue;
+      }
+      for (const node of nodesOf(parsed)) {
+        if (!WRITING.has(node["@type"] as string)) continue;
+        (typeof node.datePublished === "string" ? dated : undated).push(page);
+      }
+    }
+  }
+
+  // Both directions, or a build that stopped emitting article schema at all
+  // reads identically to one where every node is dated - and the second is
+  // what this is checking.
+  assert.ok(dated.length > 0, "no dated article node found at all - the walk, not the site, is what changed");
+  assert.ok(undated.length > 0, "every article is dated now - empty UNDATED and delete this rule");
+
+  assert.deepEqual(
+    undated.sort(),
+    Object.keys(UNDATED).sort(),
+    "an article node's publication date appeared or vanished. Dating one means closing its blocked.md entry in the same edit, which is the whole reason this list is here rather than in a comment",
+  );
+
+  // And the reason is a reason rather than a placeholder - the `why` that
+  // costs a `holds` in `input-bounds.test.mts` and `spend-gates.test.mts`.
+  for (const [page, why] of Object.entries(UNDATED)) {
+    assert.ok(why.length > 40, `UNDATED["${page}"] needs a reason somebody can act on`);
+  }
+
+  t.diagnostic(`${dated.length} article nodes dated, ${undated.length} recorded undated`);
+});

@@ -157,9 +157,69 @@ export function miscasings(source: string): { index: number; text: string }[] {
  * Hyphens, not em-dashes. The site's own punctuation, and the one place the
  * characters are legitimate is the entity decoder, whose whole job is to turn
  * `&mdash;` in a crawled page into the character it stands for.
+ *
+ * ## Why this stopped being a `Set` of filenames
+ *
+ * It was `new Set(["src/lib/scan/prose.ts"])` - a whole file switched off on
+ * the strength of the sentence above, which is the exemption species this tree
+ * has now paid for three times. `PRICE_EXEMPT` was file-keyed until `d8200bb`,
+ * where one attested `$1,300` on a four-hundred-line case study switched the
+ * price sweep off across the page most likely to grow a "from $2,495" in a
+ * closing CTA. `ENGINE_EXEMPT` checked its filenames and not its reasons. This
+ * was both at once, and worse in one respect than either: **it was absent from
+ * both of the exemption audits at the bottom of this same file**, which
+ * enumerate `PRICE_EXEMPT` and `ENGINE_EXEMPT` by hand. So the rule written
+ * because "an exemption is a sweep switched off, and the sentence beside it is
+ * the only argument for switching it off" did not know this exemption existed.
+ *
+ * `prose.ts` is 223 lines and only three of them carry a dash - all six
+ * characters are values in the two decoding tables. The other 220 lines are
+ * `toProse`, which builds **the only string the brand read is ever given**;
+ * its own header says a character mangled on the way through "is not a
+ * rendering blemish, it is the input to the one judgement this step makes". A
+ * separator typed as an em-dash in that function was exempt by construction.
+ *
+ * So the exemption is narrowed the way `PRICE_EXEMPT`'s was: to the shape of
+ * the line that earns it. A dash is allowed in `prose.ts` when it is the value
+ * of a table entry - `ndash: "–",` or `0x96: "–",` - and nowhere else in the
+ * file. `holds` re-earns the reason itself, because a file keeping its name
+ * while its decoder moves out is the `e3bf2d9` shape one layer down.
  */
 const DASHES = /[–—]/g;
-const DASH_EXEMPT = new Set(["src/lib/scan/prose.ts"]);
+
+/**
+ * A line that is nothing but entity-table entries.
+ *
+ * One or more `ndash: "–",` / `0x96: "–",` pairs and no other text. It has to
+ * take a run of them rather than a single entry: `NAMED` is one per line and
+ * `CP1252` packs five, `0x93: "“", 0x94: "”", 0x95: "•", 0x96: "–", 0x97: "—",`
+ * - which the single-entry form reported, correctly by its own lights and
+ * wrongly about the file. Found by the narrowing failing, not by reading.
+ *
+ * The value is one character, deliberately. That is what a decode table holds,
+ * and it is what stops a line of table entries carrying a sentence.
+ */
+const DASH_TABLE_ENTRY = /^\s*(?:(?:[A-Za-z][A-Za-z0-9]*|0x[0-9a-f]+)\s*:\s*"[^"]",\s*)+$/;
+
+type DashExemption = {
+  why: string;
+  /** The lines the characters are allowed on. Every other line in the file is swept. */
+  only: RegExp;
+  /** What must still be true of the file for `why` to be an argument at all. */
+  holds: { file: string; needs: RegExp }[];
+};
+
+const DASH_EXEMPT: Record<string, DashExemption> = {
+  "src/lib/scan/prose.ts": {
+    why: "the entity decoder maps &ndash; and &mdash; to the characters they stand for",
+    only: DASH_TABLE_ENTRY,
+    holds: [
+      { file: "src/lib/scan/prose.ts", needs: /export function decodeEntities\b/ },
+      { file: "src/lib/scan/prose.ts", needs: /\bmdash:\s*"—"/ },
+      { file: "src/lib/scan/prose.ts", needs: /0x97:\s*"—"/ },
+    ],
+  },
+};
 
 // ----------------------------------------------------- the question counts
 
@@ -389,13 +449,15 @@ const MISCASED_HITS: Hit[] = FILES.flatMap((file) => {
 
 const DASH_HITS: Hit[] = FILES.flatMap((file) => {
   const name = posix(file);
-  if (DASH_EXEMPT.has(name)) return [];
+  const exemption = Object.hasOwn(DASH_EXEMPT, name) ? DASH_EXEMPT[name] : undefined;
   const source = readFileSync(file, "utf8");
-  return [...source.matchAll(DASHES)].map((m) => ({
-    file: name,
-    line: lineAt(source, m.index),
-    text: source.split("\n")[lineAt(source, m.index) - 1].trim(),
-  }));
+  const lines = source.split("\n");
+  return [...source.matchAll(DASHES)]
+    .map((m) => ({ file: name, line: lineAt(source, m.index), text: lines[lineAt(source, m.index) - 1].trim() }))
+    // The LINE, not the file. `typedPrices` makes the same move one narrowing
+    // finer, on the matched figure; a dash has no distinguishing text of its
+    // own, so the line it sits on is what carries the argument for it.
+    .filter((hit) => !exemption?.only.test(lines[hit.line - 1]));
 });
 
 const COUNTS = owned();
@@ -567,13 +629,24 @@ test("a price is read from pricing.ts, never typed", () => {
   );
 });
 
+/**
+ * Every exemption list in this file, named once and audited by both rules
+ * below.
+ *
+ * It was a pair typed into each rule separately, and `DASH_EXEMPT` - added
+ * later, as a bare `Set` of filenames - was in neither. Both rules passed,
+ * over two thirds of the exemptions in the file, and a typed list cannot
+ * report the member that is absent from it. That is the same sentence
+ * `contact.test.mts` carries about its own census, and the structural rule
+ * under `AUDITED` below is what makes this one a denominator rather than
+ * another pair of names somebody has to remember to extend.
+ */
+const AUDITED = { PRICE_EXEMPT, ENGINE_EXEMPT, DASH_EXEMPT } as const;
+
 test("every exemption still points at a file that exists", () => {
   // An exemption outliving its file is a hole nobody can see, which is the
   // rule reads.test.mts keeps over its own list.
-  for (const [name, list] of [
-    ["PRICE_EXEMPT", PRICE_EXEMPT],
-    ["ENGINE_EXEMPT", ENGINE_EXEMPT],
-  ] as const) {
+  for (const [name, list] of Object.entries(AUDITED)) {
     for (const home of Object.keys(list)) {
       assert.ok(
         FILES.some((f) => posix(f) === home),
@@ -581,6 +654,56 @@ test("every exemption still points at a file that exists", () => {
       );
     }
   }
+});
+
+/**
+ * And that `AUDITED` is every exemption list in this file, not the ones
+ * somebody remembered.
+ *
+ * The behavioural half cannot cover this: a fourth list declared tomorrow and
+ * left out of `AUDITED` makes every assertion above pass over a sweep that is
+ * switched off, which is exactly the state `DASH_EXEMPT` was found in. So the
+ * denominator is read out of this file's own source - the move
+ * `price-schema.test.mts` makes to refuse a second floor judgement, and the
+ * move `client-results.test.mts` makes to walk the tree rather than name it.
+ *
+ * **No comment strip here, deliberately, and that is not the usual mistake.**
+ * Five rules in this tree read source and all five strip prose first, because
+ * a doc comment quoting a defect satisfies a check that the defect is present.
+ * The strip would be decoration in this one: the pattern is anchored at column
+ * zero with `^const`, and every comment form this repo writes indents its
+ * continuation lines (` *` in a JSDoc, `//` on each line) - so the paragraph
+ * above, which names `DASH_EXEMPT` twice while explaining it, cannot match.
+ * A guard that cannot fire is deleted here rather than tested, the way
+ * `price-label.ts`'s empty-figure guard was.
+ *
+ * **What this cannot see: an exemption list in a different test file.** Asked
+ * of this rule the moment it went green, because every blind tripwire in this
+ * tree read as a reasonable check with a reason beside it a run later. Six
+ * exemption lists exist across four files - the three here, `route-closure`'s
+ * `/scan`, `spend-gates`' `{ why, evidence, where }` and `input-bounds`'
+ * `{ why, holds }` - and all four files audit their own, checked by hand on
+ * 20 Sep 2026.
+ *
+ * The tree-wide version was drafted and **deliberately not written, because it
+ * would not have caught the defect it was for.** The only structurally
+ * checkable form is "every `*EXEMPT*` declared in a test is referenced inside
+ * a `test()` body in the same file", and `DASH_EXEMPT` satisfied that
+ * throughout: it fed `DASH_HITS`, which a test asserted on. What it was not
+ * inside was the two rules that audit exemptions, and "audited" is not a
+ * property source can be read for. A rule that passes on the instance it was
+ * written for is decoration, and this repo deletes those rather than shipping
+ * them.
+ */
+test("AUDITED is every exemption list declared in this file", () => {
+  const self = readFileSync(fileURLToPath(import.meta.url), "utf8");
+  const declared = [...self.matchAll(/^const (\w*EXEMPT\w*)\b/gm)].map((m) => m[1]!).sort();
+  assert.ok(declared.length >= 3, `only ${declared.length} exemption lists found - the parse, not the file, is what changed`);
+  assert.deepEqual(
+    declared,
+    Object.keys(AUDITED).sort(),
+    "an exemption list in this file is audited by neither rule below. Add it to AUDITED - that is how DASH_EXEMPT went two commits without one",
+  );
 });
 
 /**
@@ -620,6 +743,19 @@ test("every exemption's reason is still true, not just its filename", () => {
       assert.ok(
         source.includes(figure),
         `PRICE_EXEMPT allows ${figure} in ${home} and it is not there any more - drop it, or the next price typed on that page inherits its allowance`,
+      );
+    }
+  }
+
+  // DASH_EXEMPT carries its own argument, the `holds` shape `input-bounds`
+  // uses: a file may keep its name while the decoder that earns it moves out.
+  for (const [home, { holds, why }] of Object.entries(DASH_EXEMPT)) {
+    assert.ok(holds.length > 0, `DASH_EXEMPT["${home}"] has no holds - "${why}" is then prose, which is what this rule replaced`);
+    for (const { file, needs } of holds) {
+      assert.match(
+        sourceOf(file),
+        needs,
+        `DASH_EXEMPT["${home}"] says ${file} holds ${needs}, and it does not any more. Either the decoder moved - update holds - or it went, and this file is exempt for nothing.`,
       );
     }
   }
