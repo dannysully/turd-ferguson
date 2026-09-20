@@ -117,12 +117,58 @@ export async function sendRequestedReport(scanId: string): Promise<void> {
       return;
     }
 
-    await sendReportReadyEmail({
+    const messageId = await sendReportReadyEmail({
       email: row.report_email,
       brand: row.brand_name ?? row.domain,
       publicToken: row.public_token,
       counts: reportCounts((qs ?? []) as Array<{ id: string }>, (rows ?? []) as CountableAnswer[]),
+      // Danny's third condition: this send is the one nobody confirmed an
+      // address for, so the message says in its first line why it arrived. The
+      // domain rather than the brand, because the stranger it is written for
+      // can only recognise what was typed into the form.
+      requestedFor: row.domain,
     });
+
+    /**
+     * Danny's fourth condition: "log bounces... record enough that the question
+     * can be answered later without a migration."
+     *
+     * A bounce is not this call's return value and cannot be. `emails.send`
+     * answers whether the provider *accepted* the message; the bounce lands
+     * minutes later, at the provider, against this id. So the thing that has to
+     * survive the request is the id - with it on the row, a bounce is
+     * attributable to the scan that caused it by whatever reads it later, and
+     * the column is already there. Without it, asking the question at all needs
+     * a migration first, which is the state the condition exists to prevent.
+     *
+     * Stamped after the send rather than with the claim, because a claim is
+     * about permission to send and this is about what was sent. A failed stamp
+     * costs the join and nothing else, so it is a warning and not a return: the
+     * message has gone, and the send must not read as failed because a second
+     * write did.
+     *
+     * A null id means nothing was accepted - no key, a rejection, or a throw,
+     * each already logged where it happened. It is logged again here because
+     * this is the only place that knows somebody *asked* for the message: the
+     * three logs inside `sendReportReadyEmail` record that a send failed, and
+     * only this one records that a visitor left an address for it and will
+     * never hear anything back.
+     */
+    if (!messageId) {
+      console.error(`[scan] the report ${scanId} was asked to email was not accepted by the provider`);
+      return;
+    }
+
+    const { error: idErr } = await db
+      .from("scans")
+      .update({ report_email_message_id: messageId })
+      .eq("id", scanId);
+    if (idErr) {
+      console.warn(
+        `[scan] sent the requested report for ${scanId} as ${messageId} but could not store the id, ` +
+          `so a bounce on it cannot be joined back to this scan: ${idErr.message}`,
+      );
+    }
   } catch (err) {
     console.error(
       `[scan] the requested report email for ${scanId} failed: ` +

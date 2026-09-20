@@ -228,6 +228,30 @@ export function reportHeadline(brand: string, c: ReportCounts): string {
 }
 
 /**
+ * Why this message arrived, for the send that nobody confirmed an address for.
+ *
+ * Danny's third condition on item 5, 20 September 2026 19:45: "the mail says
+ * why it arrived, in its first line: somebody asked for this report on this
+ * domain from alwayscited. The stranger case is the one this sentence is for,
+ * and it is the difference between an unexpected mail and an unexplained one."
+ *
+ * It takes the **domain** rather than the brand, and the two are not
+ * interchangeable here. Everything else in this message is addressed to the
+ * person who asked, so it uses the brand name the crawl found, which is the
+ * friendlier of the two. This sentence is addressed to somebody who did not
+ * ask, and the only thing that lets them work out what happened is the address
+ * that was typed into the form - which is the domain.
+ *
+ * The **requested** send is the only one that carries it. The unlock's report
+ * mail goes to an address that was confirmed by clicking a link in an earlier
+ * message, so it has a different answer to the same question and does not need
+ * this one. That is why it is a parameter rather than a line in the body.
+ */
+export function requestedReason(domain: string): string {
+  return `Somebody asked alwayscited to email this report on ${domain}.`;
+}
+
+/**
  * The subject line, which is the only part of this message most people read.
  *
  * Counted over answers so that it is the same sentence, with the same two
@@ -245,9 +269,21 @@ export function reportSubject(brand: string, c: ReportCounts): string {
  * Leads with the same headline the HTML body does, unescaped - see verifyText.
  * The headline is shared rather than reworded because a client showing text
  * only used to get the blandest version of the one thing worth saying.
+ *
+ * `requestedFor` is the domain, and it puts `requestedReason` in front of the
+ * headline. Both parts carry it or neither does: a reader whose client shows
+ * the text part is exactly as likely to be the stranger the sentence is for.
+ * **The domain is not escaped here and must not be** - this is text/plain, the
+ * same reason `verifyText` gives for the brand.
  */
-export function reportText(brand: string, link: string, counts: ReportCounts): string {
+export function reportText(
+  brand: string,
+  link: string,
+  counts: ReportCounts,
+  requestedFor?: string,
+): string {
   return (
+    (requestedFor ? `${requestedReason(requestedFor)}\n\n` : "") +
     `${reportHeadline(brand, counts)}\n\n` +
     `Open your report: ${link}\n\n` +
     "The link works on any device and does not expire."
@@ -260,6 +296,7 @@ export function reportHtml(
   brand: string,
   link: string,
   counts: ReportCounts,
+  requestedFor?: string,
 ): string {
   const b = escapeHtml(brand);
   return shell(p, font, {
@@ -280,7 +317,18 @@ export function reportHtml(
      */
     preheader: "The pages you could be placed into, ranked, and every answer word for word.",
     heading: `Your ${b} report is ready`,
+    /**
+     * `requestedReason` first and on its own line when this is the requested
+     * send, and it is deliberately NOT also the preview line.
+     *
+     * The preheader's recorded job is to say what the subject does not, and
+     * this file already carries the cost of getting that wrong twice - once
+     * against the heading, once against the subject. Putting the reason there
+     * as well would be the third instance of the same mistake, and it would
+     * push out the one line the preview has that the subject does not.
+     */
     body:
+      (requestedFor ? `${escapeHtml(requestedReason(requestedFor))}<br><br>` : "") +
       reportHeadline(b, counts) +
       " The report adds the pages you could be placed into, ranked by how many " +
       "answers a placement would win, and what each engine said word for word.",

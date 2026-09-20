@@ -126,6 +126,11 @@ test("every door that takes a caller's address is in this file's denominator", (
     [
       "src/app/api/coverage-check/[token]/rerun/route.ts",
       "src/app/api/coverage-check/route.ts",
+      // The fourth, 20 September 2026. It takes no scan and starts nothing - it
+      // rate limits the one send on this site that mails an address nobody
+      // confirmed, which is Danny's first condition on item 5. A2 passes for it:
+      // the address it reads goes to `hashIp` and to nothing else.
+      "src/app/api/scan/[token]/email-report/route.ts",
       "src/app/api/scan/start/route.ts",
     ],
     "a door reads the caller's raw IP address that this file did not know about. Add it here once A2 passes for it - do not exempt it.",
@@ -197,9 +202,27 @@ function enclosingCall(src: string, at: number): string | null {
   return null;
 }
 
-/** Every use of the raw address in one file, excluding its own declaration. */
+/**
+ * Every use of the raw address in one file, excluding its own declaration.
+ *
+ * **Two shapes, and the second was added on 20 September 2026 because the
+ * fourth door was written in it by accident.** The walk was `const x =
+ * clientIp(` and then every later use of `x`, which is the form all three
+ * original doors happen to use. `hashIp(clientIp(req))` binds nothing, so it
+ * produced no sinks at all - and a rule that reports no sinks passes. A door
+ * written that way was invisible to A2 while A1 counted it, so the file's
+ * denominator would have grown by one with nothing behind it.
+ *
+ * `console.warn(clientIp(req))` is the same shape and is the version that
+ * matters: it hands the unhashed address straight to a log line, which is
+ * precisely what A2's own failure message says it exists to catch.
+ *
+ * The inline branch skips an assignment - `= clientIp(` - because the bound
+ * form is what the first branch already walks, and counting it twice would
+ * report `hashIp` as a stray on a file that does the right thing.
+ */
 function rawIpSinks(source: string): string[] {
-  const src = bare(source);
+  const src = bare(source).replace(/function\s+clientIp\s*\(/g, "function DECLARATION(");
   const sinks: string[] = [];
   for (const decl of src.matchAll(/(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*clientIp\s*\(/g)) {
     const name = decl[1];
@@ -207,6 +230,10 @@ function rawIpSinks(source: string): string[] {
       if (use.index! <= decl.index! + decl[0].length) continue;
       sinks.push(enclosingCall(src, use.index!) ?? `<not an argument to anything>`);
     }
+  }
+  for (const call of src.matchAll(/\bclientIp\s*\(/g)) {
+    if (/=\s*$/.test(src.slice(0, call.index!))) continue;
+    sinks.push(enclosingCall(src, call.index!) ?? `<not an argument to anything>`);
   }
   return sinks;
 }
@@ -254,14 +281,51 @@ function columns(sql: string): { name: string; type: string }[] {
   return out;
 }
 
-/** The only column allowed to carry anything derived from a caller's address. */
-const HASHED_COLUMN = "ip_hash";
+/**
+ * The columns allowed to carry anything derived from a caller's address, with
+ * the argument for each - the `RAW_IP_SINKS` shape one rule up, and for the
+ * same reason: an exemption is a sweep switched off, and the sentence beside it
+ * is the only argument for switching it off.
+ *
+ * **It was a single name until 20 September 2026** and the widening is the
+ * finding rather than an inconvenience. `ip_hash` as a bare string said "the
+ * one column" where the property the policy actually claims is "every column
+ * carrying anything derived from an address is a salted hash". Those are the
+ * same sentence only while there is one column, and this schema names its
+ * columns by prefixing - so the second one was always going to be
+ * `something_ip_hash` and was always going to fail this.
+ *
+ * The suffix rule below is what stops the list becoming a place to put things.
+ * A column may be on it, and its name must still end in `ip_hash`: a reader of
+ * the schema can then tell what a column holds without finding this file.
+ */
+const HASHED_COLUMNS: { name: string; why: string }[] = [
+  {
+    name: "ip_hash",
+    why: "who started the scan or the campaign reading. Written by the three doors that count against ip_scans_per_day.",
+  },
+  {
+    name: "report_email_ip_hash",
+    why: "who asked for a report to be emailed, which is a different caller from the one above - the domain cache hands one visitor another visitor's completed scan, so the send cooldown cannot read ip_hash. Same hashIp, same salt.",
+  },
+];
+
+test("every column holding something address-derived is argued for, and says so in its name", () => {
+  for (const { name, why } of HASHED_COLUMNS) {
+    assert.ok(why.length > 40, `${name} is on the allowed list with no argument for it`);
+    assert.ok(
+      name === "ip_hash" || name.endsWith("_ip_hash"),
+      `${name} is allowed to hold something derived from an address and does not say so in its name`,
+    );
+  }
+});
 
 test("no column in the schema stores an address", () => {
+  const allowed = new Set(HASHED_COLUMNS.map((c) => c.name));
   const offenders: string[] = [];
   for (const { file, source } of SQL) {
     for (const { name, type } of columns(source)) {
-      const named = /(^|_)ip($|_)/.test(name) && name !== HASHED_COLUMN;
+      const named = /(^|_)ip($|_)/.test(name) && !allowed.has(name);
       const typed = type === "inet" || type === "cidr";
       if (named || typed) offenders.push(`${file}  ${name} ${type}`);
     }
@@ -273,15 +337,23 @@ test("no column in the schema stores an address", () => {
   );
 });
 
-test("the schema walk found the hashed column it is the exception for", () => {
+test("the schema walk found every hashed column it is the exception for", () => {
   // Otherwise "no offenders" is equally true of a walk that reads nothing, and
   // the `alter table` half above was exactly that for one draft.
+  //
+  // Every member rather than the first, which is the `mail-from` lesson: a
+  // count or a single probe cannot notice one entry going stale, and a stale
+  // allowance is a hole waiting for a name. The second entry arrived through
+  // `add column if not exists`, so this is also what re-earns the claim that
+  // the walk reads that shape.
   const all = SQL.flatMap(({ source }) => columns(source));
   assert.ok(all.length >= 50, `the column walk found only ${all.length} columns across ${SQL.length} migrations`);
-  assert.ok(
-    all.some((c) => c.name === HASHED_COLUMN),
-    `the walk cannot see ${HASHED_COLUMN}, so it cannot see a column beside it either`,
-  );
+  for (const { name } of HASHED_COLUMNS) {
+    assert.ok(
+      all.some((c) => c.name === name),
+      `the walk cannot see ${name}, so it cannot see a column beside it either`,
+    );
+  }
 });
 
 test("every off-origin recipient of the raw address is named on the page", () => {
@@ -536,12 +608,55 @@ test("the raw-address rule tells an argued sink from an unargued one", () => {
   assert.deepEqual(sinks("const ip = clientIp(req); // never do insert({ ip })\nconst h = hashIp(ip);"), ["hashIp"]);
 });
 
+/**
+ * The inline form, added 20 September 2026 with the fourth door.
+ *
+ * Every case here returned `[]` before the widening, and `[]` is what this rule
+ * reports as clean - so the sweep did not weaken, it had never been able to see
+ * this shape at all. The last two are the ones that matter: a log line and an
+ * insert payload holding the unhashed address, written without binding it,
+ * which is exactly what A2's failure message says it is for.
+ *
+ * The first three are the green-expected half. A widening that starts reporting
+ * the bound form twice would fail the harness above and would also fail every
+ * door in the tree, so it is worth holding both directions in one place.
+ */
+test("the raw-address rule sees an address that was never bound to a name", () => {
+  const sinks = (src: string) => rawIpSinks(src);
+  assert.deepEqual(sinks("const h = hashIp(clientIp(req));"), ["hashIp"], "nested, and correct");
+  assert.deepEqual(sinks("await verifyTurnstile(t, clientIp(req));"), ["verifyTurnstile"]);
+  assert.deepEqual(
+    sinks("const ip = clientIp(req); const h = hashIp(ip);"),
+    ["hashIp"],
+    "the bound form is counted once, not once per branch",
+  );
+  assert.deepEqual(sinks("console.warn(clientIp(req));"), ["warn"], "a log line is the case this is for");
+  assert.deepEqual(sinks("db.from('scans').insert({ ip_hash: clientIp(req) });"), ["insert"]);
+  // The declaration is not a caller, the same way A1 says it is not. Without
+  // this, client-ip.ts reports itself and the rule fails on a clean tree.
+  assert.deepEqual(sinks("export function clientIp(req: Request): string { return UNKNOWN_IP; }"), []);
+});
+
 test("the schema rule sees a column added the way this repo adds columns", () => {
+  const allowed = new Set(HASHED_COLUMNS.map((c) => c.name));
   const flagged = (sql: string) =>
     columns(sql)
-      .filter((c) => (/(^|_)ip($|_)/.test(c.name) && c.name !== HASHED_COLUMN) || c.type === "inet" || c.type === "cidr")
+      .filter((c) => (/(^|_)ip($|_)/.test(c.name) && !allowed.has(c.name)) || c.type === "inet" || c.type === "cidr")
       .map((c) => c.name);
   assert.deepEqual(flagged("create table x (\n  ip_hash text\n);"), [], "the hashed column is the allowed one");
+  assert.deepEqual(
+    flagged("alter table public.scans add column if not exists report_email_ip_hash text;"),
+    [],
+    "and so is the second one, which is why the allowance is a list",
+  );
+  // The suffix is not itself the allowance. A column named for the convention
+  // but never argued for still fails, which is what stops the naming rule two
+  // hundred lines up becoming a way in.
+  assert.deepEqual(
+    flagged("alter table public.scans add column if not exists lead_ip_hash text;"),
+    ["lead_ip_hash"],
+    "looking like a member is not being one",
+  );
   assert.deepEqual(flagged("create table x (\n  visitor_ip text\n);"), ["visitor_ip"]);
   assert.deepEqual(flagged("alter table public.scans add column visitor_ip text;"), ["visitor_ip"], "the additive shape AGENTS.md sanctions");
   assert.deepEqual(flagged("alter table public.scans add column if not exists caller inet;"), ["caller"], "typed rather than named");

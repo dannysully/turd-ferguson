@@ -1,6 +1,8 @@
 import { SCAN_LIMITS } from "@/config/contact";
 import { isPlausibleEmail, normalizeEmail } from "@/lib/email-address";
+import { clientIp, hashIp } from "@/lib/scan/ip";
 import { sendRequestedReport } from "@/lib/scan/report-mail";
+import { reportMailWaitMessage, reportMailWaitMs } from "@/lib/scan/report-mail-limit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -37,6 +39,27 @@ export const dynamic = "force-dynamic";
  * this route can be posted a hundred times and the hundred posts write one
  * column; the number of messages is the number of scans that asked, and scans
  * are bounded by the four ceilings in front of every door that starts one.
+ *
+ * **And a cooldown per caller**, added 20 September 2026 with Danny's decision
+ * that this send needs no verification step. His words: "an unverified address
+ * is a send endpoint anybody can point at a stranger... without it this is a
+ * form that mails arbitrary people on request." One address per scan was
+ * already true; what was missing was anything at all across scans, and the
+ * per-scan bound does nothing against a caller holding several tokens.
+ *
+ * The caller is hashed with `hashIp`, the same function `ip_scans_per_day`
+ * counts under, and stamped on the row as `report_email_ip_hash` in the same
+ * write that takes the address. **Not read back off `scans.ip_hash`**, which is
+ * whoever started the scan: the 30-day domain cache hands one visitor another
+ * visitor's completed scan and token without inserting a row, so the caller
+ * this limit most wants to find has no `ip_hash` row of their own anywhere.
+ * Stamping it here is what makes the count follow whoever asked for a message.
+ *
+ * The refusal is a 429 and it fails **closed** - a cooldown read that errors
+ * refuses. `ceilings.ts` records why in its own header: a guard whose read did
+ * not answer used to be a guard that was simply off. The cost of the wrong
+ * refusal here is a visitor waiting fifteen minutes for a copy of a page that
+ * is already on their screen.
  *
  * ## Why a disposable address is accepted here and refused by the unlock
  *
@@ -130,9 +153,66 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
     return Response.json({ sent: true, email, message: "That is already on its way to you." });
   }
 
+  /**
+   * The per-caller cooldown, and the one read it costs.
+   *
+   * After the not-found and the already-sent branches on purpose: a caller
+   * posting a token that does not exist has caused no message and should not
+   * spend somebody's window, and a scan whose message has already gone answers
+   * truthfully without sending anything. Before the write, because the write is
+   * what a later send reads.
+   *
+   * `.neq("id", scan.id)` is what makes this a limit across scans rather than a
+   * second copy of the per-scan bound. Posting the same token twice is already
+   * handled above; what this asks is whether this caller has recently caused a
+   * message on a *different* scan.
+   */
+  const ip = clientIp(req);
+  let ipHash: string;
+  try {
+    ipHash = hashIp(ip);
+  } catch (err) {
+    // hashIp throws without IP_HASH_SALT, which is the state in which no
+    // per-caller limit on this site works at all. Refusing is the only honest
+    // answer from a door whose whole justification is that it is limited.
+    console.error(
+      "[scan] cannot rate limit a report email send: " + (err instanceof Error ? err.message : String(err)),
+    );
+    return Response.json(
+      { error: "limit_unavailable", message: "We could not send that just now. Please try again." },
+      { status: 503 },
+    );
+  }
+
+  const { data: recent, error: recentErr } = await db
+    .from("scans")
+    .select("report_email_at")
+    .eq("report_email_ip_hash", ipHash)
+    .neq("id", scan.id)
+    .not("report_email_at", "is", null)
+    .order("report_email_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (recentErr) {
+    console.warn(`[scan] could not read the report email cooldown: ${recentErr.message}`);
+    return Response.json(
+      { error: "limit_unavailable", message: "We could not send that just now. Please try again." },
+      { status: 503 },
+    );
+  }
+
+  const waitMs = reportMailWaitMs(recent?.report_email_at as string | null, Date.now());
+  if (waitMs > 0) {
+    return Response.json(
+      { error: "too_soon", message: reportMailWaitMessage(waitMs) },
+      { status: 429, headers: { "retry-after": String(Math.ceil(waitMs / 1000)) } },
+    );
+  }
+
   const { error: writeErr } = await db
     .from("scans")
-    .update({ report_email: email, report_email_at: new Date().toISOString() })
+    .update({ report_email: email, report_email_at: new Date().toISOString(), report_email_ip_hash: ipHash })
     .eq("id", scan.id)
     // Not over a message that has already gone. The read above is a tick old
     // and the pipeline can complete between the two, so the filter is the thing

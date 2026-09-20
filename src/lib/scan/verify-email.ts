@@ -156,32 +156,55 @@ export async function sendVerificationEmail(input: {
  *
  * Never throws. A failed send must not affect an unlock that has already
  * happened, so the caller is not given anything to handle.
+ *
+ * ## What it returns, and why that is not the same as "sent"
+ *
+ * The provider's id for the message it accepted, or null. **Accepted is not
+ * delivered**: a bounce happens minutes later and is reported through a
+ * different channel entirely, so the `error` branch below and a bounce are two
+ * different events and only the first one is visible from inside this call.
+ * The id is what lets the second be joined back to the row that caused it, and
+ * `sendRequestedReport` stores it for exactly that - Danny's fourth condition
+ * on item 5. A caller that does not care may ignore it; `completeUnlock` does.
+ *
+ * ## `requestedFor`
+ *
+ * The domain, passed only by the requested send, which is the one nobody
+ * confirmed an address for. It puts `requestedReason` at the top of both parts
+ * of the message. See `email-render.ts` for why the unlock's send does not
+ * carry it.
  */
 export async function sendReportReadyEmail(input: {
   email: string;
   brand: string;
   publicToken: string;
   counts: ReportCounts;
-}): Promise<void> {
+  requestedFor?: string;
+}): Promise<string | null> {
   const key = process.env.RESEND_API_KEY;
   if (!key) {
     console.error("[scan] RESEND_API_KEY is not set, report email not sent");
-    return;
+    return null;
   }
 
   const link = `${siteUrl()}/scan/${input.publicToken}`;
   const subject = headerSafe(reportSubject(input.brand, input.counts));
 
   try {
-    const { error } = await new Resend(key).emails.send({
+    const { data, error } = await new Resend(key).emails.send({
       from: mailFrom(),
       to: input.email,
       subject,
-      html: reportHtml(E, FONT, input.brand, link, input.counts),
-      text: reportText(input.brand, link, input.counts),
+      html: reportHtml(E, FONT, input.brand, link, input.counts, input.requestedFor),
+      text: reportText(input.brand, link, input.counts, input.requestedFor),
     });
-    if (error) console.error("[scan] report email rejected", error);
+    if (error) {
+      console.error("[scan] report email rejected", error);
+      return null;
+    }
+    return data?.id ?? null;
   } catch (err) {
     console.error("[scan] report email failed", err instanceof Error ? err.message : err);
+    return null;
   }
 }

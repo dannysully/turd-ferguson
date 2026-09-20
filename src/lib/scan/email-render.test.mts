@@ -12,6 +12,7 @@ import {
   reportHtml,
   reportSubject,
   reportText,
+  requestedReason,
   verifyHtml,
   verifyText,
 } from "./email-render.ts";
@@ -385,6 +386,67 @@ test("the text part leads with the same headline the html does", () => {
   assert.ok(
     reportText("Vibe Retail", LINK, NOTHING_MISSED).startsWith("We put 14 buying-intent questions"),
   );
+});
+
+/**
+ * Danny's third condition on item 5, 20 September 2026 19:45.
+ *
+ * The requested send goes to an address nobody confirmed, so "the mail says why
+ * it arrived, in its first line: somebody asked for this report on this domain
+ * from alwayscited. The stranger case is the one this sentence is for, and it
+ * is the difference between an unexpected mail and an unexplained one."
+ *
+ * Four properties, one test each, and the second is the one worth having: a
+ * sentence that is present but third is not what was asked for, and nothing
+ * about `includes` can tell the two apart.
+ */
+test("the requested send says why it arrived", () => {
+  const reason = requestedReason("vibe-retail.com");
+  assert.ok(reason.includes("vibe-retail.com"), "the reader recognises the domain, not our brand name");
+  assert.ok(reason.includes("alwayscited"), "and it names who is writing to them");
+  assert.ok(!/AlwaysCited|Alwayscited|always cited/.test(reason), "the brand never takes a capital");
+});
+
+test("the reason is the first line of both parts, not merely in them", () => {
+  const reason = requestedReason("vibe-retail.com");
+  assert.ok(
+    reportText("Vibe Retail", LINK, COUNTS, "vibe-retail.com").startsWith(reason),
+    "the text part must lead with it",
+  );
+
+  // In the HTML the body is one block, so "first" means before the headline
+  // rather than at index 0 of the document - the heading and the preview line
+  // are both above it by construction.
+  const html = reportHtml(E, FONT, "Vibe Retail", LINK, COUNTS, "vibe-retail.com");
+  const headline = reportHeadline("Vibe Retail", COUNTS);
+  assert.ok(html.includes(reason), "the html part must carry it at all");
+  assert.ok(
+    html.indexOf(reason) < html.indexOf(headline),
+    "the reason must come before the number, or it is not the first line of anything",
+  );
+});
+
+/**
+ * The domain is read off what a visitor typed into a public form, so it is
+ * arbitrary text in the HTML part and must not be in the text part - the same
+ * split `verifyText` records about the brand, and the same way somebody tidies
+ * the two into agreement.
+ */
+test("the domain is escaped in the html part and raw in the text part", () => {
+  const nasty = `x.com"><script>alert(1)</script>`;
+  assert.ok(!reportHtml(E, FONT, "Vibe Retail", LINK, COUNTS, nasty).includes("<script>alert(1)"));
+  assert.ok(reportText("Vibe Retail", LINK, COUNTS, nasty).includes(nasty));
+});
+
+/**
+ * And the unlock's report mail must NOT carry it. That address was confirmed by
+ * clicking a link in an earlier message, so it has a different answer to the
+ * same question, and telling that reader "somebody asked" would be worse copy
+ * than none - it reads as though we do not know it was them.
+ */
+test("the send to a confirmed address does not carry the sentence", () => {
+  assert.ok(!reportText("Vibe Retail", LINK, COUNTS).includes("Somebody asked"));
+  assert.ok(!reportHtml(E, FONT, "Vibe Retail", LINK, COUNTS).includes("Somebody asked"));
 });
 
 test("escapeHtml covers the five", () => {

@@ -200,3 +200,81 @@ test("neither sender mails a count it could not read", () => {
     );
   }
 });
+
+/* ── Danny's conditions on the send nobody confirmed an address for ── */
+
+/**
+ * The two senders, split by whether anybody confirmed the address.
+ *
+ * Derived off the **column the address came out of**, not off the filename.
+ * `report_email` is the address a visitor left while the scan was running and
+ * nothing was ever sent to prove it; `leads.email` reached its own inbox and
+ * had a link in it clicked. That distinction is what Danny's 19:45 decision is
+ * about, so it is what this splits on - and a third sender arriving joins
+ * whichever side it belongs to on its own.
+ */
+function senders(): { file: string; src: string; unconfirmed: boolean }[] {
+  return sourceFiles(ROOT)
+    .filter((f) => !f.endsWith("verify-email.ts"))
+    .map((f) => ({ file: f, src: code(readFileSync(join(ROOT, f), "utf8")) }))
+    .filter(({ src }) => /sendReportReadyEmail\s*\(/.test(src))
+    .map((s) => ({ ...s, unconfirmed: /\breport_email\b/.test(s.src) }));
+}
+
+test("the two senders are told apart by where the address came from", () => {
+  const all = senders();
+  assert.equal(all.filter((s) => s.unconfirmed).length, 1, "expected exactly one unconfirmed-address sender");
+  assert.equal(all.filter((s) => !s.unconfirmed).length, 1, "expected exactly one confirmed-address sender");
+});
+
+/**
+ * Danny's third condition, 20 September 2026 19:45: the mail nobody confirmed
+ * an address for says in its first line why it arrived.
+ *
+ * `email-render.test.mts` holds what the sentence says and that it comes first.
+ * This holds the half that test cannot see: **the sentence only appears if a
+ * caller passes the domain**, and a value rule over a renderer would have
+ * passed on a tree where nothing passed it. That is the `1ff1336` shape - write
+ * the reader walk, or you have tested your fix instead of the tree.
+ */
+test("the send nobody confirmed says why it arrived, and the confirmed one does not", () => {
+  for (const { file, src, unconfirmed } of senders()) {
+    assert.equal(
+      /requestedFor\s*:/.test(src),
+      unconfirmed,
+      unconfirmed
+        ? `${file} mails an address nobody confirmed and does not tell the reader why it arrived`
+        : `${file} mails a confirmed address and tells that reader somebody else asked for it`,
+    );
+  }
+});
+
+/**
+ * Danny's fourth condition: "log bounces... record enough that the question can
+ * be answered later without a migration."
+ *
+ * A bounce is not this call's return value and cannot be - `emails.send` says
+ * only whether the message was accepted, and the bounce lands minutes later at
+ * the provider. What has to survive the request is the id it was accepted
+ * under, because that is the only thing a bounce can be joined back on.
+ *
+ * So the rule is not "it logs something". It is that the sender **takes the
+ * return value and puts it on the row**: a send whose id is dropped leaves
+ * `report_email_message_id` null, the bounce unattributable, and the condition
+ * Danny accepted the whole feature on unanswerable - with no failing test,
+ * because nothing else in the tree reads that column yet.
+ */
+test("the unconfirmed send records what the provider called the message", () => {
+  const sender = senders().find((s) => s.unconfirmed);
+  assert.ok(sender, "the unconfirmed-address sender has gone; this rule has no subject");
+  assert.match(
+    sender.src,
+    /=\s*await\s+sendReportReadyEmail\s*\(/,
+    `${sender.file} discards the provider's message id, so a bounce cannot be joined back to the scan`,
+  );
+  assert.match(
+    sender.src,
+    /report_email_message_id\s*:/,
+    `${sender.file} never writes the message id to the row it belongs to`,
+  );
+});
