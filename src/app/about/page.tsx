@@ -48,7 +48,7 @@ const RULES = [
   },
   {
     title: "Store the whole answer",
-    body: "Full response text and source lists are kept per question, so any figure can be read back to the words that produced it. A score nobody can audit is not evidence.",
+    body: "Full response text and source lists are kept per question, so any figure can be read back to the words that produced it. On a scan nobody claims, the text is purged on the schedule in our privacy policy and the sources and the measurements stay. A score nobody can audit is not evidence.",
   },
   {
     title: "Scope every claim",

@@ -3,7 +3,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 
-import { code, sourceFiles } from "../source-read.mts";
+import { blankComments, code, sourceFiles } from "../source-read.mts";
 
 /**
  * A campaign reading can never be claimed, so the nightly purge takes its
@@ -131,9 +131,18 @@ test("the reading page still renders no answer prose", () => {
 });
 
 test("no surface still tells a benchmark visitor its answers are kept", () => {
-  // Scoped to the two campaign-facing pages on purpose. The claim elsewhere is
-  // about the scan report, which IS readable and IS kept once unlocked - that
-  // is blocked.md 29's wording call and this file decides nothing about it.
+  // Scoped to the two campaign-facing pages on purpose: on those the claim may
+  // not appear AT ALL, because a reading can never be claimed. Everywhere else
+  // the claim is allowed with a bound, which is the rule below this one.
+  //
+  // **That sentence used to read "the claim elsewhere is about the scan report,
+  // which IS readable and IS kept once unlocked", and it was a universal about
+  // the tree that nothing executed.** It was false on /about, whose second
+  // measurement rule - on the page whose own doc comment calls the rules "the
+  // point of the page" - said the response text is "kept per question" with no
+  // condition at all. The narrowing was written from a guess about the other
+  // surfaces rather than from a reading of them, which is the species this
+  // repo keeps paying for.
   const pages = [
     "src/app/coverage-check/page.tsx",
     "src/app/coverage-check/[token]/page.tsx",
@@ -155,6 +164,157 @@ test("no surface still tells a benchmark visitor its answers are kept", () => {
     "a campaign surface promises the answers are kept, and the purge clears them at the retention window:\n" +
       offenders.join("\n"),
   );
+});
+
+/**
+ * Every surface in the tree that promises the answer TEXT is kept, and whether
+ * it names the condition the purge actually applies.
+ *
+ * ## Why this is not `verbatim-claims.test.mts`
+ *
+ * That file walks the same pages and asks a different question of them: is the
+ * stored text *untouched* (blocked.md 29's wording call). It reads the word
+ * `verbatim` and never reads the verb in front of it. **Whether the text is
+ * KEPT is a second claim living inside the same sentence, and nothing walked
+ * for it** - which is how /about's rule 2 sat beside /legal's "deleted after
+ * seven days if nobody claims the scan" for as long as both were published.
+ * Two files disagreeing about one fact, one of them a marketing page.
+ *
+ * ## The pattern, and why it is a pair rather than a word
+ *
+ * A keeping verb alone matches `could not store the answers` in a throw and
+ * `the clusters you keep` on the homepage FAQ; an answer-text noun alone is
+ * every line of `engines.ts`. The claim is the two together inside one
+ * sentence, in either order - `[^.!?]` is the sentence bound, so a keeping
+ * verb in one sentence and the noun in the next is not a promise.
+ *
+ * ## Read flattened, not line by line
+ *
+ * A per-line walk was written first and then asked what it could not see,
+ * which is the refill this repo runs on its own sweeps. The answer was copy
+ * concatenated across lines - `ResultView.tsx` writes its copy as one
+ * concatenated string and `verbatim-claims` records that a single line there
+ * can carry two claims. **Measured on 20 Sep 2026 the two walks agree at five,
+ * so nothing is caught by the change today**; it is here because the direction
+ * the per-line walk fails in is the flattering one, and a claim broken over
+ * two lines to fit the formatter would have read as a clean tree.
+ *
+ * Comments are blanked first for the reason `verbatim-claims` needs the same
+ * cut: this very header pairs "kept" with "the answers" several times.
+ */
+const KEEPING =
+  /\b(?:stores?|stored|storing|keeps?|kept|keeping|saved?|retain(?:s|ed)?)\b[^.!?]{0,80}?\b(?:verbatim|word for word|response text|full text|transcript|the answers?|whole answer|what each engine said)\b|\b(?:verbatim|word for word|response text|full text|transcript|the answers?|whole answer|what each engine said)\b[^.!?]{0,80}?\b(?:stores?|stored|storing|keeps?|kept|keeping|saved?|retain(?:s|ed)?)\b/i;
+
+/**
+ * Where the claim is published and what earns it, `spend-gates`' shape.
+ *
+ * `holds` is the point: each entry re-earns its own measurement off source, so
+ * the day the thing excusing a site changes, this fails rather than going on
+ * quietly excusing it. An entry keyed to a FILE would excuse whatever lands in
+ * that file next, so each is keyed to the string that makes the claim.
+ */
+const RETENTION_CLAIMS: {
+  file: string;
+  needle: string;
+  why: string;
+  holds: (src: string) => boolean;
+}[] = [
+  {
+    file: "src/app/about/page.tsx",
+    needle: "Store the whole answer",
+    why: "a rule card's three-word title; the bound is in the body of the same RULES entry, immediately below it",
+    holds: (src) => {
+      const at = src.indexOf('title: "Store the whole answer"');
+      return at >= 0 && /^[^}]*\bnobody claims\b/.test(src.slice(at));
+    },
+  },
+  {
+    file: "src/app/about/page.tsx",
+    needle: "Full response text and source lists are kept",
+    why: "measurement rule 2, and it names the condition: unclaimed scans are purged, sources and measurements stay",
+    holds: (src) => /kept per question[^"]*\bOn a scan nobody claims\b[^"]*\bpurged\b/.test(src),
+  },
+  {
+    file: "src/app/compare/page.tsx",
+    needle: "Stores the verbatim answer behind every reading",
+    why:
+      "a feature row under a column that is the alwayscited TIER, not a scan this tree runs - " +
+      "nothing here creates a paid-tier scan, so its retention is not this purge (blocked.md 32)",
+    holds: (src) => /COLUMNS[^=]*=\s*\[\{\s*key:\s*"us",\s*label:\s*<TierName tier="cited"/.test(src),
+  },
+  {
+    file: "src/components/scan/HeroSequence.tsx",
+    needle: "The answer is stored word for word",
+    why:
+      "an act of the waiting sequence describing the alwaystracked TIER, not the free scan running behind it " +
+      "- same paid-path question as /compare (blocked.md 32)",
+    holds: (src) => {
+      const at = src.indexOf('body: "The answer is stored word for word');
+      return at >= 0 && /tier:\s*"tracked"[^}]*$/.test(src.slice(0, at));
+    },
+  },
+  {
+    file: "src/lib/scan/pipeline.ts",
+    needle: "could not store the answers",
+    why: "not a published surface - the message of a thrown Error on the insert path",
+    holds: (src) => /throw new Error\(`could not store the answers/.test(src),
+  },
+];
+
+/** Every claim in one file, flattened so a sentence broken over lines is one match. */
+function keepingClaims(rel: string): string[] {
+  const flat = blankComments(readFileSync(join(ROOT, rel), "utf8")).replace(/\s*\n\s*/g, " ");
+  return [...flat.matchAll(new RegExp(KEEPING.source, "gi"))].map((m) => m[0].replace(/\s+/g, " "));
+}
+
+test("every surface promising the answer text is kept is on the list", () => {
+  const found = new Map<string, string[]>();
+  let total = 0;
+  for (const rel of sourceFiles(ROOT)) {
+    const claims = keepingClaims(rel);
+    if (!claims.length) continue;
+    found.set(rel, claims);
+    total += claims.length;
+  }
+
+  // A floor, because the walk narrowing to nothing reads exactly like a clean
+  // tree. Five sites on 20 Sep 2026, four of them published copy.
+  assert.ok(total >= 5, `the walk found ${total} keeping-claims, was 5 - it has narrowed`);
+
+  /**
+   * By COUNT per file as well as by membership.
+   *
+   * Membership alone is a file-keyed exemption, which excuses whatever lands
+   * in that file next - /about already carries two of these, so "about is on
+   * the list" would wave through a third. The count is what makes a new claim
+   * inside an already-listed file fail.
+   */
+  const unlisted: string[] = [];
+  for (const [file, claims] of found) {
+    const recorded = RETENTION_CLAIMS.filter((c) => c.file === file).length;
+    if (!recorded) unlisted.push(`${file} is not on the list: ${claims.join(" | ")}`);
+    else if (claims.length !== recorded) {
+      unlisted.push(`${file} makes ${claims.length} keeping-claims, ${recorded} recorded: ${claims.join(" | ")}`);
+    }
+  }
+
+  assert.deepEqual(
+    unlisted,
+    [],
+    "a surface promises the answer text is kept and nothing on the list bounds it - the purge clears\n" +
+      "response_text on every scan with unlocked_at null, campaign readings included:\n" +
+      unlisted.map((f) => `  ${f}`).join("\n"),
+  );
+});
+
+test("every listed surface still earns the reason it is listed under", () => {
+  const broken: string[] = [];
+  for (const c of RETENTION_CLAIMS) {
+    const src = blankComments(readFileSync(join(ROOT, c.file), "utf8"));
+    if (!src.includes(c.needle)) broken.push(`${c.file}: "${c.needle}" is gone - drop the entry`);
+    else if (!c.holds(src)) broken.push(`${c.file}: "${c.needle}" no longer holds: ${c.why}`);
+  }
+  assert.deepEqual(broken, [], broken.join("\n"));
 });
 
 test("the retention window the copy was measured against is still one setting", () => {
