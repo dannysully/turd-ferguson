@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import Turnstile from "@/components/scan/Turnstile";
+import { COVERAGE_LIMITS, WAITLIST_LIMITS } from "@/config/contact";
 import { MICRO, T } from "@/config/tokens";
 import { MAX_COVERAGE_BYTES, MAX_COVERAGE_ROWS, parseCoverageCsv } from "@/lib/coverage/csv";
 import { count } from "@/lib/plural";
@@ -165,9 +166,14 @@ export default function CoverageForm() {
           <label htmlFor="cc-brand" style={labelStyle}>
             Brand name
           </label>
+          {/* Bounded here as well as on the server, for the reason the file
+              input above is: the server's limit is the one that counts, and
+              this one exists so a visitor is stopped at the field rather than
+              by a refusal that reads as if they left it blank. */}
           <input
             id="cc-brand"
             style={field}
+            maxLength={COVERAGE_LIMITS.brand.max}
             placeholder="Your client"
             value={brand}
             onChange={(e) => setBrand(e.target.value)}
@@ -181,6 +187,7 @@ export default function CoverageForm() {
           <input
             id="cc-domain"
             style={field}
+            maxLength={WAITLIST_LIMITS.domain}
             placeholder="clientdomain.com"
             value={domain}
             onChange={(e) => setDomain(e.target.value)}
@@ -194,6 +201,7 @@ export default function CoverageForm() {
           <input
             id="cc-topic"
             style={field}
+            maxLength={COVERAGE_LIMITS.topic.max}
             placeholder="same-day settlement"
             value={topic}
             onChange={(e) => setTopic(e.target.value)}
@@ -211,6 +219,7 @@ export default function CoverageForm() {
           <input
             id="cc-segment"
             style={field}
+            maxLength={COVERAGE_LIMITS.segment.max}
             placeholder="independent retailers"
             value={segment}
             onChange={(e) => setSegment(e.target.value)}

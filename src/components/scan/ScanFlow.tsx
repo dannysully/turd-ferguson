@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { SCAN_LIMITS } from "@/config/contact";
 import { QUESTIONS } from "@/config/scan-shape";
 import { MICRO, SHELL, T } from "@/config/tokens";
 import type {
@@ -950,6 +951,7 @@ export default function ScanFlow(p: {
                     type="email"
                     name="email"
                     autoComplete="email"
+                    maxLength={SCAN_LIMITS.email}
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}

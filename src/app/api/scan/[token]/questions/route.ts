@@ -1,3 +1,4 @@
+import { SCAN_LIMITS } from "@/config/contact";
 import {
   describeAnthropicError,
   generateQuestions,
@@ -98,7 +99,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
   }
 
   const topic = (body.topic ?? scan.topic ?? "").trim();
-  if (topic.length < 2 || topic.length > 120) {
+  if (topic.length < 2 || topic.length > SCAN_LIMITS.topic) {
     return Response.json({ error: "bad_topic", message: "Tell us the category in a few words." }, { status: 400 });
   }
 

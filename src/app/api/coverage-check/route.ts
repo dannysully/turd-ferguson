@@ -1,6 +1,7 @@
 import { after } from "next/server";
 
 import { BenchmarkStoreError, startBenchmark } from "@/lib/coverage/campaign";
+import { COVERAGE_LIMITS } from "@/config/contact";
 import { MAX_COVERAGE_BYTES, MAX_COVERAGE_ROWS, parseCoverageCsv } from "@/lib/coverage/csv";
 import { checkCeilings } from "@/lib/scan/ceilings";
 import { isMarket, isPlausibleDomain, normalizeDomain } from "@/lib/scan/domain";
@@ -70,7 +71,7 @@ export async function POST(req: Request) {
     return fail(403, "turnstile_failed", "We could not verify that request. Please reload and try again.");
   }
 
-  const brand = text(body.brand, 2, 80);
+  const brand = text(body.brand, COVERAGE_LIMITS.brand.min, COVERAGE_LIMITS.brand.max);
   if (!brand) return fail(400, "bad_brand", "Tell us the brand name.");
 
   const domain = normalizeDomain(typeof body.domain === "string" ? body.domain : "");
@@ -78,7 +79,7 @@ export async function POST(req: Request) {
     return fail(400, "bad_domain", "That does not look like a website address. Try example.com.");
   }
 
-  const topic = text(body.topic, 2, 120);
+  const topic = text(body.topic, COVERAGE_LIMITS.topic.min, COVERAGE_LIMITS.topic.max);
   if (!topic) {
     return fail(400, "bad_topic", "Tell us what the campaign is about, in a few words.");
   }
@@ -90,7 +91,7 @@ export async function POST(req: Request) {
    * the whole submission over an optional field would cost the visitor a
    * benchmark to save them a slightly weaker one.
    */
-  const segment = text(body.segment, 2, 80);
+  const segment = text(body.segment, COVERAGE_LIMITS.segment.min, COVERAGE_LIMITS.segment.max);
 
   const market = isMarket(body.market) ? body.market : "UK";
 

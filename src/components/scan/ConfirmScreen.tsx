@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
+import { SCAN_LIMITS } from "@/config/contact";
 import { QUESTIONS } from "@/config/scan-shape";
 import { CARD, MICRO, T } from "@/config/tokens";
 import type { Market } from "@/lib/scan";
@@ -350,9 +351,14 @@ export default function ConfirmScreen(p: {
           <label htmlFor="confirm-category" style={fieldLabel}>
             Category
           </label>
+          {/* The confirm and questions routes both refuse a topic over
+              SCAN_LIMITS.topic. Unbounded here, a pasted category came back
+              "Tell us the category in a few words" from a field that visibly
+              held a category. */}
           <input
             id="confirm-category"
             type="text"
+            maxLength={SCAN_LIMITS.topic}
             value={topic}
             placeholder="b2b seo agency"
             onChange={(e) => setTopic(e.target.value)}
@@ -539,7 +545,7 @@ export default function ConfirmScreen(p: {
                     onChange={(e) => edit(i, e.target.value)}
                     aria-label={rowLabel}
                     placeholder="the question a buyer would type"
-                    maxLength={200}
+                    maxLength={SCAN_LIMITS.question}
                     style={rowInput}
                   />
                 </div>

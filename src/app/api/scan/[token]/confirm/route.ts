@@ -1,5 +1,6 @@
 import { after } from "next/server";
 
+import { SCAN_LIMITS } from "@/config/contact";
 import { QUESTION_COUNT, QUESTION_KINDS } from "@/lib/scan/anthropic";
 import { isMarket } from "@/lib/scan/domain";
 import { runScan } from "@/lib/scan/pipeline";
@@ -25,7 +26,7 @@ function cleanQuestions(input: unknown): { question: string; kind: string }[] | 
 
   for (const row of input as ConfirmedQuestion[]) {
     const question = typeof row?.question === "string" ? row.question.trim() : "";
-    if (question.length < 4 || question.length > 200) continue;
+    if (question.length < 4 || question.length > SCAN_LIMITS.question) continue;
     const key = question.toLowerCase();
     if (seen.has(key)) continue;
     seen.add(key);
@@ -57,7 +58,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
   }
 
   const topic = (body.topic ?? "").trim();
-  if (topic.length < 2 || topic.length > 120) {
+  if (topic.length < 2 || topic.length > SCAN_LIMITS.topic) {
     return Response.json(
       { error: "bad_topic", message: "Tell us the category in a few words." },
       { status: 400 },
