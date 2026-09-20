@@ -218,10 +218,18 @@ test("a second scan leaves rows it has already seen alone", () => {
 
 /**
  * The two settled-page guarantees, which matter more here than the timing: the
- * from-states in globals.css are all scoped to `html[data-motion="on"]`, so a
- * visitor who never gets that attribute sees the finished page rather than an
- * invisible one. On an AI visibility product that is the property that matters
- * most on the site.
+ * attribute is not set, so no from-state applies and the visitor sees the
+ * finished page rather than an invisible one. On an AI visibility product that
+ * is the property that matters most on the site.
+ *
+ * Note what these three do and do not establish. They are the *trigger* half:
+ * `data-motion` stays off under reduced motion and with no IntersectionObserver.
+ * The other half is that globals.css has no from-state outside
+ * `html[data-motion="on"]` - and this comment used to assert it here, above
+ * three tests that never read the stylesheet. That claim is now checked where
+ * it can fail, in `src/app/motion-rest-state.test.mts`, which also covers the
+ * case neither half sees: a content class resting invisible while the attribute
+ * IS set and the observer has not delivered.
  */
 test("reduced motion never sets the attribute, so the page is settled", () => {
   const { motion, indices } = stagger([row("ac-row"), row("ac-row")], { reducedMotion: true });
