@@ -1,4 +1,5 @@
-import { FREE_ENGINES } from "@/lib/scan/engines";
+// Relative and extensionful so Node's runner can load it - see scan-shape.ts.
+import { FREE_ENGINES } from "../lib/scan/engines.ts";
 
 /**
  * The homepage's worked example, named once.

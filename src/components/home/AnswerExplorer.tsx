@@ -232,8 +232,17 @@ export default function AnswerExplorer() {
    * blocked.md item 9 and Danny's call; this adds a fourth site to a token
    * question rather than a fourth question, and the sentence carries the state
    * without the colour either way.
+   *
+   * Counted off `pickEngines`, not off `q.engines.length`, and the pill in the
+   * list opposite now does the same. A pick is a position in the free engine
+   * set, and `pickEngines` drops one past the end of a shortened set - so the
+   * two lengths are equal only while every position resolves. Shorten
+   * `FREE_ENGINES` and a row would have rendered the amber "named" state
+   * against the sentence "Not named on any engine" and the count "0 of 3":
+   * the same disagreement this comment describes being fixed, one layer down,
+   * between the state and the text rather than between two states.
    */
-  const namedHere = selQ.engines.length > 0;
+  const namedHere = pickEngines(selQ.engines).length > 0;
 
   return (
     <div style={{ ...SHELL, marginTop: "40px" }}>
@@ -308,7 +317,8 @@ export default function AnswerExplorer() {
               >
                 <span style={{ fontSize: "13.5px", color: T.ink, lineHeight: 1.4 }}>{q.text}</span>
                 <span style={{ textAlign: "right" }}>
-                  <span style={q.engines.length ? WARN : BAD}>{namedOf(q.engines)}</span>
+                  {/* The state off the same filtered count the text prints - see namedHere. */}
+                  <span style={pickEngines(q.engines).length ? WARN : BAD}>{namedOf(q.engines)}</span>
                 </span>
               </button>
               );

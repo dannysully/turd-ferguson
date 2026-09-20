@@ -1,4 +1,10 @@
-import { ENGINE_SPECS, FREE_ENGINES } from "@/lib/scan/engines";
+// Relative, and with the extension, so Node's own runner can load this module:
+// it strips types but resolves neither the `@/` alias nor an extensionless
+// specifier. Same move engines.ts made on `./domain.ts`, for the same reason -
+// this file decides every number the homepage prints about a scan and had no
+// executor while it could not be imported. tsconfig allows the .ts specifier
+// and noEmit means none of it reaches a build artefact.
+import { ENGINE_SPECS, FREE_ENGINES } from "../lib/scan/engines.ts";
 
 /**
  * How the site describes the shape of a scan.
