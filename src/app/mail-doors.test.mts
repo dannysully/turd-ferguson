@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { test } from "node:test";
 
@@ -261,6 +261,96 @@ test("the anonymous mail doors have no per-caller identity, which is the open qu
  * it is asserted here because it is the only bound either door has that is
  * about the sender rather than the message.
  */
+/**
+ * The source census, checked against what the build actually registers.
+ *
+ * Everything above this reads source. Source is what somebody *wrote*, and the
+ * claim being made - that these two exports are live POST endpoints on the open
+ * web - is about what Next *ships*. Those are two different questions, and the
+ * repo's own rule is that a thing reasoned about is not a thing verified. So
+ * this reads `server-reference-manifest.json` out of the build: one entry per
+ * action id Next will dispatch, with the pages each is reachable from.
+ *
+ * Measured 20 September 2026 at `e07c9d5`: two ids, one on `app/contact/page`
+ * and one on both `app/page` and `app/scan/page`. **That second pair is the
+ * finding worth keeping** - `RequestScanForm` only renders when `scanReady()`
+ * is false, so the form is usually invisible, and the action id is registered
+ * either way. The door does not close when the form stops being drawn.
+ *
+ * It is also the two-way street on this file itself. Everything above proves
+ * the source names two actions; only this proves the build does not register a
+ * third from somewhere neither walk looked.
+ */
+test("the build registers exactly the actions the source census found", (t) => {
+  const MANIFEST = join(ROOT, ".next", "server", "server-reference-manifest.json");
+  if (!existsSync(MANIFEST)) {
+    t.skip("no build to read - run `npm run build` first");
+    return;
+  }
+
+  type Entry = { filename?: string; exportedName?: string; workers?: Record<string, unknown> };
+  const manifest = JSON.parse(readFileSync(MANIFEST, "utf8")) as {
+    node?: Record<string, Entry>;
+    edge?: Record<string, Entry>;
+  };
+  /**
+   * Both runtimes, not just `node`. `edge` is empty today and a check that read
+   * only the populated half would be a denominator chosen by what happened to
+   * be there - the error this whole file is about.
+   */
+  const entries = Object.entries({ ...(manifest.node ?? {}), ...(manifest.edge ?? {}) });
+
+  /**
+   * Compared by name, not by count. The manifest carries the source file and
+   * the export for every id it registers, so this can assert the *same* two
+   * exports rather than merely two of something - a count matches just as well
+   * when one action is deleted and an unrelated one is added.
+   */
+  const registered = entries
+    .map(([, e]) => `${e.filename} # ${e.exportedName}`)
+    .sort();
+  const censused = Object.entries(ACTIONS)
+    .flatMap(([path, names]) => names.map((n) => `${path} # ${n}`))
+    .sort();
+
+  assert.deepEqual(
+    registered,
+    censused,
+    "the build registers a different set of server actions from the one the source walk found. " +
+      "Every one is a POST endpoint anybody can reach; reconcile the two before shipping.",
+  );
+
+});
+
+/**
+ * Every registered action is reachable from at least one page.
+ *
+ * An id with no worker is one nothing can dispatch, and a census counting it
+ * would report a door that is not there - the opposite error, and just as
+ * wrong. It is **its own test** rather than a second assertion in the one
+ * above, and that is not tidiness: the injection harness reports which named
+ * subtest fired, so two assertions under one name make a case landing in the
+ * wrong branch indistinguishable from one landing in the right one. Three
+ * manifest injections all reported the same name until this was split.
+ */
+test("every registered action is reachable from at least one page", (t) => {
+  const MANIFEST = join(ROOT, ".next", "server", "server-reference-manifest.json");
+  if (!existsSync(MANIFEST)) {
+    t.skip("no build to read - run `npm run build` first");
+    return;
+  }
+  const manifest = JSON.parse(readFileSync(MANIFEST, "utf8")) as {
+    node?: Record<string, { filename?: string; exportedName?: string; workers?: Record<string, unknown> }>;
+    edge?: Record<string, { filename?: string; exportedName?: string; workers?: Record<string, unknown> }>;
+  };
+  for (const [id, e] of Object.entries({ ...(manifest.node ?? {}), ...(manifest.edge ?? {}) })) {
+    assert.ok(
+      Object.keys(e.workers ?? {}).length > 0,
+      `${e.filename} # ${e.exportedName} (${id.slice(0, 12)}) is registered and reachable from no page`,
+    );
+  }
+});
+
 test("both public forms carry the honeypot, and both answer a filled one with a success", () => {
   /**
    * The answer is matched from inside the branch, not anywhere in the file.
