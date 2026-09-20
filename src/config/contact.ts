@@ -28,3 +28,24 @@
  * for the same reason: the field nobody pictured as a field.
  */
 export const CONTACT_LIMITS = { name: 120, email: 254, company: 200, message: 5000, website: 200 };
+
+/**
+ * The same, for the other public form.
+ *
+ * `RequestScanForm` posts to a "use server" action that mails Danny, and it had
+ * no bound on any of its three fields on either side - so the defect this file
+ * exists for had a third instance, in a file neither the comments here nor
+ * `contact.test.mts` could see. Both were scoped to the contact action, and the
+ * species is not "the contact form" but "a public form whose values we put in a
+ * message".
+ *
+ * They live beside CONTACT_LIMITS rather than in their own module so that there
+ * is one place to look and one denominator to sweep. A fourth form with its own
+ * table somewhere else is how this happens a fourth time.
+ *
+ * domain is 253, the longest a DNS name may be, and it is the bound the live
+ * scan path already enforces in `isPlausibleDomain`. email is 254 for the same
+ * RFC 5321 reason as above; it becomes the reply-to header on what we send
+ * ourselves. topic is free text and matches `company`.
+ */
+export const WAITLIST_LIMITS = { domain: 253, topic: 200, email: 254 };

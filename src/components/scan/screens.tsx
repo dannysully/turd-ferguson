@@ -1,6 +1,7 @@
 "use client";
 
 import type { Market } from "@/lib/scan";
+import { WAITLIST_LIMITS } from "@/config/contact";
 import { T } from "@/config/tokens";
 
 /**
@@ -40,7 +41,13 @@ export function DomainScreen(p: {
     <form action={p.action} onSubmit={p.onSubmit ?? ((e) => e.preventDefault())} noValidate>
       <label htmlFor={id} style={label}>Domain</label>
       <div style={{ display: "flex", gap: "0.625rem", flexWrap: "wrap" }}>
+        {/* maxLength on all three fields below, from the one table both public
+            forms read. The server bounds them too - it has to, nothing stops a
+            post that never rendered this page - but a bound only on the server
+            refuses a paste after the visitor presses the button, where this
+            stops it at the field. */}
         <input id={id} name="domain" inputMode="url" autoComplete="url" placeholder="example.com"
+          maxLength={WAITLIST_LIMITS.domain}
           value={p.value} onChange={(e) => p.onChange?.(e.target.value)} style={{ ...field, flex: "1 1 220px" }}
           aria-invalid={Boolean(p.error)} aria-describedby={p.error ? `${id}-err` : undefined} {...ro(p.readOnly)} />
         <button type="submit" className="btn-primary" style={btn} disabled={p.busy || p.readOnly} tabIndex={p.readOnly ? -1 : undefined}>
@@ -81,14 +88,16 @@ export function TopicScreen({ headingRef, ...p }: {
       {!p.brand && (
         <>
           <label htmlFor={`${id}-brand`} style={label}>What is the brand called?</label>
-          <input id={`${id}-brand`} value={p.brandName ?? ""} onChange={(e) => p.onBrandName?.(e.target.value)} style={{ ...field, marginBottom: "0.75rem" }} {...ro(p.readOnly)} />
+          {/* The waitlist form wires this field to its `domain` state, so it
+              takes the domain bound rather than a name-shaped one. */}
+          <input id={`${id}-brand`} maxLength={WAITLIST_LIMITS.domain} value={p.brandName ?? ""} onChange={(e) => p.onBrandName?.(e.target.value)} style={{ ...field, marginBottom: "0.75rem" }} {...ro(p.readOnly)} />
         </>
       )}
       <label htmlFor={`${id}-topic`} style={label}>
         What keyword are you targeting?{" "}
         <span style={{ fontWeight: 400, color: T.soft }}>This informs the questions we check.</span>
       </label>
-      <input id={`${id}-topic`} value={p.topic} onChange={(e) => p.onTopic?.(e.target.value)} placeholder="b2b seo agency" style={{ ...field, marginBottom: "0.75rem" }} {...ro(p.readOnly)} />
+      <input id={`${id}-topic`} maxLength={WAITLIST_LIMITS.topic} value={p.topic} onChange={(e) => p.onTopic?.(e.target.value)} placeholder="b2b seo agency" style={{ ...field, marginBottom: "0.75rem" }} {...ro(p.readOnly)} />
       <fieldset style={{ border: "none", padding: 0, margin: "0 0 0.75rem" }}>
         <legend style={label}>Market</legend>
         <div style={{ display: "flex", gap: "0.5rem" }}>

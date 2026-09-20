@@ -2,6 +2,10 @@
 
 import { Resend } from "resend";
 
+import { WAITLIST_LIMITS as LIMITS } from "@/config/contact";
+import { headerSafe } from "@/lib/email-header";
+import { isPlausibleDomain, normalizeDomain } from "@/lib/scan/domain";
+
 /**
  * Pre-launch capture, used only while the live scan is unconfigured.
  *
@@ -9,18 +13,58 @@ import { Resend } from "resend";
  * a fabricated verdict about their own brand is worse than showing them
  * nothing, so this takes the domain and the address and says plainly that a
  * person will run it.
+ *
+ * Every value below is typed by a stranger into a form with no captcha, and
+ * this action treats them as hostile for the same reasons the contact action
+ * does. It did not until 20 September 2026:
+ *
+ *  - It put an unbounded stranger string in a mail subject. This is the real
+ *    hole and it was measured rather than argued: a 5,000-character path
+ *    produced a 5,026-character subject line, where the same input now produces
+ *    25. `headerSafe` exists for precisely this and both other senders in the
+ *    tree already called it. A newline could not get through - the "." in the
+ *    old regex's path group does not match a line terminator, and `trim` ate
+ *    the trailing case that "$" would otherwise have allowed - so the injection
+ *    half was already shut and the bound half was never there.
+ *  - It bounded no field at all, where the contact action bounds every one.
+ *    `email` becomes a reply-to header; `topic` goes in the body.
+ *  - It hand-rolled a domain regex rather than using `normalizeDomain` and
+ *    `isPlausibleDomain`, the tested pair the live scan path uses. Two
+ *    validators for one field is the defect this repo keeps finding in its
+ *    numbers, and these two disagreed in both directions: the regex took a
+ *    whole URL with its path into the subject, and refused
+ *    "https://user:pass@example.com/path" and
+ *    "https://example.com?email=me@other.com", which the live path accepts and
+ *    normalises. So a domain the funnel would have scanned was turned away
+ *    here, and the pair's two documented fixes - the "@" in a query string and
+ *    the backslash in an authority, each of which resolves to one host in a
+ *    browser and used to normalise to another - applied to one of the two
+ *    places this site reads a domain from a stranger.
+ *
+ * What none of this was: a test failing. `contact.test.mts` sweeps the contact
+ * action's fields for exactly this species and reads one file.
+ * `email-header.test.mts` is the version of it that reads every sender.
  */
 export type WaitlistResult = { ok: true } | { ok: false; message: string };
+
+const clamp = (v: string, max: number) => v.slice(0, max);
 
 export async function requestScan(input: {
   domain: string;
   email: string;
   topic: string;
 }): Promise<WaitlistResult> {
-  const domain = input.domain.trim();
-  const email = input.email.trim();
+  /**
+   * Clamp before anything looks at the value, so no branch below - including a
+   * refusal, which logs - ever holds an unbounded string. The inputs carry
+   * these as maxLength too, so a visitor is stopped at the field; a post that
+   * never rendered the page is stopped here.
+   */
+  const domain = normalizeDomain(clamp(input.domain, LIMITS.domain));
+  const email = clamp(input.email, LIMITS.email).trim();
+  const topic = clamp(input.topic, LIMITS.topic).trim();
 
-  if (!/^(https?:\/\/)?([a-z0-9-]+\.)+[a-z]{2,}(\/.*)?$/i.test(domain)) {
+  if (!isPlausibleDomain(domain)) {
     return { ok: false, message: "Enter a domain, like client-domain.com" };
   }
   if (!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(email)) {
@@ -53,10 +97,10 @@ export async function requestScan(input: {
       from: process.env.SCAN_FROM_EMAIL ?? "alwayscited <onboarding@resend.dev>",
       to: process.env.CONTACT_EMAIL_DESTINATION ?? "hello@alwayscited.com",
       replyTo: email,
-      subject: `Scan request: ${domain}`,
+      subject: headerSafe(`Scan request: ${domain}`),
       text: [
         `Domain: ${domain}`,
-        `Topic:  ${input.topic.trim() || "(not given)"}`,
+        `Topic:  ${topic || "(not given)"}`,
         `Email:  ${email}`,
         "",
         "Sent from the domain field while the live scan is switched off.",

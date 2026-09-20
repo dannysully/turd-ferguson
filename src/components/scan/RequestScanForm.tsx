@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { requestScan } from "@/app/actions/waitlist";
+import { WAITLIST_LIMITS } from "@/config/contact";
 import { FREE_ENGINE_LABELS, listOf } from "@/config/scan-shape";
 import { T } from "@/config/tokens";
 
@@ -130,6 +131,7 @@ export default function RequestScanForm({ initialDomain = "" }: { initialDomain?
             type="email"
             autoComplete="email"
             placeholder="you@agency.com"
+            maxLength={WAITLIST_LIMITS.email}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             style={field}
