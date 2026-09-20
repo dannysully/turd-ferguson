@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { WAITLIST_LIMITS } from "@/config/contact";
 import { OG_IMAGE } from "@/config/og";
 import Link from "next/link";
 
@@ -346,6 +347,7 @@ export default function CaseStudyPage() {
                   id="cs-domain"
                   name="domain"
                   type="text"
+                  maxLength={WAITLIST_LIMITS.domain}
                   placeholder="yourdomain.com"
                   style={{
                     width: "100%",

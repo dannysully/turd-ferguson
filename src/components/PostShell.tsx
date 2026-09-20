@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { WAITLIST_LIMITS } from "@/config/contact";
 import { formatPostDate, type Post } from "@/config/posts";
 import { CARD, MICRO, SHELL, T } from "@/config/tokens";
 
@@ -148,7 +149,7 @@ export default function PostShell(p: {
             >
               Domain
             </label>
-            <input id="post-domain" name="domain" type="text" placeholder="yourdomain.com" style={fieldStyle} />
+            <input id="post-domain" name="domain" type="text" maxLength={WAITLIST_LIMITS.domain} placeholder="yourdomain.com" style={fieldStyle} />
             <button
               type="submit"
               className="btn-primary"

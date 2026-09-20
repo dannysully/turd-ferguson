@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { WAITLIST_LIMITS } from "@/config/contact";
 import { OG_IMAGE } from "@/config/og";
 import Link from "next/link";
 
@@ -113,6 +114,7 @@ export default function PrAgenciesPage() {
                 id="pr-domain"
                 name="domain"
                 type="text"
+                maxLength={WAITLIST_LIMITS.domain}
                 inputMode="url"
                 autoComplete="url"
                 placeholder="yourdomain.com"

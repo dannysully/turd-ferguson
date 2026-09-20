@@ -1,3 +1,4 @@
+import { WAITLIST_LIMITS } from "@/config/contact";
 import { QUESTIONS } from "@/config/scan-shape";
 import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
 import { ORG_REF, SITE_REF, ld } from "@/config/schema";
@@ -142,6 +143,7 @@ export default function HomeFaq() {
                 id="close-domain"
                 name="domain"
                 type="text"
+                maxLength={WAITLIST_LIMITS.domain}
                 inputMode="url"
                 autoComplete="url"
                 placeholder="yourdomain.com"
