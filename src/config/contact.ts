@@ -107,6 +107,23 @@ export const COVERAGE_LIMITS = {
   brand: { min: 2, max: 80 },
   topic: { min: 2, max: 120 },
   segment: { min: 2, max: 80 },
+  /**
+   * The two pasted blocks on the benchmark form, bounded as whole textareas
+   * rather than per line.
+   *
+   * Per line is what the eye expects and it is the wrong unit - the field is
+   * one string on the wire, the server bounds one string, and a per-line bound
+   * in the browser would leave the actual body unbounded.
+   *
+   * The row ceilings, MAX_COVERAGE_URLS and MAX_AGENCY_PROMPTS, are separate
+   * and do a different thing. They cap how many lines are *used*, after
+   * parsing. These cap how much can be typed at all.
+   *
+   * Sized to hold those ceilings with slack - five long URLs carrying campaign
+   * tracking tags, and five prompts of a sentence each.
+   */
+  links: { min: 0, max: 2000 },
+  prompts: { min: 0, max: 1000 },
 };
 
 /**

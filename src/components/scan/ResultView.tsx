@@ -23,6 +23,7 @@ import {
   resultFigures,
 } from "./result-figures";
 import { btn, field, label } from "./screens";
+import WalkthroughForm from "./WalkthroughForm";
 
 /**
  * The result, free and unlocked, from Flow2Free.dc.html and Flow3Report.dc.html.
@@ -516,111 +517,6 @@ function PlanCards(p: { r: RunScanResponse }) {
         </div>
       ))}
     </div>
-  );
-}
-
-/* ── alwaystracked, and the only call to action ── */
-
-/**
- * The ask, since 24 September 2026. Danny: the result should lead into
- * alwaystracked, and the CTA is purely a walkthrough - a Loom of the platform
- * or a demo call with him. alwaystracked is set up per client rather than
- * self-serve today, so "see it" means somebody shows you.
- *
- * What this section must keep straight: alwaystracked reports, it does not
- * place. The placements are alwaysmentioned, which is a service.
- */
-function WalkthroughForm(p: { token: string }) {
-  const [kind, setKind] = useState<"video" | "demo">("video");
-  const [email, setEmail] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState("");
-  const [done, setDone] = useState("");
-
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    setErr("");
-    setBusy(true);
-    try {
-      const headers = new Headers();
-      headers.set("content-type", "application/json");
-      const res = await fetch("/api/scan/" + p.token + "/walkthrough", {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ email, kind }),
-      });
-      const data = await res.json();
-      if (!res.ok && res.status !== 429) {
-        setErr(data.message ?? "That did not go through. Please try again.");
-        return;
-      }
-      setDone(data.message ?? "Thanks. Danny will be in touch.");
-      track("walkthrough_requested", { kind });
-    } catch {
-      setErr("We could not reach the checker. Please try again.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  if (done) {
-    return (
-      <p aria-live="polite" style={{ margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.ink }}>
-        {done}
-      </p>
-    );
-  }
-
-  const options: { key: "video" | "demo"; title: string; note: string }[] = [
-    { key: "video", title: "Walkthrough video", note: "A Loom of the platform, recorded against this report." },
-    { key: "demo", title: "Book a demo", note: "Danny takes you through it on a call." },
-  ];
-
-  return (
-    <form onSubmit={submit} noValidate>
-      <div role="radiogroup" aria-label="How would you like to see it" className="wt-toggle">
-        {options.map((o) => (
-          <button
-            key={o.key}
-            type="button"
-            role="radio"
-            aria-checked={kind === o.key}
-            onClick={() => setKind(o.key)}
-            className={"wt-option" + (kind === o.key ? " wt-option--on" : "")}
-          >
-            <span style={{ fontSize: "14px", fontWeight: 600, color: T.ink }}>{o.title}</span>
-            <span style={{ fontSize: "12.5px", color: T.soft, lineHeight: 1.5 }}>{o.note}</span>
-          </button>
-        ))}
-      </div>
-      <label htmlFor="wt-email" style={{ ...label, marginTop: "14px", display: "block" }}>
-        Work email
-      </label>
-      <input
-        id="wt-email"
-        type="email"
-        name="email"
-        autoComplete="email"
-        maxLength={SCAN_LIMITS.email}
-        required
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        style={field}
-        aria-invalid={Boolean(err)}
-        aria-describedby={err ? "wt-error" : undefined}
-      />
-      {err ? (
-        <p id="wt-error" role="alert" style={{ fontSize: "13px", color: T.badFg, marginTop: "8px" }}>
-          {err}
-        </p>
-      ) : null}
-      <button type="submit" className="btn-primary" style={{ ...btn, width: "100%", marginTop: "12px" }} disabled={busy}>
-        {busy ? "Sending" : kind === "video" ? "Send me the walkthrough" : "Request a demo"}
-      </button>
-      <p style={{ fontSize: "12px", color: T.soft, marginTop: "10px", lineHeight: 1.5 }}>
-        We use it to send you the walkthrough or arrange the call, and nothing else. <a href="/legal">What we collect</a>.
-      </p>
-    </form>
   );
 }
 

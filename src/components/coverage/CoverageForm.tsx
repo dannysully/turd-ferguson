@@ -6,7 +6,8 @@ import { useState } from "react";
 import Turnstile from "@/components/scan/Turnstile";
 import { COVERAGE_LIMITS, WAITLIST_LIMITS } from "@/config/contact";
 import { MICRO, T } from "@/config/tokens";
-import { MAX_COVERAGE_BYTES, MAX_COVERAGE_ROWS, parseCoverageCsv } from "@/lib/coverage/csv";
+import { MAX_COVERAGE_BYTES, MAX_COVERAGE_ROWS, MAX_COVERAGE_URLS, parseCoverageCsv } from "@/lib/coverage/csv";
+import { MAX_AGENCY_PROMPTS } from "@/lib/coverage/prompts";
 import { count } from "@/lib/plural";
 
 /**
@@ -47,6 +48,18 @@ export default function CoverageForm() {
   const [segment, setSegment] = useState("");
   const [market, setMarket] = useState<"UK" | "US">("UK");
   const [csv, setCsv] = useState("");
+  /**
+   * Pasted URLs, one per line, which is how a publicist actually has them.
+   *
+   * A separate field from the file rather than a second way to fill the same
+   * one: a reader who has pasted three links and then picks a file is doing
+   * something deliberate, and silently discarding either half would be worse
+   * than either. Both are parsed by the same function and concatenated, and
+   * the count under them is the count of what will actually be read.
+   */
+  const [pasted, setPasted] = useState("");
+  /** The agency's own prompts, one per line. Optional. */
+  const [prompts, setPrompts] = useState("");
   const [fileNote, setFileNote] = useState("");
   /**
    * True when the chosen file yielded no links at all. Kept apart from
@@ -132,6 +145,21 @@ export default function CoverageForm() {
     setFileUnread(unread);
   }
 
+  /**
+   * Everything the reading will be given, from both fields, through the one
+   * parser the server uses.
+   *
+   * Built on every render rather than kept in state, because it is a function
+   * of two fields and a second copy in state is a second thing to keep in step
+   * - which is the defect this repo keeps paying for. `parseCoverageCsv` is
+   * already in this bundle and a handful of lines costs nothing.
+   */
+  const coverageText = [pasted, csv].filter((t) => t.trim()).join("\n");
+  const coverageFound = parseCoverageCsv(coverageText).rows.length;
+  const coverageKept = Math.min(coverageFound, MAX_COVERAGE_URLS);
+  const promptLines = prompts.split(/\r\n|\r|\n/).map((l) => l.trim()).filter(Boolean);
+  const promptsKept = Math.min(promptLines.length, MAX_AGENCY_PROMPTS);
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
@@ -140,7 +168,17 @@ export default function CoverageForm() {
       const res = await fetch("/api/coverage-check", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ brand, domain, topic, segment, market, coverageCsv: csv, turnstileToken }),
+        body: JSON.stringify({
+          brand,
+          domain,
+          topic,
+          segment,
+          market,
+          coverageLinks: pasted,
+          coverageCsv: csv,
+          coveragePrompts: prompts,
+          turnstileToken,
+        }),
       });
       const json = (await res.json()) as { token?: string; message?: string };
       if (!res.ok || !json.token) {
@@ -196,7 +234,7 @@ export default function CoverageForm() {
         </div>
         <div>
           <label htmlFor="cc-topic" style={labelStyle}>
-            What the campaign is about
+            What the client should be referenced for
           </label>
           <input
             id="cc-topic"
@@ -208,8 +246,8 @@ export default function CoverageForm() {
             required
           />
           <p style={{ margin: "6px 0 0", fontSize: "12.5px", color: T.soft, lineHeight: 1.5 }}>
-            A capability or a claim, not a headline. &ldquo;Same-day settlement&rdquo;, not &ldquo;Brand announces
-            exciting news&rdquo;.
+            The thing you want the answer to name them for. A capability or a claim, not a headline -
+            &ldquo;same-day settlement&rdquo;, not &ldquo;Brand announces exciting news&rdquo;.
           </p>
         </div>
         <div>
@@ -244,9 +282,26 @@ export default function CoverageForm() {
           </select>
         </div>
         <div>
-          <label htmlFor="cc-coverage" style={labelStyle}>
+          <label htmlFor="cc-links" style={labelStyle}>
             Coverage <span style={{ fontWeight: 400, color: T.soft }}>optional</span>
           </label>
+          <textarea
+            id="cc-links"
+            style={{ ...field, minHeight: "96px", resize: "vertical" }}
+            maxLength={COVERAGE_LIMITS.links.max}
+            /* No scheme, deliberately. `parseCoverageCsv` and `comparableUrl` both
+                accept a bare host, and `route-closure.test.mts` reads an https
+                literal in a component as an origin the page loads - which this
+                is not, it is example text in a placeholder. The shorter form
+                is also what somebody pasting out of a coverage report has. */
+            placeholder={"publication.com/the-piece-you-placed\nanother.com/and-the-next"}
+            value={pasted}
+            onChange={(e) => setPasted(e.target.value)}
+          />
+          <p style={{ margin: "6px 0 0", fontSize: "12.5px", color: T.soft, lineHeight: 1.5 }}>
+            {`One URL per line, up to ${MAX_COVERAGE_URLS}. We report on each one: whether the engines cited that page, or the publication, or neither.`}
+          </p>
+          <p style={{ margin: "10px 0 6px", ...MICRO }}>or upload a list</p>
           <input id="cc-coverage" type="file" accept=".csv,.txt,text/csv,text/plain" onChange={onFile} style={{ ...field, padding: "9px 11px" }} />
           {/* The parse result, and the only feedback a chosen file gets. It is
               polite rather than assertive because it is usually good news -
@@ -267,6 +322,41 @@ export default function CoverageForm() {
           >
             {fileNote || "A CSV of the URLs you placed. Any column will do; we find the links."}
           </p>
+          {/* What will actually be read, from both fields at once. Said before
+              the submit rather than after the reading starts, because this is
+              the last moment anybody can do anything about it - and a list
+              silently cut to five is the same class of defect as a file whose
+              link column held headlines. */}
+          {coverageFound > 0 && (
+            <p role="status" style={{ margin: "8px 0 0", fontSize: "12.5px", color: coverageFound > MAX_COVERAGE_URLS ? T.badFg : T.soft, lineHeight: 1.5 }}>
+              {coverageFound > MAX_COVERAGE_URLS
+                ? `${count(coverageFound, "link")} found, and the reading reports on the first ${MAX_COVERAGE_URLS}.`
+                : `${count(coverageKept, "link")} ready to check.`}
+            </p>
+          )}
+        </div>
+        <div>
+          <label htmlFor="cc-prompts" style={labelStyle}>
+            Your own prompts <span style={{ fontWeight: 400, color: T.soft }}>optional</span>
+          </label>
+          <textarea
+            id="cc-prompts"
+            style={{ ...field, minHeight: "96px", resize: "vertical" }}
+            maxLength={COVERAGE_LIMITS.prompts.max}
+            placeholder={"who offers same-day settlement for independent retailers\nbest payment providers for small shops"}
+            value={prompts}
+            onChange={(e) => setPrompts(e.target.value)}
+          />
+          <p style={{ margin: "6px 0 0", fontSize: "12.5px", color: T.soft, lineHeight: 1.5 }}>
+            {`One per line, up to ${MAX_AGENCY_PROMPTS}. Leave it empty and we ask our own ${MAX_AGENCY_PROMPTS} - the same ones every time, so a later reading can be compared against this one.`}
+          </p>
+          {promptLines.length > 0 && (
+            <p role="status" style={{ margin: "8px 0 0", fontSize: "12.5px", color: promptLines.length > MAX_AGENCY_PROMPTS ? T.badFg : T.soft, lineHeight: 1.5 }}>
+              {promptLines.length > MAX_AGENCY_PROMPTS
+                ? `${count(promptLines.length, "prompt")} written, and we ask the first ${MAX_AGENCY_PROMPTS}.`
+                : `${count(promptsKept, "prompt")}, asked as you wrote them.`}
+            </p>
+          )}
         </div>
       </div>
 

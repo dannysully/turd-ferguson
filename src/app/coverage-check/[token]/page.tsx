@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import ReadingPoll from "@/components/coverage/ReadingPoll";
+import TierName from "@/components/TierName";
+import WalkthroughForm from "@/components/scan/WalkthroughForm";
 import RerunButton from "@/components/coverage/RerunButton";
 import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
 import { COVERAGE_PROMPT_COUNT } from "@/lib/coverage/prompts";
@@ -94,7 +96,7 @@ export default async function CampaignReadingPage({ params }: { params: Promise<
   const data = await readCampaign(token);
   if (!data) notFound();
 
-  const { campaign, reading, questions, sources, coverage, named, history } = data;
+  const { campaign, reading, questions, sources, coverage, pieces, named, history } = data;
   /**
    * Exactly one of four states - see `reading-state.ts` for what used to be
    * wrong with three and a fall-through.
@@ -265,6 +267,68 @@ export default async function CampaignReadingPage({ params }: { params: Promise<
         </section>
       )}
 
+      {/* The piece-by-piece reading, which is the finding a PR agency came
+          for. Above the domain-level list because "did they cite the thing I
+          placed" is a different question from "what are they citing", and it
+          is the one that was asked.
+
+          Two columns, never summed: an engine that cited the page is a
+          stronger claim than one that cited the publication, and collapsing
+          them would tell somebody their placement was cited when what was
+          cited was a five-year-old article on the same title. `pieces.ts`
+          keeps them apart and its tests hold them apart.
+
+          Nothing here is phrased as an effect. One reading has no before, so
+          a cited placement is a fact about this reading and not evidence the
+          placement caused anything. */}
+      {complete && pieces.length > 0 && (
+        <section>
+          <div className="board-head" style={{ ...GRID12, marginBottom: "14px" }}>
+            <h2 style={{ ...H2, gridColumn: "span 4" }}>Your coverage, piece by piece</h2>
+            <p style={{ gridColumn: "span 8", margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
+              For each URL you gave us, whether an engine cited that page, or the publication it is on, or neither -
+              on these {count(questions.length, "question")}. This is one reading, so it says what is true now and
+              nothing about what the coverage moved.
+            </p>
+          </div>
+
+          <div style={{ ...CARD, overflow: "hidden" }}>
+            {pieces.map((piece, i) => {
+              const cited = piece.pageEngines.length > 0;
+              const onTitle = piece.publicationEngines.length > 0;
+              return (
+                <div
+                  key={piece.url}
+                  style={{ padding: "14px 26px", borderTop: i ? `1px solid ${T.hair}` : undefined }}
+                >
+                  <div style={{ display: "flex", alignItems: "baseline", gap: "10px", flexWrap: "wrap" }}>
+                    <span style={{ fontSize: "13px", color: T.ink, fontWeight: 600 }}>{piece.domain}</span>
+                    <span
+                      style={pill(
+                        cited ? T.goodBg : onTitle ? T.warnBg : T.chip,
+                        cited ? T.goodFg : onTitle ? T.warnFg : T.soft,
+                      )}
+                    >
+                      {cited ? "page cited" : onTitle ? "publication cited" : "not cited"}
+                    </span>
+                  </div>
+                  <p style={{ margin: "5px 0 0", fontSize: "12.5px", color: T.soft, lineHeight: 1.5, wordBreak: "break-all" }}>
+                    {piece.url}
+                  </p>
+                  <p style={{ margin: "7px 0 0", fontSize: "12.5px", color: T.soft, lineHeight: 1.55 }}>
+                    {cited
+                      ? `Cited by ${piece.pageEngines.map((e) => ENGINE_SPECS[e].label).join(", ")}.`
+                      : onTitle
+                        ? `${piece.publicationEngines.map((e) => ENGINE_SPECS[e].label).join(", ")} cited ${piece.domain}, but a different page on it.`
+                        : "No engine cited this page or this publication on these questions."}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       {complete && (
         <section>
           <div className="board-head" style={{ ...GRID12, marginBottom: "14px" }}>
@@ -354,6 +418,69 @@ export default async function CampaignReadingPage({ params }: { params: Promise<
         </section>
       )}
 
+      {/* The one call to action, and the same one the scan report makes.
+
+          alwaystracked is what this reading is a sample of: the dashboards do
+          per-placement ranking impact mapped against when each piece went
+          live, AI visibility on the agency's own prompts, and which
+          publications actually get cited. None of that is in a free reading
+          and the copy below must never imply it is - a reading is one dated
+          measurement with no before.
+
+          The before-and-after mapping carries [VERIFY]: it is a claim about
+          what alwaystracked does, and nobody has stood a dated source behind
+          it yet. */}
+      {complete && reading?.scanToken && (
+        <section>
+          <div className="board-head" style={{ ...GRID12, marginBottom: "14px" }}>
+            <h2 style={{ ...H2, gridColumn: "span 4" }}>
+              Did my coverage move rankings and AI visibility?
+            </h2>
+            <p style={{ gridColumn: "span 8", margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
+              This reading answers half of it: who the engines name today, and whether your placements are among the
+              sources. The half it cannot answer is what changed, because it is one reading and there is nothing
+              before it to compare against. That is what <TierName tier="tracked" /> is for.
+            </p>
+          </div>
+
+          <div style={{ ...CARD, padding: "20px 24px" }}>
+            <div style={{ display: "grid", gap: "12px" }}>
+              {[
+                {
+                  t: "Upload placements and coverage",
+                  b: "The same list you gave this reading, kept as the campaign runs rather than re-uploaded each time.",
+                },
+                {
+                  t: "Ranking impact, mapped to when each piece went live",
+                  b: "Before and after, per the link in the coverage, against the date the placement landed. [VERIFY]",
+                },
+                {
+                  t: "AI visibility on your own prompts",
+                  b: "Your prompts, asked on a schedule, and whether the placements move them.",
+                },
+                {
+                  t: "Publications to target",
+                  b: "Not every publication gets cited. Which ones do, in your client's category, is a KPI you can take to them.",
+                },
+              ].map((row) => (
+                <div key={row.t} style={{ borderTop: "1px solid " + T.line, paddingTop: "12px" }}>
+                  <div style={{ fontSize: "14px", fontWeight: 600, color: T.ink }}>{row.t}</div>
+                  <p style={{ margin: "4px 0 0", fontSize: "13px", color: T.soft, lineHeight: 1.55 }}>{row.b}</p>
+                </div>
+              ))}
+            </div>
+
+            <p style={{ margin: "16px 0 0", fontSize: "13px", color: T.soft, lineHeight: 1.6 }}>
+              It is set up per client rather than self-serve, so the quickest way to see it is a walkthrough of this
+              reading.
+            </p>
+            <div style={{ marginTop: "14px" }}>
+              <WalkthroughForm token={reading.scanToken} />
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Every state but a pass in flight, which is also exactly what the rerun
           route accepts. `stalled` is the point of the change: it is the only
           state where the re-run is the *only* thing that can move the page on,
@@ -375,7 +502,7 @@ export default async function CampaignReadingPage({ params }: { params: Promise<
                   " for the first time and gives you the starting line the next reading is compared to."
                 : history.length > 1
                   ? "Each one is kept as it was taken. A re-run writes a new reading and never edits an old one, which is what makes the first one worth having."
-                  : "Run it again once the coverage has had time to land. The same questions, word for word, against the same uploaded list - so what changed is the answer rather than the question."}
+                  : "Run it again once the coverage has had time to land. The same questions, unchanged, against the same uploaded list - so what changed is the answer rather than the question."}
             </p>
           </div>
 

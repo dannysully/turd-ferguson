@@ -7,6 +7,7 @@ import TierName from "@/components/TierName";
 import { TIERS } from "@/config/pricing";
 import { FREE_ANSWERS } from "@/config/scan-shape";
 import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
+import { MAX_COVERAGE_URLS } from "@/lib/coverage/csv";
 
 export const metadata: Metadata = {
   title: "For PR agencies",
@@ -153,7 +154,7 @@ export default function PrAgenciesPage() {
           <div style={{ marginTop: "14px", paddingTop: "14px", borderTop: `1px solid ${T.hair}` }}>
             <div style={{ fontSize: "13.5px", fontWeight: 600, color: T.ink }}>Already have a campaign to check?</div>
             <p style={{ margin: "5px 0 10px", fontSize: "13px", lineHeight: 1.55, color: T.soft }}>
-              See which pieces the engines are actually reading, and what the answers said before you started.
+              See which pieces the engines are actually reading, and which sites they cite instead.
             </p>
             <Link
               href="/coverage-check"
@@ -174,6 +175,50 @@ export default function PrAgenciesPage() {
           </div>
         </div>
       </div>
+
+      {/* The coverage checker, given its own band rather than a line under
+          the scan form. It is the thing on this page a PR agency can act on
+          today with a campaign they have already run, and it was a footnote
+          beneath a different tool's form.
+
+          The copy is deliberate about what a reading is: it is taken now. An
+          earlier version of the card offered "what the answers said before you
+          started", which the tool cannot do - there is no history to read, and
+          the whole point of taking a reading is that it becomes the before. */}
+      <section style={{ ...CARD, padding: "24px 26px", background: T.wash, borderColor: T.washLine }}>
+        <div style={{ ...GRID12, alignItems: "center", rowGap: "14px" }}>
+          <div style={{ gridColumn: "span 8" }}>
+            <div style={MICRO}>Free campaign benchmark</div>
+            <h2 style={{ ...H2, margin: "8px 0 0", fontSize: "22px" }}>
+              Check a campaign you have already placed
+            </h2>
+            <p style={{ margin: "8px 0 0", fontSize: "14px", lineHeight: 1.6, color: T.soft, maxWidth: "58ch" }}>
+              Give us the client, up to {MAX_COVERAGE_URLS} coverage URLs and your own prompts. We ask the engines and
+              tell you, piece by piece, whether they cited that page, the publication, or neither - and which sites
+              they are citing instead. One free reading per client domain, and it becomes the line the next one is
+              measured against.
+            </p>
+          </div>
+          <div style={{ gridColumn: "span 4", display: "flex", justifyContent: "flex-end" }}>
+            <Link
+              href="/coverage-check"
+              className="btn-primary"
+              style={{
+                display: "inline-block",
+                background: T.accent,
+                color: "#ffffff",
+                fontSize: "14.5px",
+                fontWeight: 600,
+                padding: "12px 20px",
+                borderRadius: "10px",
+                textDecoration: "none",
+              }}
+            >
+              Take a free reading
+            </Link>
+          </div>
+        </div>
+      </section>
 
       <section>
         <div className="board-head" style={{ ...GRID12, marginBottom: "16px" }}>

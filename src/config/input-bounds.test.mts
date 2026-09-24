@@ -168,7 +168,9 @@ const EXEMPT: Record<string, Exemption> = {
       { file: "components/coverage/CoverageForm.tsx", needs: "file.size > MAX_COVERAGE_BYTES" },
       {
         file: "app/api/coverage-check/route.ts",
-        needs: 'Buffer.byteLength(csv, "utf8") > MAX_COVERAGE_BYTES',
+        // `csv` until 24 Sep 2026, when the pasted block became its own field
+        // and the file half kept the byte bound under its own name.
+        needs: 'Buffer.byteLength(file, "utf8") > MAX_COVERAGE_BYTES',
       },
     ],
   },
@@ -563,7 +565,9 @@ test("the table reader finds the tables and keys this test thinks it does", () =
   // is the case a `[^}]*` slice gets wrong.
   const coverage = TABLES.find((t) => t.table === "COVERAGE_LIMITS");
   assert.ok(coverage, "COVERAGE_LIMITS was not parsed");
-  assert.deepEqual([...coverage.keys].sort(), ["brand", "segment", "topic"]);
+  // links and prompts from 24 Sep 2026 - the benchmark form's two pasted
+  // blocks, which are typed into and so are bounded here rather than by bytes.
+  assert.deepEqual([...coverage.keys].sort(), ["brand", "links", "prompts", "segment", "topic"]);
 });
 
 /**

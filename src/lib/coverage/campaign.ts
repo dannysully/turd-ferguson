@@ -5,7 +5,7 @@ import type { Engine } from "@/lib/scan/engines";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 import type { CoverageRow } from "./csv";
-import { coveragePrompts } from "./prompts";
+import { type CoveragePrompt, coveragePrompts } from "./prompts";
 
 /**
  * Starting a campaign benchmark: the campaign, its coverage list, and the first
@@ -42,6 +42,49 @@ import { coveragePrompts } from "./prompts";
  * right outcome anyway; deleting live rows is not ours to do.
  */
 
+/**
+ * The question set of a campaign's newest reading, as prompts.
+ *
+ * Null when the campaign has no reading with questions yet, which sends the
+ * caller to the template - the right answer for a first reading and a harmless
+ * one for a re-run of a campaign whose first reading never got that far.
+ *
+ * `kind` comes back off the row as free text and is not mapped back onto
+ * `PromptKind`: nothing downstream of here reads it as one, and inventing a
+ * cast to a union the database does not enforce would be a lie about what was
+ * stored. The `why` is not stored at all - it is ours, written about the fixed
+ * five - so a copied question carries the neutral line.
+ */
+async function previousQuestions(campaignId: string): Promise<CoveragePrompt[] | null> {
+  const db = supabaseAdmin();
+  const { data: scan, error: scanErr } = await db
+    .from("scans")
+    .select("id")
+    .eq("campaign_id", campaignId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (scanErr) throw new BenchmarkStoreError("previous", scanErr.message);
+  if (!scan) return null;
+
+  const { data: rows, error: qErr } = await db
+    .from("scan_questions")
+    .select("idx, question, kind")
+    .eq("scan_id", scan.id)
+    .order("idx", { ascending: true });
+  if (qErr) throw new BenchmarkStoreError("previous", qErr.message);
+  if (!rows?.length) return null;
+
+  return rows
+    .map((r) => String(r.question ?? "").trim())
+    .filter(Boolean)
+    .map((question) => ({
+      kind: "Category" as const,
+      question,
+      why: "Asked again, exactly as the last reading asked it.",
+    }));
+}
+
 export class BenchmarkStoreError extends Error {
   /** Which of the four writes failed. Goes to the log, never to the visitor. */
   readonly step: string;
@@ -63,6 +106,8 @@ export type BenchmarkRequest = {
   /** Frozen onto the reading, exactly as a free scan freezes its own. */
   engines: Engine[];
   coverage: CoverageRow[];
+  /** The agency's own questions, when they gave us any. */
+  prompts?: CoveragePrompt[];
 };
 
 export type BenchmarkStart = {
@@ -125,6 +170,7 @@ export async function startBenchmark(req: BenchmarkRequest): Promise<BenchmarkSt
     market: req.market,
     ipHash: req.ipHash,
     engines: req.engines,
+    prompts: req.prompts,
   });
 
   return {
@@ -146,11 +192,25 @@ export async function startBenchmark(req: BenchmarkRequest): Promise<BenchmarkSt
  * would look like a result, and the comparison would silently be against a
  * different question.
  *
- * The prompts are rebuilt from the campaign's own stored brand, topic and
- * segment rather than copied off the previous reading's rows. The same inputs
- * through the same deterministic template give the same five strings, which
- * `prompts.test.mts` pins - so this is the same set by construction rather than
- * by a copy that somebody could edit one half of.
+ * ## Where the question set comes from, and why a re-run copies it
+ *
+ * This used to rebuild the prompts from the campaign's stored brand, topic and
+ * segment on every reading, and that was sound while the template was the only
+ * source they could have: the same inputs through the same deterministic
+ * function give the same five strings, which `prompts.test.mts` pins.
+ *
+ * It stopped being sound the moment an agency could supply its own five. Those
+ * live on the reading's `scan_questions` rows and nowhere else - there is no
+ * column on `campaigns` holding them - so a re-run that rebuilt from the
+ * template would quietly ask the fixed five instead of the agency's, finish,
+ * look exactly like a result, and destroy the only thing a benchmark is for.
+ * That is the invisible failure this file's header is about, reached from a
+ * direction the header did not cover.
+ *
+ * So a re-run now copies the previous reading's questions, whatever they are.
+ * For a template campaign the copy and the rebuild agree by construction; for
+ * an agency's own set the copy is the only thing that can be right. `prompts`
+ * is passed only by the first reading, which is the one that has no previous.
  *
  * Returns the new scan id, for the caller's `after(() => runScan(id))`.
  */
@@ -163,8 +223,23 @@ export async function addReading(input: {
   market: Market;
   ipHash: string;
   engines: Engine[];
+  /**
+   * The first reading's question set, when the agency supplied one. Omitted by
+   * a re-run, which takes the previous reading's rows instead - see the header.
+   */
+  prompts?: CoveragePrompt[];
 }): Promise<string> {
   const db = supabaseAdmin();
+
+  /**
+   * What the last reading of this campaign asked, for a re-run to ask again.
+   *
+   * Read before the new row is inserted, so "the newest reading" cannot be the
+   * one being created. Ordered by `created_at` on the scans side and by `idx`
+   * on the questions side, because the order is part of what is being repeated
+   * - the reading page numbers them and a comparison reads row against row.
+   */
+  const previous = input.prompts ? null : await previousQuestions(input.campaignId);
 
   /**
    * Born at `pending_topic` so that nothing can run it until its questions are
@@ -197,11 +272,19 @@ export async function addReading(input: {
     throw new BenchmarkStoreError("reading", scanErr?.message ?? "no scan row came back");
   }
 
-  const prompts = coveragePrompts({
-    brand: input.brand,
-    topic: input.topic,
-    segment: input.segment ?? undefined,
-  });
+  /**
+   * Supplied set, then the previous reading's, then the template. The last is
+   * the first reading of a campaign that gave us no prompts of its own, which
+   * is still the common case.
+   */
+  const prompts =
+    input.prompts ??
+    previous ??
+    coveragePrompts({
+      brand: input.brand,
+      topic: input.topic,
+      segment: input.segment ?? undefined,
+    });
   const { error: qErr } = await db.from("scan_questions").insert(
     prompts.map((p, idx) => ({
       scan_id: scan.id,

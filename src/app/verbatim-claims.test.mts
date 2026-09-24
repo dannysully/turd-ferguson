@@ -90,7 +90,10 @@ const SURFACES: { file: string; sites: number; why: string }[] = [
   },
   {
     file: "src/app/coverage-check/[token]/page.tsx",
-    sites: 2,
+    // 2 until 24 Sep 2026: the re-run lead said the same questions would be
+    // asked "word for word", which is the wording blocked.md 29 retires. It
+    // says "unchanged" now. The remaining one is a different sentence.
+    sites: 1,
     why: "NOT a swept page - BLOCKED in the capture manifest, needs a database and 404s without one (blocked.md 19)",
   },
   {
@@ -211,7 +214,7 @@ test("every listed surface still publishes it, and as many times as recorded", (
  * is blocked.md 30, and `reading-retention.test.mts` holds the facts so the
  * sentence cannot come back while they are still true.
  */
-test("the claim is published on seven sites, not the four a page walk sees", () => {
+test("the claim is published on six sites, not the four a page walk sees", () => {
   // Thirteen until 24 Sep 2026: the result screen's three came off with the
   // email gate. ScanFlow's two were the gate's own copy, and ResultView's
   // question table now says "what each engine said" - not the wording call
@@ -223,11 +226,15 @@ test("the claim is published on seven sites, not the four a page walk sees", () 
   // (the act reading "stored word for word"). Neither was rewritten - both
   // files went, and the four beats that replaced them make no claim about the
   // stored text at all.
+  //
+  // Six from the coverage rework later the same day: the benchmark reading's
+  // re-run lead promised the same questions "word for word" and now says
+  // "unchanged", which is one site off an off-page surface.
   const total = SURFACES.reduce((a, s) => a + s.sites, 0);
-  assert.equal(total, 7);
+  assert.equal(total, 6);
 
   const offPage = SURFACES.filter((s) => s.why.startsWith("NOT")).reduce((a, s) => a + s.sites, 0);
-  assert.equal(offPage, 5, "the surfaces no page sweep can reach");
+  assert.equal(offPage, 4, "the surfaces no page sweep can reach");
 });
 
 test("every surface records why the page sweeps can or cannot see it", () => {

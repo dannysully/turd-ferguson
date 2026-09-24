@@ -136,3 +136,53 @@ export function coveragePrompts(input: CampaignInput): CoveragePrompt[] {
  * day, because both were typed.
  */
 export const COVERAGE_PROMPT_COUNT = coveragePrompts(PLACEHOLDER).length;
+
+/**
+ * How many of the agency's own prompts a benchmark will take.
+ *
+ * Same number as the fixed template asks, and that is not a coincidence worth
+ * removing: the reading's whole shape - five rows of questions against the
+ * free engine set - is what the page, the result table and the spend ceilings
+ * are all sized for. An agency supplying its own questions is choosing what
+ * the five are, not how many there are.
+ */
+export const MAX_AGENCY_PROMPTS = COVERAGE_PROMPT_COUNT;
+
+/**
+ * The agency's own prompts, one per line, in place of the fixed five.
+ *
+ * Optional by design. The fixed template exists because a benchmark is two
+ * readings of the same thing at different times, so the phrasing has to be
+ * frozen - and that argument does not change when the phrasing is the agency's
+ * rather than ours. What changes is who froze it: a supplied prompt is stored
+ * on the reading exactly as a generated one is, and a re-run asks it again
+ * from the row rather than from this function. So the determinism the feature
+ * rests on is the same determinism, held one layer out.
+ *
+ * `why` is deliberately not invented. The fixed five each carry a sentence
+ * saying what they measure, written by us because we chose them; writing one
+ * for a question an agency typed would be us telling them what their own
+ * question is for. They get the neutral line instead.
+ *
+ * Nothing here validates that a line is a question. It is not ours to judge -
+ * "best crm for small teams" is a perfectly good prompt and is not a question
+ * by any test worth writing.
+ */
+export function agencyPrompts(lines: string[]): CoveragePrompt[] {
+  const seen = new Set<string>();
+  const out: CoveragePrompt[] = [];
+
+  for (const raw of lines) {
+    const question = tidy(raw);
+    if (!question) continue;
+    // Case-folded, because the same prompt typed twice with a capital is one
+    // prompt and asking it twice would bill two reads for one answer.
+    const key = question.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ kind: "Category", question, why: "Your own prompt, asked as you wrote it." });
+    if (out.length === MAX_AGENCY_PROMPTS) break;
+  }
+
+  return out;
+}

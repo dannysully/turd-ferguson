@@ -60,6 +60,20 @@ export type CoverageParse = {
  */
 export const MAX_COVERAGE_ROWS = 500;
 
+/**
+ * How many pieces of coverage one reading reports on, URL by URL.
+ *
+ * Far below `MAX_COVERAGE_ROWS`, and they answer different questions. That
+ * ceiling is what an anonymous form may insert; this is what the free reading
+ * will report on a row each, and a per-URL table of 500 rows is not a finding,
+ * it is a spreadsheet. An agency checking a campaign has a handful of
+ * placements it cares about.
+ *
+ * The parse still reads the whole file - the excess is dropped by the caller,
+ * which is what lets the form say how many were read and how many were not.
+ */
+export const MAX_COVERAGE_URLS = 5;
+
 /** The largest upload accepted, before parsing. 500 rows of URL is far under this. */
 export const MAX_COVERAGE_BYTES = 512 * 1024;
 

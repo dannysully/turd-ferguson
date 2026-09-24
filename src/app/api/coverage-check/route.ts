@@ -2,13 +2,15 @@ import { after } from "next/server";
 
 import { BenchmarkStoreError, startBenchmark } from "@/lib/coverage/campaign";
 import { COVERAGE_LIMITS } from "@/config/contact";
-import { MAX_COVERAGE_BYTES, MAX_COVERAGE_ROWS, parseCoverageCsv } from "@/lib/coverage/csv";
+import { MAX_COVERAGE_BYTES, MAX_COVERAGE_ROWS, MAX_COVERAGE_URLS, parseCoverageCsv } from "@/lib/coverage/csv";
+import { agencyPrompts, MAX_AGENCY_PROMPTS } from "@/lib/coverage/prompts";
 import { checkCeilings } from "@/lib/scan/ceilings";
 import { isMarket, isPlausibleDomain, normalizeDomain } from "@/lib/scan/domain";
 import { clientIp, hashIp } from "@/lib/scan/ip";
 import { runScan } from "@/lib/scan/pipeline";
 import { getSettings } from "@/lib/scan/settings";
 import { verifyTurnstile } from "@/lib/scan/turnstile";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 
 /**
  * Start a campaign benchmark.
@@ -35,6 +37,17 @@ export const dynamic = "force-dynamic";
  */
 export const maxDuration = 300;
 
+/**
+ * How long a domain's free reading lasts before another may be started.
+ *
+ * Thirty days because that is the shape of the thing being measured: a
+ * campaign lands, the engines take time to pick it up, and a second free
+ * reading a week later measures the lag rather than the campaign. Named here
+ * rather than typed into the sentence that refuses, so the number the visitor
+ * reads and the number enforced cannot come apart.
+ */
+const FREE_RUN_DAYS = 30;
+
 function fail(status: number, code: string, message: string) {
   return Response.json({ error: code, message }, { status });
 }
@@ -55,6 +68,8 @@ export async function POST(req: Request) {
     segment?: unknown;
     market?: unknown;
     coverageCsv?: unknown;
+    coverageLinks?: unknown;
+    coveragePrompts?: unknown;
     turnstileToken?: unknown;
   };
   try {
@@ -102,15 +117,97 @@ export async function POST(req: Request) {
    * only knowable after parsing and the parse itself is the work an unbounded
    * body would make us do.
    */
-  const csv = typeof body.coverageCsv === "string" ? body.coverageCsv : "";
-  if (Buffer.byteLength(csv, "utf8") > MAX_COVERAGE_BYTES) {
+  /**
+   * The pasted block and the uploaded file are two fields and are bounded
+   * differently, because they are two different things.
+   *
+   * A paste is somebody typing into a textarea, so it is bounded by the same
+   * constant the textarea is - `input-bounds.test.mts` holds those two in
+   * agreement, and a bound carried only by a `maxLength` is one a post that
+   * never rendered the form walks straight past. A file is a file, and is
+   * bounded by bytes.
+   *
+   * They are concatenated after both have passed, and parsed once.
+   */
+  const links = typeof body.coverageLinks === "string" ? body.coverageLinks : "";
+  if (links.length > COVERAGE_LIMITS.links.max) {
+    return fail(413, "links_too_long", "That is more coverage than we take here. Upload it as a file instead.");
+  }
+
+  const file = typeof body.coverageCsv === "string" ? body.coverageCsv : "";
+  const csv = [links, file].filter((t) => t.trim()).join("\n");
+  if (Buffer.byteLength(file, "utf8") > MAX_COVERAGE_BYTES) {
     return fail(
       413,
       "coverage_too_large",
       `That file is larger than we accept. Send up to ${MAX_COVERAGE_ROWS} URLs.`,
     );
   }
-  const coverage = parseCoverageCsv(csv);
+  const parsed = parseCoverageCsv(csv);
+  /**
+   * Capped at what the reading reports on, and the excess is dropped here
+   * rather than stored.
+   *
+   * Storing rows the page will never show would be storing somebody's coverage
+   * list for nothing, and the per-piece table is the finding now - a row that
+   * is inserted and never reported on is a promise the reading does not keep.
+   * The form tells them the same number before they submit, off the same
+   * parser, so this is a bound rather than a surprise.
+   */
+  const coverage = { ...parsed, rows: parsed.rows.slice(0, MAX_COVERAGE_URLS) };
+
+  /**
+   * The agency's own questions, when they sent any.
+   *
+   * Bounded and de-duplicated by `agencyPrompts`, which also drops blank
+   * lines, so an array of empty strings arrives here as no prompts at all and
+   * falls through to the fixed template - the same outcome as sending none.
+   */
+  const promptText = typeof body.coveragePrompts === "string" ? body.coveragePrompts : "";
+  if (promptText.length > COVERAGE_LIMITS.prompts.max) {
+    return fail(413, "prompts_too_long", `Keep it to ${MAX_AGENCY_PROMPTS} prompts, one per line.`);
+  }
+  const prompts = agencyPrompts(promptText.split(/\r\n|\r|\n/));
+
+  /**
+   * One free reading per domain in 30 days.
+   *
+   * Beside the IP ceiling rather than instead of it: that one is about what a
+   * caller may spend, and this is about what a domain may have. They catch
+   * different abuse - the same agency running the same client's domain from
+   * four offices is nothing the IP ceiling sees - and a benchmark is a dated
+   * starting line, so a second one a week later is not a second measurement of
+   * anything, it is the same measurement billed twice.
+   *
+   * A re-run is the supported way to take another reading, and it goes through
+   * `/api/coverage-check/[token]/rerun` against the campaign that already
+   * exists. That path is untouched by this: re-reading a campaign you hold the
+   * token for is the feature, and starting a fresh one for the same domain is
+   * what this refuses.
+   */
+  const db = supabaseAdmin();
+  const domainSince = new Date(Date.now() - FREE_RUN_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  const { data: recent, error: recentErr } = await db
+    .from("campaigns")
+    .select("created_at")
+    .eq("domain", domain)
+    .gte("created_at", domainSince)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (recentErr) {
+    // The read failing is ours, not theirs. Refusing a benchmark because our
+    // own ceiling query broke would be charging the visitor for our outage, so
+    // this logs and lets them through - the IP ceiling below is still standing.
+    console.warn("[coverage] could not check the per-domain ceiling: " + recentErr.message);
+  } else if (recent) {
+    return fail(
+      429,
+      "domain_recently_read",
+      `We have already taken a free reading for ${domain} in the last ${FREE_RUN_DAYS} days. ` +
+        "Open that reading's link to run it again, or get in touch and we will take another.",
+    );
+  }
 
   const settings = await getSettings();
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
@@ -137,6 +234,9 @@ export async function POST(req: Request) {
       // claiming engines it never read.
       engines: settings.scan_engines_free,
       coverage: coverage.rows,
+      // Undefined rather than an empty array, so `addReading` falls through to
+      // the template instead of inserting a reading with no questions on it.
+      prompts: prompts.length ? prompts : undefined,
     });
   } catch (err) {
     // Named by step in the log and generic on screen. Which of the four writes

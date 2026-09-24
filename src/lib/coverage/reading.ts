@@ -1,6 +1,8 @@
 import "server-only";
 
 import { type CitationCountRow, countCitedDomains } from "@/lib/coverage/citation-count";
+import { MAX_COVERAGE_URLS } from "@/lib/coverage/csv";
+import { type CoveragePiece, coveragePieces } from "@/lib/coverage/pieces";
 import {
   type ReadingAnswer,
   type ReadingQuestion,
@@ -66,6 +68,13 @@ export type CampaignReading = {
   /** The newest reading. Null only if the scan insert never landed. */
   reading: {
     id: string;
+    /**
+     * The reading's own scans token, which is what
+     * `/api/scan/[token]/walkthrough` looks a row up by. Not the campaign's
+     * public token - that is the credential in the page's URL and the
+     * walkthrough route 404s on it.
+     */
+    scanToken: string | null;
     status: string;
     step: string | null;
     error: string | null;
@@ -91,6 +100,11 @@ export type CampaignReading = {
     /** Placed domains no engine cited. The other half of the same finding. */
     uncited: string[];
   };
+  /**
+   * One row per uploaded piece, in upload order, capped at what the page
+   * reports on. Empty when the campaign uploaded nothing.
+   */
+  pieces: CoveragePiece[];
   /** Named in N of M answers, counted over the current reading. */
   named: { count: number; of: number };
   /** Every reading of this campaign, newest first. One today, more after a re-run. */
@@ -131,7 +145,7 @@ export async function readCampaign(token: string): Promise<CampaignReading | nul
    */
   const { data: scans, error: scansErr } = await db
     .from("scans")
-    .select("id, status, step, error, created_at, completed_at, engines, engines_answered")
+    .select("id, public_token, status, step, error, created_at, completed_at, engines, engines_answered")
     .eq("campaign_id", campaignId)
     .order("created_at", { ascending: false });
   if (scansErr) throw new Error("could not read the readings for a campaign: " + scansErr.message);
@@ -152,6 +166,7 @@ export async function readCampaign(token: string): Promise<CampaignReading | nul
     questions: [],
     sources: [],
     coverage: { uploaded: 0, cited: 0, uncited: [] },
+    pieces: [],
     named: { count: 0, of: 0 },
     history: [],
   };
@@ -173,6 +188,7 @@ export async function readCampaign(token: string): Promise<CampaignReading | nul
 
   base.reading = {
     id: readingId,
+    scanToken: (current.public_token as string | null) ?? null,
     status: current.status as string,
     step: (current.step as string | null) ?? null,
     error: (current.error as string | null) ?? null,
@@ -193,10 +209,10 @@ export async function readCampaign(token: string): Promise<CampaignReading | nul
    */
   const [coverageRows, questionRows, answerRows, citationRows, historyAnswers, historyQuestions] =
     await Promise.all([
-    selectAll<{ source_domain: string }>((from, to) =>
+    selectAll<{ url: string; source_domain: string }>((from, to) =>
       db
         .from("campaign_coverage")
-        .select("source_domain")
+        .select("url, source_domain")
         .eq("campaign_id", campaignId)
         .lte("added_at", current.created_at as string)
         .order("id", { ascending: true })
@@ -218,10 +234,10 @@ export async function readCampaign(token: string): Promise<CampaignReading | nul
         .order("id", { ascending: true })
         .range(from, to),
     ),
-    selectAll<CitationCountRow>((from, to) =>
+    selectAll<CitationCountRow & { url: string | null }>((from, to) =>
       db
         .from("scan_citations")
-        .select("source_domain, question_id, engine")
+        .select("source_domain, url, question_id, engine")
         .eq("scan_id", readingId)
         .order("id", { ascending: true })
         .range(from, to),
@@ -280,6 +296,16 @@ export async function readCampaign(token: string): Promise<CampaignReading | nul
   const counts = countCitedDomains(citationRows);
   base.sources = buildSources(counts, placed);
   base.coverage = buildCoverage(placed, counts);
+  /**
+   * The same rows again, read per piece rather than per domain.
+   *
+   * Capped at what the reading undertakes to report on rather than at what a
+   * campaign may have uploaded: `MAX_COVERAGE_ROWS` is an insert ceiling and
+   * this is a page. Taken in upload order off rows already ordered by id, so
+   * the five a reader sees are the first five they gave us rather than an
+   * arbitrary five.
+   */
+  base.pieces = coveragePieces(coverageRows.slice(0, MAX_COVERAGE_URLS), citationRows, engines);
 
   const answersByScan = new Map<string, { engine: string; brand_named: boolean }[]>();
   for (const a of historyAnswers) {

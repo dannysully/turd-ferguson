@@ -5,7 +5,8 @@ import Link from "next/link";
 import CoverageForm from "@/components/coverage/CoverageForm";
 import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
 import { FREE_ENGINE_COUNT, FREE_ENGINE_LABELS, listOf } from "@/config/scan-shape";
-import { COVERAGE_PROMPT_COUNT, PLACEHOLDER, coveragePrompts } from "@/lib/coverage/prompts";
+import { COVERAGE_PROMPT_COUNT, MAX_AGENCY_PROMPTS, PLACEHOLDER, coveragePrompts } from "@/lib/coverage/prompts";
+import { MAX_COVERAGE_URLS } from "@/lib/coverage/csv";
 
 /**
  * Every engine and question count on this page is derived, and it is derived
@@ -36,7 +37,7 @@ const ANSWERS = COVERAGE_PROMPT_COUNT * FREE_ENGINE_COUNT;
 export const metadata: Metadata = {
   title: "Free campaign benchmark",
   description:
-    `Take the reading before the campaign. ${COVERAGE_PROMPT_COUNT} fixed questions on the ${FREE_ENGINE_COUNT} engines a free scan reads, every cited source checked against your coverage - dated and re-runnable.`,
+    `Take the reading before the campaign. ${COVERAGE_PROMPT_COUNT} questions - ours or your own - on the ${FREE_ENGINE_COUNT} engines a free scan reads, with each piece of coverage checked page by page. Dated and re-runnable.`,
   openGraph: { url: "https://alwayscited.com/coverage-check", images: OG_IMAGE },
   alternates: { canonical: "https://alwayscited.com/coverage-check" },
 };
@@ -99,12 +100,12 @@ const PROMISES: { k: string; t: string; b: string }[] = [
   {
     k: "Evidence",
     t: "Is your coverage the source, or is a competitor",
-    b: "Every AI answer is assembled from pages. We show which pages built the description of your client, and mark the ones that came from your campaign. Two of four being a competitor comparison page is a finding.",
+    b: "Every AI answer is assembled from pages. Each URL you give us gets a row: cited as a page, cited as a publication but a different page on it, or not cited at all. Two of four being a competitor comparison page is a finding.",
   },
   {
     k: "A starting line",
     t: "Something to measure the next campaign against",
-    b: "The reading is dated and stored with its questions, so the same ones can be asked again after the campaign. Without that first reading there is nothing to compare, which is why this one is free.",
+    b: "The reading is dated and stored with its questions, so the same ones can be asked again after the campaign. Without that first reading there is nothing to compare, which is why this one is free - one per client domain.",
   },
 ];
 
@@ -129,10 +130,10 @@ export default function CoverageCheckPage() {
             Take the reading before the campaign. <span style={{ color: T.accent }}>Then it means something.</span>
           </h1>
           <p style={{ margin: "14px 0 0", fontSize: "15px", lineHeight: 1.65, color: T.soft, maxWidth: "62ch" }}>
-            The questions are built from the brand and what the campaign is about. We ask the same engines a free scan
-            reads - {listOf(FREE_ENGINE_LABELS)} - read every answer in full, and check every source they cite
-            against the coverage you upload. Dated, stored, and re-runnable - so the next reading is a comparison
-            rather than another snapshot.
+            Give us the client, up to {MAX_COVERAGE_URLS} coverage URLs and, if you have them, your own prompts. We
+            ask {listOf(FREE_ENGINE_LABELS)} - the same engines a free scan reads - and tell you piece by piece
+            whether they cited that page, the publication it is on, or neither, plus which sites they are citing
+            instead. Dated, stored and re-runnable, so the next reading is a comparison rather than another snapshot.
           </p>
         </div>
 
@@ -143,15 +144,16 @@ export default function CoverageCheckPage() {
 
       <section>
         <div className="board-head" style={{ ...GRID12, marginBottom: "14px" }}>
-          <h2 style={{ ...H2, gridColumn: "span 4" }}>These are the {COVERAGE_PROMPT_COUNT} we would ask</h2>
+          <h2 style={{ ...H2, gridColumn: "span 4" }}>These are the {COVERAGE_PROMPT_COUNT} we ask by default</h2>
           <p style={{ gridColumn: "span 8", margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
             {/* This read "you would get to edit them before anything ran" while
                 the form was a stub, describing a board rather than a build. The
                 run path does not offer that, and a fixed set is the better
                 promise anyway: a question that changes between two readings
                 makes a change in the answer unreadable. */}
-            Built from the brand and the campaign topic, not from your headlines. The wording is fixed, so the same
-            ones can be asked again after the campaign and the two readings compared.
+            Built from the brand and what you want the client referenced for, not from your headlines. Supply your
+            own {MAX_AGENCY_PROMPTS} instead if you track a prompt set already - either way the wording is frozen onto
+            the reading, so the same questions can be asked again after the campaign and the two compared.
           </p>
         </div>
 
