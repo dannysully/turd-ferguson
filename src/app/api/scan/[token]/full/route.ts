@@ -28,7 +28,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ token: string 
   // address for.
   const { data: scan, error: readErr } = await db
     .from("scans")
-    .select("id, unlocked_at, gated_engines, gated_status")
+    .select("id, status, unlocked_at, gated_engines, gated_status")
     .eq("public_token", token)
     .maybeSingle();
 
@@ -40,7 +40,14 @@ export async function GET(_req: Request, ctx: { params: Promise<{ token: string 
     );
   }
   if (!scan) return Response.json({ error: "not_found" }, { status: 404 });
-  if (!scan.unlocked_at) return Response.json({ error: "locked" }, { status: 403 });
+  /**
+   * Open for any finished scan, since 24 September 2026. Danny removed the
+   * email gate: the whole report - transcripts, placements, leaderboard - is
+   * the free result, and the address is asked for a walkthrough instead. The
+   * public token is still the credential, as it is for the teaser. 403 now
+   * means "not finished yet", which the screen already treats as no report.
+   */
+  if (scan.status !== "complete") return Response.json({ error: "not_ready" }, { status: 403 });
 
   /**
    * A read that fails is not a report with nothing in it.

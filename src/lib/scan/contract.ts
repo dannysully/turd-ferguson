@@ -131,6 +131,8 @@ export type EngineAnswer = {
   brand_named: boolean;
   /** Null when the engine said nothing, or when the purge has reclaimed it. */
   response_text: string | null;
+  /** What it cited for this question. Absent on the teaser and on older payloads. */
+  citations?: { domain: string; url: string | null; title: string | null }[];
 };
 
 export type RunScanResponse = {

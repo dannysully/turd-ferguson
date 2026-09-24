@@ -105,8 +105,14 @@ const BrandRead = z.object({
   topic_variants: z
     .array(z.string())
     .describe(
-      `Up to ${TOPIC_VARIANT_COUNT} ways buyers phrase this category, narrowed by what makes this brand different`,
+      `Up to ${TOPIC_VARIANT_COUNT} buyer phrases for the services it sells and the industries it serves`,
     ),
+  services: z
+    .array(z.string())
+    .describe("Up to five services the site says it sells, as a buyer would name each one"),
+  industries: z
+    .array(z.string())
+    .describe("Up to four industries or sectors the site shows it serves, strongest first - case studies and client lists count"),
   confidence: z.enum(["high", "low"]),
 });
 export type BrandRead = z.infer<typeof BrandRead>;
@@ -138,18 +144,28 @@ export async function readBrand(siteText: string, billed?: { calls: number }): P
       'Good: "b2b seo agency", "commercial epoxy flooring", "invoice finance".',
       'Bad: "growth partner", "digital transformation experts", "the Acme method".',
       "",
-      `Then give up to ${TOPIC_VARIANT_COUNT} topic variants. suggested_topic is the`,
-      "broad category; the variants are how buyers phrase it when they want the",
-      "particular kind of supplier this company is. Read the site for what",
-      "narrows it: who they serve, how they deliver, the stage or size of client,",
-      "the model they use.",
+      "Then read the site for two lists. The text may include several pages,",
+      "each headed with its address: the homepage, and where they exist the",
+      "services, industries, case studies or work pages.",
       "",
-      "A fractional CFO firm that embeds operators into venture-backed startups",
-      "should not return five rewordings of 'fractional cfo'. It should return",
-      "phrases such as 'embedded fractional cfo', 'outsourced cfo for startups',",
-      "'fractional cfo for vc backed companies', 'startup finance team',",
-      "'part time cfo services'. Each variant is a real search a different buyer",
-      "would type, and at least three should carry the narrowing the site gives you.",
+      "services: what they sell, as a buyer names each service. 'seo',",
+      "'answer engine optimisation', 'digital pr', 'paid search'. Not a slogan.",
+      "",
+      "industries: the sectors they serve, strongest evidence first. Case",
+      "studies and named clients are the best evidence - a firm with four retail",
+      "case studies serves retail even if the homepage never says so.",
+      "",
+      `Then give up to ${TOPIC_VARIANT_COUNT} topic variants, built from those lists:`,
+      "the category a buyer would search for, narrowed by a service or by an",
+      "industry. For a b2b seo agency with retail and ecommerce case studies:",
+      "'b2b seo agency', 'seo and aeo agency', 'seo agency for retail brands',",
+      "'ecommerce seo agency'.",
+      "",
+      "Variants must stay BROAD enough that a real buyer searches them. Never",
+      "narrow by how the company describes its own delivery or culture - no",
+      "'founder-led', 'senior-only', 'no junior handoff', 'boutique', 'award-",
+      "winning'. Those are the company's pitch, not a buyer's search, and no",
+      "engine will ever be asked them.",
       "",
       "Every variant is lower case, two to six words, no brand names, and must",
       "stand on its own as a search someone would actually run.",
@@ -243,6 +259,8 @@ export async function generateQuestions(input: {
   market: Market;
   brand: string;
   positioning: string | null;
+  services?: string[];
+  industries?: string[];
 }, billed: { calls: number } = { calls: 0 }): Promise<{ questions: GeneratedQuestion[]; calls: number }> {
   const marketName = input.market === "UK" ? "the United Kingdom" : "the United States";
   const year = currentYear();
@@ -262,48 +280,49 @@ export async function generateQuestions(input: {
     max_tokens: 8000,
     output_config: { effort: EFFORT, format: zodOutputFormat(QuestionSet) },
     system: [
-      `You write the ${QUESTION_COUNT} commercial questions a buyer in ${marketName}`,
-      "would actually type when they are close to choosing a supplier.",
+      `You write the ${QUESTION_COUNT} questions a buyer in ${marketName} would ask`,
+      "ChatGPT, Gemini, Perplexity or Google when they are choosing a supplier.",
       "",
-      "You are given a broad topic and, usually, several narrower variants read",
-      "from the company's own site. SPREAD THE QUESTIONS ACROSS THE VARIANTS.",
-      "Roughly a fifth on the broad topic and the rest distributed over the",
-      "narrower ones, so the set measures the category the brand actually",
-      "competes in, not just the widest possible phrase.",
+      "EVERY QUESTION ASKS FOR A RECOMMENDATION. The buyer wants names back:",
+      "'best ...', 'who are the best ...', 'top ... for ...', 'recommend a ...',",
+      "'which ... should i use for ...'. A question that does not invite the",
+      "engine to name suppliers cannot tell us whether this brand gets named,",
+      "so it is wasted.",
       "",
-      "A firm embedding finance operators into venture-backed startups is not",
-      `well measured by ${QUESTION_COUNT} versions of 'best fractional cfo'. It is well`,
-      "measured by questions about embedded finance teams, outsourced CFOs for",
-      "startups, and CFOs for VC-backed companies, because those are the",
-      "searches its buyers run.",
+      "Keep them BROAD. These are the questions a whole market asks, not a",
+      "description of this one company. The broad topic is the anchor; a",
+      "question narrows it by at most one thing - a service, an industry, or",
+      "the market. Never by how the company describes its own delivery,",
+      "seniority, culture or process. 'founder-led seo agency with senior-only",
+      "delivery' is the company's pitch and nobody asks it. 'best b2b seo",
+      "agency uk' is what gets asked.",
       "",
-      "The mix across the whole set is fixed:",
-      `- 3 category: the term as the market says it, one plain, one carrying the`,
-      `  year, one about cost or pricing. The current year is ${year}. If a question`,
-      `  carries a year it must be ${year} - never an earlier one, however familiar`,
-      `  an earlier one looks.`,
-      "- 5 positioning: the category re-framed the way this brand argues for",
-      "  itself, using its variants.",
-      "- 3 sector: the category plus the brand's strongest declared sector.",
-      "- 2 outcome: the category plus the result the buyer wants.",
-      "- 1 comparison: an 'X vs Y' or 'alternatives to' question.",
+      "Exactly one of each kind:",
+      "- category: the broad topic as a recommendation. 'best b2b seo agency uk'.",
+      "- positioning: the topic plus a service the site sells, as a buyer",
+      "  looking for that combination. 'agencies that offer seo and aeo as one",
+      "  service'.",
+      "- sector: the topic for the industry the site shows the strongest",
+      "  evidence of serving, from its case studies if it has them. 'best seo",
+      "  agency for retail brands'.",
+      "- outcome: the topic plus the result the buyer wants. 'which seo agency",
+      "  can get us recommended by chatgpt'.",
+      "- comparison: a ranked or shortlist request. 'top 10 b2b seo agencies in",
+      "  the uk' or 'who are the leading b2b seo agencies in the uk'.",
       "",
       "Never write a definition question. Nothing starting 'what is', 'what are',",
-      "'how does ... work', or 'why is ... important'. The engine answers those",
-      "inside its own response, the click never happens, and they inflate the",
-      "score while meaning nothing.",
+      "'how does ... work', or 'why is ... important'.",
       "",
-      "No two questions may be the same question with a synonym swapped. If two",
-      "would return the same answer, replace one.",
+      `The current year is ${year}. Only add a year where a buyer would, and if`,
+      `you do it must be ${year}.`,
       "",
       "Every question carries the cluster it belongs to. Copy the broad topic,",
       "or the variant phrase, exactly as it was given to you - do not invent a",
-      "new phrase and do not reword one. The buyer is shown these as groups and",
-      "drops the ones they do not sell into.",
+      "new phrase and do not reword one.",
       "",
-      "Write them lower case, as typed into a search box, no question marks.",
-      "Use the spelling and vocabulary of the market, not American English for a",
-      "United Kingdom scan.",
+      "Write them lower case, plain, the way a person types into a chat box or",
+      "a search bar. No question marks. Use the spelling and vocabulary of the",
+      "market, not American English for a United Kingdom scan.",
       "Do not name the subject brand in any question.",
     ].join("\n"),
     messages: [
@@ -317,6 +336,8 @@ export async function generateQuestions(input: {
           `Market: ${marketName}`,
           `Brand (do not name it in the questions): ${input.brand}`,
           `How the brand positions itself: ${input.positioning ?? "not stated"}`,
+          `Services it sells: ${(input.services ?? []).join("; ") || "not read"}`,
+          `Industries it serves, strongest first: ${(input.industries ?? []).join("; ") || "not read"}`,
         ].join("\n"),
       },
     ],
@@ -755,4 +776,16 @@ async function classifyBatch(
   }));
 
   return res.parsed_output?.sources ?? [];
+}
+
+/**
+ * The services and industries stored on `scans.site_facts`, read defensively.
+ * The column is jsonb and null on every row written before it existed, so
+ * anything that is not a list of strings reads as nothing.
+ */
+export function siteFacts(raw: unknown): { services: string[]; industries: string[] } {
+  const o = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const list = (v: unknown) =>
+    Array.isArray(v) ? v.filter((s): s is string => typeof s === "string" && s.trim().length > 0).slice(0, 5) : [];
+  return { services: list(o.services), industries: list(o.industries) };
 }

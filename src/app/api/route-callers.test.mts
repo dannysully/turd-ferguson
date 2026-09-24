@@ -221,6 +221,26 @@ const NO_CALLER: { route: string; method: string; why: string; earns: () => bool
     earns: () =>
       readFileSync(join(ROOT, "src/lib/scan/verify-email.ts"), "utf8").includes("/api/verify/"),
   },
+  /**
+   * Orphaned on 24 September 2026, when the email gate came off the result and
+   * its form went with it. Kept rather than deleted in the same push: eighteen
+   * files reference them, and the verify flow they belong to is already off
+   * (require_email_verification false). Deleting both, with the verify route,
+   * is its own tidy batch. `earns` holds the reason - the moment anything in
+   * the app calls them again, this entry is stale and says so.
+   */
+  {
+    route: "/api/scan/[token]/unlock",
+    method: "POST",
+    why: "Orphaned by the gate removal on 24 Sep 2026; awaiting deletion with the verify flow.",
+    earns: () => !readFileSync(join(ROOT, "src/components/scan/ScanFlow.tsx"), "utf8").includes("/unlock"),
+  },
+  {
+    route: "/api/scan/[token]/resend",
+    method: "POST",
+    why: "Orphaned by the gate removal on 24 Sep 2026; it resent the verification mail the gate asked for.",
+    earns: () => !readFileSync(join(ROOT, "src/components/scan/ScanFlow.tsx"), "utf8").includes("/resend"),
+  },
   {
     route: "/api/version",
     method: "GET",

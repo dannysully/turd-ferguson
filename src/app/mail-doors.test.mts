@@ -119,6 +119,16 @@ const SENDERS: Record<
     evidence: /\bverify_sent_at\b/,
     where: "src/app/api/scan/[token]/resend/route.ts",
   },
+  "src/lib/scan/walkthrough-mail.ts": {
+    reach: "behind the ceilings",
+    bound:
+      "Needs a scan token, which exists only for a scan that passed checkCeilings at " +
+      "/api/scan/start. Mails only our own contact destination, never the caller. How often is bounded in " +
+      "its one route: a unique (scan, email, kind) upsert that sends nothing on a repeat, " +
+      "and PER_IP_PER_DAY requests from one hashed address.",
+    evidence: /const PER_IP_PER_DAY = \d+/,
+    where: "src/app/api/scan/[token]/walkthrough/route.ts",
+  },
   "src/app/contact/actions.ts": {
     reach: "anonymous",
     bound:

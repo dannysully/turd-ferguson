@@ -39,7 +39,12 @@ import { ENGINE_SPECS, FREE_ENGINES } from "../lib/scan/engines.ts";
  * the pipeline on its own and every page on the site quotes a number the
  * product has stopped doing, with nothing failing to say so.
  */
-export const QUESTIONS = 14;
+export const QUESTIONS = 5;
+// Five since 24 September 2026, down from fourteen. Danny: fourteen read as too
+// many and too niche. Five is one per question kind, each written as a buyer
+// asking for a recommendation, which is what makes an engine name suppliers at
+// all. It is also one wave: 5 x 4 engines = 20 reads against CONCURRENCY 28,
+// where fourteen was two.
 
 /** Engines a free scan reads. */
 export const FREE_ENGINE_COUNT = FREE_ENGINES.length;

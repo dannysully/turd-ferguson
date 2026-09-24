@@ -71,8 +71,9 @@ const SECTIONS: Section[] = [
     title: "What we collect",
     body: (
       <>
-        When you run a scan we store the domain you entered. If you unlock the report, or ask us to email the result to
-        you while the scan is still running, we store the email address you gave, and nothing else about you. We do not
+        When you run a scan we store the domain you entered. If you ask for a walkthrough or a demo, or ask us to email
+        the result to you while the scan is still running, we store the email address you gave, and nothing else about
+        you. We do not
         ask for a name, a company, a phone number or a card. The contact form collects what you type into it. We also
         store a salted one-way hash of your IP address, to stop one visitor running the scan hundreds of times - the
         address itself is never written down, and the hash cannot be turned back into it.
@@ -86,7 +87,8 @@ const SECTIONS: Section[] = [
       <>
         The email address exists so we can send you the link back to your report, and so a scan can be reclaimed if
         nobody opens it. An address given to have the result emailed is used for that one message and creates no
-        account. Our lawful basis is legitimate interest in responding to a request you made. We do not add you to a
+        account. An address given for a walkthrough or a demo is passed to Danny at Nomada Digital, who uses it to send
+        you the video or arrange the call. Our lawful basis is legitimate interest in responding to a request you made. We do not add you to a
         mailing list, because there is not one.
       </>
     ),

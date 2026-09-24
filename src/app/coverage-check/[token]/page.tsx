@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import ReadingPoll from "@/components/coverage/ReadingPoll";
 import RerunButton from "@/components/coverage/RerunButton";
 import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
+import { COVERAGE_PROMPT_COUNT } from "@/lib/coverage/prompts";
 import { visitorReason } from "@/lib/coverage/reading-error";
 import { readCampaign, type ReadingAnswer } from "@/lib/coverage/reading";
 import { canRerun, readingState, shouldPoll } from "@/lib/coverage/reading-state";
@@ -369,7 +370,9 @@ export default async function CampaignReadingPage({ params }: { params: Promise<
             </h2>
             <p style={{ gridColumn: "span 8", margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
               {stalled && history.length <= 1
-                ? "Nothing has been measured against this campaign yet. This asks the five questions for the first time and gives you the starting line the next reading is compared to."
+                ? "Nothing has been measured against this campaign yet. This asks the " +
+                  count(COVERAGE_PROMPT_COUNT, "question") +
+                  " for the first time and gives you the starting line the next reading is compared to."
                 : history.length > 1
                   ? "Each one is kept as it was taken. A re-run writes a new reading and never edits an old one, which is what makes the first one worth having."
                   : "Run it again once the coverage has had time to land. The same questions, word for word, against the same uploaded list - so what changed is the answer rather than the question."}

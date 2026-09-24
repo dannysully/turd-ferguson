@@ -195,6 +195,20 @@ const EXEMPT: Record<string, { why: string; evidence: RegExp; where: string }> =
     evidence: /\.is\("report_email_sent_at", null\)/,
     where: "src/lib/scan/report-mail.ts",
   },
+  /**
+   * 24 September 2026. The walkthrough request mails us, never the caller,
+   * and starts no scan: the only spend is one Resend message to our own inbox.
+   * Bounded twice - a unique (scan, email, kind) row, so a repeat alerts
+   * nobody, and a per-IP ceiling on requests a day.
+   */
+  "scan/[token]/walkthrough": {
+    why:
+      "Sends one internal alert per new (scan, email, kind) request, to our own inbox, and starts " +
+      "no scan. Bounded by the unique upsert - a duplicate inserts nothing and sends nothing - and " +
+      "by PER_IP_PER_DAY requests from one hashed address.",
+    evidence: /const PER_IP_PER_DAY = \d+/,
+    where: "src/app/api/scan/[token]/walkthrough/route.ts",
+  },
 };
 
 /**
@@ -435,7 +449,8 @@ test("the kill switch is read in one place, so its reach is exactly the guarded 
    */
   assert.equal(
     Object.keys(EXEMPT).length,
-    6,
+    // Seven since 24 Sep 2026: the walkthrough alert, which mails only us.
+    7,
     "the number of spending doors the kill switch does not reach has changed - see docs/blocked.md",
   );
 });

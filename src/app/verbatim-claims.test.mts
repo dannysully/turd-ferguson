@@ -99,16 +99,6 @@ const SURFACES: { file: string; sites: number; why: string }[] = [
     why: "NOT a swept page - BLOCKED in the capture manifest, needs a database and 404s without one (blocked.md 19)",
   },
   {
-    file: "src/components/scan/ResultView.tsx",
-    sites: 1,
-    why: "NOT a swept page - the result screen renders only behind a live scan",
-  },
-  {
-    file: "src/components/scan/ScanFlow.tsx",
-    sites: 2,
-    why: "NOT a swept page - renders only behind a live scan",
-  },
-  {
     file: "src/components/scan/HeroSequence.tsx",
     sites: 1,
     why: "NOT a swept page - the seq-* acts exist only while a scan is running, and nobody has ever watched it (blocked.md 15)",
@@ -231,12 +221,16 @@ test("every listed surface still publishes it, and as many times as recorded", (
  * is blocked.md 30, and `reading-retention.test.mts` holds the facts so the
  * sentence cannot come back while they are still true.
  */
-test("the claim is published on thirteen sites, not the five a page walk sees", () => {
+test("the claim is published on ten sites, not the five a page walk sees", () => {
+  // Thirteen until 24 Sep 2026: the result screen's three came off with the
+  // email gate. ScanFlow's two were the gate's own copy, and ResultView's
+  // question table now says "what each engine said" - not the wording call
+  // landing, just copy that no longer makes the claim.
   const total = SURFACES.reduce((a, s) => a + s.sites, 0);
-  assert.equal(total, 13);
+  assert.equal(total, 10);
 
   const offPage = SURFACES.filter((s) => s.why.startsWith("NOT")).reduce((a, s) => a + s.sites, 0);
-  assert.equal(offPage, 9, "the surfaces no page sweep can reach");
+  assert.equal(offPage, 6, "the surfaces no page sweep can reach");
 });
 
 test("every surface records why the page sweeps can or cannot see it", () => {

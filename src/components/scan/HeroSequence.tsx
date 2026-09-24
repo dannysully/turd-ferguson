@@ -1,5 +1,6 @@
 "use client";
 
+import EngineLogo from "@/components/EngineLogo";
 import { useEffect, useState } from "react";
 
 import TierName, { type TierKey } from "@/components/TierName";
@@ -847,12 +848,14 @@ export default function HeroSequence({ headingRef, ...p }: {
                   style={{
                     width: "19px",
                     height: "19px",
-                    borderRadius: "6px",
-                    background: spec.colour + "1a",
-                    border: "1px solid " + spec.colour + "3d",
+                    display: "grid",
+                    placeItems: "center",
+                    color: T.ink,
                     flexShrink: 0,
                   }}
-                />
+                >
+                  <EngineLogo engine={key} size={15} />
+                </span>
                 <span style={{ fontSize: "12px", color: T.soft }}>{spec.label}</span>
                 {found ? (
                   <span style={{ fontSize: "12px", fontWeight: 600, color: found.named > 0 ? T.ink : T.soft }}>

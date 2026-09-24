@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { SCAN_LIMITS } from "@/config/contact";
-import { QUESTIONS } from "@/config/scan-shape";
 import { MICRO, SHELL, T } from "@/config/tokens";
 import { track } from "@/lib/analytics";
 import type {
@@ -333,59 +332,6 @@ function toResult(t: Teaser, domain: string, full: FullPayload | null): RunScanR
   };
 }
 
-/**
- * What stands in for the report while an address is being proven.
- *
- * It names the address, because the commonest failure is a typo nobody can see
- * once the form has gone, and it offers a resend, because with verification in
- * front of the result a message that does not arrive is the whole visit lost.
- *
- * What it must not promise is the leaderboard or the source list. Both became
- * free at 20260919000000 and are on the page behind this panel. The gate copy
- * lower down was corrected for that and this panel was not, so the screen that
- * appears the moment an address is given was still selling what the reader had
- * already scrolled past. The address buys the placement list and the verbatim
- * answers, which is what the verification email itself says.
- */
-function VerifyPending(p: { email: string; note: string; busy: boolean; onResend: () => void }) {
-  return (
-    <div>
-      <p style={{ fontSize: "0.9375rem", fontWeight: 700, color: T.ink, margin: "0 0 0.5rem" }}>Check your inbox</p>
-      <p style={{ fontSize: "0.875rem", color: T.soft, margin: "0 0 1rem", lineHeight: 1.6 }}>
-        The placement list is one click away. We have sent a link to <strong style={{ color: T.ink }}>{p.email}</strong> -
-        opening it shows which pages you could be placed into and what each engine said word for word, on
-        this device or any other.
-      </p>
-      <p style={{ fontSize: "0.8125rem", color: T.soft, margin: "0 0 0.75rem", lineHeight: 1.6 }}>
-        Nothing yet? It can take a minute, and it is worth a look in spam.
-      </p>
-      <button
-        type="button"
-        onClick={p.onResend}
-        disabled={p.busy}
-        style={{
-          fontSize: "0.875rem",
-          fontWeight: 600,
-          color: T.accent,
-          background: "transparent",
-          border: "1px solid " + T.line,
-          borderRadius: 8,
-          padding: "0.5rem 0.9rem",
-          cursor: p.busy ? "default" : "pointer",
-          opacity: p.busy ? 0.6 : 1,
-        }}
-      >
-        {p.busy ? "Sending" : "Send it again"}
-      </button>
-      {p.note ? (
-        <p aria-live="polite" style={{ fontSize: "0.8125rem", color: T.soft, margin: "0.75rem 0 0" }}>
-          {p.note}
-        </p>
-      ) : null}
-    </div>
-  );
-}
-
 export default function ScanFlow(p: {
   token: string;
   domain: string;
@@ -486,11 +432,6 @@ export default function ScanFlow(p: {
    */
   const [oppCount, setOppCount] = useState<number | null>(p.initialOppCount ?? null);
 
-  const [email, setEmail] = useState("");
-  const [emailErr, setEmailErr] = useState("");
-  /** Set once an address has been given but not yet proven. */
-  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
-  const [resendNote, setResendNote] = useState("");
 
   const headingRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
@@ -521,7 +462,8 @@ export default function ScanFlow(p: {
      * address was shown the gate as though they never had.
      */
     const needTeaser = !teaser;
-    const needFull = Boolean(p.unlocked) && !full;
+    // Always, once finished: nothing is gated any more.
+    const needFull = !full;
     if (!needTeaser && !needFull) return;
     let stop = false;
 
@@ -833,62 +775,6 @@ export default function ScanFlow(p: {
     }
   }
 
-  // ---- the gate ----
-  async function onEmail(e: React.FormEvent) {
-    e.preventDefault();
-    setEmailErr("");
-    setBusy(true);
-
-    try {
-      const headers = new Headers();
-      headers.set("content-type", "application/json");
-      const res = await fetch("/api/scan/" + p.token + "/unlock", {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ email, marketing_ok: false }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setEmailErr(data.message ?? "We could not unlock that just now.");
-        return;
-      }
-      // Verification on: the address is recorded but nothing opens until the
-      // link in the email is clicked.
-      if (data.verification_sent) {
-        setPendingEmail(data.email ?? email);
-        track("scan_verification_sent", {});
-        return;
-      }
-
-      setFull(asFull(data));
-      setGatedEngines(data.gated_engines ?? gatedEngines);
-      setGatedStatus(data.gated_status ?? "none");
-      track("scan_unlocked", {});
-    } catch {
-      setEmailErr("We could not reach the checker. Please try again.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function onResend() {
-    setBusy(true);
-    setResendNote("");
-    try {
-      const res = await fetch("/api/scan/" + p.token + "/resend", { method: "POST" });
-      const data = await res.json();
-      setResendNote(
-        res.ok
-          ? (data.message ?? "Sent. It should land in a moment.")
-          : (data.message ?? "That did not go through. Try again shortly."),
-      );
-    } catch {
-      setResendNote("We could not reach the checker. Try again shortly.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
   const result = teaser ? toResult(teaser, p.domain, full) : null;
   const sourceCount = teaser?.total_sources ?? 0;
   /**
@@ -921,9 +807,7 @@ export default function ScanFlow(p: {
       ? "Step 1 of 3 - confirm"
       : phase === "running"
         ? "Step 2 of 3 - running"
-        : full
-          ? "Step 3 of 3 - report"
-          : "Step 2 of 3 - result";
+        : "Step 3 of 3 - result";
 
   /**
    * Nothing to place them into, and we knew it before the address was asked
@@ -944,53 +828,6 @@ export default function ScanFlow(p: {
    * word, and the per-question breakdown. So the gate stays and sells that.
    */
   const noPlacements = oppCount === 0;
-
-  const gateHeading = noPlacements
-    ? "The rest of the report"
-    : oppCount
-      ? oppCount + (oppCount === 1 ? " page" : " pages") + " you could be placed into"
-      : gatedKnown.length
-        ? "Unlock the full report, plus " + engineNames
-        : // Not "see who is winning" any more - the leaderboard is on the page
-          // above this gate. Only the placement half is still behind it.
-          "Where you could get placed";
-
-  /* The count leads when we have it: a gate that names what is behind it is
-     worth crossing, and a blurred table with no number is just a blurred
-     table. What it must not say is that these pages cite a competitor - the
-     derivation does not establish that, however well it would sell.
-
-     It must also not sell what is already on the page. The leaderboard and the
-     full source list were behind this gate until 20260919000000 made them free,
-     and a gate promising something the reader has already scrolled past is
-     worse than no gate. What the address buys is the placement list. */
-  const gateBody = noPlacements
-    ? "There is no placement list to unlock here, so what the address buys is the transcript: what each engine said" +
-      " word for word, question by question, and every page it cited for each" +
-      (gatedKnown.length ? ", plus the same questions put through " + engineNames : "") +
-      "."
-    : oppCount
-      ? (oppCount === 1 ? "One page is" : oppCount + " pages are") +
-        " already feeding the answers you are missing from, and " +
-        (oppCount === 1 ? "it is" : "they are") +
-        " somewhere an article can run. Ranked by how many answers a placement would put you into, with the" +
-        " questions behind each one" +
-        (gatedKnown.length ? ", and the same questions put through " + engineNames : "") +
-        "."
-      : gatedKnown.length
-        ? "We will run the same " +
-          // This scan's own count when we have it; the shape the product asks
-          // for when we do not. Never a 14 typed here - see config/scan-shape.
-          (result?.brand.of ?? QUESTIONS) +
-          " questions through " +
-          engineNames +
-          " as well, and show you which of the " +
-          sourceCount +
-          " pages above are ones you could be placed into."
-        : "Which of the " +
-          sourceCount +
-          " pages above are feeding answers you are missing from, and which of those are somewhere an article can" +
-          " realistically run. That is the half of this you can act on.";
 
   return (
     <div>
@@ -1027,17 +864,6 @@ export default function ScanFlow(p: {
           </p>
         ) : null}
 
-        {phase === "running" ? (
-          <HeroSequence
-            domain={p.domain}
-            engines={p.engines}
-            landed={landed}
-            step={progress}
-            slow={slow}
-            headingRef={headingRef}
-          />
-        ) : null}
-
         {/* The offer to email it, under the waiting panel rather than inside
             it: HeroSequence is a board translated from HeroSequence.dc.html and
             this is not on that board.
@@ -1046,10 +872,10 @@ export default function ScanFlow(p: {
             email-offer.ts, where both the trigger and every word of the copy
             live so that a test can execute them. What it must not do is promise
             the placement list, which is what the gate further down sells. */}
-        {phase === "running" && offer ? (
+        {phase === "running" ? (
           <div
             style={{
-              marginTop: "18px",
+              marginBottom: "18px",
               background: T.wash,
               border: "1px solid " + T.washLine,
               borderRadius: 14,
@@ -1112,6 +938,17 @@ export default function ScanFlow(p: {
           </div>
         ) : null}
 
+        {phase === "running" ? (
+          <HeroSequence
+            domain={p.domain}
+            engines={p.engines}
+            landed={landed}
+            step={progress}
+            slow={slow}
+            headingRef={headingRef}
+          />
+        ) : null}
+
         {phase === "result" && result && fullError ? (
           <p
             role="alert"
@@ -1129,105 +966,8 @@ export default function ScanFlow(p: {
           </p>
         ) : null}
 
-        {phase === "result" && result && full && gatedKnown.length > 0 ? (
-          <p
-            style={{
-              fontSize: "0.8125rem",
-              color: gatedStatus === "failed" ? T.badFg : T.soft,
-              background: gatedStatus === "failed" ? "transparent" : T.wash,
-              border: "1px solid " + (gatedStatus === "failed" ? T.line : T.washLine),
-              borderRadius: 12,
-              padding: "0.75rem 1rem",
-              margin: "0 0 1rem",
-              lineHeight: 1.6,
-            }}
-          >
-            {gatedStatus === "queued" || gatedStatus === "running"
-              ? "Now running the same questions through " +
-                engineNames +
-                ". This takes another minute or two, and the results appear here."
-              : gatedStatus === "complete"
-                ? engineNames + " are included below."
-                : gatedStatus === "failed"
-                  ? "We could not reach " + engineNames + " this time. Everything above is unaffected."
-                  : /**
-                     * Unlocked, and the pass was never started - the day's cost
-                     * cap turned it away before it asked anything.
-                     *
-                     * This used to fall into the branch above and tell the
-                     * visitor we could not reach the engines, which is a claim
-                     * about what an engine did on a run that never happened.
-                     * Nothing was reached for. Say that instead.
-                     */
-                    engineNames +
-                    " have not run for this scan, so nothing below includes them. Everything above is unaffected."}
-          </p>
-        ) : null}
-
         {phase === "result" && result ? (
-          <ResultView
-            r={result}
-            domain={p.domain}
-            totalSources={sourceCount}
-            unlocked={Boolean(full)}
-            noPlacements={noPlacements}
-            gate={
-              pendingEmail ? (
-                <VerifyPending email={pendingEmail} note={resendNote} busy={busy} onResend={onResend} />
-              ) : (
-                <form onSubmit={onEmail} noValidate>
-                  <p style={{ fontSize: "0.9375rem", fontWeight: 700, color: T.ink, margin: "0 0 0.5rem" }}>
-                    {gateHeading}
-                  </p>
-                  <p style={{ fontSize: "0.875rem", color: T.soft, margin: "0 0 1rem", lineHeight: 1.6 }}>
-                    {gateBody}
-                  </p>
-                  <label htmlFor="scan-email" style={label}>
-                    Work email
-                  </label>
-                  <input
-                    id="scan-email"
-                    type="email"
-                    name="email"
-                    autoComplete="email"
-                    maxLength={SCAN_LIMITS.email}
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    style={field}
-                    aria-invalid={Boolean(emailErr)}
-                    aria-describedby={emailErr ? "scan-email-error" : undefined}
-                  />
-                  {/* Announced, because this is the one form on the site that
-                      converts and a rejected address is the commonest thing
-                      that happens on it. Every other error in this file carries
-                      role=alert; this one changed silently, so a visitor using
-                      a screen reader got a button that appeared to do nothing
-                      and no reason for it. */}
-                  {emailErr ? (
-                    <p
-                      id="scan-email-error"
-                      role="alert"
-                      style={{ fontSize: "0.8125rem", color: T.badFg, marginTop: "0.5rem" }}
-                    >
-                      {emailErr}
-                    </p>
-                  ) : null}
-                  <button
-                    type="submit"
-                    className="btn-primary"
-                    style={{ ...btn, width: "100%", marginTop: "0.875rem" }}
-                    disabled={busy}
-                  >
-                    {busy ? "Unlocking" : "Send me the full report"}
-                  </button>
-                  <p style={{ fontSize: "0.75rem", color: T.soft, marginTop: "0.75rem", lineHeight: 1.5 }}>
-                    One scan, no charge. Ongoing tracking comes with a plan.
-                  </p>
-                </form>
-              )
-            }
-          />
+          <ResultView r={result} domain={p.domain} token={p.token} noPlacements={noPlacements} />
         ) : null}
 
         {phase === "result" && !result && error ? (

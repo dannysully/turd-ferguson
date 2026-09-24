@@ -258,6 +258,13 @@ export async function POST(req: Request) {
       domain,
       brand_name: read.brand_name,
       positioning: read.positioning,
+      // Services and industries read off the site, case studies included. The
+      // question set narrows the category by these rather than by how the
+      // company describes itself. Column added by 20260924000000.
+      site_facts: {
+        services: (read.services ?? []).map((s) => s.trim()).filter(Boolean).slice(0, 5),
+        industries: (read.industries ?? []).map((s) => s.trim()).filter(Boolean).slice(0, 4),
+      },
       topic: read.confidence === "high" ? read.suggested_topic : null,
       /**
        * Cleaned on the way in, rather than stored raw and cleaned twice later.

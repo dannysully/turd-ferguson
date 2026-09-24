@@ -81,10 +81,14 @@ export function offerReady(step: number, readingForMs: number): boolean {
  * it, one assertion per word, for the reason recorded at the foot of this file.
  */
 export const OFFER_COPY = {
-  heading: "No time to wait? We will email it to you.",
+  // Shown from the moment the reads start, above the sequence - Danny, 24 Sep
+  // 2026: say up front how long it takes and offer the way out, rather than
+  // letting somebody discover the wait. Not a measured figure; the per-step
+  // timings on `scans.step_ms` are the place to check it against.
+  heading: "This usually takes around two minutes.",
   body:
-    "Leave your address and we will send you this result the moment it is ready - the same page you are" +
-    " waiting for, on any device. You can close this tab and the scan keeps running.",
+    "No time to wait? Leave your email and we will send you the result the moment it is ready - the same" +
+    " page, on any device. You can close this tab and the scan keeps running.",
   label: "Work email",
   submit: "Email me the result",
   sending: "Saving",

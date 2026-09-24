@@ -2,6 +2,7 @@ import { SCAN_LIMITS } from "@/config/contact";
 import {
   describeAnthropicError,
   generateQuestions,
+  siteFacts,
   type GeneratedQuestion,
   QUESTION_COUNT,
   TOPIC_VARIANT_COUNT,
@@ -70,7 +71,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
     // Neither counter is read here any more. The ceiling is decided by
     // note_preview_call inside the update, which is the only reading of
     // preview_calls that two concurrent requests cannot disagree about.
-    .select("id, status, domain, brand_name, positioning, topic, topic_variants, market")
+    .select("id, status, domain, brand_name, positioning, topic, topic_variants, market, site_facts")
     .eq("public_token", token)
     .maybeSingle();
 
@@ -202,6 +203,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
       market,
       brand: scan.brand_name ?? scan.domain,
       positioning: scan.positioning,
+      ...siteFacts(scan.site_facts),
     }, billed));
   } catch (err) {
     // Logged rather than swallowed. This is the only step between a visitor

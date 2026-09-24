@@ -29,7 +29,7 @@ import { type WorkedQuestionId, workedQuestion } from "@/config/worked-example";
  * of QUESTIONS is what it says now - the same 7 today, and still a possible
  * reading whatever QUESTIONS becomes.
  */
-const EXAMPLE_CITED_ON = Math.round(QUESTIONS * 0.5);
+const EXAMPLE_CITED_ON = Math.round(QUESTIONS / 2);
 
 const pill = (bg: string, fg: string): React.CSSProperties => ({
   fontSize: "11px",

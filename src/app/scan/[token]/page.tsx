@@ -95,7 +95,8 @@ export default async function ScanTokenPage({ params }: { params: Promise<{ toke
     }
   }
 
-  const unlocked = complete && !!scan.unlocked_at;
+  // Every finished scan is open - the email gate came off on 24 Sep 2026.
+  const unlocked = complete;
 
   /**
    * A read that fails is not a report with nothing in it.

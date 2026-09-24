@@ -1,32 +1,28 @@
 "use client";
 
+import EngineLogo from "@/components/EngineLogo";
 import TierName from "@/components/TierName";
+import { SCAN_LIMITS } from "@/config/contact";
+import { track } from "@/lib/analytics";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { CARD, MICRO, T } from "@/config/tokens";
-import type { RunScanResponse, ScanQuestion, SourceEntry } from "@/lib/scan";
+import type { EngineAnswer, RunScanResponse, SourceEntry } from "@/lib/scan";
+import { SERP_DEPTH } from "@/lib/scan/dataforseo-request";
 import { ENGINE_SPECS, isEngine } from "@/lib/scan/engines";
 import {
   PLAN_ORDER,
   SOV_ROWS,
   engineLabel,
   fmtDate,
-  isOwnDomain,
   isSubject,
   kindLabel,
   leaderboardCaption,
-  moreSourcesNote,
-  namedBy,
   ordinal,
-  overviewState,
   placementCopy,
-  placementsNote,
   questionPill,
   resultFigures,
-  sourcesNote,
-  topBrandNote,
-  transcript,
-  visibilityNote,
 } from "./result-figures";
-import Link from "next/link";
+import { btn, field, label } from "./screens";
 
 /**
  * The result, free and unlocked, from Flow2Free.dc.html and Flow3Report.dc.html.
@@ -87,7 +83,7 @@ function KindPill(p: { kind: string | null; note: string | null }) {
   );
 }
 
-function Head(p: { title: string; children: React.ReactNode }) {
+function Head(p: { title: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="board-head confirm-head" style={{ marginBottom: "14px" }}>
       <h2 style={{ margin: 0, fontSize: "19px", fontWeight: 700, letterSpacing: "-0.022em", color: T.ink }}>
@@ -121,184 +117,228 @@ const unit: React.CSSProperties = { fontSize: "14px", fontWeight: 600, color: T.
 
 /* ── Question by question ── */
 
-function QuestionRow(p: { q: ScanQuestion; brand: string; detailed: boolean }) {
-  const q = p.q;
-  /* One judge per row. The pill used to read the server's tallies while the
-     two columns beside it read the per-engine rows, and a visitor can open the
-     row and read those rows - so a disagreement was visible to them. */
-  const label = questionPill(q);
-  const silent = label === "no answer";
-  const hit = label !== "not named" && !silent;
-  const rows = transcript(q);
+/** One engine's verdict on one question, as a word. The mark beside it is decoration. */
+function answerState(a: EngineAnswer): "named" | "not named" | "no answer" {
+  if (!a.answered) return "no answer";
+  return a.brand_named ? "named" : "not named";
+}
 
-  const summary = (
-    <div className={p.detailed ? "res-qrow res-qrow--full" : "res-qrow"}>
-      <div style={{ fontSize: "13.5px", color: T.ink }}>
-        {q.question}
-        <span style={{ display: "block", ...MICRO, marginTop: "3px", color: T.soft }}>
-          {q.kind}
-          {typeof q.google_rank === "number" ? " - Google " + ordinal(q.google_rank) : ""}
-          {rows.length ? " - read what they said" : ""}
-        </span>
-      </div>
-      <div style={{ textAlign: "right" }}>
-        <span style={silent ? QUIET : hit ? YES : NO}>{label}</span>
-      </div>
-      {p.detailed ? (
-        <>
-          <div style={{ fontSize: "13px", color: T.soft, textAlign: "right" }}>{overviewState(q)}</div>
-          <div style={{ fontSize: "13px", color: T.soft }}>{namedBy(q)}</div>
-        </>
-      ) : null}
-    </div>
-  );
-
-  if (!rows.length) {
-    return <div style={{ borderBottom: "1px solid " + T.hair }}>{summary}</div>;
-  }
-
+/**
+ * The engines' marks on a question row: full strength where the engine named
+ * the brand, faded where it did not, dashed where it gave no answer. The pill
+ * beside them says the same thing in words, so nothing here rests on colour.
+ */
+function EngineMarks(p: { answers: EngineAnswer[] }) {
+  if (!p.answers.length) return null;
   return (
-    <details style={{ borderBottom: "1px solid " + T.hair }}>
-      <summary style={{ cursor: "pointer", listStyle: "none" }}>{summary}</summary>
-      <div style={{ padding: "0 26px 18px", display: "flex", flexDirection: "column", gap: "10px" }}>
-        {rows.map((a) => (
-          <div
+    <div style={{ display: "flex", gap: "5px", justifyContent: "flex-end" }}>
+      {p.answers.map((a) => {
+        const state = answerState(a);
+        return (
+          <span
             key={a.engine}
-            style={{ background: T.bg, border: "1px solid " + T.line, borderRadius: "12px", padding: "12px 14px" }}
+            title={engineLabel(a.engine) + ": " + state}
+            style={{
+              width: "26px",
+              height: "26px",
+              borderRadius: "999px",
+              display: "grid",
+              placeItems: "center",
+              background: T.surface,
+              color: T.ink,
+              border:
+                state === "named"
+                  ? "1.5px solid " + T.goodFg
+                  : state === "no answer"
+                    ? "1px dashed " + T.line
+                    : "1px solid " + T.line,
+              opacity: state === "named" ? 1 : 0.42,
+              filter: state === "named" ? undefined : "grayscale(1)",
+            }}
           >
-            <p style={{ margin: "0 0 6px", fontSize: "12.5px", fontWeight: 600 }}>
-              {engineLabel(a.engine)}
-              <span style={{ fontWeight: 500, color: a.brand_named ? T.goodFg : T.warnFg, marginLeft: "8px" }}>
-                {a.brand_named ? "names " + p.brand : "does not name " + p.brand}
-              </span>
-            </p>
-            <p
-              style={{
-                margin: 0,
-                fontSize: "13.5px",
-                lineHeight: 1.7,
-                color: T.soft,
-                whiteSpace: "pre-wrap",
-                maxHeight: "280px",
-                overflowY: "auto",
-                maxWidth: "80ch",
-              }}
-            >
-              {a.response_text}
-            </p>
-          </div>
-        ))}
-      </div>
-    </details>
+            <EngineLogo engine={a.engine} size={14} />
+          </span>
+        );
+      })}
+    </div>
   );
 }
 
-function QuestionTable(p: { r: RunScanResponse; detailed: boolean }) {
+function QuestionTable(p: { r: RunScanResponse; onOpen: (idx: number) => void }) {
   const qs = p.r.questions ?? [];
   if (!qs.length) return null;
   return (
     <section>
       <Head title="Question by question">
-        Every question we ran, how many engines named you
-        {p.detailed
-          ? ", and the answer word for word. Open any row."
-          : ". The words each engine used come with the report."}
+        Every question we asked, and which engines named you. Open any question to read what each engine said and
+        the pages it cited.
       </Head>
       <div style={{ ...CARD, overflow: "hidden" }}>
-        <div
-          className={p.detailed ? "res-qrow res-qrow--full res-head" : "res-qrow res-head"}
-          style={{ background: "#fbfbfc", borderBottom: "1px solid " + T.line }}
-        >
+        <div className="res-qrow res-qrow--eng res-head" style={{ background: "#fbfbfc", borderBottom: "1px solid " + T.line }}>
           <div style={MICRO}>Question</div>
+          <div style={{ ...MICRO, textAlign: "right" }}>Engines</div>
           <div style={{ ...MICRO, textAlign: "right" }}>Named</div>
-          {p.detailed ? (
-            <>
-              <div style={{ ...MICRO, textAlign: "right" }}>AI Overview</div>
-              <div style={MICRO}>Which engines</div>
-            </>
-          ) : null}
         </div>
-        {qs.map((q) => (
-          <QuestionRow key={q.idx} q={q} brand={p.r.brand.name} detailed={p.detailed} />
-        ))}
+        {qs.map((q) => {
+          const label = questionPill(q);
+          const silent = label === "no answer";
+          const hit = label !== "not named" && !silent;
+          const answers = q.answers ?? [];
+          const open = answers.length > 0;
+          return (
+            <button
+              key={q.idx}
+              type="button"
+              className="res-qrow res-qrow--eng res-qbtn"
+              disabled={!open}
+              onClick={() => p.onOpen(q.idx)}
+              aria-haspopup="dialog"
+              style={{ borderBottom: "1px solid " + T.hair }}
+            >
+              <div style={{ fontSize: "13.5px", color: T.ink, textAlign: "left" }}>
+                {q.question}
+                <span style={{ display: "block", ...MICRO, marginTop: "3px", color: T.soft }}>
+                  {q.kind}
+                  {typeof q.google_rank === "number" ? " - Google " + ordinal(q.google_rank) : ""}
+                  {open ? " - read the answers" : ""}
+                </span>
+              </div>
+              <EngineMarks answers={answers} />
+              <div style={{ textAlign: "right" }}>
+                <span style={silent ? QUIET : hit ? YES : NO}>{label}</span>
+              </div>
+            </button>
+          );
+        })}
       </div>
     </section>
   );
 }
 
-/* ── What the answers were built from ── */
+/**
+ * The answers to one question, in a panel from the right.
+ *
+ * A sidebar rather than an inline disclosure: five answers of a few hundred
+ * words each pushed everything below them off the page, and a visitor
+ * comparing engines wants them side by side with the question still in view.
+ */
+function AnswerDrawer(p: {
+  r: RunScanResponse;
+  idx: number | null;
+  onClose: () => void;
+  onMove: (idx: number) => void;
+}) {
+  const qs = p.r.questions ?? [];
+  const at = qs.findIndex((q) => q.idx === p.idx);
+  const q = at >= 0 ? qs[at] : null;
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const { onClose } = p;
 
-function SourceTable(p: { r: RunScanResponse; domain: string; detailed: boolean; total: number }) {
-  const rows = p.r.sources;
-  if (!rows.length) return null;
-  const more = moreSourcesNote(rows.length, p.total);
-  const placements = placementsNote(rows);
+  useEffect(() => {
+    if (!q) return;
+    closeRef.current?.focus();
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [q, onClose]);
+
+  if (!q) return null;
+  const brand = p.r.brand.name;
+  const answers = q.answers ?? [];
+  const step = (d: number) => {
+    const next = qs[at + d];
+    if (next) p.onMove(next.idx);
+  };
 
   return (
-    <section>
-      {/*
-        Two lists, two sentences, and they are not interchangeable.
-
-        Unlocked, `r.sources` is the unlock payload: every page every answer
-        cited. Locked, it is the teaser, which since 20 Sep 2026 carries only
-        the source each answer reached for FIRST, deduped by domain - Danny's
-        item 4, a filter in `scan_teaser` and nowhere in what the pass stores.
-
-        So "Every page the engines drew on" is true of one of these lists and
-        false of the other, and it was the only sentence here. `detailed` is
-        `unlocked`, which is exactly the switch, so it carries the copy too.
-
-        The free sentence deliberately does not say "top" or "most important".
-        Position is order of citation: on an AI Overview it tracks prominence
-        reasonably well, on a chat engine it may be nothing but order of
-        mention. "Reached for first" is what the data supports and all it
-        supports - the migration header says the same thing at more length.
-      */}
-      <Head title={p.detailed ? "The pages that decide this category" : "What the answers were built from"}>
-        {p.detailed
-          ? "Every page the engines drew on, what kind of site it is, and how many of your answers it fed. The kind matters: a listicle can be joined, a competitor own site cannot."
-          : "The page each answer reached for first, deduped across the answers - not a ranking, just what came first. The kind matters: a listicle can be joined, a competitor own site cannot."}
-      </Head>
-      <div style={{ ...CARD, overflow: "hidden" }}>
-        <div
-          className="res-srow res-head"
-          style={{ background: "#fbfbfc", borderBottom: "1px solid " + T.line }}
-        >
-          <div style={MICRO}>Source page</div>
-          <div style={MICRO}>Kind</div>
-          {/* The figure under this header is a count of answers, and which
-              answers depends on the list - see the note above the standfirst.
-              Unlocked it is every answer that cited the page; locked it is
-              every answer that reached for it first. "Answers it fed" is true
-              of the first and overstates the second. */}
-          <div style={{ ...MICRO, textAlign: "right" }}>
-            {p.detailed ? "Answers it fed" : "Reached first by"}
-          </div>
-          <div style={MICRO}>You appear</div>
+    <>
+      <div className="ans-backdrop" onClick={p.onClose} aria-hidden="true" />
+      <aside className="ans-drawer" role="dialog" aria-modal="true" aria-labelledby="ans-title">
+        <div className="ans-drawer__head">
+          <div style={{ ...MICRO, flexGrow: 1 }}>{"Question " + (at + 1) + " of " + qs.length + " - " + q.kind}</div>
+          <button type="button" className="ans-nav" onClick={() => step(-1)} disabled={at <= 0} aria-label="Previous question">
+            ‹
+          </button>
+          <button type="button" className="ans-nav" onClick={() => step(1)} disabled={at >= qs.length - 1} aria-label="Next question">
+            ›
+          </button>
+          <button type="button" className="ans-nav" ref={closeRef} onClick={p.onClose} aria-label="Close">
+            ×
+          </button>
         </div>
-        {rows.map((s) => {
-          const yours = isOwnDomain(s.domain, p.domain);
-          return (
-            <div key={s.domain} className="res-srow" style={{ borderBottom: "1px solid " + T.hair }}>
-              <div style={{ fontSize: "13.5px" }}>{s.domain}</div>
-              <div>
-                <KindPill kind={s.kind} note={s.note} />
-              </div>
-              <div style={{ fontSize: "13.5px", fontWeight: 600, textAlign: "right" }}>{s.mentions}</div>
-              <div>
-                <span style={yours ? YES : QUIET}>{yours ? "Yours" : "Not yours"}</span>
-              </div>
-            </div>
-          );
-        })}
-        {more ? (
-          <p style={{ margin: 0, padding: "12px 26px", fontSize: "13px", color: T.soft }}>{more}</p>
-        ) : null}
-        {placements ? (
-          <p style={{ margin: 0, padding: "12px 26px", fontSize: "13px", color: T.soft }}>{placements}</p>
-        ) : null}
-      </div>
-    </section>
+        <div style={{ padding: "18px 24px 32px" }}>
+          <h2 id="ans-title" style={{ margin: 0, fontSize: "19px", fontWeight: 700, letterSpacing: "-0.022em", lineHeight: 1.35 }}>
+            {q.question}
+          </h2>
+          <p style={{ margin: "8px 0 0", fontSize: "13px", color: T.soft }}>
+            {typeof q.google_rank === "number"
+              ? "You rank " + ordinal(q.google_rank) + " on Google for this."
+              : "You are not in Google's top " + SERP_DEPTH + " for this."}
+          </p>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "18px" }}>
+            {answers.map((a) => {
+              const state = answerState(a);
+              const direct = isEngine(a.engine) && ENGINE_SPECS[a.engine].kind === "model";
+              const cited = a.citations ?? [];
+              return (
+                <div key={a.engine} style={{ border: "1px solid " + T.line, borderRadius: "14px", overflow: "hidden" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "9px", padding: "11px 14px", background: "#fbfbfc", borderBottom: "1px solid " + T.line }}>
+                    <EngineLogo engine={a.engine} size={17} />
+                    <span style={{ fontSize: "13.5px", fontWeight: 600, flexGrow: 1 }}>
+                      {engineLabel(a.engine)}
+                      {direct ? <span style={{ fontWeight: 500, color: T.soft }}> - asked directly</span> : null}
+                    </span>
+                    <span style={state === "named" ? YES : state === "no answer" ? QUIET : NO}>
+                      {state === "named" ? "names " + brand : state === "no answer" ? "no answer" : "does not name " + brand}
+                    </span>
+                  </div>
+                  <div style={{ padding: "12px 14px" }}>
+                    {a.response_text?.trim() ? (
+                      <p style={{ margin: 0, fontSize: "13.5px", lineHeight: 1.7, color: T.ink, whiteSpace: "pre-wrap" }}>
+                        {a.response_text}
+                      </p>
+                    ) : (
+                      <p style={{ margin: 0, fontSize: "13px", color: T.soft }}>
+                        {a.answered
+                          ? "The words were not kept for this scan - it ran before answers were stored, or its seven days have passed."
+                          : "This engine gave no answer to this question."}
+                      </p>
+                    )}
+                    {cited.length ? (
+                      <div style={{ marginTop: "12px", paddingTop: "10px", borderTop: "1px solid " + T.hair }}>
+                        <div style={{ ...MICRO, color: T.soft, marginBottom: "6px" }}>{"Cited " + cited.length + (cited.length === 1 ? " page" : " pages")}</div>
+                        <ol style={{ margin: 0, paddingLeft: "18px", display: "flex", flexDirection: "column", gap: "4px" }}>
+                          {cited.slice(0, 8).map((c, i) => (
+                            <li key={(c.url ?? c.domain) + i} style={{ fontSize: "12.5px", color: T.soft, lineHeight: 1.5 }}>
+                              {c.url ? (
+                                <a href={c.url} target="_blank" rel="noopener noreferrer nofollow" style={{ color: T.ink }}>
+                                  {c.domain}
+                                </a>
+                              ) : (
+                                <span style={{ color: T.ink }}>{c.domain}</span>
+                              )}
+                              {c.title ? " - " + c.title : ""}
+                            </li>
+                          ))}
+                        </ol>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </aside>
+    </>
   );
 }
 
@@ -375,36 +415,7 @@ function ShareOfVoice(p: { r: RunScanResponse }) {
   );
 }
 
-/* ── The placement list: gated, then open ── */
-
-/**
- * The shape of the table, behind the blur.
- *
- * Grey blocks rather than invented rows. The board draws plausible-looking
- * data under the blur; putting fabricated domains in the DOM of somebody
- * report is a different thing from showing them the shape of what is coming.
- */
-function LockedRows() {
-  const widths = ["78%", "62%", "70%", "55%", "66%"];
-  return (
-    <div className="scan-gated" aria-hidden="true">
-      <div className="res-prow res-head" style={{ background: "#fbfbfc", borderBottom: "1px solid " + T.line }}>
-        <div style={MICRO}>Page</div>
-        <div style={MICRO}>Kind</div>
-        <div style={{ ...MICRO, textAlign: "right" }}>Questions</div>
-        <div style={{ ...MICRO, textAlign: "right" }}>Answers you would win</div>
-      </div>
-      {widths.map((w, i) => (
-        <div key={w + i} className="res-prow" style={{ borderBottom: "1px solid " + T.hair }}>
-          <div style={{ height: "11px", width: w, background: T.chip, borderRadius: "4px" }} />
-          <div style={{ height: "11px", width: "60%", background: T.chip, borderRadius: "4px" }} />
-          <div style={{ height: "11px", width: "30%", background: T.chip, borderRadius: "4px", marginLeft: "auto" }} />
-          <div style={{ height: "11px", width: "30%", background: T.chip, borderRadius: "4px", marginLeft: "auto" }} />
-        </div>
-      ))}
-    </div>
-  );
-}
+/* ── The placement list ── */
 
 /**
  * No page to be placed into, said once and used on both sides of the gate.
@@ -508,27 +519,169 @@ function PlanCards(p: { r: RunScanResponse }) {
   );
 }
 
+/* ── alwaystracked, and the only call to action ── */
+
+/**
+ * The ask, since 24 September 2026. Danny: the result should lead into
+ * alwaystracked, and the CTA is purely a walkthrough - a Loom of the platform
+ * or a demo call with him. alwaystracked is set up per client rather than
+ * self-serve today, so "see it" means somebody shows you.
+ *
+ * What this section must keep straight: alwaystracked reports, it does not
+ * place. The placements are alwaysmentioned, which is a service.
+ */
+function WalkthroughForm(p: { token: string }) {
+  const [kind, setKind] = useState<"video" | "demo">("video");
+  const [email, setEmail] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const [done, setDone] = useState("");
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setErr("");
+    setBusy(true);
+    try {
+      const headers = new Headers();
+      headers.set("content-type", "application/json");
+      const res = await fetch("/api/scan/" + p.token + "/walkthrough", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ email, kind }),
+      });
+      const data = await res.json();
+      if (!res.ok && res.status !== 429) {
+        setErr(data.message ?? "That did not go through. Please try again.");
+        return;
+      }
+      setDone(data.message ?? "Thanks. Danny will be in touch.");
+      track("walkthrough_requested", { kind });
+    } catch {
+      setErr("We could not reach the checker. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (done) {
+    return (
+      <p aria-live="polite" style={{ margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.ink }}>
+        {done}
+      </p>
+    );
+  }
+
+  const options: { key: "video" | "demo"; title: string; note: string }[] = [
+    { key: "video", title: "Walkthrough video", note: "A Loom of the platform, recorded against this report." },
+    { key: "demo", title: "Book a demo", note: "Danny takes you through it on a call." },
+  ];
+
+  return (
+    <form onSubmit={submit} noValidate>
+      <div role="radiogroup" aria-label="How would you like to see it" className="wt-toggle">
+        {options.map((o) => (
+          <button
+            key={o.key}
+            type="button"
+            role="radio"
+            aria-checked={kind === o.key}
+            onClick={() => setKind(o.key)}
+            className={"wt-option" + (kind === o.key ? " wt-option--on" : "")}
+          >
+            <span style={{ fontSize: "14px", fontWeight: 600, color: T.ink }}>{o.title}</span>
+            <span style={{ fontSize: "12.5px", color: T.soft, lineHeight: 1.5 }}>{o.note}</span>
+          </button>
+        ))}
+      </div>
+      <label htmlFor="wt-email" style={{ ...label, marginTop: "14px", display: "block" }}>
+        Work email
+      </label>
+      <input
+        id="wt-email"
+        type="email"
+        name="email"
+        autoComplete="email"
+        maxLength={SCAN_LIMITS.email}
+        required
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        style={field}
+        aria-invalid={Boolean(err)}
+        aria-describedby={err ? "wt-error" : undefined}
+      />
+      {err ? (
+        <p id="wt-error" role="alert" style={{ fontSize: "13px", color: T.badFg, marginTop: "8px" }}>
+          {err}
+        </p>
+      ) : null}
+      <button type="submit" className="btn-primary" style={{ ...btn, width: "100%", marginTop: "12px" }} disabled={busy}>
+        {busy ? "Sending" : kind === "video" ? "Send me the walkthrough" : "Request a demo"}
+      </button>
+      <p style={{ fontSize: "12px", color: T.soft, marginTop: "10px", lineHeight: 1.5 }}>
+        We use it to send you the walkthrough or arrange the call, and nothing else. <a href="/legal">What we collect</a>.
+      </p>
+    </form>
+  );
+}
+
+function TrackedSection(p: { token: string; questions: number }) {
+  const point = (title: string, body: string) => (
+    <div style={{ borderTop: "1px solid " + T.line, paddingTop: "12px" }}>
+      <div style={{ fontSize: "14px", fontWeight: 600, color: T.ink }}>{title}</div>
+      <p style={{ margin: "4px 0 0", fontSize: "13.5px", lineHeight: 1.6, color: T.soft }}>{body}</p>
+    </div>
+  );
+  return (
+    <section id="tracked">
+      <div className="page-split" style={{ ...CARD, padding: "28px", rowGap: "24px" }}>
+        <div>
+          <h2 style={{ margin: 0, fontSize: "22px", fontWeight: 700, letterSpacing: "-0.025em", lineHeight: 1.25 }}>
+            This was one reading. <TierName tier="tracked" /> keeps it running.
+          </h2>
+          <p style={{ margin: "10px 0 16px", fontSize: "14px", lineHeight: 1.65, color: T.soft }}>
+            {"You have just seen " +
+              p.questions +
+              " questions on one day. alwaystracked is the same measurement, run for you every week, so you can see what moves and why."}
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            {point("Your own prompts", "Add the questions your buyers actually ask, and track every engine's answer to each one over time.")}
+            {point(
+              "Adjacent opportunities",
+              "The sites cited today are not always ones you can get onto. It also finds the pages that are not cited yet but are the kind these engines reach for - where the right piece has a real chance of being picked up.",
+            )}
+            {point(
+              "Reporting, not placement",
+              "alwaystracked tells you where you stand and where the openings are. Getting the placements is a separate service, alwaysmentioned, where we approach the sites and write what gets you in.",
+            )}
+          </div>
+        </div>
+        <div style={{ background: T.bg, border: "1px solid " + T.line, borderRadius: "14px", padding: "20px" }}>
+          <div style={{ fontSize: "15px", fontWeight: 700, color: T.ink }}>See alwaystracked on your own data</div>
+          <p style={{ margin: "4px 0 14px", fontSize: "13.5px", lineHeight: 1.6, color: T.soft }}>
+            It is set up for each client, so the quickest way to see it is a walkthrough of this report.
+          </p>
+          <WalkthroughForm token={p.token} />
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ── The whole page ── */
 
 export default function ResultView(p: {
   r: RunScanResponse;
   domain: string;
-  /** Total distinct sources the scan cited, which can exceed what was sent. */
-  totalSources: number;
-  unlocked: boolean;
-  gate: React.ReactNode;
-  /**
-   * The count route has already answered zero, so the gate must not blur a
-   * table that has no rows behind it. Undefined means not known yet, which is
-   * a different thing and keeps the blur.
-   */
+  token: string;
+  /** The count route has already answered zero. */
   noPlacements?: boolean;
 }) {
   const r = p.r;
-  /* Every figure below is derived in result-figures.ts, which has an executor.
-     Nothing in this file re-derives one. */
-  const f = resultFigures(r, p.domain, { unlocked: p.unlocked, noPlacements: p.noPlacements });
+  const f = resultFigures(r, p.domain, { unlocked: true, noPlacements: p.noPlacements });
   const qs = r.questions ?? [];
+  const [openIdx, setOpenIdx] = useState<number | null>(null);
+  const close = useCallback(() => setOpenIdx(null), [setOpenIdx]);
+  const opps = r.opportunities ?? [];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "26px" }}>
@@ -536,54 +689,28 @@ export default function ResultView(p: {
       <div className="confirm-top">
         <div>
           <div style={MICRO}>{p.domain + " - read " + fmtDate(r.read_at)}</div>
-          <h1
-            style={{
-              margin: "10px 0 0",
-              fontSize: "32px",
-              fontWeight: 700,
-              letterSpacing: "-0.03em",
-              lineHeight: 1.2,
-              color: T.ink,
-            }}
-          >
+          <h1 style={{ margin: "10px 0 0", fontSize: "32px", fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.2, color: T.ink }}>
             {f.headline}
           </h1>
-          <p style={{ margin: "12px 0 0", fontSize: "14.5px", lineHeight: 1.65, color: T.soft, maxWidth: "58ch" }}>
-            {p.unlocked
-              ? "Everything is stored, so any figure here can be read back to the words that produced it."
-              : "Everything you were shown while this ran is on this page, in full and free: the questions, the tallies, the leaderboard, and every page the answers were assembled from."}
-          </p>
           <div style={{ marginTop: "14px", display: "flex", gap: "8px", flexWrap: "wrap" }}>
-            {r.engines.map((e) => {
-              const colour = isEngine(e.engine) ? ENGINE_SPECS[e.engine].colour : T.faint;
-              return (
-                <div
-                  key={e.engine}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "7px",
-                    background: T.surface,
-                    border: "1px solid " + T.line,
-                    borderRadius: "999px",
-                    padding: "3px 11px 3px 3px",
-                  }}
-                >
-                  <span
-                    aria-hidden="true"
-                    style={{
-                      width: "19px",
-                      height: "19px",
-                      borderRadius: "6px",
-                      background: colour + "1a",
-                      border: "1px solid " + colour + "3d",
-                      flexShrink: 0,
-                    }}
-                  />
-                  <span style={{ fontSize: "12px", color: T.soft }}>{e.label}</span>
-                </div>
-              );
-            })}
+            {r.engines.map((e) => (
+              <div
+                key={e.engine}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "7px",
+                  background: T.surface,
+                  border: "1px solid " + T.line,
+                  borderRadius: "999px",
+                  padding: "4px 11px 4px 8px",
+                  color: T.ink,
+                }}
+              >
+                <EngineLogo engine={e.engine} size={15} />
+                <span style={{ fontSize: "12px", color: T.soft }}>{e.label}</span>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -605,132 +732,46 @@ export default function ResultView(p: {
                 {f.blank} <span style={unit}>{"of " + f.answeredQuestions}</span>
               </>
             }
-            note="Of the questions an engine answered at all. One nobody answered is neither named nor missing."
+            note="Of the questions an engine answered at all."
           />
+          {f.bestRank !== null ? (
+            <Metric label="Best Google position" value={ordinal(f.bestRank)} note="Your best organic position on any of these questions." />
+          ) : null}
         </div>
       </div>
 
-      {/* The unlocked metric strip. Every figure is measured, so a figure we
-          cannot measure is absent rather than estimated. */}
-      {p.unlocked ? (
-        <div style={{ ...CARD, display: "flex", overflow: "hidden", flexWrap: "wrap" }}>
-          <Metric
-            first
-            label="AI visibility"
-            value={f.pct === null ? "-" : f.pct + "%"}
-            note={visibilityNote(f.named, f.answers, qs.length)}
-          />
-          <Metric label="Sources in the category" value={p.totalSources} note={sourcesNote(f.yourSources)} />
-          {/* Suppressed on a partial leaderboard: naming the top brand is a
-              claim about a competitor, and the brand that would have topped
-              this list may be in the batch that never came back. The rank in
-              its note is already null for the same reason. */}
-          {f.topBrand && !r.leaderboard_partial ? (
-            <Metric
-              label="Top of the leaderboard"
-              value={<span style={{ fontSize: "22px" }}>{f.topBrand.brand}</span>}
-              note={topBrandNote(f.topBrand.mentions, f.topIsYou, r.brand.rank)}
-            />
-          ) : null}
-          {f.bestRank !== null ? (
-            <Metric
-              label="Best Google position"
-              value={ordinal(f.bestRank)}
-              note="Your best organic position on any question in this set."
-            />
-          ) : null}
-        </div>
-      ) : null}
+      <QuestionTable r={r} onOpen={setOpenIdx} />
 
-      <QuestionTable r={r} detailed={p.unlocked} />
-      <SourceTable r={r} domain={p.domain} detailed={p.unlocked} total={p.totalSources} />
-      <ShareOfVoice r={r} />
-
-      {/* The placement list. `emptyList` is a counted zero on either side of
-          the gate, and is deliberately not the same as "not counted yet". */}
+      {/* Where to get placed - the sources, cut down to the ones worth acting on. */}
       <section id="plan">
-        <Head title="Pages feeding the answers you are missing from">
-          The pages above, filtered to the ones feeding answers no engine named you in, and where an article can
+        <Head title="Where to get placed">
+          Of every page the engines drew on, the ones feeding answers you are missing from, where an article can
           realistically run. Ranked by how many answers a placement would put you into.
         </Head>
-
-        {p.unlocked ? (
-          r.opportunities && r.opportunities.length ? (
-            <div>
-              <PlanCards r={r} />
+        {opps.length ? (
+          <div>
+            <PlanCards r={r} />
+            {opps.length > PLAN_ORDER.length ? (
               <div style={{ marginTop: "16px" }}>
                 <PlacementTable r={r} />
               </div>
-            </div>
-          ) : (
-            <NoPlacements sources={r.sources} />
-          )
-        ) : p.noPlacements ? (
-          <div>
-            <NoPlacements sources={r.sources} />
-            <div style={{ ...CARD, padding: "24px", marginTop: "16px", maxWidth: "560px" }}>{p.gate}</div>
+            ) : null}
+            <p style={{ margin: "14px 0 0", fontSize: "13.5px", lineHeight: 1.65, color: T.soft }}>
+              These are the pages already being cited. <TierName tier="mentioned" /> is how we get you onto them - and
+              where inclusion is not editorially possible, we find the equivalent page and write the content that gets
+              you in.
+            </p>
           </div>
         ) : (
-          <div style={{ ...CARD, position: "relative", overflow: "hidden" }}>
-            <LockedRows />
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: "20px",
-              }}
-            >
-              <div style={{ ...CARD, padding: "24px", width: "100%", maxWidth: "560px" }}>{p.gate}</div>
-            </div>
-          </div>
+          <NoPlacements sources={r.sources} />
         )}
-
-        {f.emptyList ? null : (
-          <p style={{ margin: "14px 0 0", fontSize: "13.5px", lineHeight: 1.65, color: T.soft }}>
-            This list is also the <TierName tier="mentioned" /> brief. We approach the pages on it, and where
-            inclusion is not editorially possible we find the contextually equivalent page and write the content that
-            gets you in. You get told which ones those were.
-          </p>
-        )}
-
-        {p.unlocked ? (
-          <div style={{ marginTop: "14px", display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
-            <Link
-              href="/#packages"
-              className="btn-primary"
-              style={{
-                fontSize: "14px",
-                fontWeight: 600,
-                padding: "11px 20px",
-                borderRadius: "10px",
-                textDecoration: "none",
-                whiteSpace: "nowrap",
-              }}
-            >
-              See what it costs
-            </Link>
-            <Link
-              href="/contact"
-              style={{
-                background: T.surface,
-                border: "1px solid " + T.line,
-                color: T.ink,
-                fontSize: "14px",
-                fontWeight: 600,
-                padding: "10px 20px",
-                borderRadius: "10px",
-                textDecoration: "none",
-                whiteSpace: "nowrap",
-              }}
-            >
-              Talk it through
-            </Link>
-          </div>
-        ) : null}
       </section>
+
+      <ShareOfVoice r={r} />
+
+      <TrackedSection token={p.token} questions={qs.length} />
+
+      <AnswerDrawer r={r} idx={openIdx} onClose={close} onMove={setOpenIdx} />
     </div>
   );
 }

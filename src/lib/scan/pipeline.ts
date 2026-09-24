@@ -7,6 +7,7 @@ import {
   describeAnthropicError,
   extractBrands,
   generateQuestions,
+  siteFacts,
   QUESTION_COUNT,
 } from "./anthropic";
 import { brandKey, displayNamesFor, namesBrand } from "./brand-name";
@@ -75,6 +76,8 @@ export type ScanRow = {
   market: Market | null;
   engines: string[] | null;
   gated_engines: string[] | null;
+  /** { services, industries } from the site read. Null on rows before 20260924000000. */
+  site_facts?: unknown;
 };
 
 async function mapWithConcurrency<T, R>(
@@ -908,7 +911,7 @@ export async function runScan(scanId: string): Promise<void> {
   try {
     const { data: scan, error } = await db
       .from("scans")
-      .select("id, domain, brand_name, positioning, topic, topic_variants, market, engines, gated_engines")
+      .select("id, domain, brand_name, positioning, topic, topic_variants, market, engines, gated_engines, site_facts")
       .eq("id", scanId)
       .single<ScanRow>();
     if (error || !scan) throw new Error(`scan ${scanId} not found`);
@@ -1008,6 +1011,7 @@ export async function runScan(scanId: string): Promise<void> {
             market,
             brand,
             positioning: scan.positioning,
+            ...siteFacts(scan.site_facts),
           }, qBilled),
         );
       } finally {
@@ -1231,7 +1235,7 @@ export async function runGatedScan(scanId: string): Promise<void> {
   try {
     const { data: scan, error } = await db
       .from("scans")
-      .select("id, domain, brand_name, positioning, topic, topic_variants, market, engines, gated_engines")
+      .select("id, domain, brand_name, positioning, topic, topic_variants, market, engines, gated_engines, site_facts")
       .eq("id", scanId)
       .single<ScanRow>();
     if (error || !scan) throw new Error(`scan ${scanId} not found`);

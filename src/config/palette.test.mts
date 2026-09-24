@@ -189,7 +189,7 @@ const OFF_PALETTE: Record<string, Entry> = {
       "src/components/home/TierJourney.tsx": 2,
       "src/components/scan/ConfirmScreen.tsx": 1,
       "src/components/scan/HeroSequence.tsx": 3,
-      "src/components/scan/ResultView.tsx": 4,
+      "src/components/scan/ResultView.tsx": 3,
     },
   },
   "#3f4451": {
@@ -385,10 +385,30 @@ test("the translucent accent in the stylesheet is the accent, not a fourth copy 
  */
 const DERIVED = new Set(["rgba(124,58,237,0.28)"]);
 
+/**
+ * Files that reproduce somebody else's mark, excused whole.
+ *
+ * EngineLogo.tsx carries the five engines' own logos, from the SVGs Danny
+ * supplied on 24 September 2026. Their colours are the engines', not ours, and
+ * the one rule for them is the opposite of this file's: they must never be
+ * pulled onto the palette. Listing each gradient stop here would be twenty
+ * entries whose reason is the same sentence.
+ */
+const MARKS = new Set(["src/components/EngineLogo.tsx"]);
+
+test("an excused mark file still carries marks", () => {
+  for (const file of MARKS) {
+    assert.ok(
+      offPalette().some((s) => s.file === file),
+      `${file} is excused as a file of third-party marks and holds no off-palette colour - drop it from MARKS`,
+    );
+  }
+});
+
 /** Rule 3: nothing is off-palette without a recorded reason. */
 test("every colour written outside the palette is on the list, with its reason", () => {
   const strays = offPalette()
-    .filter((s) => !(s.value in OFF_PALETTE) && !DERIVED.has(s.value))
+    .filter((s) => !(s.value in OFF_PALETTE) && !DERIVED.has(s.value) && !MARKS.has(s.file))
     .map((s) => `${s.value} in ${s.file}`);
   assert.deepEqual(
     [...new Set(strays)],
@@ -409,7 +429,9 @@ test("no entry on the list is stale, and none has quietly grown a site", () => {
   for (const [value, { why, sites }] of Object.entries(OFF_PALETTE)) {
     assert.ok(why.length > 40, `OFF_PALETTE["${value}"] needs a reason, not a placeholder`);
     const actual: Record<string, number> = {};
-    for (const s of found.filter((s) => s.value === value)) actual[s.file] = (actual[s.file] ?? 0) + 1;
+    // A mark file reproduces someone else's colours; see MARKS. Its use of a
+    // value that happens to be on this list is theirs, not a spread of ours.
+    for (const s of found.filter((s) => s.value === value && !MARKS.has(s.file))) actual[s.file] = (actual[s.file] ?? 0) + 1;
     assert.deepEqual(
       actual,
       sites,

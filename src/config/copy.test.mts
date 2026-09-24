@@ -244,8 +244,15 @@ const OWNED = [
   { home: "src/config/pricing.ts", decl: /export const TRACKED_QUESTIONS = (\d+)/ },
 ] as const;
 
-/** Ten to twenty, which is the range a count in this copy is written out in. */
+/**
+ * Five, and ten to twenty, which is the range a count in this copy is written
+ * out in. Five joined on 24 September 2026 when QUESTIONS dropped to it. Below
+ * ten the word is an ordinary English word ("five pages", "five days") on
+ * surfaces that have nothing to do with the scan, so for those the word is
+ * only a hit beside "question" - the same qualifier the digit already carries.
+ */
 const NUMBER_WORDS: Record<number, string> = {
+  5: "five",
   10: "ten",
   11: "eleven",
   12: "twelve",
@@ -326,7 +333,9 @@ export function typedCounts(
     const prose = line.replace(CSS_LENGTH, " ");
     const hit = counts.some(({ value }) => {
       const digit = new RegExp(`\\b${value}\\b`).test(prose) && /question/i.test(line) && !HOMES.has(file);
-      const word = NUMBER_WORDS[value] ? new RegExp(`\\b${NUMBER_WORDS[value]}\\b`, "i").test(line) : false;
+      const word = NUMBER_WORDS[value]
+        ? new RegExp(`\\b${NUMBER_WORDS[value]}\\b`, "i").test(line) && (value >= 10 || /question/i.test(line))
+        : false;
       return digit || word;
     });
     if (hit) out.push({ file, line: i + 1, text: line.trim() });

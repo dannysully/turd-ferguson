@@ -366,6 +366,8 @@ export type UnlockPayload = {
       answered: boolean;
       brand_named: boolean;
       response_text: string | null;
+      /** What this engine cited for this question, in the order it cited them, deduped by URL. */
+      citations: Array<{ domain: string; url: string | null; title: string | null }>;
     }>;
   }>;
   /**
@@ -402,6 +404,23 @@ export type {
   QuestionRow,
 } from "@/lib/scan/opportunities";
 export { deriveOpportunities } from "@/lib/scan/opportunities";
+
+/**
+ * Marks a scan as claimed without the gate. Since 24 September 2026 nothing
+ * is gated, so the only thing `unlocked_at` still decides is retention: the
+ * nightly purge clears transcripts from scans where it is null. A walkthrough
+ * request stamps it, because Danny will record against those transcripts.
+ * Only ever sets it once - an earlier stamp is left alone. Never throws.
+ */
+export async function markClaimed(scanId: string): Promise<boolean> {
+  const { error } = await supabaseAdmin()
+    .from("scans")
+    .update({ unlocked_at: new Date().toISOString() })
+    .eq("id", scanId)
+    .is("unlocked_at", null);
+  if (error) console.warn("[scan] could not mark " + scanId + " claimed: " + error.message);
+  return !error;
+}
 
 /**
  * What the locked gate is allowed to know: how many opportunities there are
@@ -638,6 +657,22 @@ export async function buildUnlockPayload(scanId: string): Promise<UnlockPayload>
     brand_named: boolean;
     response_text: string | null;
   }>;
+  /**
+   * Per answer, what the engine cited. The rows are already in hand for the
+   * source list, so this is a grouping rather than another read. Read order is
+   * insertion order, which is the order the parser recorded the citations.
+   */
+  const citedBy = new Map<string, Array<{ domain: string; url: string | null; title: string | null }>>();
+  for (const c of sources as Array<CitationWithVolume & { question_id?: string; engine?: string }>) {
+    if (!c.question_id || !c.engine) continue;
+    const key = c.question_id + "|" + c.engine;
+    const list = citedBy.get(key) ?? [];
+    if (c.url && list.some((x) => x.url === c.url)) continue;
+    if (list.length < 12) list.push({ domain: c.source_domain, url: c.url ?? null, title: c.title ?? null });
+    citedBy.set(key, list);
+  }
+  const citedFor = (questionId: string, engine: string) => citedBy.get(questionId + "|" + engine) ?? [];
+
   const questionDetail = (questions ?? []).map((q) => ({
     idx: q.idx as number,
     question: q.question as string,
@@ -653,6 +688,7 @@ export async function buildUnlockPayload(scanId: string): Promise<UnlockPayload>
         // purge has already reclaimed. The screen says so rather than showing a
         // blank and letting it read as "the engine said nothing".
         response_text: (a.response_text ?? null) as string | null,
+        citations: citedFor(q.id as string, a.engine),
       })),
   }));
 

@@ -4,11 +4,28 @@ import { checkHost } from "./address";
 import { decodeEntities, toProse } from "./prose";
 
 /** Paths worth reading beyond the homepage, in the order we prefer them. */
-const INTERESTING = /\/(about|services|what-we-do|solutions|sectors|industries)/i;
+const INTERESTING =
+  /\/(about|services|what-we-do|solutions|sectors|industries|expertise|specialisms|case-stud|our-work|work|clients|portfolio|results)/i;
+
+/**
+ * Which linked pages are read first when there are more than the cap.
+ *
+ * The question set narrows the category by what the site sells and who it
+ * sells to, so services and industries come first and case studies next -
+ * a firm with four retail case studies serves retail whether or not its
+ * homepage says so. "About" is last: it says how a company sees itself, which
+ * is exactly what the questions are told not to be built from.
+ */
+function pageRank(path: string): number {
+  if (/services|what-we-do|solutions|expertise|specialisms/i.test(path)) return 0;
+  if (/sectors|industries/i.test(path)) return 1;
+  if (/case-stud|our-work|work|portfolio|results|clients/i.test(path)) return 2;
+  return 3;
+}
 
 const PAGE_BYTE_CAP = 200 * 1024;
 const TOTAL_BUDGET_MS = 8_000;
-const MAX_EXTRA_PAGES = 5;
+const MAX_EXTRA_PAGES = 6;
 
 /**
  * Redirects followed per page, now that they are followed by hand.
@@ -321,7 +338,12 @@ function sameHostLinks(html: string, domain: string, base: string): string[] {
     url.hash = "";
     out.add(url.toString());
   }
-  return [...out].slice(0, MAX_EXTRA_PAGES);
+  // Stable sort: within a rank, the order the links appear on the page.
+  return [...out]
+    .map((u, i) => ({ u, i, r: pageRank(new URL(u).pathname) }))
+    .sort((a, b) => a.r - b.r || a.i - b.i)
+    .map((x) => x.u)
+    .slice(0, MAX_EXTRA_PAGES);
 }
 
 /**
@@ -388,7 +410,12 @@ export async function readSite(domain: string): Promise<string> {
     // the length check below reaches now that "" gets there.
     if (html === null) throw failureFor(domain, controller.signal, firstFailure);
 
-    const parts = [toProse(html)];
+    // Empty prose stays empty, so the too_thin check below still measures words.
+    const labelled = (url: string, page: string) => {
+      const prose = toProse(page);
+      return prose ? "Page: " + url + "\n" + prose : "";
+    };
+    const parts = [labelled(base, html)];
     const links = sameHostLinks(html, domain, base);
 
     // Remaining pages share whatever is left of the budget, in parallel.
@@ -400,9 +427,11 @@ export async function readSite(domain: string): Promise<string> {
     // most, the ones whose homepage ate enough of the budget to leave these
     // mid-body when the controller fired.
     const extra = await Promise.allSettled(links.map((u) => getText(u, controller.signal, domain)));
-    for (const page of extra) {
-      if (page.status === "fulfilled" && page.value.ok) parts.push(toProse(page.value.html));
-    }
+    // Each page headed with its address, so the brand read can tell a case
+    // study from the homepage. `links` and `extra` share an index.
+    extra.forEach((page, i) => {
+      if (page.status === "fulfilled" && page.value.ok) parts.push(labelled(links[i], page.value.html));
+    });
 
     const text = parts.filter(Boolean).join("\n\n").slice(0, 60_000);
     if (text.length < 200) throw new UnreachableDomain(domain, "too_thin");
