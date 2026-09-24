@@ -150,7 +150,7 @@ export function verifyHtml(p: Palette, font: string, brand: string, link: string
     body:
       "We ran the check, and the result is already on your page. Confirming " +
       "this address opens the rest: which of those pages you could be placed " +
-      "into, and what each engine said word for word.",
+      "into, and what each engine said.",
     cta: { href: link, label: "Open the report" },
     footnote: linkFallback(p, link),
     aside: "If you did not ask for this, ignore it and nothing opens.",
@@ -315,7 +315,7 @@ export function reportHtml(
      * says what opening the report gets you, the way the verification message
      * does. The body still leads with the number.
      */
-    preheader: "The pages you could be placed into, ranked, and every answer word for word.",
+    preheader: "The pages you could be placed into, ranked, and what each engine said.",
     heading: `Your ${b} report is ready`,
     /**
      * `requestedReason` first and on its own line when this is the requested
@@ -331,7 +331,7 @@ export function reportHtml(
       (requestedFor ? `${escapeHtml(requestedReason(requestedFor))}<br><br>` : "") +
       reportHeadline(b, counts) +
       " The report adds the pages you could be placed into, ranked by how many " +
-      "answers a placement would win, and what each engine said word for word.",
+      "answers a placement would win, and what each engine said.",
     cta: { href: link, label: "Open your report" },
     footnote: "The link works on any device and does not expire. " + linkFallback(p, link),
   });

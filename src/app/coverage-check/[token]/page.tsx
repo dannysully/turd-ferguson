@@ -233,7 +233,7 @@ export default async function CampaignReadingPage({ params }: { params: Promise<
           <div className="board-head" style={{ ...GRID12, marginBottom: "14px" }}>
             <h2 style={{ ...H2, gridColumn: "span 4" }}>What each engine said</h2>
             <p style={{ gridColumn: "span 8", margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
-              The same {count(questions.length, "question")} will be asked again after the campaign, word for word, so
+              The same {count(questions.length, "question")} will be asked again after the campaign, unchanged, so
               the next reading is a comparison rather than another snapshot.
             </p>
           </div>

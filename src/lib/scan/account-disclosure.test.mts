@@ -146,16 +146,6 @@ function selectsIn({ file, src }: Source): Select[] {
  * keep the suite green is an entry nobody re-reads.
  */
 const RECORDED: Record<string, string> = {
-  'src/app/api/verify/[vtoken]/route.ts :: id, email, scan_id, account_id, verified_at':
-    "The leads row behind a verify link. account_id is passed to resolveAccount and " +
-    "nothing else; every exit from this route is a 302 redirect, so the route has no " +
-    "body for a column to reach.",
-  "src/app/api/verify/[vtoken]/route.ts :: SCAN_UNLOCK_COLUMNS":
-    "The scan being unlocked, same route, same redirect-only exits.",
-  "src/app/api/scan/[token]/unlock/route.ts :: SCAN_UNLOCK_COLUMNS":
-    "The scan being unlocked. The success body names its own five fields and spreads " +
-    "only buildUnlockPayload, whose own selects name no identity column - checked by " +
-    "rule 2, which walks every select in the tree rather than these two files.",
 };
 
 /**
@@ -170,11 +160,6 @@ const MENTIONED: Record<string, string> = {
     "Declares SCAN_UNLOCK_COLUMNS, and writes the column on the accounts and " +
     "client_domains rows. Writes, not reads: resolveAccount is the only thing that " +
     "inserts into accounts.",
-  "src/app/api/verify/[vtoken]/route.ts":
-    "Reads it to resolve the account behind a verified lead. Answers only with a redirect.",
-  "src/app/api/scan/[token]/unlock/route.ts":
-    "Reads it off the scan to seed resolveAccount, and writes it onto the new leads row. " +
-    "The insert's own .select() asks for id and verify_token.",
 };
 
 test("nothing in this tree selects *", () => {

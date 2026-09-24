@@ -92,32 +92,34 @@ test("nothing on the campaign path can reach the one writer", () => {
   );
 });
 
-test("the purge takes every unclaimed scan, with no exemption for a reading", () => {
+test("the nightly job clears nothing, so a reading keeps its prose too", () => {
+  /**
+   * This asserted the opposite until 24 September 2026.
+   *
+   * It held that the purge selected exactly `unlocked_at is null` with no
+   * campaign exclusion, because that was the fact underneath blocked.md 30: a
+   * reading can never be claimed, so its prose went at the retention window
+   * whatever `/coverage-check` said about it.
+   *
+   * Danny answered it - transcripts are kept indefinitely - and the job clears
+   * nothing at all now. That resolves blocked.md 30 in the direction that
+   * needs no campaign exemption, because there is nothing to be exempt from.
+   *
+   * The rule is turned round rather than deleted. A purge is a thing somebody
+   * adds back, and the moment one returns this file's whole subject is live
+   * again: readings would be the first thing it took, because they are the
+   * rows that can never be claimed.
+   */
   const purge = read(PURGE);
-  assert.match(
-    purge,
-    /\.is\("unlocked_at",\s*null\)/,
-    "the purge no longer selects on unlocked_at, so what it clears has moved",
-  );
-  // The absence is the property. A campaign filter here would mean readings
-  // keep their prose, and the sentence removed from /coverage-check could go
-  // back - which is exactly why its absence has to be asserted rather than
-  // assumed.
   assert.ok(
-    !/campaign_id/.test(purge),
-    "the purge now knows about campaigns - re-read blocked.md 30 before trusting the copy on /coverage-check",
+    !/\.update\(/.test(purge),
+    "the nightly job writes again. If a purge is back, a reading is the first thing it clears - it can never be " +
+      "claimed - so re-read blocked.md 30 and this file's header before trusting any copy about kept answers.",
   );
-});
-
-test("the purge clears the prose and keeps the measurement", () => {
-  // What makes the benchmark's "dated, stored and re-runnable" still true
-  // after the transcript is gone: the columns the reading page reads are
-  // never touched by this job.
-  const purge = read(PURGE);
-  assert.ok(purge.includes("response_text"), "the purge no longer names the column it clears");
-  for (const kept of ["brand_named", "answered"]) {
-    assert.ok(!purge.includes(kept), `the purge now touches ${kept}, which the reading page reads`);
-  }
+  assert.ok(
+    !/response_text/.test(purge),
+    "the nightly job names response_text again, which is the column every keeping-claim on this site is about",
+  );
 });
 
 test("the reading page still renders no answer prose", () => {
@@ -130,19 +132,23 @@ test("the reading page still renders no answer prose", () => {
   );
 });
 
-test("no surface still tells a benchmark visitor its answers are kept", () => {
-  // Scoped to the two campaign-facing pages on purpose: on those the claim may
-  // not appear AT ALL, because a reading can never be claimed. Everywhere else
-  // the claim is allowed with a bound, which is the rule below this one.
-  //
-  // **That sentence used to read "the claim elsewhere is about the scan report,
-  // which IS readable and IS kept once unlocked", and it was a universal about
-  // the tree that nothing executed.** It was false on /about, whose second
-  // measurement rule - on the page whose own doc comment calls the rules "the
-  // point of the page" - said the response text is "kept per question" with no
-  // condition at all. The narrowing was written from a guess about the other
-  // surfaces rather than from a reading of them, which is the species this
-  // repo keeps paying for.
+test("a campaign surface may say the answers are kept, because they are", () => {
+  /**
+   * This was a prohibition until 24 September 2026: on the two campaign-facing
+   * pages the claim could not appear AT ALL, because a reading can never be
+   * claimed and the purge therefore took its prose at the retention window.
+   * The sentence had already been removed from `/coverage-check` once.
+   *
+   * Transcripts are kept indefinitely now, so the claim is simply true and a
+   * prohibition on saying it would be this file holding a page to a fact that
+   * has changed underneath it.
+   *
+   * What is left is the wording rule, which did not change: blocked.md 29
+   * retires "verbatim" and "word for word" for stored answers in favour of
+   * "what each engine said". A claim about the QUESTIONS being asked again
+   * unchanged is a different claim and is still true - `prompts.test.mts` pins
+   * the strings - so it is the answers these pages must not describe that way.
+   */
   const pages = [
     "src/app/coverage-check/page.tsx",
     "src/app/coverage-check/[token]/page.tsx",
@@ -151,9 +157,6 @@ test("no surface still tells a benchmark visitor its answers are kept", () => {
   for (const page of pages) {
     for (const m of read(page).matchAll(/[^.]*\b(?:word for word|verbatim)\b[^.]*/gi)) {
       const sentence = m[0].replace(/\s+/g, " ").trim();
-      // "the same questions, word for word" is a claim about the QUESTIONS and
-      // it is true - `prompts.test.mts` pins the five strings. What may not
-      // come back is the claim about the ANSWERS.
       if (/\bquestions?\b/i.test(sentence)) continue;
       offenders.push(`${page}: ${sentence}`);
     }
@@ -161,7 +164,7 @@ test("no surface still tells a benchmark visitor its answers are kept", () => {
   assert.deepEqual(
     offenders,
     [],
-    "a campaign surface promises the answers are kept, and the purge clears them at the retention window:\n" +
+    "a campaign surface describes the stored answers as verbatim or word for word, which blocked.md 29 retires:\n" +
       offenders.join("\n"),
   );
 });
@@ -222,25 +225,39 @@ const RETENTION_CLAIMS: {
   {
     file: "src/app/about/page.tsx",
     needle: "Store the whole answer",
-    why: "a rule card's three-word title; the bound is in the body of the same RULES entry, immediately below it",
+    why:
+      "a rule card's three-word title; the bound is in the body of the same RULES entry, immediately below it. " +
+      "It named the purge condition until 24 September 2026 and now names what replaced it",
     holds: (src) => {
       const at = src.indexOf('title: "Store the whole answer"');
-      return at >= 0 && /^[^}]*\bnobody claims\b/.test(src.slice(at));
+      return at >= 0 && /^[^}]*\bkept for as long as the reading is\b/.test(src.slice(at));
     },
   },
   {
     file: "src/app/about/page.tsx",
-    needle: "Full response text and source lists are kept",
-    why: "measurement rule 2, and it names the condition: unclaimed scans are purged, sources and measurements stay",
-    holds: (src) => /kept per question[^"]*\bOn a scan nobody claims\b[^"]*\bpurged\b/.test(src),
+    needle: "are kept per question",
+    why:
+      "measurement rule 2. It named the purge condition until 24 September 2026; there is no purge now, so " +
+      "what it has to name instead is the fact that replaced it - the text is kept as long as the reading is",
+    holds: (src) => /kept per question[^"]*\bkept for as long as the reading is\b/.test(src),
   },
   {
     file: "src/app/compare/page.tsx",
-    needle: "Stores the verbatim answer behind every reading",
+    needle: "Stores what each engine said behind every reading",
     why:
       "a feature row under a column that is the alwayscited TIER, not a scan this tree runs - " +
-      "nothing here creates a paid-tier scan, so its retention is not this purge (blocked.md 32)",
+      "nothing here creates a paid-tier scan (blocked.md 32). Its retention was not this purge, and there " +
+      "is no purge now either way",
     holds: (src) => /COLUMNS[^=]*=\s*\[\{\s*key:\s*"us",\s*label:\s*<TierName tier="cited"/.test(src),
+  },
+  {
+    file: "src/app/legal/page.tsx",
+    needle: "and so is what each engine said",
+    why:
+      "the privacy policy, and since 24 September 2026 it is the surface that states the retention decision " +
+      "rather than one that has to be bounded by it. Its own bound is the sentence after it, which says the " +
+      "seven-day deletion no longer happens - so the claim and the reason it is true travel together",
+    holds: (src) => /so is what each engine said[^<]*\.[^<]*we do not/i.test(src.replace(/\s+/g, " ")),
   },
   {
     file: "src/lib/scan/pipeline.ts",
@@ -267,10 +284,13 @@ test("every surface promising the answer text is kept is on the list", () => {
   }
 
   // A floor, because the walk narrowing to nothing reads exactly like a clean
-  // tree. Five sites on 20 Sep 2026, four of them published copy; four from
-  // 24 Sep 2026, when ProcessSequence replaced HeroSequence and took the
-  // waiting sequence's "stored word for word" act with it.
-  assert.ok(total >= 4, `the walk found ${total} keeping-claims, was 4 - it has narrowed`);
+  // tree. Five sites on 20 Sep 2026, four of them published copy; four when
+  // ProcessSequence replaced HeroSequence on 24 Sep 2026 and took the waiting
+  // sequence's "stored word for word" act with it; five again later the same
+  // day, when /legal stopped promising a deletion and started promising the
+  // opposite - which is a keeping-claim where it used to be the bound on
+  // everybody else's.
+  assert.ok(total >= 5, `the walk found ${total} keeping-claims, was 5 - it has narrowed`);
 
   /**
    * By COUNT per file as well as by membership.
@@ -308,18 +328,30 @@ test("every listed surface still earns the reason it is listed under", () => {
   assert.deepEqual(broken, [], broken.join("\n"));
 });
 
-test("the retention window the copy was measured against is still one setting", () => {
-  // The number itself is blocked.md 26. What matters here is only that there
-  // is one knob and the purge reads it, so "a week after it was taken" cannot
-  // quietly become "never" without this file noticing.
-  assert.match(
-    read(PURGE),
-    /response_retention_days/,
-    "the purge no longer reads the retention setting",
+test("the retention setting is a row nothing reads", () => {
+  /**
+   * This asserted the opposite until 24 September 2026: that there was one
+   * knob, that the purge read it, and that a migration seeded it - so "a week
+   * after it was taken" could not quietly become something else.
+   *
+   * Retention is indefinite now and the job reads nothing. The row stays in
+   * `app_settings` because it is data and deleting live rows is not ours, and
+   * the migration that seeds it is untouched for the same reason - so what is
+   * worth holding is the other direction: **nothing in the code reads that
+   * setting any more.** A reader coming back would otherwise find a knob in
+   * the settings table, turn it, and watch nothing happen.
+   */
+  assert.ok(
+    !/response_retention_days/.test(read(PURGE)),
+    "the nightly job reads the retention setting again, so a purge is back - see the rule above",
   );
-  const migrations = join(ROOT, "supabase", "migrations");
-  const seeded = readdirSync(migrations)
-    .filter((f) => f.endsWith(".sql"))
-    .some((f) => readFileSync(join(migrations, f), "utf8").includes("response_retention_days"));
-  assert.ok(seeded, "no migration seeds response_retention_days");
+  const readers = sourceFiles(ROOT).filter((f) =>
+    code(readFileSync(join(ROOT, f), "utf8")).includes("response_retention_days"),
+  );
+  assert.deepEqual(
+    readers,
+    [],
+    "something reads response_retention_days again. The row is data nothing acts on; a reader means the " +
+      "retention decision of 24 September 2026 has been reopened somewhere:\n" + readers.join("\n"),
+  );
 });

@@ -64,7 +64,11 @@ import { join, relative } from "node:path";
 export const PAID: Record<string, { module: string; what: string }> = {
   runScan: { module: "src/lib/scan/pipeline.ts", what: "every question against every engine" },
   readBrand: { module: "src/lib/scan/anthropic.ts", what: "one model call to name the brand" },
-  completeUnlock: { module: "src/lib/scan/unlock.ts", what: "the gated pass, the biggest single spender here" },
+  // `completeUnlock` was here until 24 September 2026 and was the biggest
+  // single spender on the list - it ran the gated pass. It went with the email
+  // gate, along with the three routes that called it (scan unlock, scan resend
+  // and the verify link). There is no gated pass to enter any more: the free
+  // pass reads every engine and `GATED_ENGINES` is empty.
   startBenchmark: { module: "src/lib/coverage/campaign.ts", what: "a campaign and its first reading" },
   addReading: { module: "src/lib/coverage/campaign.ts", what: "a further reading of a campaign" },
   /**

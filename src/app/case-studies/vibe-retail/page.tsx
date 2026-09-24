@@ -28,15 +28,15 @@ import { ORG_REF, ld } from "@/config/schema";
  */
 
 export const metadata: Metadata = {
-  title: "One placement, three AI Overview citations",
+  title: "One placement, and what it moved",
   description:
-    `One listicle placement on a page already ranking for the category. Three AI Overview citations. The money keyword ${KEYWORD_EIGHT_WEEKS.value} in ${KEYWORD_EIGHT_WEEKS.scope}, #1 at ${KEYWORD_FOUR_MONTHS.scope}.`,
+    `One listicle placement on a page already ranking for the category. The money keyword ${KEYWORD_EIGHT_WEEKS.value} in ${KEYWORD_EIGHT_WEEKS.scope}, #1 at ${KEYWORD_FOUR_MONTHS.scope}.`,
   alternates: { canonical: "https://alwayscited.com/case-studies/vibe-retail" },
   openGraph: {
     images: OG_IMAGE,
-    title: "One placement, three AI Overview citations",
+    title: "One placement, and what it moved",
     description:
-      `Three AI Overview citations. The money keyword went from ${KEYWORD_EIGHT_WEEKS.value} in ${KEYWORD_EIGHT_WEEKS.scope}, and reached #1 ${KEYWORD_FOUR_MONTHS.scope} in.`,
+      `The money keyword went from ${KEYWORD_EIGHT_WEEKS.value} in ${KEYWORD_EIGHT_WEEKS.scope}, and reached #1 ${KEYWORD_FOUR_MONTHS.scope} in.`,
     url: "https://alwayscited.com/case-studies/vibe-retail",
   },
 };
@@ -59,7 +59,7 @@ const articleSchema = {
   // /about publishes a rule against. `client-results.test.mts` reads every
   // JSON-LD string as its own surface for that reason.
   description:
-    `A US retail SaaS: three AI Overview citations, ChatGPT brand visibility from ${CHATGPT_VISIBILITY.value} of the ${CHATGPT_VISIBILITY.scope}, and the money keyword from ${KEYWORD_EIGHT_WEEKS.value} in ${KEYWORD_EIGHT_WEEKS.scope}, reaching #1 ${KEYWORD_FOUR_MONTHS.scope} in.`,
+    `A US retail SaaS: ChatGPT brand visibility from ${CHATGPT_VISIBILITY.value} of the ${CHATGPT_VISIBILITY.scope}, and the money keyword from ${KEYWORD_EIGHT_WEEKS.value} in ${KEYWORD_EIGHT_WEEKS.scope}, reaching #1 ${KEYWORD_FOUR_MONTHS.scope} in.`,
   url: "https://alwayscited.com/case-studies/vibe-retail",
   author: ORG_REF,
   publisher: ORG_REF,
@@ -102,34 +102,29 @@ const KEYWORDS: [string, string][] = [
 ];
 
 /**
- * The client's own result stays; the four companies it used to name do not.
+ * The client's own result stays; what an engine put in its answer does not.
  *
  * "named Best Overall, ahead of Shopify POS, Lightspeed, Square and KORONA"
- * is three prohibited things in one clause, not one: a claim about a client's
- * result, a claim about named competitors, and a statement about what an
- * engine put in its answer - and it carried no date, no screenshot and no
- * tracker for any of them. AGENTS.md puts all three behind a dated source and
- * says to leave the field out until there is one, and that rule sits under
- * "whatever the instruction".
+ * was three prohibited things in one clause - a claim about a client's result,
+ * a claim about named competitors, and a statement about what an engine put in
+ * its answer - and it carried no date, no screenshot and no tracker. The
+ * competitors came out on 19 September 2026 and the rest stayed behind two
+ * visible [TO CONFIRM] markers asking for the dates and the tracker.
  *
- * The 19 Sep 09:30 sweep cut this exact claim off /what-is-aeo and said in
- * blocked.md that it was the one it would push hardest to leave out. It ran
- * over /what-is-aeo, /how-it-works and the three posts and never reached this
- * page, so the most persuasive unsourced claim on the site stayed live on the
- * page a buyer is sent to. The competitor half is the worst of it: /compare
- * and VsTool are both parked rather than state undated facts about other
- * companies, and this line was doing it anyway, two clicks away.
+ * **Danny answered those markers on 24 September 2026 by removing them rather
+ * than filling them.** His attested reading - the money keyword from #83, with
+ * the window it was measured over - stays. The AI Overview citations, the
+ * per-question results, the claim that the positions came from an independent
+ * tracker and the [TO CONFIRM] asking which one: all of it goes, because none
+ * of it has a dated source and he would rather the page said less.
  *
- * What is left is what the page is for - this client, on this question - and
- * it already sits under the two visible [TO CONFIRM] markers asking for the
- * dates and the tracker. Restoring the names needs a dated reading, per
- * blocked.md item 8.
+ * So `OVERVIEWS` is gone and `AI_OVERVIEW_CITATIONS` is no longer published
+ * anywhere. The constant stays in `client-results.ts` with its attestation -
+ * it was attested, it is simply not evidence anybody has seen - and
+ * `client-results.test.mts` holds that nothing prints it.
+ *
+ * Restoring any of it needs a dated reading, per blocked.md item 8.
  */
-const OVERVIEWS: [string, string][] = [
-  ["best retail pos systems", "named Best Overall"],
-  ["best pos system for retail 2026", "featured as rated best for growing retailers"],
-  ["pos systems with inventory management 2026", "named Best Overall POS with Inventory Management for 2026"],
-];
 
 export default function CaseStudyPage() {
   return (
@@ -167,8 +162,8 @@ export default function CaseStudyPage() {
               One listicle placement, on a page already ranking for the category
             </h1>
             <p className="ac-row" style={{ margin: "14px 0 0", fontSize: "15px", lineHeight: 1.6, color: T.soft, maxWidth: "64ch" }}>
-              Client unnamed at the agency request. Figures are our own run across the tracked question set, plus
-              Google positions from an independent tracker.
+              Client unnamed at the agency request. The position below is the account owner's own reading, over the
+              window stated beside it.
             </p>
           </div>
 
@@ -182,9 +177,6 @@ export default function CaseStudyPage() {
                 </div>
               ))}
             </dl>
-            <p style={{ margin: "14px 0 0", fontSize: "12.5px", lineHeight: 1.6, color: T.soft }}>
-              <ToConfirm>the date each reading was taken, and which tracker</ToConfirm>
-            </p>
           </div>
         </div>
 
@@ -215,15 +207,6 @@ export default function CaseStudyPage() {
             <div style={{ fontSize: "13px", color: T.soft, marginTop: "6px", maxWidth: "34ch" }}>
               Share of the {CHATGPT_VISIBILITY.scope} where ChatGPT names the brand. Nothing named it before the
               placement ran.
-            </div>
-          </div>
-          <div className="ac-row" style={{ flexGrow: 1, flexBasis: "260px", padding: "22px 26px", borderLeft: "1px solid " + T.line }}>
-            <div style={{ fontSize: "14px", color: T.soft }}>AI Overview citations</div>
-            <div style={{ fontSize: "36px", fontWeight: 700, letterSpacing: "-0.035em", lineHeight: 1.1, marginTop: "2px" }}>
-              3
-            </div>
-            <div style={{ fontSize: "13px", color: T.soft, marginTop: "6px", maxWidth: "34ch" }}>
-              On commercial questions, where the placed article was named as a source.
             </div>
           </div>
         </div>
@@ -266,20 +249,6 @@ export default function CaseStudyPage() {
             </P>
 
             <H2>What moved</H2>
-            <H3>Three AI Overview citations on commercial questions</H3>
-            <P>
-              The client is the top recommendation inside the AI Overview for three of the highest-intent buyer
-              questions in the category:
-            </P>
-            <div style={{ ...CARD, marginTop: "14px", overflow: "hidden" }}>
-              {OVERVIEWS.map(([q, result]) => (
-                <div key={q} className="cs-cite" style={{ borderBottom: "1px solid " + T.hair }}>
-                  <div style={{ fontSize: "14px", fontWeight: 600, color: T.ink }}>{q}</div>
-                  <div style={{ fontSize: "13.5px", lineHeight: 1.6, color: T.soft }}>{result}</div>
-                </div>
-              ))}
-            </div>
-
             <H3>The same placements moved the Google position</H3>
             <P>
               Because the pages carrying the citations are editorial pages with real organic traffic in this exact

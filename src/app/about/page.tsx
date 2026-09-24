@@ -48,7 +48,7 @@ const RULES = [
   },
   {
     title: "Store the whole answer",
-    body: "Full response text and source lists are kept per question, so any figure can be read back to the words that produced it. On a scan nobody claims, the text is purged on the schedule in our privacy policy and the sources and the measurements stay. A score nobody can audit is not evidence.",
+    body: "What each engine said, and the sources it used, are kept per question - so any figure can be read back to the words that produced it. They are kept for as long as the reading is, rather than purged on a schedule. A score nobody can audit is not evidence.",
   },
   {
     title: "Scope every claim",
@@ -67,12 +67,17 @@ const RULES = [
   },
 ];
 
-const TEAM = [
-  "Strategy and accounts",
-  "Link building and placements",
-  "SEO and content",
-  "Tracking and analytics",
-];
+/**
+ * The people, confirmed by Danny on 24 September 2026.
+ *
+ * First names only, and **nothing else**. He gave five names and no roles, no
+ * titles and no bios, so five names is what goes on the page: inventing "Head
+ * of" anything, or deciding which of them does the link building, would be
+ * publishing a claim about a real person that nobody has stood behind. The
+ * card used to carry four roles and a line saying the names were waiting; the
+ * names have arrived and the roles were never his.
+ */
+const TEAM = ["Danny", "Kev", "Luke", "Amy", "Naz"];
 
 export default function AboutPage() {
   return (
@@ -151,30 +156,26 @@ export default function AboutPage() {
             </p>
           </div>
           <div style={{ ...CARD, display: "flex", overflow: "hidden", flexWrap: "wrap" }}>
-            {TEAM.map((role, i) => (
+            {TEAM.map((name, i) => (
               <div
-                key={role}
+                key={name}
                 className="ac-row"
                 style={{
                   flexGrow: 1,
-                  flexBasis: "220px",
+                  flexBasis: "150px",
                   padding: "20px 24px",
                   borderLeft: i ? "1px solid " + T.line : undefined,
                 }}
               >
-                <div style={{ fontSize: "14.5px", fontWeight: 600 }}>{role}</div>
-                <div style={{ fontSize: "13px", color: T.soft, marginTop: "3px" }}>
-                  One person, named once you tell us which names go on a public page.
-                </div>
+                <div style={{ fontSize: "14.5px", fontWeight: 600 }}>{name}</div>
               </div>
             ))}
           </div>
-          {/* The board carries [CONFIRM which names go on a public page before
-              this ships]. Four invented names would be a worse answer than a
-              visible gap, so the roles are real and the names wait. */}
-          <p style={{ margin: "12px 0 0", fontSize: "12.5px", color: T.soft }}>
-            Roles rather than names until Danny confirms which go on a public page.
-          </p>
+          {/* The board carried [CONFIRM which names go on a public page before
+              this ships]. Danny confirmed the five on 24 September 2026, first
+              names only. No role, title or bio is attached to any of them,
+              because he gave none - and a plausible one written here would be
+              a claim about a real person with nothing behind it. */}
         </section>
       </section>
     </>

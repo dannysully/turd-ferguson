@@ -1,6 +1,5 @@
 import TierName from "@/components/TierName";
 import {
-  AI_OVERVIEW_CITATIONS,
   CHATGPT_VISIBILITY,
   KEYWORD_EIGHT_WEEKS,
   KEYWORD_FOUR_MONTHS,
@@ -61,7 +60,12 @@ const FACTS = [
   { label: `Money keyword, at ${KEYWORD_EIGHT_WEEKS.scope}`, val: KEYWORD_EIGHT_WEEKS.value },
   { label: `Money keyword, at ${KEYWORD_FOUR_MONTHS.scope}`, val: KEYWORD_FOUR_MONTHS.value },
   { label: `ChatGPT brand visibility, of the ${CHATGPT_VISIBILITY.scope}`, val: CHATGPT_VISIBILITY.value },
-  { label: `AI Overview citations ${AI_OVERVIEW_CITATIONS.scope}`, val: AI_OVERVIEW_CITATIONS.value },
+  // The AI Overview citation count was the fourth tile until 24 September
+  // 2026. Danny took it off the case study rather than fill in the date and
+  // the tracker the page was asking for, and a figure that is not good enough
+  // for the page it belongs to is not good enough for the homepage either.
+  // The constant keeps its attestation in client-results.ts; nothing prints
+  // it, which client-results.test.mts holds.
 ];
 
 export default function Results() {

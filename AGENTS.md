@@ -21,8 +21,26 @@ costs nothing; a decision waiting on a round trip costs an hour. Ship.
 ## Shipping
 
 - **`claude/build-alwayscited-site-6CpGg` deploys to production on every push.**
-  There is no preview gate and no test suite. `npx tsc --noEmit` and
+  There is no preview gate. `npx tsc --noEmit`, `npm run check` and
   `npm run build` are the bar, then open the page and look.
+- **There is a test suite, and it is mostly censuses.** `npm run check` runs
+  every `src/**/*.test.mts` through `node --test` - a little over eight
+  hundred tests. Most are not unit tests: a census walks the tree and asserts
+  a recorded fact about it is still true - which files can send mail, which
+  routes can spend money, how many times each off-palette colour is written
+  and where, what every `.rpc()` call site is, which surfaces publish a client
+  figure. They exist because the expensive defects here have been two copies
+  of one fact drifting apart, not wrong functions.
+  - **Never weaken or delete a rule to get green.** A tripped census means
+    either the change is wrong or the recorded fact has moved. Update the
+    fact, in the file that records it, with the reason and the date.
+  - **A floor is part of the rule.** Sweeps assert a minimum count as well as
+    a set, because a walk that stops matching reports a clean tree. Narrowing
+    a sweep means moving its floor deliberately.
+  - **Build before you check.** Several sweeps read the built output and
+    `npm run capture`; on a tree that has never been built they skip, which
+    looks exactly like passing. A clean `npm run check` on an unbuilt tree is
+    not a baseline.
 - **`git add src supabase`, never `-A`.** A push containing
   `.github/workflows/` is rejected outright - the PAT has no `workflow` scope.
 - **Batch.** Four or five changes, one push. Not one push per change.

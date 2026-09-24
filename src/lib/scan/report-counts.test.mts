@@ -171,7 +171,11 @@ test("every sender of the report email counts through this module", () => {
     const src = code(readFileSync(join(ROOT, f), "utf8"));
     return /sendReportReadyEmail\s*\(/.test(src) && !f.endsWith("verify-email.ts");
   });
-  assert.ok(senders.length >= 2, `only ${senders.length} sender(s) found - this rule has gone blind`);
+  // Two until 24 September 2026. The second was `unlock.ts`, sending the
+  // report once an address had been confirmed, and it went with the email
+  // gate. One is what is there; the rule below is the one that matters and it
+  // works over however many there are.
+  assert.ok(senders.length >= 1, `only ${senders.length} sender(s) found - this rule has gone blind`);
 
   const own = senders.filter((f) => !/reportCounts\s*\(/.test(code(readFileSync(join(ROOT, f), "utf8"))));
   assert.deepEqual(own, [], "these count the report's figures themselves rather than through reportCounts");
@@ -204,14 +208,21 @@ test("neither sender mails a count it could not read", () => {
 /* ── Danny's conditions on the send nobody confirmed an address for ── */
 
 /**
- * The two senders, split by whether anybody confirmed the address.
+ * The senders, split by whether anybody confirmed the address.
  *
  * Derived off the **column the address came out of**, not off the filename.
  * `report_email` is the address a visitor left while the scan was running and
  * nothing was ever sent to prove it; `leads.email` reached its own inbox and
  * had a link in it clicked. That distinction is what Danny's 19:45 decision is
- * about, so it is what this splits on - and a third sender arriving joins
- * whichever side it belongs to on its own.
+ * about, so it is what this splits on - and a new sender joins whichever side
+ * it belongs to on its own.
+ *
+ * There were two until 24 September 2026, one a side. The confirmed-address
+ * sender was `unlock.ts`, and there is no confirmed address on this site any
+ * more: the gate that produced one was deleted with the routes behind it. So
+ * every sender left is on the unconfirmed side, and the condition that side
+ * carries - say in the first line why the mail arrived - is now the condition
+ * on all of them.
  */
 function senders(): { file: string; src: string; unconfirmed: boolean }[] {
   return sourceFiles(ROOT)
@@ -221,10 +232,22 @@ function senders(): { file: string; src: string; unconfirmed: boolean }[] {
     .map((s) => ({ ...s, unconfirmed: /\breport_email\b/.test(s.src) }));
 }
 
-test("the two senders are told apart by where the address came from", () => {
+test("every sender is told apart by where the address came from", () => {
   const all = senders();
-  assert.equal(all.filter((s) => s.unconfirmed).length, 1, "expected exactly one unconfirmed-address sender");
-  assert.equal(all.filter((s) => !s.unconfirmed).length, 1, "expected exactly one confirmed-address sender");
+  assert.ok(all.length >= 1, "no report sender found - this rule is sweeping nothing");
+  assert.equal(
+    all.filter((s) => s.unconfirmed).length,
+    1,
+    "expected exactly one unconfirmed-address sender",
+  );
+  // No confirmed-address sender exists since the email gate went. This is
+  // asserted rather than left unsaid, because one coming back is a new
+  // confirmed-address path and Danny's 19:45 conditions would apply to it.
+  assert.deepEqual(
+    all.filter((s) => !s.unconfirmed).map((s) => s.file),
+    [],
+    "a confirmed-address sender is back - it needs its own entry in the conditions above",
+  );
 });
 
 /**

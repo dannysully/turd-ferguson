@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 
-import { listOf, namedOf, pickEngines, QUESTIONS } from "@/config/scan-shape";
+import EngineLogo from "@/components/EngineLogo";
+import { listOf, namedOf, pickEngineKeys, pickEngines, QUESTIONS } from "@/config/scan-shape";
 import { CARD, MICRO, SHELL, T } from "@/config/tokens";
 import { type WorkedQuestionId, workedQuestion } from "@/config/worked-example";
 
@@ -357,6 +358,18 @@ export default function AnswerExplorer() {
                 }}
               >
                 <span style={{ fontSize: "13px", fontWeight: 600, color: T.ink, flexGrow: 1 }}>You</span>
+                {/* The engines' own marks beside the sentence that names them,
+                    from the same positional picks - so the logos and the words
+                    cannot disagree about which engines named the brand. Marked
+                    aria-hidden because the sentence next to them already says
+                    it, and a screen reader does not need it twice. */}
+                {pickEngineKeys(selQ.engines).length > 0 && (
+                  <span style={{ display: "flex", alignItems: "center", gap: "6px", color: T.ink }} aria-hidden="true">
+                    {pickEngineKeys(selQ.engines).map((e) => (
+                      <EngineLogo key={e} engine={e} size={14} />
+                    ))}
+                  </span>
+                )}
                 <span style={{ ...pill(T.surface, namedHere ? T.warnFg : T.badFg) }}>{namedBy(selQ.engines)}</span>
               </div>
               <div

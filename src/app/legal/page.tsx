@@ -19,9 +19,10 @@ export const metadata: Metadata = {
  * Every factual claim here is one I checked in the code rather than one the
  * board asserted:
  *  - raw IPs are never stored, they are salted SHA-256 (lib/scan/ip.ts)
- *  - an unclaimed scan loses only its transcript, after
- *    response_retention_days (default 7), and keeps its measured facts
- *    (api/cron/purge-responses)
+ *  - nothing is purged: what each engine said is kept for as long as the scan
+ *    is, and the nightly job clears nothing (api/cron/purge-responses).
+ *    Danny's decision, 24 September 2026. The response_retention_days row is
+ *    still in app_settings and nothing reads it
  *  - the only third-party script the browser loads is Cloudflare Turnstile
  *  - the app sets no cookies of its own: no document.cookie, no cookies()
  *  - there is no analytics of any kind installed
@@ -98,9 +99,10 @@ const SECTIONS: Section[] = [
     title: "How long we keep it",
     body: (
       <>
-        Scan results are kept so you can come back to the link. The full text of what each engine said is deleted after
-        seven days if nobody claims the scan - what survives is the measurements: whether an engine answered, whether it
-        named the brand, and what it cited. <ToConfirm>the retention period for claimed scans, and for contact form messages</ToConfirm>
+        Scan results are kept so you can come back to the link, and so is what each engine said. We used to delete the
+        text after seven days on a scan nobody claimed; we do not any more. It is the evidence behind every figure in
+        your report, and a number you cannot read back to the words that produced it is not evidence.{" "}
+        <ToConfirm>the retention period for claimed scans, and for contact form messages</ToConfirm>
       </>
     ),
   },

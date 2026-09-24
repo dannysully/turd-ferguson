@@ -34,6 +34,18 @@ const C = {
   purple: T.accent,
   red: T.badFg,
   green: T.goodFg,
+  /**
+   * The status amber, on the token since 24 September 2026.
+   *
+   * It was `#92400E`, written twice by hand beside this object, and
+   * `palette.test.mts` rule 6 existed to stop anyone "tidying" it onto
+   * `T.warnFg` - because the token measured 3.78 on white against this
+   * value's 7.09, so the obvious fix was a contrast regression. Danny
+   * answered blocked.md 9 and `T.warnFg` is #a95912 now, which clears AA at
+   * 5.09. The reason not to merge was the measurement, the measurement has
+   * moved, so the merge is right and rule 6 went with it.
+   */
+  amber: T.warnFg,
 };
 
 type ScanRow = {
@@ -179,7 +191,7 @@ function Readiness() {
       <ul style={{ margin: "0.75rem 0 0", padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: "0.375rem" }}>
         {rows.map((r) => (
           <li key={r.key} style={{ fontSize: "0.8125rem", color: C.body }}>
-            <code style={{ fontWeight: 700, color: r.blocking ? "#92400E" : C.navy }}>{r.key}</code>
+            <code style={{ fontWeight: 700, color: r.blocking ? C.amber : C.navy }}>{r.key}</code>
             <span style={{ color: C.muted }}> &mdash; {r.why}</span>
             {!r.blocking && <span style={{ color: C.muted }}> (optional)</span>}
           </li>
@@ -369,7 +381,7 @@ export default async function AdminScansPage() {
             background: "rgba(245,158,11,0.12)",
             border: "1px solid rgba(245,158,11,0.35)",
             borderRadius: 12,
-            color: "#92400E",
+            color: C.amber,
             fontSize: "0.875rem",
           }}
         >

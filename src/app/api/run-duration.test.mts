@@ -291,10 +291,16 @@ const {
  * that invoked it, and no page here declares one.
  */
 const KNOWN_HELPERS: Record<string, string> = {
-  "src/lib/scan/unlock.ts":
-    "completeUnlock runs the gated pass in an after() of its own. Both its callers " +
-    "are routes and both declare 300 - which is the whole reason the closure below " +
-    "is transitive rather than a grep of route files for the pipeline's exports.",
+  // `src/lib/scan/unlock.ts` was the only entry, for `completeUnlock` running
+  // the gated pass in an after() of its own. It went on 24 September 2026 with
+  // the email gate and the three routes that called it, and the reason went
+  // with it rather than being left pointing at a function that no longer
+  // exists - a recorded reason that outlives its subject is the exact thing
+  // "the recorded helpers are still the ones doing it" charges for.
+  //
+  // Empty is the honest state. The transitive closure below stays: it is what
+  // would catch the next module that reaches a pass from outside a route
+  // segment, and that is the shape two `"use server"` mail doors hid in.
 };
 
 /** `export const maxDuration = N;`, in seconds, or null if the route declares none. */
@@ -372,14 +378,28 @@ test("every route that starts a pass outlives the pipeline's own ceiling", () =>
   assert.deepEqual(tooShort, [], tooShort.join("\n"));
 });
 
-test("the pass reaches two routes only through another module, so the closure is load-bearing", () => {
-  // Green-expected, and the whole reason this is a fixpoint. `unlock` and
-  // `verify` call `completeUnlock`, never the pipeline. A sweep narrowed to
-  // direct calls passes every other rule in this file and misses both doors
-  // to the gated pass - the expensive one, the one an address was traded for.
-  assert.ok(
-    INDIRECT_ROUTES.length >= 2,
-    `expected routes reached through a helper, found: ${INDIRECT_ROUTES.join(", ") || "none"}`,
+test("no route reaches a pass through a helper without being recorded", () => {
+  /**
+   * This asserted `>= 2` until 24 September 2026, and the two were `unlock`
+   * and `verify`: both called `completeUnlock`, never the pipeline, so a sweep
+   * narrowed to direct calls missed both doors to the gated pass - the
+   * expensive one, the one an address was traded for. That is why the closure
+   * is transitive rather than a grep of route files.
+   *
+   * Both routes are gone, so today the closure finds none and a floor of two
+   * would be a floor nothing can meet. The assertion is turned round instead
+   * of deleted: every route the closure reaches indirectly must be one
+   * `KNOWN_HELPERS` explains. That still fails the day a new module starts a
+   * pass from outside a route segment, which is the direction that costs
+   * money, and it cannot be satisfied by the closure going blind.
+   */
+  const unexplained = INDIRECT_ROUTES.filter(
+    (r) => !Object.keys(KNOWN_HELPERS).some((h) => r.includes(h)),
+  );
+  assert.deepEqual(
+    unexplained,
+    [],
+    `these routes reach a pass through a module no reason covers:\n${unexplained.join("\n")}`,
   );
 });
 

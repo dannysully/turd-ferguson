@@ -145,8 +145,6 @@ const EXEMPT: Record<string, string> = {
   // Falls through to the insert below it, and the insert's own error is read.
   // An address that is neither insertable nor findable ends at the logged warn
   // at the bottom of resolveAccount.
-  "src/lib/scan/unlock.ts:existing": "covered by the insert below it, which reads its error",
-  "src/lib/scan/unlock.ts:raced": "the last read before resolveAccount's logged failure",
 };
 
 /**

@@ -104,20 +104,25 @@ const SENDERS: Record<
 > = {
   "src/lib/scan/verify-email.ts": {
     reach: "behind the ceilings",
+    /**
+     * This said "bounded twice over - a sixty-second cooldown read off
+     * verify_sent_at in the resend route, and a volume ceiling counted in
+     * note_verify_send" until 24 September 2026. Both bounds lived in routes
+     * the email gate took with it, and `sendVerificationEmail` - the function
+     * they bounded - went at the same time, because nothing called it any
+     * more.
+     *
+     * What is left in this module is `sendReportReadyEmail`, and its bound is
+     * a different one in a different file. Repointed rather than left naming a
+     * route that is not in the tree: a recorded bound whose evidence has moved
+     * is the stale-allowance shape this whole file is built to refuse.
+     */
     bound:
       "Only ever sends to the address on a scan row, and that row passed checkCeilings at " +
-      "/api/scan/start before it existed. The repeat is bounded twice over: a sixty-second " +
-      "cooldown read off verify_sent_at in the resend route, and a volume ceiling counted " +
-      "in note_verify_send.",
-    /**
-     * Word-bounded, and that is not tidiness. The first version was the bare
-     * substring, and the injection that renamed the column to
-     * `verify_sent_at_GONE` came back MISSED - the sweep was matching its own
-     * target inside the renamed one. A rename is the likeliest way this bound
-     * ever disappears.
-     */
-    evidence: /\bverify_sent_at\b/,
-    where: "src/app/api/scan/[token]/resend/route.ts",
+      "/api/scan/start before it existed. One message per row, ever, claimed by stamping " +
+      "report_email_sent_at in a filtered update that report-mail.ts owns.",
+    evidence: /\.is\("report_email_sent_at", null\)/,
+    where: "src/lib/scan/report-mail.ts",
   },
   "src/lib/scan/walkthrough-mail.ts": {
     reach: "behind the ceilings",
@@ -238,25 +243,6 @@ test("every server action is named, so a new export cannot be a door nobody list
  * names one has to say what bounds it.
  */
 const SEND_CALLERS: Record<string, { reach: "anonymous" | "behind the ceilings"; bound: string; evidence: RegExp }> = {
-  "src/app/api/scan/[token]/unlock/route.ts": {
-    reach: "behind the ceilings",
-    bound:
-      "One verification message per unlock of a scan row that passed checkCeilings, under the " +
-      "day's unlock_emails_per_day ceiling counted in note_verify_send.",
-    evidence: /unlock_emails_per_day/,
-  },
-  "src/app/api/scan/[token]/resend/route.ts": {
-    reach: "behind the ceilings",
-    bound: "A sixty-second cooldown read off verify_sent_at, plus the same day ceiling.",
-    evidence: /\bverify_sent_at\b/,
-  },
-  "src/lib/scan/unlock.ts": {
-    reach: "behind the ceilings",
-    bound:
-      "One report message per unlock, sent below the unlocked_at stamp so it cannot be sent " +
-      "at all until that is a fact, and the stamp is a filtered update that one caller wins.",
-    evidence: /unlocked_at: new Date\(\)\.toISOString\(\)/,
-  },
   "src/lib/scan/report-mail.ts": {
     reach: "behind the ceilings",
     bound:
@@ -279,7 +265,12 @@ test("exactly the expected files can cause a message to be sent", () => {
     .map((f) => f.path)
     .sort();
 
-  assert.ok(callers.length >= 4, `only ${callers.length} call site(s) found - this walk has gone blind`);
+  // Four until 24 September 2026. Three of them were the email gate's - the
+  // unlock route, the resend route, and `unlock.ts` itself sending the report
+  // - and all three went with it. The floor follows what is there rather than
+  // standing at a number nothing can reach, which would fail every run and so
+  // be read by nobody.
+  assert.ok(callers.length >= 1, `only ${callers.length} call site(s) found - this walk has gone blind`);
   assert.deepEqual(
     callers,
     Object.keys(SEND_CALLERS).sort(),

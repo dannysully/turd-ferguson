@@ -233,7 +233,7 @@ test("every onConflict is backed by a unique constraint on that table", () => {
   }
 });
 
-test("the five sites are the ones we think they are", () => {
+test("the four sites are the ones we think they are", () => {
   /**
    * Pinned so that a new upsert is a deliberate edit here rather than an
    * addition nobody notices. The checks above already cover a new one; this
@@ -249,8 +249,7 @@ test("the five sites are the ones we think they are", () => {
   assert.deepEqual(
     sites.map((s) => `${s.table}:${key((s.onConflict ?? "").split(","))}`).sort(),
     [
-      "client_domains:account_id,domain,market,topic",
-      "scan_answers:engine,question_id",
+        "scan_answers:engine,question_id",
       "scan_brands:brand,engine,scan_id",
       "scan_sources:domain,scan_id",
       // 24 Sep 2026: one walkthrough request per scan, address and kind.

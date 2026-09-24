@@ -69,7 +69,7 @@ function verifyUrl(verifyToken: string): string {
  * - `body` is darker than `T.soft`. An email is read in clients that recolour
  *   text, at sizes we do not set, on grounds we do not control, with no
  *   stylesheet to correct any of it. #3d4451 measures 9.79 on white where
- *   `T.soft` is 4.68; on a page that headroom is waste, in an inbox it is
+ *   `T.soft` is 5.18; on a page that headroom is waste, in an inbox it is
  *   cover.
  * - nothing here uses `T.faint`. It is 2.54 on white, and the rule written
  *   beside it in tokens.ts is that light-ground text does not use it.
@@ -87,62 +87,6 @@ const E: Palette = {
 
 /** No webfont. Fontsource ships Hanken as woff2 and no mail client loads it. */
 const FONT = "-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif";
-
-/**
- * Sends it and stamps when. Returns false rather than throwing: a send that
- * fails must surface to the caller as a retryable state, not a 500 on a form
- * the visitor has already filled in correctly.
- */
-export async function sendVerificationEmail(input: {
-  email: string;
-  brand: string;
-  verifyToken: string;
-  leadId: string;
-}): Promise<boolean> {
-  const key = process.env.RESEND_API_KEY;
-  if (!key) {
-    console.error("[scan] RESEND_API_KEY is not set, verification email not sent");
-    return false;
-  }
-
-  const link = verifyUrl(input.verifyToken);
-  try {
-    const { error } = await new Resend(key).emails.send({
-      from: mailFrom(),
-      to: input.email,
-      subject: headerSafe(`Open your ${input.brand} report`),
-      html: verifyHtml(E, FONT, input.brand, link),
-      text: verifyText(input.brand, link),
-    });
-    if (error) {
-      console.error("[scan] verification email rejected", error);
-      return false;
-    }
-  } catch (err) {
-    console.error("[scan] verification email failed", err instanceof Error ? err.message : err);
-    return false;
-  }
-
-  // The message has gone by this point, so this failing does not make the send
-  // untrue and must not turn a delivered email into a reported failure. What it
-  // costs is the sixty-second cooldown in /api/scan/[token]/resend, which reads
-  // this column and treats a null as "never sent" - so a lost stamp is a second
-  // copy of the same message one click later. The volume ceiling on that route
-  // counts through note_verify_send rather than this column, so that one holds
-  // either way; this is the rate limit, not the cap.
-  const { error: stampErr } = await supabaseAdmin()
-    .from("leads")
-    .update({ verify_sent_at: new Date().toISOString() })
-    .eq("id", input.leadId);
-  if (stampErr) {
-    console.warn(
-      `[scan] sent the verification mail for lead ${input.leadId} but could not stamp it, ` +
-        `so the resend cooldown will read it as never sent: ${stampErr.message}`,
-    );
-  }
-
-  return true;
-}
 
 // --------------------------------------------------------- report ready
 

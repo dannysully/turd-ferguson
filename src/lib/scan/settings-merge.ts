@@ -27,13 +27,13 @@ export type Settings = {
   /** Spend ceiling for a rolling day, checked before any paid call. */
   daily_cost_cap_usd: number;
   /**
-   * Whether an address must be proven before the result opens. Off until DMARC
-   * is published: with it on, an email that does not arrive costs the lead and
-   * the report both, where today it costs neither.
+   * Gone from this table on 24 September 2026, with the nightly purge that was
+   * its only reader. Transcripts are kept indefinitely, so there is no window
+   * to configure. **Its `app_settings` row is deliberately still there** - it
+   * is data, and deleting live rows is not ours - so a number in that cell now
+   * reaches no code at all, which `reading-retention.test.mts` asserts rather
+   * than leaves to be discovered by somebody turning the knob.
    */
-  require_email_verification: boolean;
-  /** How long an unclaimed scan keeps the prose the engines returned. */
-  response_retention_days: number;
   /**
    * How many times one scan link may put mail in somebody inbox in a rolling
    * day. The unlock route takes an address from the caller and sends to it, so
@@ -60,8 +60,6 @@ export const SETTINGS_FALLBACK: Settings = {
   scan_engines_free: [...FREE_ENGINES],
   scan_engines_gated: [...GATED_ENGINES],
   daily_cost_cap_usd: 60,
-  require_email_verification: false,
-  response_retention_days: 7,
   unlock_emails_per_day: 5,
   // Roughly eight calls per free pass, against a daily_scan_cap of 200. Set
   // above what a full day of scanning costs rather than at it: this is a
@@ -114,12 +112,15 @@ const NUMBER_MAX = 1_000_000;
  * - `scans_enabled` as the string "false" is truthy, so the kill switch reads
  *   as on and scans keep running. That switch exists to be thrown in a hurry,
  *   by someone who will not then go and check that it took.
- * - `require_email_verification` as the string "false" turns verification *on*,
- *   which gates every report behind an email that DMARC is not published for
- *   yet.
  *
- * Both fail silently and in the expensive direction, so a value of the wrong
- * type is refused and logged rather than trusted. The engine lists never reach
+ * `require_email_verification` was the second of the pair and is gone from
+ * this table as of 24 September 2026, with the verify route and the email
+ * gate. **Its `app_settings` row is deliberately still there** - it is data,
+ * and deleting live rows is not ours to do - so a value of the wrong type in
+ * that cell now reaches nothing rather than turning a gate on.
+ *
+ * A wrong-typed value fails silently and in the expensive direction, so it is
+ * refused and logged rather than trusted. The engine lists never reach
  * this - `mergeEngineList` is their equivalent.
  */
 export function sameShape(value: unknown, fallback: unknown): boolean {

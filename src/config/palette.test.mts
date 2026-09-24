@@ -278,17 +278,8 @@ const OFF_PALETTE: Record<string, Entry> = {
     boards: 0,
     sites: { "src/lib/scan/verify-email.ts": 1 },
   },
-  "#92400e": {
-    why:
-      "the ops page's status amber, hand-rolled beside the `C` object that aliases every other colour to a " +
-      "token. No board draws it. **Do not point it at `T.warnFg`** - rule 6 below proves why: the token " +
-      "measures 3.78 on white and this measures 7.09, so the obvious tidy is a contrast regression onto a " +
-      "value blocked.md 9 is already open about.",
-    boards: 0,
-    sites: { "src/app/admin/scans/page.tsx": 2 },
-  },
   "rgba(220,38,38,0.1)": {
-    why: "the ops page's error panel ground. Same hand-rolled status set as `#92400e`, in the one file no page sweep reaches.",
+    why: "the ops page's error panel ground. The last of the hand-rolled status set - its amber joined `T.warnFg` when blocked.md 9 was answered - in the one file no page sweep reaches.",
     boards: 0,
     sites: { "src/app/admin/scans/page.tsx": 1 },
   },
@@ -512,30 +503,19 @@ test("the email's deliberate departure still measures what it says it does", () 
 });
 
 /**
- * Rule 6: the tidy that must not be taken, proved rather than asserted.
+ * Rule 6 was here: "the ops page's amber is darker than the token, so tidying
+ * it onto T.warnFg is a regression".
  *
- * `#92400e` in `admin/scans` is the one colour here that looks most like an
- * oversight: a raw hex beside a `C` object whose entire job is to alias colours
- * to tokens, in a file `tokens.ts` names as its evidence, when `T.warnFg`
- * exists and means the same thing. Pointing it at the token is a one-line
- * change and it is a regression - so the queue's rule about a prohibition with
- * no live instance does not apply, because the instance is the obvious fix.
+ * It proved a prohibition rather than asserting one - `#92400e` measured 7.09
+ * on white and `T.warnFg` measured 3.78, so pointing the ops page at the token
+ * would have been a one-line contrast regression onto a value blocked.md 9 was
+ * already open about. The rule's own failure message said what to do if that
+ * changed: "If T.warnFg has been answered and now clears it - blocked.md 9 -
+ * then the two should be merged and this rule should go."
  *
- * This is also a live reading for blocked.md 9: the tree already contains an
- * amber that clears AA with headroom, in the one page nobody looks at.
+ * Danny answered it on 24 September 2026. `T.warnFg` is #a95912 and clears AA
+ * at 5.09, the ops page's two hand-written ambers are `C.amber` on the token,
+ * and the `#92400e` entry above went with them. The rule is gone rather than
+ * rewritten, because there is no longer a prohibition for it to hold.
  */
-test("the ops page's amber is darker than the token, so tidying it onto T.warnFg is a regression", () => {
-  // Read out of the page rather than typed here, for the reason rule 5 records
-  // about its own first draft.
-  const page = blankComments(readFileSync(join(ROOT, "src/app/admin/scans/page.tsx"), "utf8"));
-  const amber = /"(#92400[eE])"/.exec(page);
-  assert.ok(amber, "the ops page no longer writes its own amber - if it moved onto a token, check which one and delete this rule with its OFF_PALETTE entry");
 
-  const ops = round(contrast(amber[1]!, "#ffffff"));
-  const token = round(contrast(T.warnFg, "#ffffff"));
-  assert.equal(ops, 7.09, "the ops amber has moved");
-  assert.ok(
-    ops > 4.5 && token < 4.5,
-    `this rule exists because the ops amber (${ops}) clears AA and T.warnFg (${token}) does not. If T.warnFg has been answered and now clears it - blocked.md 9 - then the two should be merged and this rule should go.`,
-  );
-});

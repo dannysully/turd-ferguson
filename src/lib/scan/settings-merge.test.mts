@@ -61,38 +61,57 @@ test("the returned engine lists are copies, so a caller cannot edit the defaults
 });
 
 /**
- * The two booleans, and the reason this guard exists at all. A jsonb cell
- * holding the string "false" is truthy, so without it the kill switch reads as
- * on while the table says off.
+ * The boolean guard, and the reason it exists at all. A jsonb cell holding the
+ * string "false" is truthy, so without it the kill switch reads as on while the
+ * table says off.
+ *
+ * There were two booleans until 24 September 2026. `require_email_verification`
+ * went with the verify route and the email gate, and the assertions that named
+ * it went with it rather than being pointed at a key that no longer exists.
+ * **Its `app_settings` row is still there** - it is data - but nothing merges
+ * it now, so a wrong-typed value in that cell reaches no code at all.
+ *
+ * `scans_enabled` is the one left, and it is the one that mattered: it is
+ * thrown in a hurry by someone who will not go back and check that it took.
+ * The count below is derived from the fallback table rather than typed, so the
+ * day a second boolean is added this covers it without an edit - which is what
+ * the old typed `2` would not have done.
  */
 test("a boolean setting refuses anything that is not a boolean", () => {
+  const booleanKeys = (Object.keys(SETTINGS_FALLBACK) as Array<keyof typeof SETTINGS_FALLBACK>).filter(
+    (k) => typeof SETTINGS_FALLBACK[k] === "boolean",
+  );
+  assert.ok(booleanKeys.length >= 1, "no boolean settings left - this test is sweeping nothing");
+
   for (const notABoolean of ["false", "true", 0, 1, null, [], {}]) {
-    const { settings, warnings } = merge([
-      { key: "scans_enabled", value: notABoolean },
-      { key: "require_email_verification", value: notABoolean },
-    ]);
-    assert.equal(settings.scans_enabled, SETTINGS_FALLBACK.scans_enabled, `scans_enabled took ${JSON.stringify(notABoolean)}`);
+    const { settings, warnings } = merge(booleanKeys.map((key) => ({ key, value: notABoolean })));
+    for (const key of booleanKeys) {
+      assert.equal(
+        settings[key],
+        SETTINGS_FALLBACK[key],
+        `${key} took ${JSON.stringify(notABoolean)}`,
+      );
+    }
     assert.equal(
-      settings.require_email_verification,
-      SETTINGS_FALLBACK.require_email_verification,
-      `require_email_verification took ${JSON.stringify(notABoolean)}`,
+      warnings.length,
+      booleanKeys.length,
+      `a refusal went unlogged for ${JSON.stringify(notABoolean)}`,
     );
-    assert.equal(warnings.length, 2, `a refusal went unlogged for ${JSON.stringify(notABoolean)}`);
   }
 
-  // And a real boolean still lands, both ways round, or the guard is a wall.
+  // And a real boolean still lands, or the guard is a wall.
   assert.equal(merge([{ key: "scans_enabled", value: false }]).settings.scans_enabled, false);
-  assert.equal(
-    merge([{ key: "require_email_verification", value: true }]).settings.require_email_verification,
-    true,
-  );
+  assert.equal(merge([{ key: "scans_enabled", value: true }]).settings.scans_enabled, true);
 });
 
 test("a number setting refuses a non-number, a negative, and one big enough to break a Date", () => {
   const numberKeys = (Object.keys(SETTINGS_FALLBACK) as Array<keyof typeof SETTINGS_FALLBACK>).filter(
     (k) => typeof SETTINGS_FALLBACK[k] === "number",
   );
-  assert.ok(numberKeys.length >= 7, `expected the number settings, found ${numberKeys.length}`);
+  // 7 until 24 September 2026, when response_retention_days left this table
+  // with the nightly purge that was its only reader. Its app_settings row is
+  // still there - it is data - and nothing merges it now.
+  assert.ok(numberKeys.length >= 6, `expected the number settings, found ${numberKeys.length}`);
 
   for (const key of numberKeys) {
     for (const bad of ["200", null, true, [], NaN, Infinity, -Infinity, -1, 1e308]) {

@@ -51,7 +51,7 @@ const entry = TIERS.find((t) => t.id === "tracked")?.priceLabel ?? "";
 const ROWS: { feature: string; values: Record<string, string> }[] = [
   { feature: "Tells you which sources decide the category", values: { us: "Yes" } },
   { feature: "Tracks whether the brand gets named", values: { us: "Yes" } },
-  { feature: "Stores the verbatim answer behind every reading", values: { us: "Yes" } },
+  { feature: "Stores what each engine said behind every reading", values: { us: "Yes" } },
   { feature: "Places your brand into those source pages", values: { us: "Yes" } },
   { feature: "Reports the Google position alongside the citation", values: { us: "Yes" } },
   { feature: "White label for agencies", values: { us: "Yes" } },

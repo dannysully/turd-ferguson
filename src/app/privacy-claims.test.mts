@@ -400,64 +400,58 @@ test("no response this site serves carries a Set-Cookie header", () => {
 });
 
 /* ------------------------------------------------------------------ *
- * C. "The full text of what each engine said is deleted after seven days if
- *    nobody claims the scan - what survives is the measurements"
+ * C. "Scan results are kept so you can come back to the link, and so is what
+ *    each engine said... we do not [delete it] any more"
  * ------------------------------------------------------------------ */
+
+/**
+ * The retention promise, turned round on 24 September 2026.
+ *
+ * This section used to hold the opposite claim - that the transcript was
+ * deleted after seven days on a scan nobody claimed, that only `response_text`
+ * was blanked, and that the number on `/legal` was the number in
+ * `SETTINGS_FALLBACK`. Danny decided transcripts are kept indefinitely, so
+ * every one of those rules was holding a sentence the page no longer makes.
+ *
+ * They are replaced rather than deleted, because the promise is still a
+ * promise and it is now the easier one to break by accident: a purge is a
+ * thing somebody adds back, and the page says we do not have one. So what is
+ * asserted is that the nightly route writes nothing and deletes nothing, and
+ * that the page does not promise a deletion window.
+ *
+ * `response_retention_days` is deliberately not asserted against anything. The
+ * row is still in `app_settings` - it is data, and deleting live rows is not
+ * ours - and nothing reads it, so a number in that cell is no longer a claim
+ * about anything a visitor can see. The migration that seeds it is untouched
+ * for the same reason.
+ */
 
 const PURGE = code(readFileSync(join(SRC, "app/api/cron/purge-responses/route.ts"), "utf8"));
 
-test("the purge clears the transcript and nothing else", () => {
+test("the nightly job writes nothing", () => {
   const updates = [...PURGE.matchAll(/\.update\(\s*\{([^}]*)\}/g)].map((m) => m[1].trim());
   assert.deepEqual(
     updates,
-    ["response_text: null"],
-    "the nightly purge writes something other than `response_text: null`. The page promises a scan keeps its measurements forever and loses only its transcript; every extra key in that payload is a measurement going with it.",
+    [],
+    "the nightly job writes to the database again. /legal says what each engine said is kept for as long as the " +
+      "scan is; any update in this route is that promise being taken back in the one place nobody reads.",
   );
 });
 
-test("the purge deletes no rows at all", () => {
+test("the nightly job deletes no rows at all", () => {
   assert.ok(
     !/\.delete\s*\(/.test(PURGE),
-    "the purge route deletes rows. It is allowed to blank one column - deleting a scan_answers row takes whether the engine answered and whether it named the brand, which /legal says survives.",
+    "the purge route deletes rows. It clears nothing now - /legal promises the text is kept - so a delete here " +
+      "is not a narrowing of the old behaviour, it is a new one.",
   );
 });
 
-test("the purge reaches only scans nobody claimed", () => {
+test("the page no longer promises a deletion window", () => {
   assert.ok(
-    /\.is\(\s*["']unlocked_at["']\s*,\s*null\s*\)/.test(PURGE),
-    'the purge no longer filters on unlocked_at being null. /legal promises the transcript goes "if nobody claims the scan"; without that filter it goes for everybody, including the people who gave an email address for it.',
+    !/deleted after \w+ days/i.test(LEGAL),
+    '/legal promises the transcript is "deleted after N days" again, and nothing deletes it. A privacy policy ' +
+      "that describes a deletion that does not happen is the worse direction of this drift.",
   );
-});
-
-/**
- * The number on the page against the number in the code.
- *
- * Only as far as the default reaches: `response_retention_days` is an
- * `app_settings` row and the route reads it at run time, so a production
- * override moves the promise and nothing here can see that. What this closes is
- * the drift that is visible from inside the repo - the fallback, the migration
- * seed and the sentence a visitor reads, all three saying the same number.
- */
-const NUMBER_WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen"];
-
-test("the retention period on the page is the one the code defaults to", () => {
-  const days = SETTINGS_FALLBACK.response_retention_days;
-  const word = NUMBER_WORDS[days];
-  assert.ok(word, `the default retention is ${days} days and this rule only spells out to ${NUMBER_WORDS.length - 1}. Extend the table rather than dropping the check.`);
-  assert.ok(
-    new RegExp(`deleted after ${word} days`).test(LEGAL),
-    `/legal does not say the transcript is "deleted after ${word} days", and that is what SETTINGS_FALLBACK.response_retention_days is set to. One of the two moved without the other.`,
-  );
-});
-
-test("the migration seed and the code default cannot drift apart", () => {
-  const seed = SQL.flatMap(({ source }) => [
-    ...source.matchAll(/'response_retention_days'\s*,\s*'(\d+)'::jsonb/g),
-  ]).map((m) => Number(m[1]));
-  assert.ok(seed.length > 0, "no migration seeds response_retention_days any more, so the page's number rests on the fallback alone");
-  for (const v of seed) {
-    assert.equal(v, SETTINGS_FALLBACK.response_retention_days, "the seeded retention and the code fallback disagree, so which number the page is telling the truth about depends on which one the row came from");
-  }
 });
 
 /* ------------------------------------------------------------------ *

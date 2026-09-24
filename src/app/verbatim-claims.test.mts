@@ -77,31 +77,7 @@ const CLAIM = /\bverbatim\b|\bword for word\b|\bfull response text\b/i;
  * the `{ why, evidence, where }` shape `spend-gates.test.mts` established. An
  * entry with no reason is the prose an exemption used to be.
  */
-const SURFACES: { file: string; sites: number; why: string }[] = [
-  {
-    file: "src/app/about/page.tsx",
-    sites: 1,
-    why: "rendered page - measurement rule 2, and the page's own doc comment calls the rules the point of the page",
-  },
-  {
-    file: "src/app/compare/page.tsx",
-    sites: 1,
-    why: "rendered page - a feature row answering Yes",
-  },
-  {
-    file: "src/app/coverage-check/[token]/page.tsx",
-    // 2 until 24 Sep 2026: the re-run lead said the same questions would be
-    // asked "word for word", which is the wording blocked.md 29 retires. It
-    // says "unchanged" now. The remaining one is a different sentence.
-    sites: 1,
-    why: "NOT a swept page - BLOCKED in the capture manifest, needs a database and 404s without one (blocked.md 19)",
-  },
-  {
-    file: "src/lib/scan/email-render.ts",
-    sites: 3,
-    why: "NOT a page at all - transactional mail, which no claim sweep on this site has ever read",
-  },
-];
+const SURFACES: { file: string; sites: number; why: string }[] = [];
 
 // ----------------------------------------------------------------- probes
 
@@ -179,62 +155,33 @@ test("no surface publishes the claim that is not on the list", () => {
   );
 });
 
-test("every listed surface still publishes it, and as many times as recorded", () => {
-  const drifted: string[] = [];
-  for (const s of SURFACES) {
-    const found = sitesIn(s.file);
-    if (found !== s.sites) drifted.push(`${s.file}: recorded ${s.sites}, found ${found}`);
-  }
-
+test("blocked.md 29 stayed closed - no surface describes the stored answers that way", () => {
+  /**
+   * This file used to census where the claim was published, because the answer
+   * to blocked.md 29 was a wording call nobody had taken yet and the list was
+   * how the scope stayed honest. Fourteen sites when it was written, six by
+   * the morning of 24 September 2026.
+   *
+   * **Danny took the call that day: stored answers are "what each engine
+   * said", never "verbatim" and never "word for word".** So the list is empty,
+   * and the rule above - no surface publishes the claim unless it is listed -
+   * is now the whole file rather than half of it. Every remaining site was
+   * rewritten in the same push, which is what the failure message on the
+   * deleted rule always asked for: "if this is the fix landing, it has to land
+   * everywhere at once."
+   *
+   * The `sites` field is kept on the (empty) type rather than simplified away,
+   * because the shape is what makes a deliberate exception expressible. If one
+   * ever has to come back - a quotation, a comparison table naming what
+   * somebody else does - it goes on the list with a count and a reason, and
+   * everything that is not on the list still fails.
+   */
   assert.deepEqual(
-    drifted,
+    SURFACES,
     [],
-    "the scope of blocked.md 29 has moved - if this is the fix landing, it has to land everywhere at once:\n" +
-      drifted.map((s) => `  ${s}`).join("\n"),
+    "a surface is recorded as publishing the retired wording. blocked.md 29 is closed; either this is a " +
+      "deliberate exception, in which case say why here, or the wording has come back somewhere.",
   );
-});
-
-/**
- * The count the item is actually about.
- *
- * Stated as one number because that is the thing that was wrong: blocked.md 29
- * said five, and five is exactly what a page walk can see - nine of the
- * thirteen are off it.
- *
- * **Fourteen until 20 Sep, and the one that came off was not the wording call
- * landing.** `/coverage-check` said "keep the answers word for word" about a
- * campaign reading, and for that product the claim was not an overstatement -
- * it was false. A reading takes no email, so nothing ever reaches
- * `completeUnlock` and `unlocked_at` stays null for ever; the nightly purge
- * selects exactly `unlocked_at is null` past the retention window, with no
- * campaign exclusion. So a benchmark's prose is cleared a week after it is
- * taken - and `reading.ts` renders none of it in the first place, deliberately.
- * The page promised a visitor something they could never read, on a surface
- * that then deletes it. That clause is gone; the retention decision behind it
- * is blocked.md 30, and `reading-retention.test.mts` holds the facts so the
- * sentence cannot come back while they are still true.
- */
-test("the claim is published on six sites, not the four a page walk sees", () => {
-  // Thirteen until 24 Sep 2026: the result screen's three came off with the
-  // email gate. ScanFlow's two were the gate's own copy, and ResultView's
-  // question table now says "what each engine said" - not the wording call
-  // landing, just copy that no longer makes the claim.
-  //
-  // Ten until later the same day, when ProcessSequence replaced both surfaces
-  // that carried the rest of the homepage's copy: TierJourney's two (the
-  // tracked-tier body and the example-data footnote) and HeroSequence's one
-  // (the act reading "stored word for word"). Neither was rewritten - both
-  // files went, and the four beats that replaced them make no claim about the
-  // stored text at all.
-  //
-  // Six from the coverage rework later the same day: the benchmark reading's
-  // re-run lead promised the same questions "word for word" and now says
-  // "unchanged", which is one site off an off-page surface.
-  const total = SURFACES.reduce((a, s) => a + s.sites, 0);
-  assert.equal(total, 6);
-
-  const offPage = SURFACES.filter((s) => s.why.startsWith("NOT")).reduce((a, s) => a + s.sites, 0);
-  assert.equal(offPage, 4, "the surfaces no page sweep can reach");
 });
 
 test("every surface records why the page sweeps can or cannot see it", () => {

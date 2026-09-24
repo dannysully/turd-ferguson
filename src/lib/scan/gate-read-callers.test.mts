@@ -115,9 +115,9 @@ test("every call to a gate read is inside a try/catch", () => {
 
   // A floor on the walk, derived from nothing but the walk itself: a probe
   // that stopped matching would report a clean tree, which is how a tripwire
-  // passes because it is blind. Five today - two of `opportunityShape`, three
-  // of `buildUnlockPayload`.
-  assert.ok(seen >= 5, `the walk found only ${seen} gate-read calls - it has stopped seeing them`);
+  // passes because it is blind. Five until 24 September 2026; four now, the
+  // fifth having been the verify route's call, deleted with the email gate.
+  assert.ok(seen >= 4, `the walk found only ${seen} gate-read calls - it has stopped seeing them`);
   assert.deepEqual(
     bare,
     [],

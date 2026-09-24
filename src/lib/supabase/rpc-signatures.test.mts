@@ -182,7 +182,9 @@ test("the sweep can see both ends", () => {
    * stopped walking.
    */
   assert.ok(DECLARED.size >= 6, `expected 6+ declared functions, parsed ${DECLARED.size}`);
-  assert.ok(CALLS.length >= 7, `expected 7+ .rpc( call sites, found ${CALLS.length}`);
+  // 7 until 24 September 2026, when the email gate's routes went and took the
+  // only two callers of note_verify_send with them.
+  assert.ok(CALLS.length >= 6, `expected 6+ .rpc( call sites, found ${CALLS.length}`);
 
   // Known-good spot checks, so a parser returning plausible rubbish fails here
   // rather than passing every call against a set of empty signatures.
@@ -262,7 +264,7 @@ test("every .rpc supplies exactly the argument names its signature takes", () =>
   assert.deepEqual(wrong, [], "these calls cannot resolve to the function they name:\n" + wrong.join("\n"));
 });
 
-test("the seven call sites are the ones we think they are", () => {
+test("the six call sites are the ones we think they are", () => {
   /**
    * Pinned so a new RPC is a deliberate edit here rather than an addition
    * nobody sees. The rules above already cover a new one; this is about a
@@ -279,7 +281,11 @@ test("the seven call sites are the ones we think they are", () => {
     note_preview_call: 1,
     note_preview_calls: 1,
     note_scan_spend: 1,
-    note_verify_send: 1,
+    // `note_verify_send` was here until 24 September 2026. Its callers were
+    // the unlock and resend routes, deleted with the email gate. **The
+    // function itself is still declared in the migrations and is meant to
+    // be** - dropping it is destructive DDL, which is absolute here - so this
+    // is a function the database has and the app no longer calls.
     scan_source_coverage: 1,
     scan_teaser: 2,
   });

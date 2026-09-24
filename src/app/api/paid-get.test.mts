@@ -54,21 +54,24 @@ import { apiRoutes, missingEntryPoints, spendingRoutes } from "./spenders.mts";
 const API = join(import.meta.dirname, ".");
 
 /**
- * The one paid route that is a GET, and why that is right rather than an
- * oversight.
+ * There is no longer a paid route that answers GET, and the rule below says so
+ * with no exemption at all.
  *
- * It is the link in a verification email, so it cannot be anything but a GET.
- * What makes that safe is not the method: mail-security scanners fetch links
- * on delivery, so this URL genuinely is fetched by a machine before its owner
- * clicks it. The route answers that with a compare-and-swap - the UPDATE
- * itself is the arbiter of who verified first - plus a token nobody can guess
- * and a `robots.txt` that closes `/api/` to every named agent.
+ * There was one: `verify/[vtoken]`, the link in a verification email, which
+ * cannot be anything but a GET. What made it safe was not the method - mail
+ * scanners fetch links on delivery, so that URL genuinely was fetched by a
+ * machine before its owner clicked it - but a compare-and-swap, an unguessable
+ * token and a `robots.txt` that closes `/api/`.
  *
- * The exemption is re-earned below rather than trusted. If the compare-and-swap
- * goes, this stops being a safe GET and the test says so.
+ * It went on 24 September 2026 with the email gate, along with
+ * `scan/[token]/unlock` and `scan/[token]/resend`. The exemption went with it
+ * rather than being left pointing at a route that no longer exists, which is
+ * the shape of stale allowance this file's own header is about: an entry that
+ * outlives its subject is an allowance the next GET inherits.
+ *
+ * So the expected set is empty. If a paid GET comes back it needs what the
+ * verify link had, and it needs an entry here arguing for it again.
  */
-const EMAIL_LINK = "verify/[vtoken]";
-const COMPARE_AND_SWAP = '.is("verified_at", null)';
 
 const ROOT = join(import.meta.dirname, "..", "..", "..");
 
@@ -114,8 +117,12 @@ test("every route that spends money refuses GET, except the email link", () => {
   // Counter-guard: if the entry points were renamed, `paid` empties and every
   // assertion below passes while checking nothing at all. The floor is 8 and
   // not 4 because the set is now the measured one - see `spenders.mts`.
+  // Was 8 until 24 September 2026, when the email gate took three routes with
+  // it - unlock, resend and the verify link. Lowered to what is actually there
+  // rather than left as a floor nothing can meet, because a floor that always
+  // fails is a floor nobody reads.
   assert.ok(
-    paid.length >= 8,
+    paid.length >= 7,
     `only ${paid.length} paid routes detected - the spend walk in spenders.mts has gone blind: ` +
       paid.map((r) => r.name).join(", "),
   );
@@ -130,25 +137,11 @@ test("every route that spends money refuses GET, except the email link", () => {
 
   assert.deepEqual(
     gettable.map((r) => r.name),
-    [EMAIL_LINK],
+    [],
     `These routes spend money and answer GET, so any crawler that follows a link to one pays for ` +
       `it:\n${gettable.map((r) => "  " + r.name).join("\n")}\n` +
-      `A pass must start on a POST. If one of these genuinely has to be a GET, it needs what ` +
-      `${EMAIL_LINK} has - an unguessable token and a compare-and-swap - and an entry here saying so.`,
-  );
-
-  // Earn the exemption rather than assert it.
-  const emailLink = paid.find((r) => r.name === EMAIL_LINK);
-  assert.ok(emailLink, `${EMAIL_LINK} is not in the paid set - the exemption below is unearned`);
-  // Against `code()`, not the raw source. This route explains its own
-  // compare-and-swap in a comment directly above it, so a raw `includes` is
-  // satisfied by the explanation after the code it describes has gone - the
-  // tripwire would be held up by its own documentation.
-  assert.ok(
-    code(emailLink.src).includes(COMPARE_AND_SWAP),
-    `${EMAIL_LINK} is a GET that spends, and the compare-and-swap that makes that safe ` +
-      `(${COMPARE_AND_SWAP}) is gone. A mail scanner's prefetch and the recipient's click now ` +
-      `both unlock: two report emails and two attempts at the gated pass.`,
+      `A pass must start on a POST. If one genuinely has to be a GET, it needs what the deleted ` +
+      `verify link had - an unguessable token and a compare-and-swap - and an entry above saying so.`,
   );
 });
 

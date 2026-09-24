@@ -129,22 +129,6 @@ const EXEMPT: Record<string, { why: string; evidence: RegExp; where: string }> =
     evidence: /p_ceiling: CALL_CEILING/,
     where: "src/app/api/scan/[token]/questions/route.ts",
   },
-  "scan/[token]/unlock": {
-    why:
-      "Starts the gated pass. Bounded inside completeUnlock, which reads daily_cost_cap_usd " +
-      "itself - including tracking runs, unlike the scan route, because it is protecting the " +
-      "day's budget rather than a visitor's allowance.",
-    evidence: /spentToday < settings\.daily_cost_cap_usd/,
-    where: "src/lib/scan/unlock.ts",
-  },
-  "verify/[vtoken]": {
-    why:
-      "The second door to the same gated pass, for a visitor who had to prove their address " +
-      "first. Same bound, same function, and it is on this list separately because a reader " +
-      "who found only the unlock route would conclude there was one door.",
-    evidence: /spentToday < settings\.daily_cost_cap_usd/,
-    where: "src/lib/scan/unlock.ts",
-  },
   /**
    * The door the typed vendor list could not see. It spends on Resend rather
    * than on a model, which is why no ceiling is the right bound for it: the
@@ -158,16 +142,6 @@ const EXEMPT: Record<string, { why: string; evidence: RegExp; where: string }> =
    * sixty seconds apart forever is about fourteen hundred messages a day to
    * one address past a cap that reads five.
    */
-  "scan/[token]/resend": {
-    why:
-      "Sends the verification email again for a scan row that passed checkCeilings at " +
-      "/api/scan/start. Bounded by a sixty-second cooldown on verify_sent_at and, because " +
-      "that only stops a double click, a volume ceiling counted in note_verify_send against " +
-      "unlock_emails_per_day. It fails closed, unlike the unlock cap: a refusal here costs a " +
-      "second copy of a message already sent once.",
-    evidence: /rpc\("note_verify_send"/,
-    where: "src/app/api/scan/[token]/resend/route.ts",
-  },
   /**
    * The door that reached a vendor one hop away, and so was invisible to the
    * derived denominator as well as to the typed one it replaced.
@@ -245,7 +219,12 @@ const routes = apiRoutes(ROOT);
 // --------------------------------------------------------------- the tests
 
 test("the walk found the routes, so a zero here cannot pass as a clean sweep", () => {
-  assert.ok(routes.length >= 15, `only ${routes.length} routes found; the walk is reading the wrong tree`);
+  // 15 until 24 September 2026, when the email gate took three routes with it:
+  // scan/[token]/unlock, scan/[token]/resend and verify/[vtoken]. Their EXEMPT
+  // entries went at the same time rather than being left behind - an exemption
+  // whose route no longer exists is an allowance the next route inherits under
+  // that name, which is the failure this file is built to catch.
+  assert.ok(routes.length >= 14, `only ${routes.length} routes found; the walk is reading the wrong tree`);
   for (const name of [...GUARDED, ...Object.keys(EXEMPT)]) {
     assert.ok(
       routes.some((r) => r.name === name),
@@ -449,8 +428,18 @@ test("the kill switch is read in one place, so its reach is exactly the guarded 
    */
   assert.equal(
     Object.keys(EXEMPT).length,
-    // Seven since 24 Sep 2026: the walkthrough alert, which mails only us.
-    7,
+    /**
+     * Seven earlier on 24 Sep 2026 - the walkthrough alert, which mails only
+     * us - and four by the end of it.
+     *
+     * The three that went are the email gate's: `scan/[token]/unlock`,
+     * `verify/[vtoken]` and `scan/[token]/resend`. Their routes were deleted,
+     * so these are not doors that were closed, they are doors that stopped
+     * existing. The open question shrinks with them, and the biggest single
+     * spender on the whole list - the gated pass behind `completeUnlock` -
+     * is the one that went.
+     */
+    4,
     "the number of spending doors the kill switch does not reach has changed - see docs/blocked.md",
   );
 });

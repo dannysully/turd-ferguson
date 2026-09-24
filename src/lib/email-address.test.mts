@@ -233,7 +233,6 @@ test("the door census finds the doors this test thinks it does", () => {
   for (const known of [
     "app/contact/actions.ts",
     "app/actions/waitlist.ts",
-    "app/api/scan/[token]/unlock/route.ts",
   ]) {
     assert.ok(doors.includes(known), `${known} no longer reads a .email bound - the derivation has gone blind`);
   }

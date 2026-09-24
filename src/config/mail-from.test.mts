@@ -189,10 +189,11 @@ function sends(): { file: string; from: string | null; to: string | null }[] {
  * Every place this product puts a message on Resend, and why each is here.
  *
  * A floor alone would not do. `input-bounds.test.mts` records the reason: a
- * count cannot notice one whole KIND going missing, and these are four sends
- * of three kinds - two anonymous public forms and two pieces of funnel mail.
- * `verify-email.ts` appearing once instead of twice is the case a floor of
- * four over four would miss entirely, because the two live in one file.
+ * count cannot notice one whole KIND going missing, and these are sends of
+ * three kinds - two anonymous public forms, one piece of funnel mail, and one
+ * alert to us. The per-file count is what catches a kind disappearing inside a
+ * file that still sends something, which is exactly what happened on 24 Sep
+ * 2026 when `verify-email.ts` went from two sends to one.
  */
 const SENDERS: { file: string; sends: number; why: string }[] = [
   {
@@ -207,8 +208,8 @@ const SENDERS: { file: string; sends: number; why: string }[] = [
   },
   {
     file: "src/lib/scan/verify-email.ts",
-    sends: 2,
-    why: "the verification mail and the report mail - the two that go to a visitor rather than to us, and the pair a per-file rule would read as one",
+    sends: 1,
+    why: "the report mail - the one that goes to a visitor rather than to us. Two until 24 Sep 2026: `sendVerificationEmail` went with the email gate, having lost its last caller when the unlock, resend and verify routes were deleted",
   },
   {
     file: "src/lib/scan/walkthrough-mail.ts",
@@ -233,7 +234,7 @@ test("every send takes its From from the one reader", () => {
   const all = sends();
   // A reader that has stopped matching returns a clean list, which is the
   // state every sweep in this tree has been caught in at least once.
-  assert.equal(all.length, 5, `expected 5 sends, the walk found ${all.length}`);
+  assert.equal(all.length, 4, `expected 4 sends, the walk found ${all.length}`);
 
   for (const s of all) {
     assert.equal(s.from, "mailFrom()", `${s.file} sets its own From: ${s.from}`);
@@ -288,7 +289,7 @@ const RECIPIENTS: { to: string; why: string }[] = [
 
 test("every send is addressed to somebody we are allowed to write to", () => {
   const all = sends();
-  assert.equal(all.length, 5, `expected 5 sends, the walk found ${all.length}`);
+  assert.equal(all.length, 4, `expected 4 sends, the walk found ${all.length}`);
 
   const allowed = new Map(RECIPIENTS.map((r) => [r.to, r.why]));
   for (const s of all) {

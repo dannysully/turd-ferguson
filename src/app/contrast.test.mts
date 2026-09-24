@@ -249,45 +249,27 @@ test("the walk skips what is never painted, and sizes what is", () => {
 /**
  * The colour/ground pairs that fail AA and are not mine to fix.
  *
- * Two token values, both blocked.md 9, both one line in `src/config/tokens.ts`
- * and both his: changing which token a call site uses is mine and was taken in
- * `37512ae`; changing what a token is *worth* alters every page against the
- * boards, and `tokens.ts` says the board tokens are exact.
+ * **Empty since 24 September 2026, and that is the point of it.**
  *
- * Read off the tokens rather than typed as hex, so the exemption is keyed to
- * the token and not to a string that could go on matching after the token
- * moved. The `ratio` is the measurement blocked.md 9 records, and the test
- * below re-earns it - so the day either value changes this file fails and the
- * exemption has to be settled rather than quietly surviving its answer. Same
- * device as `mail-from.test.mts` asserting the fallback is still on
- * `resend.dev`.
+ * It held four entries, all blocked.md 9, all the same two token values:
+ * `soft` at 4.33 on the page ground, 4.18 on the purple wash and 4.26 on a
+ * chip, and `warnFg` at 3.39 on the warn ground. Changing which token a call
+ * site uses was mine and was taken in `37512ae`; changing what a token is
+ * *worth* alters every page against the boards, so it was his.
+ *
+ * Danny took it on 24 September 2026: `soft` to #686d79 and `warnFg` to
+ * #a95912. Every one of the four now clears AA, which is why the list is empty
+ * rather than rewritten - an exemption whose answer has landed is an
+ * allowance the next failure inherits.
+ *
+ * The shape stays because the next one will need it. An entry is read off the
+ * tokens rather than typed as hex, so it is keyed to the token and not to a
+ * string that could go on matching after the token moved, and `ratio` is
+ * re-earned below - so a value that changes fails here rather than quietly
+ * surviving its own answer. Same device as `mail-from.test.mts` asserting the
+ * fallback is still on `resend.dev`.
  */
-const BLOCKED_ON_DANNY: { colour: string; ground: string; ratio: number; why: string }[] = [
-  {
-    colour: T.warnFg,
-    ground: T.warnBg,
-    ratio: 3.39,
-    why: "blocked.md 9 - the `[TO CONFIRM]` marker and the status pills. #a95912 clears at 4.56 and is one line",
-  },
-  {
-    colour: T.soft,
-    ground: T.bg,
-    ratio: 4.33,
-    why: "blocked.md 9 - body text on the page ground, the bulk of it. #686d79 clears at 4.80",
-  },
-  {
-    colour: T.soft,
-    ground: T.wash,
-    ratio: 4.18,
-    why: "blocked.md 9 - the same token on the purple wash. #686d79 clears at 4.63",
-  },
-  {
-    colour: T.soft,
-    ground: T.chip,
-    ratio: 4.26,
-    why: "blocked.md 9 - the same token on a chip. #686d79 clears at 4.72",
-  },
-];
+const BLOCKED_ON_DANNY: { colour: string; ground: string; ratio: number; why: string }[] = [];
 
 const key = (colour: string, ground: string) => `${colour.toLowerCase()} on ${ground.toLowerCase()}`;
 const EXEMPT = new Set(BLOCKED_ON_DANNY.map((e) => key(e.colour, e.ground)));
@@ -426,7 +408,9 @@ const CSS_COLOURS: Record<string, string> = {
   ".on-dark .tier-name__accent": "#a78bfa, which is the dark-ground spelling of the same mark - 6.94 on ink",
   ".faq-row[open] .faq-summary span:first-child": "var(--accent) #7c3aed, the same value as the tier accent",
   ".tier-quiet .tier-name,.tier-quiet .tier-name__accent":
-    "var(--soft), so it is the blocked.md 9 token wherever it lands and is covered by that decision",
+    "var(--soft), so it is the token blocked.md 9 moved and clears AA on every ground the site draws since it was answered",
+  ".ans-nav":
+    "var(--ink) on var(--surface) - 18.66:1. The drawer's paging controls, which render only behind a completed scan and so are on no swept page",
 };
 
 /**
@@ -447,6 +431,19 @@ const CSS_GROUNDS: Record<string, string> = {
   ".btn-primary": "the CTA gradient, measured below rather than resolved to one ground: blocked.md 31",
   "button,input,select,optgroup,textarea": "#0000 - the browser reset making a control transparent, not a ground",
   "::file-selector-button": "#0000, the same reset, on an element this site never renders",
+
+  // The answers drawer, the result's question rows and the walkthrough toggle.
+  // All of them render only behind a completed scan, which is a route no page
+  // sweep reaches - so the inline-style walk has nothing to judge them against
+  // and these reasons are the record instead.
+  ".ans-backdrop": "var(--ink) at 0.28 opacity, over the page. A scrim, and nothing is drawn on it - the drawer sits above it on its own ground",
+  ".ans-drawer": "var(--surface), so text inside it lands on white and the surface tokens are the right ones for it",
+  ".ans-drawer__head": "var(--surface), the same ground as the drawer it is stuck to the top of",
+  ".ans-nav": "var(--surface), a control on the drawer's own ground",
+  ".res-qbtn": "transparent - it takes the ground of the row it wraps, which is what the inline walk already measures",
+  ".res-qbtn:hover:not(:disabled)": "var(--bg) on hover only. A hover state is not a resting ground, and the text on it is the row's own",
+  ".wt-option": "var(--surface), a card-on-card control on the report's white ground",
+  ".wt-option--on": "var(--wash), the selected half of the same toggle - the purple wash, which soft clears since blocked.md 9 was answered",
 };
 
 test("the stylesheet's own grounds are the recorded set, and the page ground is the token", (t) => {
@@ -496,7 +493,7 @@ test("the stylesheet's own colours are the recorded set, and the CTA gradient is
     Object.keys(CSS_COLOURS).sort(),
     "a stylesheet rule sets a colour that the inline-style sweep in this file cannot see. It is not a failure -" +
       " it is the thing to look at: work out what ground it lands on, then record it in CSS_COLOURS with the" +
-      " reason, the way the six above are",
+      " reason, the way the others above are",
   );
 
   /**

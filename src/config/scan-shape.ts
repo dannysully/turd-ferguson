@@ -4,7 +4,7 @@
 // this file decides every number the homepage prints about a scan and had no
 // executor while it could not be imported. tsconfig allows the .ts specifier
 // and noEmit means none of it reaches a build artefact.
-import { ENGINE_SPECS, FREE_ENGINES } from "../lib/scan/engines.ts";
+import { type Engine, ENGINE_SPECS, FREE_ENGINES } from "../lib/scan/engines.ts";
 
 /**
  * How the site describes the shape of a scan.
@@ -72,6 +72,21 @@ export function listOf(names: readonly string[]): string {
  */
 export function pickEngines(picks: readonly number[]): string[] {
   return picks.map((i) => FREE_ENGINE_LABELS[i]).filter((l) => Boolean(l));
+}
+
+/**
+ * The same picks as engine keys, for the surfaces that draw a mark rather than
+ * write a name.
+ *
+ * Same positional rule and the same drop-past-the-end behaviour as
+ * `pickEngines`, off the same `FREE_ENGINES` array, so a worked example that
+ * shows logos and one that writes labels cannot disagree about which engines a
+ * row names. Two functions rather than one returning pairs because every
+ * caller wants one or the other, and the label list is already what half the
+ * sentences on the homepage are built from.
+ */
+export function pickEngineKeys(picks: readonly number[]): Engine[] {
+  return picks.map((i) => FREE_ENGINES[i]).filter((e): e is Engine => Boolean(e));
 }
 
 /** "2 of 4", counted over what the row names rather than typed beside it. */

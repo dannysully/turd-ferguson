@@ -44,7 +44,15 @@ export const T = {
   wash: "#f4f0fe",
   washLine: "#e3d8fd",
   ink: "#0f1115",
-  soft: "#6f7480",
+  /**
+   * Danny accepted #686d79 on 24 September 2026, closing blocked.md 9.
+   *
+   * #6f7480 measured 4.53 on the raised panel ground #fbfbfc - over AA for
+   * body text by 0.03, which is not a margin, it is a rounding. The darker
+   * value clears it on every ground the site actually draws, which is what the
+   * blocked entry was asking for.
+   */
+  soft: "#686d79",
   /**
    * Not for text on a light ground. Measured against the boards own grounds,
    * faint is 2.54 on #ffffff and 2.35 on #f6f6f7, against the 4.5 AA asks for
@@ -63,7 +71,11 @@ export const T = {
   accentHover: "#6D28D9",
   goodFg: "#0f7b45",
   goodBg: "#edf6f1",
-  warnFg: "#c96a15",
+  /**
+   * Danny accepted #a95912 on 24 September 2026, with soft, closing
+   * blocked.md 9. #c96a15 was under AA on the warn ground it is drawn on.
+   */
+  warnFg: "#a95912",
   warnBg: "#fbf1e6",
   badFg: "#b3372f",
   badBg: "#faeceb",
