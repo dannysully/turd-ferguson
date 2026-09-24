@@ -89,19 +89,9 @@ const SURFACES: { file: string; sites: number; why: string }[] = [
     why: "rendered page - a feature row answering Yes",
   },
   {
-    file: "src/components/home/TierJourney.tsx",
-    sites: 2,
-    why: "rendered page - the homepage, both the tracked tier body and the example-data footnote",
-  },
-  {
     file: "src/app/coverage-check/[token]/page.tsx",
     sites: 2,
     why: "NOT a swept page - BLOCKED in the capture manifest, needs a database and 404s without one (blocked.md 19)",
-  },
-  {
-    file: "src/components/scan/HeroSequence.tsx",
-    sites: 1,
-    why: "NOT a swept page - the seq-* acts exist only while a scan is running, and nobody has ever watched it (blocked.md 15)",
   },
   {
     file: "src/lib/scan/email-render.ts",
@@ -221,16 +211,23 @@ test("every listed surface still publishes it, and as many times as recorded", (
  * is blocked.md 30, and `reading-retention.test.mts` holds the facts so the
  * sentence cannot come back while they are still true.
  */
-test("the claim is published on ten sites, not the five a page walk sees", () => {
+test("the claim is published on seven sites, not the four a page walk sees", () => {
   // Thirteen until 24 Sep 2026: the result screen's three came off with the
   // email gate. ScanFlow's two were the gate's own copy, and ResultView's
   // question table now says "what each engine said" - not the wording call
   // landing, just copy that no longer makes the claim.
+  //
+  // Ten until later the same day, when ProcessSequence replaced both surfaces
+  // that carried the rest of the homepage's copy: TierJourney's two (the
+  // tracked-tier body and the example-data footnote) and HeroSequence's one
+  // (the act reading "stored word for word"). Neither was rewritten - both
+  // files went, and the four beats that replaced them make no claim about the
+  // stored text at all.
   const total = SURFACES.reduce((a, s) => a + s.sites, 0);
-  assert.equal(total, 10);
+  assert.equal(total, 7);
 
   const offPage = SURFACES.filter((s) => s.why.startsWith("NOT")).reduce((a, s) => a + s.sites, 0);
-  assert.equal(offPage, 6, "the surfaces no page sweep can reach");
+  assert.equal(offPage, 5, "the surfaces no page sweep can reach");
 });
 
 test("every surface records why the page sweeps can or cannot see it", () => {

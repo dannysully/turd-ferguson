@@ -208,7 +208,10 @@ test("the two readers the defect was found in call the door by name", () => {
    * which is exactly how the tree that carried this defect would have passed
    * one. Named rather than walked because these two are the finding.
    */
-  for (const file of ["src/lib/coverage/reading.ts", "src/components/scan/HeroSequence.tsx"]) {
+  // HeroSequence was the second of the two. The waiting screen's engine chips
+  // moved to ScanProgress.tsx when ProcessSequence replaced the acts beside
+  // them; the reader is the same reader, in a new file.
+  for (const file of ["src/lib/coverage/reading.ts", "src/components/scan/ScanProgress.tsx"]) {
     const src = blankComments(readFileSync(file, "utf8"));
     assert.match(src, /knownEngines\(/, `${file} stopped reading its engine list through knownEngines`);
   }

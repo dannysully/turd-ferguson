@@ -224,7 +224,10 @@ test("the constant is what the published surfaces actually use", () => {
     "src/components/home/Results.tsx",
     "src/app/case-studies/page.tsx",
     "src/app/case-studies/vibe-retail/page.tsx",
-    "src/components/scan/HeroSequence.tsx",
+    // HeroSequence was the fourth until ProcessSequence replaced it. The new
+    // component publishes no client figure at all - every number in it is a
+    // bracketed placeholder - so it is not a reader of this constant and must
+    // not become one.
   ]) {
     assert.ok(readers.includes(surface), `${surface} publishes a client figure and no longer reads the constant`);
   }

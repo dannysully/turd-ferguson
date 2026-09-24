@@ -23,8 +23,10 @@ import { ENGINE_SPECS, isEngine, knownEngines } from "@/lib/scan/engines";
 // for the rest of the run. See lib/scan/run-steps.ts.
 import { RUN_STEPS, STEP_INDEX } from "@/lib/scan/run-steps";
 
+import ProcessSequence from "@/components/ProcessSequence";
+
 import ConfirmScreen from "./ConfirmScreen";
-import HeroSequence from "./HeroSequence";
+import ScanProgress from "./ScanProgress";
 import ResultView from "./ResultView";
 import { btn, field, label } from "./screens";
 
@@ -865,8 +867,8 @@ export default function ScanFlow(p: {
         ) : null}
 
         {/* The offer to email it, under the waiting panel rather than inside
-            it: HeroSequence is a board translated from HeroSequence.dc.html and
-            this is not on that board.
+            it: the panel below is the scan's own progress and the four-tier
+            explanation, and this offer belongs to neither.
 
             It appears once the reads have been running for a few seconds - see
             email-offer.ts, where both the trigger and every word of the copy
@@ -938,15 +940,24 @@ export default function ScanFlow(p: {
           </div>
         ) : null}
 
+        {/* The measurement, then the explanation. These were one component
+            until the eight-act essay was replaced: the bar and the chips are
+            the real scan and must not move with whatever the pitch beside them
+            is showing, so they are their own component now. ProcessSequence is
+            the same four beats the homepage runs, which is the point of it -
+            a visitor who sees both is told one thing, not two. */}
         {phase === "running" ? (
-          <HeroSequence
-            domain={p.domain}
-            engines={p.engines}
-            landed={landed}
-            step={progress}
-            slow={slow}
-            headingRef={headingRef}
-          />
+          <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+            <ScanProgress
+              domain={p.domain}
+              engines={p.engines}
+              landed={landed}
+              step={progress}
+              slow={slow}
+              headingRef={headingRef}
+            />
+            <ProcessSequence />
+          </div>
         ) : null}
 
         {phase === "result" && result && fullError ? (

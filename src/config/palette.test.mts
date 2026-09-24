@@ -186,9 +186,7 @@ const OFF_PALETTE: Record<string, Entry> = {
       "src/app/what-is-aeo/page.tsx": 1,
       "src/app/white-label/page.tsx": 1,
       "src/components/home/AnswerExplorer.tsx": 1,
-      "src/components/home/TierJourney.tsx": 2,
       "src/components/scan/ConfirmScreen.tsx": 1,
-      "src/components/scan/HeroSequence.tsx": 3,
       "src/components/scan/ResultView.tsx": 3,
     },
   },
@@ -200,7 +198,7 @@ const OFF_PALETTE: Record<string, Entry> = {
   "#e8e8ea": {
     why: "the divider inside a dark or tinted card, one step heavier than `T.line`.",
     boards: 3,
-    sites: { "src/components/home/Packages.tsx": 2, "src/components/home/TierJourney.tsx": 2 },
+    sites: { "src/components/home/Packages.tsx": 2 },
   },
   "#d6d8dd": {
     why: "the inactive step marker on the PR agencies ladder, from PRAgencies.dc.html.",
@@ -210,26 +208,17 @@ const OFF_PALETTE: Record<string, Entry> = {
   "#c8cad0": {
     why: "the 'not you' bar on a share-of-voice chart, from Flow2Free.dc.html and HeroSequence.dc.html.",
     boards: 2,
-    sites: { "src/components/scan/HeroSequence.tsx": 1, "src/components/scan/ResultView.tsx": 1 },
+    sites: { "src/components/scan/ResultView.tsx": 1 },
   },
   "#c9ccd3": {
     why:
       "the 'not you' dot, from HeroSequence.dc.html and Journey.dc.html. **Do not tidy this into `#c8cad0`.** " +
-      "They are one character apart, they mean the same thing, and they sit in the same file - which is what a " +
-      "drift looks like. It is not one: the boards draw both, and two of them draw this value specifically. " +
-      "Checking the boards is what stopped this being 'fixed' on 20 September 2026.",
+      "They are one character apart and they mean the same thing - which is what a drift looks like. It is not " +
+      "one: the boards draw both, and two of them draw this value specifically. Checking the boards is what " +
+      "stopped this being 'fixed' on 20 September 2026. They no longer sit in the same file: SerpPanel moved " +
+      "to ProcessSequence.tsx when HeroSequence was replaced, and the share-of-voice bar stayed in ResultView.",
     boards: 2,
-    sites: { "src/components/scan/HeroSequence.tsx": 1 },
-  },
-  "#16181e": {
-    why: "the near stop of the dark card gradient on the journey board.",
-    boards: 2,
-    sites: { "src/components/home/TierJourney.tsx": 1 },
-  },
-  "#23262d": {
-    why: "the far stop of that same gradient, on the same line.",
-    boards: 2,
-    sites: { "src/components/home/TierJourney.tsx": 1 },
+    sites: { "src/components/ProcessSequence.tsx": 1 },
   },
   "#a78bfa": {
     why: "the lockup accent lifted for a dark ground, in `.on-dark .tier-name__accent`. `T.accent` is unreadable on near-black, and this still goes through `TierName` rather than a hand-coloured span.",
@@ -273,9 +262,9 @@ const OFF_PALETTE: Record<string, Entry> = {
     sites: { "src/lib/scan/engines.ts": 1 },
   },
   "#1a0dab": {
-    why: "Google's SERP link blue, in the HeroSequence mock of a result page. A rendering of somebody else's interface, the same class as the five above.",
+    why: "Google's SERP link blue, in the SerpPanel mock of a result page - HeroSequence's, until ProcessSequence replaced it and the panel moved with the argument it draws. A rendering of somebody else's interface, the same class as the five above.",
     boards: 1,
-    sites: { "src/components/scan/HeroSequence.tsx": 1 },
+    sites: { "src/components/ProcessSequence.tsx": 1 },
   },
 
   // ---- the two no board draws ----------------------------------------------

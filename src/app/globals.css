@@ -685,11 +685,20 @@ html[data-motion="on"] .ac-stamp.in-view {
    Starts at .35 opacity, not 0: the act is legible from the first frame. */
 @keyframes seqRise  { from { transform: translateY(46px); opacity: .35; } to { transform: translateY(0); opacity: 1; } }
 
-.seq-in  { animation: seqIn .45s ease-out both; }
-.seq-in2 { animation: seqIn .45s ease-out .10s both; }
-.seq-in3 { animation: seqIn .45s ease-out .20s both; }
-.seq-in4 { animation: seqIn .45s ease-out .30s both; }
-.seq-in5 { animation: seqIn .45s ease-out .40s both; }
+/* Every rule below is scoped to html[data-motion="on"], which Motion.tsx sets
+   only after it has cleared prefers-reduced-motion. That is the rule the rest
+   of this sheet already keeps and this block was the one exception to it: the
+   from-states here are opacity 0, so anything that renders the page without
+   running that script - a crawler, a capture, JavaScript off - saw an act's
+   contents as invisible rather than as settled. That was survivable while
+   these classes only existed behind a running scan. ProcessSequence puts them
+   on the homepage, so it is not survivable now. seq-stagger.test.mts asserts
+   the scoping rather than trusting it. */
+html[data-motion="on"] .seq-in  { animation: seqIn .45s ease-out both; }
+html[data-motion="on"] .seq-in2 { animation: seqIn .45s ease-out .10s both; }
+html[data-motion="on"] .seq-in3 { animation: seqIn .45s ease-out .20s both; }
+html[data-motion="on"] .seq-in4 { animation: seqIn .45s ease-out .30s both; }
+html[data-motion="on"] .seq-in5 { animation: seqIn .45s ease-out .40s both; }
 /* The same beats as the ladder above, indexed rather than written out. The
    ladder is five rungs and the acts index it by list position, so a list that
    grows past five gave every row after the fifth the same beat - a stagger
@@ -702,25 +711,71 @@ html[data-motion="on"] .ac-stamp.in-view {
    as it did and only the ceiling is gone. The ladder stays because the acts
    also use it as fixed choreography - `.seq-in3` meaning the third beat of
    this act, not the third item of a list. */
-.seq-step { animation: seqIn .45s ease-out both; animation-delay: calc(var(--ac-i, 0) * 0.10s); }
-.seq-bar { transform-origin: left center; animation: seqGrow .8s cubic-bezier(.2,.7,.3,1) both; }
-.seq-flow { stroke-dasharray: 220; stroke-dashoffset: 220; animation: seqDash 1.2s ease-out .3s both; }
-.seq-climb { animation: seqClimb 1.3s cubic-bezier(.22,.72,.24,1) .45s both; position: relative; z-index: 2; }
+html[data-motion="on"] .seq-step { animation: seqIn .45s ease-out both; animation-delay: calc(var(--ac-i, 0) * 0.10s); }
+html[data-motion="on"] .seq-bar { transform-origin: left center; animation: seqGrow .8s cubic-bezier(.2,.7,.3,1) both; }
+html[data-motion="on"] .seq-flow { stroke-dasharray: 220; stroke-dashoffset: 220; animation: seqDash 1.2s ease-out .3s both; }
+html[data-motion="on"] .seq-climb { animation: seqClimb 1.3s cubic-bezier(.22,.72,.24,1) .45s both; position: relative; z-index: 2; }
 /* .5s is the default, and the one caller overrides animation-delay inline to
    stagger down the listing. It sits just after the .45s climb so the row that
    moves starts first. */
-.seq-settle { animation: seqSettle .9s cubic-bezier(.22,.72,.24,1) .5s both; }
-.seq-rise { animation: seqRise 1s cubic-bezier(.2,.7,.3,1) .3s both; }
+html[data-motion="on"] .seq-settle { animation: seqSettle .9s cubic-bezier(.22,.72,.24,1) .5s both; }
+html[data-motion="on"] .seq-rise { animation: seqRise 1s cubic-bezier(.2,.7,.3,1) .3s both; }
 
-/* Nothing is hidden at rest with motion off: every act renders in full and
-   the rail is what moves between them. */
+/* ── The four-tier process sequence ─────────────────────────────── */
+/* ProcessSequence.tsx, on the homepage and on the scan waiting screen.
+
+   The whole of the motion is in these four rules, and the default - no
+   html[data-motion="on"] - is the settled state rather than the hidden one.
+   A crawler, a reader who asked for no motion and a browser with JavaScript
+   off all get four beats stacked and fully visible, and no rail. That is the
+   test the queue set for this component: take the motion away and the page
+   must not lose an argument.
+
+   The rail is display:none rather than hidden-but-present because with all
+   four beats on the page there is nothing for it to move between, and a tab
+   list that selects the thing already in front of you is a control that lies
+   about what it does. */
+.proc-beats { display: grid; gap: 28px; }
+.proc-rail { display: none; }
+
+html[data-motion="on"] .proc-beats { gap: 0; }
+html[data-motion="on"] .proc-beat { display: none; }
+html[data-motion="on"] .proc-beat[data-on="1"] { display: block; animation: seqIn .45s ease-out both; }
+html[data-motion="on"] .proc-rail { display: flex; gap: 6px; margin-bottom: 14px; }
+
+/* Nothing is hidden at rest with motion off: every beat renders in full and
+   the rail is what moves between them.
+
+   Scoped the same way the rules it takes off are, and for the reason the
+   .ac-row reset above spells out: a media query adds no specificity, so a bare
+   list of classes here is (0,1,0) against the (0,2,1) of
+   `html[data-motion="on"] .seq-in` and loses outright. That is belt and braces
+   rather than the only guard - Motion.tsx checks prefers-reduced-motion before
+   it sets the attribute at all, so these rules have nothing to take off for a
+   reader who asked for no motion. It matters for the reader who turns the
+   setting on after the page has loaded, which is exactly the visitor the
+   .ac-row reset was found to be failing. `:is()` takes the specificity of its
+   most specific argument, so this is (0,2,1) as well and wins on source
+   order. */
 @media (prefers-reduced-motion: reduce) {
-  .seq-in, .seq-in2, .seq-in3, .seq-in4, .seq-in5, .seq-step,
-  .seq-bar, .seq-flow, .seq-climb, .seq-settle, .seq-rise {
+  html[data-motion="on"]
+    :is(.seq-in, .seq-in2, .seq-in3, .seq-in4, .seq-in5, .seq-step,
+        .seq-bar, .seq-flow, .seq-climb, .seq-settle, .seq-rise, .proc-beat) {
     animation: none;
     opacity: 1;
     transform: none;
     stroke-dashoffset: 0;
+  }
+
+  /* And the beat that is actually showing, for the reason the .ac-row block
+     gives two hundred lines up: the rule above is (0,2,1) and
+     `html[data-motion="on"] .proc-beat[data-on="1"]` is (0,3,1), so the list
+     would win the rest state and lose the animation - the half that matters to
+     a reader who turned the setting on after the page loaded. */
+  html[data-motion="on"] .proc-beat[data-on="1"] {
+    animation: none;
+    opacity: 1;
+    transform: none;
   }
 }
 

@@ -243,17 +243,6 @@ const RETENTION_CLAIMS: {
     holds: (src) => /COLUMNS[^=]*=\s*\[\{\s*key:\s*"us",\s*label:\s*<TierName tier="cited"/.test(src),
   },
   {
-    file: "src/components/scan/HeroSequence.tsx",
-    needle: "The answer is stored word for word",
-    why:
-      "an act of the waiting sequence describing the alwaystracked TIER, not the free scan running behind it " +
-      "- same paid-path question as /compare (blocked.md 32)",
-    holds: (src) => {
-      const at = src.indexOf('body: "The answer is stored word for word');
-      return at >= 0 && /tier:\s*"tracked"[^}]*$/.test(src.slice(0, at));
-    },
-  },
-  {
     file: "src/lib/scan/pipeline.ts",
     needle: "could not store the answers",
     why: "not a published surface - the message of a thrown Error on the insert path",
@@ -278,8 +267,10 @@ test("every surface promising the answer text is kept is on the list", () => {
   }
 
   // A floor, because the walk narrowing to nothing reads exactly like a clean
-  // tree. Five sites on 20 Sep 2026, four of them published copy.
-  assert.ok(total >= 5, `the walk found ${total} keeping-claims, was 5 - it has narrowed`);
+  // tree. Five sites on 20 Sep 2026, four of them published copy; four from
+  // 24 Sep 2026, when ProcessSequence replaced HeroSequence and took the
+  // waiting sequence's "stored word for word" act with it.
+  assert.ok(total >= 4, `the walk found ${total} keeping-claims, was 4 - it has narrowed`);
 
   /**
    * By COUNT per file as well as by membership.

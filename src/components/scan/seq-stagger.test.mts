@@ -56,6 +56,42 @@ function bareClasses(sel: string): string[] {
     .map((m) => m[1]);
 }
 
+/**
+ * The motion gate, as a selector prefix.
+ *
+ * Every animating rule in this block is scoped to it. That is the site's own
+ * rule - `motion-script.ts` states it, the `.ac-row` family has always kept it
+ * - and the seq-* block was the one exception, which was survivable only while
+ * these classes existed behind a running scan and nothing else. `seqIn` and
+ * `seqSettle` start at opacity 0, so an unscoped rule means anything that
+ * renders the page without running Motion's script - a crawler, the capture,
+ * JavaScript off - sees the contents as invisible rather than as settled.
+ * `ProcessSequence` puts these classes on the homepage, so that is now a
+ * crawled page, and the scoping is asserted below rather than trusted.
+ */
+const MOTION = 'html[data-motion="on"]';
+
+/**
+ * Classes a rule targets under the motion gate: `html[data-motion="on"] .a`,
+ * and the `:is(.a, .b)` form the reduced-motion resets use to match the
+ * specificity of what they take off.
+ */
+function scopedClasses(sel: string): string[] {
+  if (!sel.includes(MOTION)) return [];
+  // Read the whole selector rather than splitting it on commas first: the
+  // reset blocks put their class list inside `:is(...)`, whose own commas a
+  // split would tear apart, leaving every class but the first looking like an
+  // unscoped fragment and dropping it. That is how `.proc-beat` - last in the
+  // list - came back as an animating class with no reset when it is sitting in
+  // the reset.
+  return [...sel.matchAll(/\.([a-zA-Z0-9_-]+)/g)].map((m) => m[1]);
+}
+
+/** Every class a rule targets, however it is scoped. */
+function ruleClasses(sel: string): string[] {
+  return [...bareClasses(sel), ...scopedClasses(sel)];
+}
+
 const setsAnimation = (body: string) => /(^|[;\s])animation(-name)?\s*:/.test(body);
 
 /** Character ranges covered by a `prefers-reduced-motion: reduce` block. */
@@ -83,15 +119,21 @@ const ANIMATING = new Map<string, number>();
 /** Classes the reduced-motion block puts back. */
 const CALMED = new Set<string>();
 
+/** Animating classes whose rule sits behind the motion gate. */
+const GATED = new Set<string>();
+
 for (const r of ALL) {
   if (!setsAnimation(r.body)) continue;
-  for (const c of bareClasses(r.sel)) {
+  for (const c of ruleClasses(r.sel)) {
     if (inReset(r.at)) CALMED.add(c);
-    else ANIMATING.set(c, r.at);
+    else {
+      ANIMATING.set(c, r.at);
+      if (r.sel.includes(MOTION)) GATED.add(c);
+    }
   }
 }
 
-const DECLARED = new Set(ALL.flatMap((r) => bareClasses(r.sel)));
+const DECLARED = new Set(ALL.flatMap((r) => ruleClasses(r.sel)));
 
 test("the sheet is being parsed at all", () => {
   // A regex that silently matched nothing would make every test below vacuous.
@@ -119,7 +161,7 @@ test("the stagger emits a class the sheet defines, and never runs out", () => {
 });
 
 test("the delay is computed from the index rather than written out as rungs", () => {
-  const step = ALL.find((r) => bareClasses(r.sel).includes("seq-step"));
+  const step = ALL.find((r) => ruleClasses(r.sel).includes("seq-step") && setsAnimation(r.body) && !inReset(r.at));
   assert.ok(step, "expected a .seq-step rule in globals.css");
   assert.match(
     step!.body,
@@ -155,7 +197,7 @@ test("the climb travels the places the numbers claim, and no more", () => {
 });
 
 test("the climb is one keyframe reading the index, not a ladder of distances", () => {
-  const climb = ALL.find((r) => bareClasses(r.sel).includes("seq-climb"));
+  const climb = ALL.find((r) => ruleClasses(r.sel).includes("seq-climb") && setsAnimation(r.body) && !inReset(r.at));
   assert.ok(climb, "expected a .seq-climb rule in globals.css");
   // The two-rung ladder is what over-claimed; nothing should reintroduce it.
   const rungs = [...DECLARED].filter((c) => /^seq-climb\d/.test(c));
@@ -260,4 +302,32 @@ test("every animating class is put back by prefers-reduced-motion", () => {
   // longer a lost flourish - it is content that stays invisible.
   const missed = [...ANIMATING.keys()].filter((c) => !CALMED.has(c)).sort();
   assert.deepEqual(missed, [], "animating classes with no reduced-motion reset: " + missed.join(", "));
+});
+
+test("every seq-* from-state is behind the motion gate", () => {
+  /**
+   * The crawler rule, asserted rather than trusted.
+   *
+   * `seqIn` and `seqSettle` start at opacity 0. An unscoped rule therefore
+   * means anything rendering the page without running Motion's script - a
+   * crawler, the capture, JavaScript off, a reader between first paint and
+   * hydration - gets the contents as invisible rather than as settled. That
+   * was survivable while these classes only ever existed behind a running
+   * scan, which is nothing's idea of a crawlable page. `ProcessSequence` puts
+   * the same classes on the homepage, so it is not survivable now.
+   *
+   * The sheet's other animating families - `.ac-row`, `.chart-line`,
+   * `.flow-line` - have kept this rule from the start; `motion-script.ts`
+   * states it as the rule. This is the block that was the exception, so this
+   * is the block that gets the assertion.
+   */
+  const loose = [...ANIMATING.keys()]
+    .filter((c) => /^(seq|proc)-/.test(c))
+    .filter((c) => !GATED.has(c))
+    .sort();
+  assert.deepEqual(
+    loose,
+    [],
+    'these animate outside html[data-motion="on"], so their from-state is what a crawler sees: ' + loose.join(", "),
+  );
 });

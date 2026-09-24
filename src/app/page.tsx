@@ -4,7 +4,7 @@ import HeroSection from "@/components/scan/HeroSection";
 import AnswerExplorer from "@/components/home/AnswerExplorer";
 import TwoWays from "@/components/home/TwoWays";
 import ScanFacts from "@/components/home/ScanFacts";
-import TierJourney from "@/components/home/TierJourney";
+import ProcessSequence from "@/components/ProcessSequence";
 import Packages from "@/components/home/Packages";
 import HomeFaq from "@/components/home/HomeFaq";
 import Results from "@/components/home/Results";
@@ -38,9 +38,10 @@ export default function HomePage() {
       <AnswerExplorer />
       <TwoWays />
 
-      {/* The four tiers, from Journey.dc.html. Supersedes the dark
-          comparison block, which argued the same point in prose. */}
-      <TierJourney />
+      {/* The four tiers, as four pictures. One explanation of them on this
+          page and the same component on the scan waiting screen - there used
+          to be two, and they did not agree about what $99 buys. */}
+      <ProcessSequence heading="Four tiers, each one adding to the last" />
 
       {/* Packages and white label, from Packages.dc.html. Replaces the
           old pricing table and the separate white-label block. */}

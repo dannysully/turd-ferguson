@@ -313,7 +313,47 @@ test("every from-state belongs to a class the script actually observes", () => {
       // Only the rules that put an element INTO a from-state. A `.in-view` rule
       // is the way out of one, so it needs no observer of its own.
       if (/\.in-view(?![\w-])/.test(part)) continue;
-      const states = declarations(rule.decls)
+      const decls = declarations(rule.decls);
+      /**
+       * A rule that carries its own animation resolves its own from-state.
+       *
+       * This is the distinction the comment above already draws - the `.seq-*`
+       * set "animates on mount and waits for nothing" - and until the seq
+       * block was brought under `html[data-motion="on"]` it was being drawn by
+       * accident, because being unscoped was the only thing keeping those
+       * rules out of this loop. Scoping them is what the crawler rule wants
+       * (see seq-stagger.test.mts), so the distinction has to be stated rather
+       * than relied on.
+       *
+       * `animation: seqIn .45s ease-out both` runs the moment the element
+       * mounts and its `both` fill settles it on the to-state. There is no
+       * observer in that story and nothing for `.in-view` to do. The bug this
+       * test exists for is the other shape: `.ac-row` sets `opacity: 0` and
+       * puts the animation on `.ac-row.in-view`, so if the script never
+       * observes `.ac-row` the zero is permanent.
+       */
+      if (decls.some((d) => (d.prop === "animation" || d.prop === "animation-name") && d.value !== "none")) continue;
+      /**
+       * A `display: none` half of a pair the other half turns back on.
+       *
+       * `.proc-beat` is hidden and `.proc-beat[data-on="1"]` is shown, which is
+       * React state driving a tab panel rather than an entrance waiting for a
+       * scroll. Same shape as the `phone-only`/`desktop-only` pair the comment
+       * above lists. Checked as the property that makes it safe - some rule in
+       * this sheet does put the class back - rather than by naming the class.
+       */
+      const hidden = decls.some((d) => d.prop === "display" && d.value === "none");
+      if (hidden) {
+        const named = [...part.matchAll(/\.([a-zA-Z][\w-]*)/g)].map((m) => m[1]);
+        const shownAgain = rules.some(
+          (other) =>
+            other !== rule &&
+            named.some((c) => mentions(other.selector, c)) &&
+            declarations(other.decls).some((d) => d.prop === "display" && d.value !== "none"),
+        );
+        if (shownAgain) continue;
+      }
+      const states = decls
         .map(restState)
         .filter((s): s is string => s !== null);
       if (!states.length) continue;

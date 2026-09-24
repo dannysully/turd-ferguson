@@ -29,7 +29,14 @@ import { WORKED_QUESTIONS, overviewLabel, workedQuestion } from "./worked-exampl
  */
 
 const EXPLORER = readFileSync(new URL("../components/home/AnswerExplorer.tsx", import.meta.url), "utf8");
-const JOURNEY = readFileSync(new URL("../components/home/TierJourney.tsx", import.meta.url), "utf8");
+/**
+ * `TierJourney` was the second panel here until `ProcessSequence` replaced it.
+ *
+ * It is not swapped for the new component: the homepage's four-tier
+ * explanation is now four pictures built from bracketed placeholders, and it
+ * reads none of the worked-example config. `AnswerExplorer` is the one panel
+ * left that does, so it is the one panel this file sweeps.
+ */
 
 /**
  * Comments out, before any probe reads the source.
@@ -122,9 +129,7 @@ test("every registered question is on the page, and every id the page asks for i
   // [a-z0-9-], not [a-z-]: `crm-b2b` carries a digit, and without it this
   // matched "crm-b" and reported the one id that is on both panels as missing.
   const rendered = new Set(
-    [...code(EXPLORER).matchAll(/"([a-z0-9-]+)"/g), ...code(JOURNEY).matchAll(/"([a-z0-9-]+)"/g)].map(
-      (m) => m[1],
-    ),
+    [...code(EXPLORER).matchAll(/"([a-z0-9-]+)"/g)].map((m) => m[1]),
   );
   const ids = WORKED_QUESTIONS.map((q) => q.id);
   const unused = ids.filter((id) => !rendered.has(id));
@@ -138,8 +143,8 @@ test("every registered question is on the page, and every id the page asks for i
  * shortened engine set would have rendered the amber "named" pill against
  * "0 of 3".
  */
-test("neither panel takes a state off the unfiltered pick count", () => {
-  for (const [name, src] of [["AnswerExplorer", EXPLORER], ["TierJourney", JOURNEY]] as const) {
+test("the panel does not take a state off the unfiltered pick count", () => {
+  for (const [name, src] of [["AnswerExplorer", EXPLORER]] as const) {
     assert.equal(
       /\.engines\.length/.test(code(src)),
       false,
