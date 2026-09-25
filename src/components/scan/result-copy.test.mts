@@ -108,6 +108,9 @@ test("every note that reaches the result has been through publicNote", () => {
   for (const [file, src] of [["opportunities.ts", opp], ["unlock.ts", unlock]] as const) {
     assert.doesNotMatch(src, /note: [^\n]*\?\.note \?\? null/, `${file} copies a raw classifier note`);
   }
+  // The teaser carries notes on its source lists; both of its readers filter.
+  assert.match(read("src/app/scan/[token]/page.tsx"), /teaser = publicTeaser\(teaserData\)/, "the page hands the raw teaser to the client");
+  assert.match(read("src/app/api/scan/[token]/route.ts"), /Response\.json\(publicTeaser\(data\)/, "/api/scan/[token] serves the raw teaser");
   const paints = read("src/components/scan/ResultView.tsx").match(/\bo\.note\b/g) ?? [];
   // Two sites, each reading o.note twice (the guard and the text): PlanCards and PlacementTable.
   assert.equal(paints.length, 4, "ResultView paints a note somewhere new - check it reads a filtered row");

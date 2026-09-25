@@ -4,6 +4,7 @@ import { test } from "node:test";
 import {
   deriveOpportunities,
   publicNote,
+  publicTeaser,
   type AnswerRow,
   type CitationRow,
   type KindRow,
@@ -273,4 +274,23 @@ test("publicNote drops every sale word, keeps an ordinary note", () => {
   assert.equal(publicNote("  Industry news site covering SaaS  "), "Industry news site covering SaaS");
   assert.equal(publicNote(null), null);
   assert.equal(publicNote(""), null);
+});
+
+test("the teaser's source lists lose a sale-word note too, and nothing else changes", () => {
+  const teaser = {
+    domain: "example.co.uk",
+    top_sources: [{ source: "clutch.co", kind: "review", note: "Agency review and directory site", mentions: 2 }],
+    all_sources: [
+      { source: "clutch.co", kind: "review", note: "Agency review and directory site", mentions: 2 },
+      { source: "outrank.co.uk", kind: "competitor", note: "Named competitor, UK SEO agency", mentions: 2 },
+    ],
+  };
+  const out = publicTeaser(teaser);
+  assert.equal(out.top_sources[0].note, null);
+  assert.equal(out.all_sources[0].note, null);
+  assert.equal(out.all_sources[1].note, "Named competitor, UK SEO agency");
+  assert.equal(out.all_sources[0].mentions, 2);
+  assert.equal(out.domain, "example.co.uk");
+  assert.equal(teaser.all_sources[0].note, "Agency review and directory site", "the input is not mutated");
+  assert.equal(publicTeaser(null), null);
 });

@@ -1,3 +1,4 @@
+import { publicTeaser } from "@/lib/scan/opportunities";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -24,5 +25,5 @@ export async function GET(_req: Request, ctx: { params: Promise<{ token: string 
     return Response.json({ error: "not_found" }, { status: 404 });
   }
 
-  return Response.json(data, { headers: { "cache-control": "no-store" } });
+  return Response.json(publicTeaser(data), { headers: { "cache-control": "no-store" } });
 }

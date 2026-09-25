@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import ScanFlow from "@/components/scan/ScanFlow";
 import { isMarket } from "@/lib/scan/domain";
 import type { MarketReason } from "@/lib/scan/market-pick";
+import { publicTeaser } from "@/lib/scan/opportunities";
 import { isFreePassDead, isGatedPassDead } from "@/lib/scan/stall";
 import { buildUnlockPayload, opportunityShape, type UnlockPayload } from "@/lib/scan/unlock";
 import { supabaseAdmin } from "@/lib/supabase/admin";
@@ -92,7 +93,7 @@ export default async function ScanTokenPage({ params }: { params: Promise<{ toke
     if (teaserErr) {
       console.error(`[scan] could not read the teaser for ${scan.id}:`, teaserErr.message);
     } else {
-      teaser = teaserData;
+      teaser = publicTeaser(teaserData);
     }
   }
 

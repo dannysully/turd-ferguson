@@ -90,6 +90,30 @@ export function publicNote(note: string | null | undefined): string | null {
 }
 
 /**
+ * The teaser with every source note through `publicNote`.
+ *
+ * `scan_teaser` returns `top_sources` and `all_sources` with the classifier's
+ * note on each, and both readers - the page and /api/scan/[token] - hand it
+ * to the client as-is. That was the third door R16 left open: the .co.uk
+ * scan's payload still carried "Agency review and directory site" there after
+ * the rows were fixed. Filtered in the reader rather than in the RPC, so the
+ * rule lives in one function and no migration has to restate it.
+ */
+export function publicTeaser<T>(teaser: T): T {
+  if (!teaser || typeof teaser !== "object") return teaser;
+  const t = { ...(teaser as Record<string, unknown>) };
+  for (const key of ["top_sources", "all_sources"]) {
+    const list = t[key];
+    if (Array.isArray(list)) {
+      t[key] = list.map((row) =>
+        row && typeof row === "object" && "note" in row ? { ...row, note: publicNote((row as { note?: string | null }).note) } : row,
+      );
+    }
+  }
+  return t as T;
+}
+
+/**
  * The placement opportunities: pages that fed answers the brand was NOT
  * named in, and that we could realistically be placed into.
  *
