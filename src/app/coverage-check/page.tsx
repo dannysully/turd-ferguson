@@ -35,7 +35,7 @@ import { MAX_COVERAGE_URLS } from "@/lib/coverage/csv";
 const ANSWERS = COVERAGE_PROMPT_COUNT * FREE_ENGINE_COUNT;
 
 export const metadata: Metadata = {
-  title: "Free campaign benchmark",
+  title: "Free coverage check",
   description:
     `Take the reading before the campaign. ${COVERAGE_PROMPT_COUNT} questions - ours or your own - on the ${FREE_ENGINE_COUNT} engines a free scan reads, with each piece of coverage checked page by page. Dated and re-runnable.`,
   openGraph: { url: "https://alwayscited.com/coverage-check", images: OG_IMAGE },
@@ -125,7 +125,7 @@ export default function CoverageCheckPage() {
     <main style={{ ...SHELL, paddingTop: "42px", paddingBottom: "44px", display: "flex", flexDirection: "column", gap: "26px" }}>
       <div className="board-head" style={{ ...GRID12, alignItems: "start" }}>
         <div style={{ gridColumn: "span 7" }}>
-          <div style={MICRO}>Free campaign benchmark</div>
+          <div style={MICRO}>Free coverage check</div>
           <h1 style={{ margin: "10px 0 0", fontSize: "36px", fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.18, color: T.ink }}>
             Take the reading before the campaign. <span style={{ color: T.accent }}>Then it means something.</span>
           </h1>

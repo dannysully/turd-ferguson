@@ -1,3 +1,5 @@
+import { normalizeDomain } from "./domain.ts";
+
 /**
  * Brand name matching.
  *
@@ -257,4 +259,127 @@ export function namesBrand(prose: string, brand: string): boolean {
   return new RegExp(`(^|[^a-z0-9])${brandPattern(stripped)}($|[^a-z0-9])`, "i").test(
     prose.toLowerCase(),
   );
+}
+
+/**
+ * Second-level labels that sit under a country code and are part of the
+ * suffix, not the name: "acme.co.uk" is Acme, not "co".
+ */
+const SECOND_LEVEL = new Set(["co", "com", "org", "net", "ac", "gov", "ltd", "plc", "me", "edu"]);
+
+/**
+ * The name a domain spells, as a brand key, or null:
+ * "rotaready.com" -> "rotaready", "www.acme.co.uk" -> "acme".
+ */
+export function domainStem(domain: string | null | undefined): string | null {
+  if (!domain) return null;
+  const labels = normalizeDomain(domain).split(".").filter(Boolean);
+  if (labels.length < 2) return null;
+  let i = labels.length - 2;
+  if (labels.length >= 3 && labels[labels.length - 1].length === 2 && SECOND_LEVEL.has(labels[i])) i -= 1;
+  return brandKey(labels[i]) || null;
+}
+
+/**
+ * The read name with the parts that are not the brand taken off: anything in
+ * brackets, and anything after a " | " or a spaced dash.
+ *
+ *   "Rotaready Evo (The Access Group)" -> "Rotaready Evo"
+ *   "Acme | Payroll software"          -> "Acme"
+ */
+function coreName(brand: string): string {
+  return brand
+    .replace(/\s*[([][^)\]]*[)\]]/g, " ")
+    .split(/\s+[|\u2013\u2014-]\s+/)[0]
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export type BrandAlias = {
+  name: string;
+  /**
+   * Only counted where the answer writes it with a capital. Set on the one
+   * alias that is a single word taken off the domain, because a single word
+   * can also be an ordinary noun: "Deputy" the product, "a deputy manager".
+   */
+  capitalOnly: boolean;
+};
+
+/**
+ * Every spelling of the subject an answer can use - 24 September 2026.
+ *
+ * The brand is read off the site by a model, and the model writes what the
+ * site says: "Rotaready Evo (The Access Group)". Matching that whole phrase
+ * recorded a live scan as named in 0 of 17 answers when 9 of the 17 named
+ * "Rotaready" - ChatGPT listed it first - so the one number this product sells
+ * told a brand it was invisible when it was in half its answers.
+ *
+ * So the subject is a small set, not one string:
+ *
+ *   1. the read name, as before;
+ *   2. the core name - the read name without brackets or a tagline;
+ *   3. the leading words of the core name that spell the domain, when there
+ *      are fewer of them than the whole: "Rotaready Evo" on rotaready.com
+ *      gives "Rotaready". Anchored on the domain, which is why this does not
+ *      break the no-prefix rule in `brandKey`'s header - "Moncler Grenoble"
+ *      only folds to "Moncler" when the site it was read off is moncler.com.
+ *
+ * What it never does is take the bracketed parent on its own. "The Access
+ * Group" is not the brand, and counting it would flatter the subject every
+ * time an engine named the group for something else.
+ */
+export function brandAliases(brand: string, domain?: string | null): BrandAlias[] {
+  const out: BrandAlias[] = [];
+  const seen = new Set<string>();
+  const add = (name: string, capitalOnly: boolean) => {
+    const key = brandKey(name);
+    if (key.length < 2 || seen.has(key)) return;
+    seen.add(key);
+    out.push({ name, capitalOnly });
+  };
+
+  add(brand.trim(), false);
+  const core = coreName(brand);
+  add(core, false);
+
+  const stem = domainStem(domain);
+  if (stem && stem.length >= 4) {
+    const words = core.split(" ");
+    for (let n = 1; n < words.length; n++) {
+      const lead = words.slice(0, n).join(" ");
+      if (brandKey(lead) === stem) {
+        add(lead, n === 1);
+        break;
+      }
+    }
+  }
+  return out;
+}
+
+/** The brand keys that are the subject, so it stays off its own leaderboard. */
+export function subjectKeys(brand: string, domain?: string | null): Set<string> {
+  return new Set(brandAliases(brand, domain).map((a) => brandKey(a.name)));
+}
+
+/**
+ * Does the answer name the subject under any of its spellings? What
+ * `readAndStore` calls; `namesBrand` stays the one-spelling matcher it is
+ * built on.
+ */
+export function namesSubject(prose: string, brand: string, domain?: string | null): boolean {
+  if (!prose || !brand) return false;
+  return brandAliases(brand, domain).some((a) =>
+    a.capitalOnly ? namesWithCapital(prose, a.name) : namesBrand(prose, a.name),
+  );
+}
+
+/** `namesBrand` for one word, counted only where the prose capitalises it. */
+function namesWithCapital(prose: string, word: string): boolean {
+  if (!namesBrand(prose, word)) return false;
+  const pattern = new RegExp(`(^|[^a-z0-9])(${brandPattern(word.toLowerCase())})(?=$|[^a-z0-9])`, "gi");
+  for (const m of prose.matchAll(pattern)) {
+    const first = m[2][0];
+    if (first && first !== first.toLowerCase()) return true;
+  }
+  return false;
 }

@@ -96,7 +96,38 @@ export function matchKnown(domain: string, table: Record<string, string>): strin
   for (const [site, note] of Object.entries(table)) {
     if (domain === site || domain.endsWith(`.${site}`)) return note;
   }
+  const regional = regionalTwin(domain);
+  if (regional) {
+    for (const [site, note] of Object.entries(table)) {
+      if (regional === site || regional.endsWith(`.${site}`)) return note;
+    }
+  }
   return null;
+}
+
+/** A country ending: "uk", "co.uk", "com.au", "de". */
+const COUNTRY_SUFFIX = /\.((?:co|com|org)\.[a-z]{2}|[a-z]{2})$/;
+
+/**
+ * The same site's `.com`, for a country edition of it - 24 September 2026.
+ *
+ * The tables name the `.com`, and a UK scan cites the `.co.uk`: on the
+ * rotaready.com scan `capterra.co.uk`, `getapp.co.uk` and
+ * `softwareadvice.co.uk` fell through to the model and came back as
+ * `placement`, beside `g2.com` and `gartner.com` correctly settled as review
+ * sites. The same miss put `google.co.uk` and `amazon.de` in front of the
+ * model when the table already says what they are.
+ *
+ * Only a name of four characters or more gets a twin, because a short name on
+ * another country ending is as likely to be somebody else: `x.de` is not X.
+ */
+export function regionalTwin(domain: string): string | null {
+  const m = COUNTRY_SUFFIX.exec(domain);
+  if (!m) return null;
+  const rest = domain.slice(0, m.index);
+  const name = rest.split(".").pop() ?? "";
+  if (name.length < 4) return null;
+  return `${rest}.com`;
 }
 
 /**

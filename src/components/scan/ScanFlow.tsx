@@ -843,7 +843,7 @@ export default function ScanFlow(p: {
 
       <div style={{ ...SHELL, padding: "40px 24px 0" }}>
         <p aria-live="polite" className="sr-only">
-          {phase === "running" ? "Checking. This usually takes about a minute." : ""}
+          {phase === "running" ? "Checking. " + OFFER_COPY.heading : ""}
         </p>
 
         {phase === "confirm" ? (

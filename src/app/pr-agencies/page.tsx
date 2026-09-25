@@ -150,29 +150,8 @@ export default function PrAgenciesPage() {
             </div>
           </form>
 
-          {/* The board's coverage-checker card. It has a destination now. */}
-          <div style={{ marginTop: "14px", paddingTop: "14px", borderTop: `1px solid ${T.hair}` }}>
-            <div style={{ fontSize: "13.5px", fontWeight: 600, color: T.ink }}>Already have a campaign to check?</div>
-            <p style={{ margin: "5px 0 10px", fontSize: "13px", lineHeight: 1.55, color: T.soft }}>
-              See which pieces the engines are actually reading, and which sites they cite instead.
-            </p>
-            <Link
-              href="/coverage-check"
-              style={{
-                display: "inline-block",
-                background: T.surface,
-                border: `1px solid ${T.line}`,
-                color: T.ink,
-                fontSize: "13.5px",
-                fontWeight: 600,
-                padding: "9px 16px",
-                borderRadius: "10px",
-                textDecoration: "none",
-              }}
-            >
-              Open the coverage checker
-            </Link>
-          </div>
+          {/* The coverage-check card that sat here was a second button to the
+              same page as the band below it - one name, one door (24 Sep 2026). */}
         </div>
       </div>
 
@@ -188,7 +167,7 @@ export default function PrAgenciesPage() {
       <section style={{ ...CARD, padding: "24px 26px", background: T.wash, borderColor: T.washLine }}>
         <div style={{ ...GRID12, alignItems: "center", rowGap: "14px" }}>
           <div style={{ gridColumn: "span 8" }}>
-            <div style={MICRO}>Free campaign benchmark</div>
+            <div style={MICRO}>Free coverage check</div>
             <h2 style={{ ...H2, margin: "8px 0 0", fontSize: "22px" }}>
               Check a campaign you have already placed
             </h2>

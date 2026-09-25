@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { brandKey, displayNamesFor, namesBrand, pickDisplayName } from "./brand-name.ts";
+import { brandKey, displayNamesFor, domainStem, namesBrand, namesSubject, pickDisplayName, subjectKeys } from "./brand-name.ts";
 
 /**
  * `namesBrand` decides `scan_answers.brand_named`, which is the number this
@@ -155,4 +155,60 @@ test("a stored name that folds to nothing is ignored rather than chosen", () => 
   // like that must not become the display name for something else.
   const variants = new Map([["snowrock", new Map([["Snow+Rock", 4]])]]);
   assert.equal(displayNamesFor(variants, ["---", "  "]).get("snowrock"), "Snow+Rock");
+});
+
+/**
+ * `namesSubject` - 24 September 2026. A live scan on rotaready.com read the
+ * brand as "Rotaready Evo (The Access Group)" and scored 0 of 17 answers
+ * named, while 9 of the 17 named "Rotaready". Written before the fix and run
+ * against the tree without it.
+ */
+test("the subject is named under the name its domain spells", () => {
+  const brand = "Rotaready Evo (The Access Group)";
+  assert.ok(namesSubject("Rotaready | Restaurants, pubs, hotels & growing groups", brand, "rotaready.com"));
+  assert.ok(namesSubject("I'd look closely at Deputy, Planday, RotaCloud and Rotaready.", brand, "rotaready.com"));
+  assert.ok(namesSubject("Try Rotaready Evo for multi-site groups.", brand, "https://www.rotaready.com/"));
+  // The old matcher, for the record of what failed.
+  assert.equal(namesBrand("Rotaready | Restaurants", brand), false);
+});
+
+test("the bracketed parent is never the subject", () => {
+  const brand = "Rotaready Evo (The Access Group)";
+  assert.equal(namesSubject("The Access Group sells payroll and HR software.", brand, "rotaready.com"), false);
+  assert.equal(namesSubject("Access Group payroll", brand, "rotaready.com"), false);
+});
+
+test("a domain-derived single word only counts with a capital", () => {
+  // "Deputy" the product against "a deputy manager".
+  assert.ok(namesSubject("Deputy is strong for shift swaps.", "Deputy Scheduling", "deputy.com"));
+  assert.equal(namesSubject("Ask your deputy manager to check the rota.", "Deputy Scheduling", "deputy.com"), false);
+});
+
+test("the domain only shortens a name whose leading words spell it", () => {
+  // Not anchored: the domain spells nothing at the front of the name.
+  assert.equal(namesSubject("Moncler has a new line.", "Moncler Grenoble", "grenoble-outdoor.com"), false);
+  // Anchored.
+  assert.ok(namesSubject("Moncler has a new line.", "Moncler Grenoble", "moncler.com"));
+  // A stem under four letters never shortens a name.
+  assert.equal(namesSubject("Buy from Ace today.", "Ace Hardware Group", "ace.com"), false);
+});
+
+test("a tagline or bracket in the read name does not stop the name matching", () => {
+  assert.ok(namesSubject("We recommend Acme for payroll.", "Acme | Payroll software", null));
+  assert.ok(namesSubject("Fladgate is a strong choice.", "Fladgate (London)", "fladgate.com"));
+});
+
+test("subjectKeys covers every spelling the matcher accepts", () => {
+  const keys = subjectKeys("Rotaready Evo (The Access Group)", "rotaready.com");
+  assert.ok(keys.has("rotaready"));
+  assert.ok(keys.has("rotareadyevo"));
+  assert.ok(keys.has("rotareadyevotheaccessgroup"));
+  assert.equal(keys.has("theaccessgroup"), false);
+});
+
+test("domainStem reads the name out of the host", () => {
+  assert.equal(domainStem("rotaready.com"), "rotaready");
+  assert.equal(domainStem("https://www.acme.co.uk/about"), "acme");
+  assert.equal(domainStem("higgsllp.co.uk"), "higgsllp");
+  assert.equal(domainStem("localhost"), null);
 });

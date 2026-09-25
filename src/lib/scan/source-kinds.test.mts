@@ -6,6 +6,7 @@ import {
   REVIEW_SITES,
   knownKind,
   matchKnown,
+  regionalTwin,
   sortSource,
 } from "./source-kinds.ts";
 
@@ -198,4 +199,24 @@ test("an ordinary publication is not settled here and goes to the model", () => 
   for (const d of ["techcrunch.com", "ft.com", "theguardian.com", "smashingmagazine.com"]) {
     assert.equal(sortSource(d, "example.com"), null, `${d} should reach the classifier`);
   }
+});
+
+
+test("a country edition of a listed site is the listed site", () => {
+  // rotaready.com scan, 24 September 2026: these three came back "placement"
+  // beside g2.com settled as a review site.
+  for (const d of ["capterra.co.uk", "getapp.co.uk", "softwareadvice.co.uk", "capterra.com.au", "uk.capterra.co.uk"]) {
+    assert.ok(matchKnown(d, REVIEW_SITES), d);
+  }
+  assert.equal(matchKnown("google.co.uk", OTHER_SITES), OTHER_SITES["google.com"]);
+  assert.equal(matchKnown("amazon.de", OTHER_SITES), OTHER_SITES["amazon.com"]);
+});
+
+test("a short name on another country ending is not a twin", () => {
+  assert.equal(regionalTwin("x.de"), null);
+  assert.equal(matchKnown("x.de", OTHER_SITES), null);
+  assert.equal(regionalTwin("g2.co.uk"), null);
+  // A name that only ends like a listed one still does not match.
+  assert.equal(matchKnown("notcapterra.co.uk", REVIEW_SITES), null);
+  assert.equal(regionalTwin("example.com"), null);
 });

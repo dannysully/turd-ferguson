@@ -10,7 +10,7 @@ import {
   siteFacts,
   QUESTION_COUNT,
 } from "./anthropic";
-import { brandKey, displayNamesFor, namesBrand } from "./brand-name";
+import { brandKey, displayNamesFor, namesSubject, subjectKeys } from "./brand-name";
 import { readEngine } from "./dataforseo";
 import { type Market, normalizeDomain } from "./domain";
 // What one engine found, and the order the reads are issued in so that engines
@@ -505,7 +505,7 @@ async function readAndStore(input: {
         return {
           ...base,
           answered: read.answered,
-          brandNamed: read.answered && namesBrand(read.prose, brand),
+          brandNamed: read.answered && namesSubject(read.prose, brand, domain),
           prose: read.prose,
           citations: read.citations,
           googleRank: engine === "google_aio" ? rankOf(read.organic, domain) : undefined,
@@ -679,7 +679,7 @@ async function readAndStore(input: {
   // One brand extraction per engine, so the leaderboard reads per engine as
   // well as overall. Engines that answered nothing are skipped rather than
   // recorded as a zero.
-  const subjectKey = brandKey(brand);
+  const subject = subjectKeys(brand, domain);
 
   // One extraction per engine, run together. Serially this was four Anthropic
   // round trips bolted onto the end of every scan, all of them independent.
@@ -726,7 +726,7 @@ async function readAndStore(input: {
     for (const b of row.extracted) {
       const name = b.brand.trim();
       const key = brandKey(name);
-      if (!key || key === subjectKey) continue;
+      if (!key || subject.has(key)) continue;
       const seen = variants.get(key) ?? new Map<string, number>();
       seen.set(name, (seen.get(name) ?? 0) + b.mentions);
       variants.set(key, seen);
@@ -825,7 +825,7 @@ async function readAndStore(input: {
     const perEngine = new Map<string, number>();
     for (const b of extracted) {
       const key = brandKey(b.brand);
-      if (!key || key === subjectKey) continue;
+      if (!key || subject.has(key)) continue;
       if (!suppliers.has(key)) continue;
       perEngine.set(key, (perEngine.get(key) ?? 0) + b.mentions);
     }
@@ -843,7 +843,7 @@ async function readAndStore(input: {
     // was never named. A measured zero is the strongest finding on the page.
     const namedCount = answers.filter((a) => a.engine === engine && a.brandNamed).length;
     const claimed = extracted
-      .filter((b) => brandKey(b.brand) === subjectKey)
+      .filter((b) => subject.has(brandKey(b.brand)))
       .reduce((n, b) => n + b.mentions, 0);
     brandRows.push({ scan_id: scanId, engine, brand, mentions: claimed || namedCount, is_subject: true });
   }

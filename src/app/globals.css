@@ -738,9 +738,13 @@ html[data-motion="on"] .seq-rise { animation: seqRise 1s cubic-bezier(.2,.7,.3,1
 .proc-beats { display: grid; gap: 28px; }
 .proc-rail { display: none; }
 
+/* The four beats share one grid cell, so the stage is always as tall as the
+   tallest beat and nothing under it moves when the beat changes - 24 Sep
+   2026. With display:none on the three at rest the stage was 361px to 671px
+   depending on the beat, and "Packages" jumped 310px on every advance. */
 html[data-motion="on"] .proc-beats { gap: 0; }
-html[data-motion="on"] .proc-beat { display: none; }
-html[data-motion="on"] .proc-beat[data-on="1"] { display: block; animation: seqIn .45s ease-out both; }
+html[data-motion="on"] .proc-beat { grid-area: 1 / 1; visibility: hidden; }
+html[data-motion="on"] .proc-beat[data-on="1"] { visibility: visible; animation: seqIn .45s ease-out both; }
 html[data-motion="on"] .proc-rail { display: flex; gap: 6px; margin-bottom: 14px; }
 
 /* Nothing is hidden at rest with motion off: every beat renders in full and

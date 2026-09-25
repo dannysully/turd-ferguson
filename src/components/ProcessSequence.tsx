@@ -396,6 +396,8 @@ export default function ProcessSequence(p: { heading?: string }) {
             key={b.tier}
             type="button"
             role="tab"
+            id={"proc-tab-" + b.tier}
+            aria-controls={"proc-beat-" + b.tier}
             aria-selected={n === beat}
             onClick={() => {
               setBeat(n);
@@ -432,7 +434,14 @@ export default function ProcessSequence(p: { heading?: string }) {
           const tier = tierOf(b.tier);
           const Body = BODIES[b.tier];
           return (
-            <div key={b.tier} className="proc-beat" data-on={n === beat ? "1" : undefined}>
+            <div
+              key={b.tier}
+              id={"proc-beat-" + b.tier}
+              role="tabpanel"
+              aria-labelledby={"proc-tab-" + b.tier}
+              className="proc-beat"
+              data-on={n === beat ? "1" : undefined}
+            >
               <div style={{ ...CARD, padding: "20px 22px 24px" }}>
                 <div style={{ display: "flex", alignItems: "baseline", gap: "10px", flexWrap: "wrap" }}>
                   <span style={{ fontSize: "20px", fontWeight: 700, letterSpacing: "-0.028em" }}>

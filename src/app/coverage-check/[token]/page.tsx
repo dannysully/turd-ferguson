@@ -21,7 +21,7 @@ import { ENGINE_SPECS } from "@/lib/scan/engines";
  * brand and an uploaded coverage list on it.
  */
 export const metadata: Metadata = {
-  title: "Campaign benchmark",
+  title: "Coverage check",
   robots: { index: false, follow: false },
 };
 
@@ -144,7 +144,7 @@ export default async function CampaignReadingPage({ params }: { params: Promise<
 
       <div className="board-head" style={{ ...GRID12, alignItems: "start" }}>
         <div style={{ gridColumn: "span 8" }}>
-          <div style={MICRO}>Campaign benchmark</div>
+          <div style={MICRO}>Coverage check</div>
           <h1
             style={{
               margin: "10px 0 0",

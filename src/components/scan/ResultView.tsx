@@ -24,6 +24,7 @@ import {
 } from "./result-figures";
 import { btn, field, label } from "./screens";
 import WalkthroughForm from "./WalkthroughForm";
+import { type Inline, parseAnswer } from "./answer-markdown";
 
 /**
  * The result, free and unlocked, from Flow2Free.dc.html and Flow3Report.dc.html.
@@ -303,13 +304,11 @@ function AnswerDrawer(p: {
                   </div>
                   <div style={{ padding: "12px 14px" }}>
                     {a.response_text?.trim() ? (
-                      <p style={{ margin: 0, fontSize: "13.5px", lineHeight: 1.7, color: T.ink, whiteSpace: "pre-wrap" }}>
-                        {a.response_text}
-                      </p>
+                      <AnswerText source={a.response_text} />
                     ) : (
                       <p style={{ margin: 0, fontSize: "13px", color: T.soft }}>
                         {a.answered
-                          ? "The words were not kept for this scan - it ran before answers were stored, or its seven days have passed."
+                          ? "The words were not kept for this scan - it ran before answers were stored for good."
                           : "This engine gave no answer to this question."}
                       </p>
                     )}
@@ -339,6 +338,102 @@ function AnswerDrawer(p: {
           </div>
         </div>
       </aside>
+    </>
+  );
+}
+
+/* ── One stored answer, as the markdown the engine wrote ── */
+
+/**
+ * See `answer-markdown.ts`. Every string reaches the page as a React text
+ * node, never as HTML, so nothing an engine wrote can run.
+ */
+function AnswerText(p: { source: string }) {
+  const blocks = parseAnswer(p.source);
+  const text: React.CSSProperties = { margin: 0, fontSize: "13.5px", lineHeight: 1.7, color: T.ink };
+  const cell: React.CSSProperties = { padding: "6px 8px", borderBottom: "1px solid " + T.hair, verticalAlign: "top", textAlign: "left" };
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+      {blocks.map((b, i) => {
+        if (b.kind === "table") {
+          return (
+            <div key={i} style={{ overflowX: "auto" }}>
+              <table style={{ borderCollapse: "collapse", width: "100%", fontSize: "12.5px", lineHeight: 1.5, color: T.ink }}>
+                <thead>
+                  <tr>
+                    {b.head.map((c, j) => (
+                      <th key={j} style={{ ...cell, fontWeight: 600, borderBottom: "1px solid " + T.line }}>
+                        <Runs runs={c} />
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {b.rows.map((r, j) => (
+                    <tr key={j}>
+                      {r.map((c, k) => (
+                        <td key={k} style={cell}>
+                          <Runs runs={c} />
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+        }
+        if (b.kind === "ul" || b.kind === "ol") {
+          const List = b.kind;
+          return (
+            <List key={i} style={{ ...text, paddingLeft: "20px", display: "flex", flexDirection: "column", gap: "4px" }}>
+              {b.items.map((it, j) => (
+                <li key={j}>
+                  <Runs runs={it} />
+                </li>
+              ))}
+            </List>
+          );
+        }
+        if (b.kind === "h") {
+          return (
+            <p key={i} style={{ ...text, fontWeight: 600 }}>
+              <Runs runs={b.text} />
+            </p>
+          );
+        }
+        if (b.kind !== "p") return null;
+        return (
+          <p key={i} style={text}>
+            {b.lines.map((l, j) => (
+              <span key={j}>
+                {j ? <br /> : null}
+                <Runs runs={l} />
+              </span>
+            ))}
+          </p>
+        );
+      })}
+    </div>
+  );
+}
+
+function Runs(p: { runs: Inline[] }) {
+  return (
+    <>
+      {p.runs.map((r, i) =>
+        r.bold ? (
+          <strong key={i} style={{ fontWeight: 600 }}>
+            {r.text}
+          </strong>
+        ) : r.cite ? (
+          <sup key={i} style={{ fontSize: "10px", color: T.soft }}>
+            {"[" + r.text + "]"}
+          </sup>
+        ) : (
+          <span key={i}>{r.text}</span>
+        ),
+      )}
     </>
   );
 }

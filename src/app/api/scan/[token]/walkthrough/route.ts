@@ -16,8 +16,9 @@ const PER_IP_PER_DAY = 5;
  *
  * The result page's only call to action since 24 September 2026, when the
  * email gate came off. What it does: stores the request, stamps the scan as
- * claimed so its transcripts survive the seven-day purge (Danny will want them
- * when he records the walkthrough), and emails Danny. It sends nothing to the
+ * claimed (transcripts are kept indefinitely since 24 September, so the stamp
+ * now marks a scan somebody asked about rather than saving its answers from a
+ * purge), and emails Danny. It sends nothing to the
  * visitor - Danny replies himself, which is the point of asking for him.
  */
 export async function POST(req: Request, ctx: { params: Promise<{ token: string }> }) {

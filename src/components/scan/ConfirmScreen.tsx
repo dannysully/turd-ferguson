@@ -100,7 +100,17 @@ const rowInput: React.CSSProperties = {
   borderRadius: "8px",
   padding: "4px 6px",
   margin: "-4px -6px",
-};
+  /**
+   * A textarea that grows to its text, 24 September 2026. As a one-line input
+   * the long questions were cut off on the one screen that asks the visitor to
+   * read and correct them - 2 of 5 on the rotaready.com scan.
+   */
+  display: "block",
+  resize: "none",
+  overflow: "hidden",
+  lineHeight: 1.45,
+  fieldSizing: "content",
+} as React.CSSProperties;
 
 const quietBtn: React.CSSProperties = {
   fontFamily: "inherit",
@@ -147,7 +157,7 @@ export default function ConfirmScreen(p: {
   /** The topic and market the set on screen was written for. */
   const [writtenFor, setWrittenFor] = useState<{ topic: string; market: Market } | null>(null);
 
-  const lastRef = useRef<HTMLInputElement | null>(null);
+  const lastRef = useRef<HTMLTextAreaElement | null>(null);
   const focusLast = useRef(false);
 
   const write = useCallback(
@@ -213,6 +223,22 @@ export default function ConfirmScreen(p: {
    * silence a warning about a render that does not occur. Narrowed to this one
    * line so the rule stays live everywhere else.
    */
+  /**
+   * Every question box sized to its text, for browsers without
+   * `field-sizing: content`. Runs after each render, which is when a question
+   * can change, and on resize, which is when the column width can.
+   */
+  useEffect(() => {
+    const fit = () =>
+      document.querySelectorAll<HTMLTextAreaElement>("textarea.q-text").forEach((t) => {
+        t.style.height = "auto";
+        t.style.height = t.scrollHeight + "px";
+      });
+    fit();
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
+  });
+
   const started = useRef(false);
   useEffect(() => {
     if (started.current) return;
@@ -411,7 +437,7 @@ export default function ConfirmScreen(p: {
             {primaryLabel}
           </button>
           <p style={{ margin: "10px 0 0", fontSize: "12.5px", color: T.soft }}>
-            No email needed to start. The result is free in full - we ask for one only to open the placement list.
+            No email needed. The result is free in full.
           </p>
           {error ? (
             <p role="alert" style={{ margin: "10px 0 0", fontSize: "12.5px", color: T.badFg }}>
@@ -448,8 +474,8 @@ export default function ConfirmScreen(p: {
               Which clusters matter to you
             </h2>
             <p style={{ margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
-              Keep the ones you care about and drop the rest - the question count comes down with them. We would
-              rather run six good questions on one cluster than {MAX_QUESTIONS} variations of the same thing.
+              Keep the ones you care about and drop the rest - the question count comes down with them. Better{" "}
+              {MAX_QUESTIONS} sharp questions on the cluster that matters than one each on clusters you do not care about.
             </p>
           </div>
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
@@ -538,11 +564,16 @@ export default function ConfirmScreen(p: {
               <div key={i} className="q-row" style={{ borderBottom: "1px solid " + T.hair, opacity: off ? 0.4 : 1 }}>
                 <div style={{ fontSize: "13px", color: T.soft }}>{off ? "-" : position}</div>
                 <div>
-                  <input
+                  <textarea
                     ref={i === questions.length - 1 ? lastRef : undefined}
-                    type="text"
+                    rows={1}
+                    className="q-text"
                     value={q.question}
-                    onChange={(e) => edit(i, e.target.value)}
+                    onChange={(e) => edit(i, e.target.value.replace(/\n/g, " "))}
+                    onKeyDown={(e) => {
+                      // One question per row: Enter does not start a second line.
+                      if (e.key === "Enter") e.preventDefault();
+                    }}
                     aria-label={rowLabel}
                     placeholder="the question a buyer would type"
                     maxLength={SCAN_LIMITS.question}

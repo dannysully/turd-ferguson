@@ -342,14 +342,27 @@ test("every from-state belongs to a class the script actually observes", () => {
        * above lists. Checked as the property that makes it safe - some rule in
        * this sheet does put the class back - rather than by naming the class.
        */
-      const hidden = decls.some((d) => d.prop === "display" && d.value === "none");
-      if (hidden) {
+      /*
+       * `visibility: hidden` paired with `visibility: visible` is the same
+       * shape, added 24 September 2026 when `.proc-beat` moved from
+       * display:none to a shared grid cell so the stage keeps the tallest
+       * beat's height. Still checked as the property that makes it safe: the
+       * other half must put the SAME property back.
+       */
+      const hiddenBy = decls.find(
+        (d) => (d.prop === "display" && d.value === "none") || (d.prop === "visibility" && d.value === "hidden"),
+      );
+      if (hiddenBy) {
         const named = [...part.matchAll(/\.([a-zA-Z][\w-]*)/g)].map((m) => m[1]);
         const shownAgain = rules.some(
           (other) =>
             other !== rule &&
             named.some((c) => mentions(other.selector, c)) &&
-            declarations(other.decls).some((d) => d.prop === "display" && d.value !== "none"),
+            declarations(other.decls).some(
+              (d) =>
+                d.prop === hiddenBy.prop &&
+                (hiddenBy.prop === "display" ? d.value !== "none" : d.value === "visible"),
+            ),
         );
         if (shownAgain) continue;
       }
