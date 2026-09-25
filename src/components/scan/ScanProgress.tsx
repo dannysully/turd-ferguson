@@ -1,7 +1,8 @@
 "use client";
 
 import EngineLogo from "@/components/EngineLogo";
-import { MICRO, T } from "@/config/tokens";
+import { T } from "@/config/tokens";
+import { OFFER_COPY } from "@/lib/scan/email-offer";
 import { type EngineResult, engineVerdict, landingAnnouncement } from "@/lib/scan/engine-results";
 import { ENGINE_SPECS, knownEngines } from "@/lib/scan/engines";
 import { stepCaption, stepPct } from "@/lib/scan/run-steps";
@@ -24,6 +25,8 @@ import { stepCaption, stepPct } from "@/lib/scan/run-steps";
 export default function ScanProgress(p: {
   domain: string;
   engines: string[];
+  /** Questions this run asks, when the page knows. */
+  questions?: number | null;
   landed?: EngineResult[];
   step: number;
   slow?: boolean;
@@ -52,18 +55,30 @@ export default function ScanProgress(p: {
   const verdicts = new Map((p.landed ?? []).map((r) => [r.engine, r]));
   const newest = (p.landed ?? [])[(p.landed?.length ?? 0) - 1];
 
+  /**
+   * "Five questions, four engines, 20 answers" on the board. Only when this
+   * page knows how many questions the run asks - it does after a confirm here,
+   * not after a reload mid-run - and in figures, never spelled.
+   */
+  const counts =
+    p.questions && engines.length
+      ? ` ${p.questions} questions, ${engines.length} engines, ${p.questions * engines.length} answers.`
+      : "";
+
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-        <h2
-          ref={p.headingRef}
-          tabIndex={-1}
-          style={{ ...MICRO, margin: 0, outline: "none" }}
-        >
-          {"Running your scan - " + p.domain}
-        </h2>
-        <div style={{ flexGrow: 1 }} />
-        {/* Each engine's own chip, which gains its verdict the moment that
+      <h1
+        ref={p.headingRef}
+        tabIndex={-1}
+        style={{ margin: 0, fontSize: "30px", fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.1, color: T.ink, outline: "none", overflowWrap: "anywhere" }}
+      >
+        {"Scanning " + p.domain}
+      </h1>
+      <p style={{ margin: "8px 0 0", fontSize: "15px", color: T.soft, lineHeight: 1.5 }}>
+        {OFFER_COPY.wait + counts}
+      </p>
+      <div className="run-chips">
+        {/* Each engine's own card, which gains its verdict the moment that
             engine's last question comes back - rather than every chip standing
             there saying nothing until all of them are in.
 
@@ -80,34 +95,40 @@ export default function ScanProgress(p: {
             <div
               key={key}
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "7px",
                 background: T.surface,
                 border: "1px solid " + (found ? T.accent : T.line),
-                borderRadius: "999px",
-                padding: "3px 11px 3px 3px",
+                borderRadius: "12px",
+                padding: "10px 12px",
+                minWidth: 0,
                 transition: "border-color .4s ease",
               }}
             >
-              <span
-                aria-hidden="true"
-                style={{
-                  width: "19px",
-                  height: "19px",
-                  display: "grid",
-                  placeItems: "center",
-                  color: T.ink,
-                  flexShrink: 0,
-                }}
-              >
-                <EngineLogo engine={key} size={15} />
-              </span>
-              <span style={{ fontSize: "12px", color: T.soft }}>{spec.label}</span>
-              {found ? (
-                <span style={{ fontSize: "12px", fontWeight: 600, color: found.named > 0 ? T.ink : T.soft }}>
-                  {engineVerdict(found)}
+              <div style={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "12.5px", fontWeight: 600, color: T.ink }}>
+                <span aria-hidden="true" style={{ display: "grid", placeItems: "center", flexShrink: 0 }}>
+                  <EngineLogo engine={key} size={16} />
                 </span>
+                {/* Wraps rather than truncates: "Google AI Overviews" is wider
+                    than a quarter of the column at 1280, and a clipped engine
+                    name is a claim about which engine was read. */}
+                <span style={{ lineHeight: 1.25, minWidth: 0 }}>{spec.label}</span>
+              </div>
+              {/* The board fills each card on a timer. Here the fill is the
+                  run: the pipeline's own step until this engine lands, then
+                  full, with the verdict the report will use. */}
+              <div style={{ height: "3px", background: T.chip, borderRadius: "2px", marginTop: "9px", overflow: "hidden" }}>
+                <div
+                  style={{
+                    height: "100%",
+                    width: (found ? 100 : pct) + "%",
+                    background: T.accent,
+                    transition: "width .6s ease",
+                  }}
+                />
+              </div>
+              {found ? (
+                <div style={{ fontSize: "12px", fontWeight: 600, marginTop: "7px", color: found.named > 0 ? T.ink : T.soft }}>
+                  {engineVerdict(found)}
+                </div>
               ) : null}
             </div>
           );
@@ -121,18 +142,7 @@ export default function ScanProgress(p: {
       <p aria-live="polite" className="sr-only">
         {newest ? landingAnnouncement(newest) : ""}
       </p>
-      <div style={{ marginTop: "9px", height: "3px", background: T.line, borderRadius: "3px", overflow: "hidden" }}>
-        <div
-          style={{
-            height: "100%",
-            width: pct + "%",
-            background: T.accent,
-            borderRadius: "3px",
-            transition: "width .6s ease",
-          }}
-        />
-      </div>
-      <p aria-live="polite" style={{ margin: "9px 0 0", fontSize: "13px", color: T.soft }}>
+      <p aria-live="polite" style={{ margin: "10px 0 0", fontSize: "13px", color: T.soft }}>
         {p.slow ? "This is taking longer than usual. Still working on it." : stepCaption(p.step)}
       </p>
     </div>

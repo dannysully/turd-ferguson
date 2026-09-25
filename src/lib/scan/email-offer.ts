@@ -81,16 +81,19 @@ export function offerReady(step: number, readingForMs: number): boolean {
  * it, one assertion per word, for the reason recorded at the foot of this file.
  */
 export const OFFER_COPY = {
-  // Shown from the moment the reads start, above the sequence - Danny, 24 Sep
+  // `wait` is shown from the moment the reads start, above the sequence - Danny, 24 Sep
   // 2026: say up front how long it takes and offer the way out, rather than
   // letting somebody discover the wait. Not a measured figure; the per-step
   // timings on `scans.step_ms` are the place to check it against.
-  heading: "This usually takes around two minutes.",
-  body:
-    "No time to wait? Leave your email and we will send you the result the moment it is ready - the same" +
-    " page, on any device. You can close this tab and the scan keeps running.",
-  label: "Work email",
-  submit: "Email me the result",
+  wait: "This usually takes around two minutes.",
+  // HeroSequence.dc.html (25 Sep): the wait is said under the scan's own
+  // heading, and the offer is a card beside it that asks the question. The
+  // close-this-tab sentence is not on the board and stays - see the test.
+  heading: "Would rather not wait?",
+  body: "We will email the result the moment it is ready. You can close this tab and the scan keeps running.",
+  label: "Email address",
+  placeholder: "you@company.com",
+  submit: "Email me",
   sending: "Saving",
   /** Shown once the address is recorded. Says the tab is safe to close, because that is the point. */
   queued: "We will email it to you the moment it is ready. You can close this tab.",

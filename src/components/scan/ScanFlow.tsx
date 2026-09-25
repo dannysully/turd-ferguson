@@ -29,7 +29,7 @@ import ProcessSequence, { WAITING_TEMPO } from "@/components/ProcessSequence";
 import ConfirmScreen from "./ConfirmScreen";
 import ScanProgress from "./ScanProgress";
 import ResultView from "./ResultView";
-import { btn, field, label } from "./screens";
+import { field } from "./screens";
 
 /**
  * The scan, on its own page, from confirm to report.
@@ -409,6 +409,8 @@ export default function ScanFlow(p: {
    * time.
    */
   const [landed, setLanded] = useState<EngineResult[]>([]);
+  /** How many questions this run asks. Known once confirmed on this page; not on a reload mid-run. */
+  const [runCount, setRunCount] = useState<number | null>(null);
 
   /**
    * The offer to email the result, and everything it needs - Danny's item 5.
@@ -727,6 +729,7 @@ export default function ScanFlow(p: {
       // verdicts into it would show the visitor figures from the pass that
       // failed, under a bar that has just gone back to the start.
       setLanded([]);
+      setRunCount(input.questions.length);
       // The offer earns its place again on the new run. The address is not
       // cleared: it is on the row already and the same person is still waiting,
       // so a re-run that finishes mails them exactly as the first would have.
@@ -846,7 +849,7 @@ export default function ScanFlow(p: {
 
       <div style={{ ...SHELL, padding: "40px 24px 0" }}>
         <p aria-live="polite" className="sr-only">
-          {phase === "running" ? "Checking. " + OFFER_COPY.heading : ""}
+          {phase === "running" ? "Checking. " + OFFER_COPY.wait : ""}
         </p>
 
         {phase === "confirm" ? (
@@ -870,52 +873,69 @@ export default function ScanFlow(p: {
           </p>
         ) : null}
 
-        {/* The offer to email it, under the waiting panel rather than inside
-            it: the panel below is the scan's own progress and the four-tier
-            explanation, and this offer belongs to neither.
+        {/* HeroSequence.dc.html: the scan on the left, the offer to email it
+            in a card beside it, then the four tiers under a line saying what
+            they are. The offer belongs to neither the measurement nor the
+            explanation, so it is its own card rather than part of either.
 
-            It appears once the reads have been running for a few seconds - see
-            email-offer.ts, where both the trigger and every word of the copy
-            live so that a test can execute them. What it must not do is promise
-            the placement list, which is what the gate further down sells. */}
+            Every word of the offer lives in email-offer.ts so that a test can
+            execute it. What it must not do is promise the placement list,
+            which is what the gate further down sells. */}
         {phase === "running" ? (
+          <div className="run-top">
+            <ScanProgress
+              domain={p.domain}
+              engines={p.engines}
+              questions={runCount}
+              landed={landed}
+              step={progress}
+              slow={slow}
+              headingRef={headingRef}
+            />
           <div
             style={{
-              marginBottom: "18px",
-              background: T.wash,
-              border: "1px solid " + T.washLine,
-              borderRadius: 14,
-              padding: "16px 18px",
+              background: T.surface,
+              border: "1px solid " + T.line,
+              borderRadius: 16,
+              padding: "18px 20px",
             }}
           >
             {mailNote ? (
-              <p aria-live="polite" style={{ fontSize: "0.875rem", color: T.ink, margin: 0, lineHeight: 1.6 }}>
+              <p aria-live="polite" style={{ fontSize: "14px", color: T.ink, margin: 0, lineHeight: 1.6 }}>
                 {mailNote}
               </p>
             ) : (
               <form onSubmit={onMailRequest} noValidate>
-                <p style={{ fontSize: "0.9375rem", fontWeight: 700, color: T.ink, margin: "0 0 0.375rem" }}>
-                  {OFFER_COPY.heading}
-                </p>
-                <p style={{ fontSize: "0.875rem", color: T.soft, margin: "0 0 0.875rem", lineHeight: 1.6 }}>
+                <p style={{ fontSize: "14px", fontWeight: 700, color: T.ink, margin: 0 }}>{OFFER_COPY.heading}</p>
+                <p style={{ fontSize: "13px", color: T.soft, margin: "3px 0 0", lineHeight: 1.5 }}>
                   {OFFER_COPY.body}
                 </p>
-                <label htmlFor="scan-mail-to" style={label}>
+                <label htmlFor="scan-mail-to" className="sr-only">
                   {OFFER_COPY.label}
                 </label>
+                <div className="run-mail">
                 <input
                   id="scan-mail-to"
                   type="email"
                   name="email"
                   autoComplete="email"
+                  placeholder={OFFER_COPY.placeholder}
                   maxLength={SCAN_LIMITS.email}
                   required
                   value={mailTo}
                   onChange={(e) => setMailTo(e.target.value)}
-                  style={field}
+                  style={{ ...field, flexGrow: 1, minWidth: 0, width: "auto", fontSize: "14px", border: "1px solid " + T.line, borderRadius: "10px", padding: "0 12px", minHeight: "44px" }}
                   aria-invalid={Boolean(mailErr)}
                   aria-describedby={mailErr ? "scan-mail-error" : undefined}
                 />
+                <button
+                  type="submit"
+                  className="run-mail-btn"
+                  disabled={mailBusy}
+                >
+                  {mailBusy ? OFFER_COPY.sending : OFFER_COPY.submit}
+                </button>
+                </div>
                 {/* Announced, for the reason the gate's own error is: a refused
                     address on a form somebody is about to walk away from is a
                     button that appears to do nothing. */}
@@ -928,40 +948,29 @@ export default function ScanFlow(p: {
                     {mailErr}
                   </p>
                 ) : null}
-                <button
-                  type="submit"
-                  className="btn-primary"
-                  style={{ ...btn, marginTop: "0.75rem" }}
-                  disabled={mailBusy}
-                >
-                  {mailBusy ? OFFER_COPY.sending : OFFER_COPY.submit}
-                </button>
-                <p style={{ fontSize: "0.75rem", color: T.soft, marginTop: "0.75rem", lineHeight: 1.5 }}>
+                {/* Not on the board. The address is collected here, so the
+                    line saying what it is for ships with it. */}
+                <p style={{ fontSize: "12px", color: T.soft, margin: "10px 0 0", lineHeight: 1.5 }}>
                   {OFFER_COPY.privacy} <a href="/legal">What we collect</a>.
                 </p>
               </form>
             )}
           </div>
+          </div>
         ) : null}
 
-        {/* The measurement, then the explanation. These were one component
-            until the eight-act essay was replaced: the bar and the chips are
-            the real scan and must not move with whatever the pitch beside them
-            is showing, so they are their own component now. ProcessSequence is
-            the same four beats the homepage runs, which is the point of it -
-            a visitor who sees both is told one thing, not two. */}
+        {/* ProcessSequence is the same four beats the homepage runs, which is
+            the point of it - a visitor who sees both is told one thing, not
+            two. */}
         {phase === "running" ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
-            <ScanProgress
-              domain={p.domain}
-              engines={p.engines}
-              landed={landed}
-              step={progress}
-              slow={slow}
-              headingRef={headingRef}
-            />
-            <ProcessSequence tempo={WAITING_TEMPO} />
-          </div>
+          <>
+            <p style={{ margin: "40px 0 0", fontSize: "13px", fontWeight: 600, color: T.soft, textAlign: "center" }}>
+              While you wait: what happens after the scan
+            </p>
+            <div style={{ marginTop: "20px" }}>
+              <ProcessSequence tempo={WAITING_TEMPO} />
+            </div>
+          </>
         ) : null}
 
         {phase === "result" && result && fullError ? (

@@ -1133,3 +1133,44 @@ html[data-motion="on"] .ways-now4 { animation: ways-now4 9s infinite both; }
   .hero-field { flex-direction: column; }
   .hero-field > input { min-height: 48px; }
 }
+
+/* ── The scan flow: running ─────────────────────────────────────── */
+
+/* HeroSequence.dc.html: the scan beside a 440px card offering to email it.
+   Below 860px the card drops under the scan. */
+.run-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 440px;
+  column-gap: 48px;
+  align-items: start;
+}
+.run-chips {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 20px;
+}
+.run-mail { display: flex; gap: 8px; margin-top: 12px; }
+@media (max-width: 860px) {
+  .run-top { grid-template-columns: 1fr; row-gap: 24px; }
+}
+@media (max-width: 560px) {
+  .run-chips { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+/* The board's dark button, not the sitewide gradient: this is a side offer
+   and the page's purple belongs to the scan. */
+.run-mail-btn {
+  flex-shrink: 0;
+  font-family: inherit;
+  background: #0f1115;
+  color: #ffffff;
+  border: 0;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 0 16px;
+  border-radius: 10px;
+  min-height: 44px;
+  cursor: pointer;
+}
+.run-mail-btn:hover { opacity: .88; }
+.run-mail-btn:disabled { opacity: .7; cursor: default; }
