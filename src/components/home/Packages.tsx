@@ -39,7 +39,7 @@ function priceNode(label: string, per: React.CSSProperties): React.ReactNode {
 const CTA: Record<TierKey, { label: string; href?: string }> = {
   tracked: { label: "Start tracking" },
   mentioned: { label: "Get placed" },
-  cited: { label: "Go for first" },
+  cited: { label: "Go for position #1" },
   everywhere: { label: "Talk to us", href: "/contact" },
 };
 

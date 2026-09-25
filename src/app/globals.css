@@ -244,12 +244,16 @@ html[data-motion="on"] .stair-step { animation: stair-step 10s infinite both; an
 .stair-step { line-height: 1.25; }
 .pkg-table thead { border-bottom: 1px solid var(--line); }
 .pkg-table tbody tr:first-child > * { border-top: 0 !important; }
+.pkg-btn { white-space: nowrap; }
 .pkg-btn:hover { border-color: var(--accent) !important; }
 .pkg-foot { display: flex; justify-content: space-between; gap: 8px 24px; flex-wrap: wrap; }
 @media (max-width: 860px) {
   .pkg-scroll { overflow-x: auto !important; }
-  .pkg-table { min-width: 680px; }
-  .pkg-col-what { width: 26%; }
+  /* 820 not 680, 25 Sep: "Go for position #1" is 112px of text and the tier
+     columns held 89, so it broke over two lines. The table already scrolls
+     sideways here; this gives each button about 120px. */
+  .pkg-table { min-width: 820px; }
+  .pkg-col-what { width: 24%; }
 }
 
 /* FAQ disclosure. The marker is removed because the hint column already says
