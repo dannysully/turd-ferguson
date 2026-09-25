@@ -37,7 +37,7 @@ const ANSWERS = COVERAGE_PROMPT_COUNT * FREE_ENGINE_COUNT;
 export const metadata: Metadata = {
   title: "Free coverage check",
   description:
-    `Take the reading before the campaign. ${COVERAGE_PROMPT_COUNT} questions - ours or your own - on the ${FREE_ENGINE_COUNT} engines a free scan reads, with each piece of coverage checked page by page. Dated and re-runnable.`,
+    `See which of your coverage the engines actually cite. ${COVERAGE_PROMPT_COUNT} questions - ours or your own - on the ${FREE_ENGINE_COUNT} engines a free scan reads, with each piece of coverage checked page by page. Dated and re-runnable.`,
   openGraph: { url: "https://alwayscited.com/coverage-check", images: OG_IMAGE },
   alternates: { canonical: "https://alwayscited.com/coverage-check" },
 };
@@ -127,7 +127,8 @@ export default function CoverageCheckPage() {
         <div style={{ gridColumn: "span 7" }}>
           <div style={MICRO}>Free coverage check</div>
           <h1 style={{ margin: "10px 0 0", fontSize: "36px", fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.18, color: T.ink }}>
-            Take the reading before the campaign. <span style={{ color: T.accent }}>Then it means something.</span>
+            See which of your coverage the engines actually cite.{" "}
+            <span style={{ color: T.accent }}>Before a campaign it is your baseline. After it, your proof.</span>
           </h1>
           <p style={{ margin: "14px 0 0", fontSize: "15px", lineHeight: 1.65, color: T.soft, maxWidth: "62ch" }}>
             Give us the client, up to {MAX_COVERAGE_URLS} coverage URLs and, if you have them, your own prompts. We

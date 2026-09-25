@@ -747,6 +747,20 @@ html[data-motion="on"] .proc-beat { grid-area: 1 / 1; visibility: hidden; }
 html[data-motion="on"] .proc-beat[data-on="1"] { visibility: visible; animation: seqIn .45s ease-out both; }
 html[data-motion="on"] .proc-rail { display: flex; gap: 6px; margin-bottom: 14px; }
 
+/* The pace, 25 Sep 2026 - see BEAT_MS in ProcessSequence.tsx. Inside the
+   sequence every step of a beat lands --proc-step apart after --proc-first,
+   instead of the .10s ladder the rest of the waiting screen uses, so a reader
+   can follow each part as it arrives. The listing panels take their start from
+   --proc-at, which SerpPanel sets to the step they belong to. */
+@keyframes procFill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+html[data-motion="on"] .proc .seq-step { animation: seqIn .6s ease-out both; animation-delay: calc(var(--proc-first, 0s) + var(--ac-i, 0) * var(--proc-step, .1s)); }
+html[data-motion="on"] .proc .proc-line { animation: seqIn .6s ease-out .6s both; }
+html[data-motion="on"] .proc .seq-rise { animation-delay: calc(var(--proc-at, 0s) + .3s); }
+html[data-motion="on"] .proc .seq-climb { animation-delay: calc(var(--proc-at, 0s) + .9s); }
+html[data-motion="on"] .proc .proc-bridge { align-self: center; }
+html[data-motion="on"] .proc .proc-bridge-to { animation: seqIn .6s ease-out 1.4s both; }
+html[data-motion="on"] .proc-fill { transform-origin: left center; animation: procFill var(--proc-fill, 16s) linear both; }
+
 /* Nothing is hidden at rest with motion off: every beat renders in full and
    the rail is what moves between them.
 
@@ -764,7 +778,8 @@ html[data-motion="on"] .proc-rail { display: flex; gap: 6px; margin-bottom: 14px
 @media (prefers-reduced-motion: reduce) {
   html[data-motion="on"]
     :is(.seq-in, .seq-in2, .seq-in3, .seq-in4, .seq-in5, .seq-step,
-        .seq-bar, .seq-flow, .seq-climb, .seq-settle, .seq-rise, .proc-beat) {
+        .seq-bar, .seq-flow, .seq-climb, .seq-settle, .seq-rise, .proc-beat,
+        .proc-line, .proc-bridge-to, .proc-fill) {
     animation: none;
     opacity: 1;
     transform: none;
@@ -777,6 +792,14 @@ html[data-motion="on"] .proc-rail { display: flex; gap: 6px; margin-bottom: 14px
      would win the rest state and lose the animation - the half that matters to
      a reader who turned the setting on after the page loaded. */
   html[data-motion="on"] .proc-beat[data-on="1"] {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  /* The slow-pace rules inside .proc are (0,3,1) too, so they need their own
+     reset at the same weight, later in the sheet. */
+  html[data-motion="on"] .proc :is(.seq-step, .proc-line, .proc-bridge-to, .seq-rise, .seq-climb, .proc-fill) {
     animation: none;
     opacity: 1;
     transform: none;
@@ -831,7 +854,7 @@ html[data-motion="on"] .proc-rail { display: flex; gap: 6px; margin-bottom: 14px
 }
 .res-prow {
   display: grid;
-  grid-template-columns: 2.6fr 1fr 1fr 1.4fr;
+  grid-template-columns: 2.2fr 1.8fr 0.8fr 1.2fr;
   column-gap: 16px;
   padding: 12px 26px;
   align-items: baseline;

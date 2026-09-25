@@ -252,6 +252,9 @@ test("the four sites are the ones we think they are", () => {
         "scan_answers:engine,question_id",
       "scan_brands:brand,engine,scan_id",
       "scan_sources:domain,scan_id",
+      // 25 Sep 2026: difficulty.ts writes each placeable source's difficulty
+      // score back onto its own row, on the same (scan_id, domain) index.
+      "scan_sources:domain,scan_id",
       // 24 Sep 2026: one walkthrough request per scan, address and kind.
       "walkthrough_requests:email,kind,scan_id",
     ],

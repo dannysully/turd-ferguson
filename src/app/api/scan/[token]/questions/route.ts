@@ -105,7 +105,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
     return Response.json({ error: "bad_topic", message: "Tell us the category in a few words." }, { status: 400 });
   }
 
-  const market = isMarket(body.market) ? body.market : isMarket(scan.market) ? scan.market : "UK";
+  const market = isMarket(body.market) ? body.market : isMarket(scan.market) ? scan.market : "US";
 
   const supplied: unknown[] = Array.isArray(body.topic_variants)
     ? body.topic_variants

@@ -7,6 +7,7 @@ import { SCAN_LIMITS } from "@/config/contact";
 import { QUESTIONS } from "@/config/scan-shape";
 import { CARD, MICRO, T } from "@/config/tokens";
 import type { Market } from "@/lib/scan";
+import { type MarketReason, marketReasonLine } from "@/lib/scan/market-pick";
 
 /**
  * Step 1: what we read off the site, and what we are about to ask.
@@ -130,6 +131,8 @@ export default function ConfirmScreen(p: {
   positioning: string | null;
   initialTopic: string;
   initialMarket: Market;
+  /** Why the market opened where it did. Null hides the line. */
+  marketReason?: MarketReason | null;
   variants: string[];
   /** Returns a message when the run could not be started, null when it could. */
   onRun: (input: {
@@ -416,6 +419,13 @@ export default function ConfirmScreen(p: {
                 </button>
               ))}
             </div>
+            {/* Why it opened here - shown until the visitor changes it, because
+                after that the choice is theirs and the sentence would be wrong. */}
+            {market === p.initialMarket && marketReasonLine(p.domain, { market, reason: p.marketReason ?? null }) ? (
+              <p style={{ margin: "8px 0 0", fontSize: "12.5px", lineHeight: 1.5, color: T.soft }}>
+                {marketReasonLine(p.domain, { market, reason: p.marketReason ?? null })}
+              </p>
+            ) : null}
           </fieldset>
           <button
             type="button"

@@ -5,8 +5,10 @@ import { describeAnthropicError, QUESTION_COUNT, readBrand, TOPIC_VARIANT_COUNT 
 import { checkCeilings } from "@/lib/scan/ceilings";
 import { type ReadFailure, readSite, UnreachableDomain } from "@/lib/scan/crawl";
 import { isMarket, isPlausibleDomain, normalizeDomain } from "@/lib/scan/domain";
+import { readRankingFootprint } from "@/lib/scan/dataforseo";
 import { estimateScanCost } from "@/lib/scan/engine-costs";
 import { clientIp, hashIp } from "@/lib/scan/ip";
+import { needsRankings, pickMarket } from "@/lib/scan/market-pick";
 import { getSettings } from "@/lib/scan/settings";
 import { recordModelCallDebit } from "@/lib/scan/spend";
 import { normaliseTopicVariants } from "@/lib/scan/topic-variants";
@@ -97,7 +99,6 @@ export async function POST(req: Request) {
   if (!isPlausibleDomain(domain)) {
     return fail(400, "bad_domain", "That does not look like a website address. Try example.com.");
   }
-  const market = isMarket(body.market) ? body.market : "UK";
 
   const db = supabaseAdmin();
   const ipHash = hashIp(ip);
@@ -123,6 +124,21 @@ export async function POST(req: Request) {
    */
   const refusal = await checkCeilings({ settings, since, ipHash, subject: "scan" });
   if (refusal) return fail(refusal.http, refusal.code, refusal.message);
+
+  /**
+   * The market, picked rather than assumed - 25 September 2026.
+   *
+   * It defaulted to the UK. The product is sold into the US now, so a visitor's
+   * own choice wins, a .co.uk or .us ending decides it, and anything else asks
+   * where the domain ranks (`readRankingFootprint`, two Labs reads, never
+   * fatal) and falls back to the US. Picked here, after the ceilings and
+   * before the cache, because the cache is keyed on (domain, market).
+   */
+  const chosen = isMarket(body.market) ? body.market : null;
+  const rankings = needsRankings(chosen, domain) ? await readRankingFootprint(domain) : null;
+  if (rankings) console.log(`[scan] market read for ${domain} cost $${rankings.cost.toFixed(4)}`);
+  const picked = pickMarket({ chosen, domain, rankings });
+  const market = picked.market;
 
   // A complete scan for this domain inside the cache window is returned as is.
   // Repeat visits are instant and spend on a given domain is capped.
@@ -198,6 +214,7 @@ export async function POST(req: Request) {
       suggested_topic: cached.topic,
       topic_variants: cached.topic_variants ?? [],
       market: cached.market,
+      market_reason: picked.reason,
       // The stored scan's own engine set, not today's: the result on screen
       // must describe the run that produced it.
       engines: cached.engines ?? [],
@@ -305,6 +322,20 @@ export async function POST(req: Request) {
     return fail(500, "store_failed", "We could not start that scan. Please try again.");
   }
 
+  /**
+   * The reason goes on in its own write, not in the insert above. The column
+   * is added by 20260925000000; if that migration has not reached this
+   * database the insert would fail and the visitor would lose the scan, where
+   * this only loses the sentence under the market toggle.
+   */
+  {
+    const { error: reasonErr } = await db
+      .from("scans")
+      .update({ market_reason: picked.reason })
+      .eq("public_token", scan.public_token);
+    if (reasonErr) console.warn(`[scan] could not store the market reason for ${domain}: ${reasonErr.message}`);
+  }
+
   after(() => {
     // Our cost basis stays server side: it is in the log and the admin page,
     // never in a response a visitor can read.
@@ -336,6 +367,7 @@ export async function POST(req: Request) {
     positioning: read.positioning,
     confidence: read.confidence,
     market,
+    market_reason: picked.reason,
     cached: false,
     status: "pending_topic",
   });

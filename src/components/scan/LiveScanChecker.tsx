@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { track } from "@/lib/analytics";
-import type { Market } from "@/lib/scan";
 
 import { DomainScreen } from "./screens";
 import Turnstile from "./Turnstile";
@@ -23,7 +22,6 @@ import Turnstile from "./Turnstile";
 export default function LiveScanChecker({ initialDomain = "" }: { initialDomain?: string }) {
   const router = useRouter();
   const [domain, setDomain] = useState(initialDomain);
-  const [market] = useState<Market>("UK");
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -40,7 +38,10 @@ export default function LiveScanChecker({ initialDomain = "" }: { initialDomain?
       const res = await fetch("/api/scan/start", {
         method: "POST",
         headers,
-        body: JSON.stringify({ domain, market, turnstileToken }),
+        // No market: the start route picks it from the domain (market-pick.ts).
+        // This used to send a hard-coded "UK", which meant every scan opened
+        // on the UK whatever the domain said.
+        body: JSON.stringify({ domain, turnstileToken }),
       });
       const data = await res.json();
 

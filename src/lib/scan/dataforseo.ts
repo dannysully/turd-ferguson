@@ -85,3 +85,38 @@ export async function readEngine(
  * `request-shape.test.mts` refuses the endpoint by name. A removal rots back
  * in, so it is asserted rather than merely done.
  */
+
+/**
+ * Where a domain ranks on Google, UK against US - 25 September 2026.
+ *
+ * Feeds rule 3 of `market-pick.ts`: a .com, .ai or .co says nothing about
+ * where a company's buyers are, so the scan asks DataForSEO Labs for the
+ * domain's organic footprint in each market and opens on the larger one. Two
+ * `domain_rank_overview/live` tasks, run together, a few cents between them.
+ *
+ * Never fatal and never slow: each read has its own short timeout, and a read
+ * that fails or returns nothing is a null footprint, which `pickMarket`
+ * answers with the US default. A visitor must never lose a scan to this.
+ */
+export async function readRankingFootprint(
+  domain: string,
+): Promise<{ uk: { etv: number; count: number } | null; us: { etv: number; count: number } | null; cost: number }> {
+  const one = async (location_code: number) => {
+    try {
+      const raw = await post(
+        "/v3/dataforseo_labs/google/domain_rank_overview/live",
+        [{ target: domain, location_code, language_code: "en" }],
+        6000,
+      );
+      const task = firstTask(raw) as { cost?: number; result?: { items?: { metrics?: { organic?: { etv?: number; count?: number } } }[] }[] };
+      const organic = task.result?.[0]?.items?.[0]?.metrics?.organic;
+      const footprint = organic ? { etv: Number(organic.etv) || 0, count: Number(organic.count) || 0 } : null;
+      return { footprint, cost: Number(task.cost) || 0 };
+    } catch (err) {
+      console.warn(`[scan] ranking footprint read failed for ${domain} at ${location_code}: ${err instanceof Error ? err.message : String(err)}`);
+      return { footprint: null, cost: 0 };
+    }
+  };
+  const [uk, us] = await Promise.all([one(2826), one(2840)]);
+  return { uk: uk.footprint, us: us.footprint, cost: uk.cost + us.cost };
+}

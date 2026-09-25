@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 
 import EngineLogo from "@/components/EngineLogo";
 import TierName, { type TierKey } from "@/components/TierName";
@@ -45,7 +45,24 @@ import { seqClimb, seqStep } from "./scan/seq-stagger";
  *   place nobody looks.
  */
 
-const BEAT_MS = 3500;
+/**
+ * The pace - Danny, 25 September 2026: "we're whipping through each tier
+ * quicker than people can actually read them". It was 3.5s a beat, four tiers
+ * in 14s against a scan that takes about 100s.
+ *
+ * Now each beat builds in steps (`STEP_S` apart, after the heading and line),
+ * holds until `BEAT_MS`, and hands over through a bridge card that asks the
+ * question leading to the next tier (`BRIDGE_MS`). One cycle is
+ * 4 x 16s + 3 x 5s = 79s, so a typical scan shows every tier once.
+ */
+const BEAT_MS = 16_000;
+const BRIDGE_MS = 5_000;
+/** Seconds between the steps of a beat. Read by the CSS through --proc-step. */
+const STEP_S = 1.2;
+/** When the first step lands, after the heading (0s) and the line (0.6s). */
+const FIRST_STEP_S = 1.6;
+/** When step `n` of a beat lands, in seconds - for the parts that carry their own animation. */
+const stepAt = (n: number) => FIRST_STEP_S + n * STEP_S;
 
 /** The one-line label for each beat. Six words or fewer, sentence case. */
 type Beat = {
@@ -58,12 +75,12 @@ type Beat = {
 const BEATS: Beat[] = [
   {
     tier: "tracked",
-    line: "See where you stand.",
+    line: "See every placement opportunity.",
     alt: `A buyer question, the ${FREE_ENGINE_COUNT} engines, competitors named and you missing.`,
   },
   {
     tier: "mentioned",
-    line: "A placement gets you named.",
+    line: "We place you in the answers.",
     alt: "An article lands on a publication, the answer starts naming you, and the listing climbs.",
   },
   {
@@ -73,10 +90,22 @@ const BEATS: Beat[] = [
   },
   {
     tier: "everywhere",
-    line: "Every engine names you.",
-    alt: `All ${FREE_ENGINE_COUNT} engines name you in their answer.`,
+    line: "Every client, every engine.",
+    alt: `A portfolio of three clients under one agreement, each named by most or all of the ${FREE_ENGINE_COUNT} engines.`,
   },
 ];
+
+/**
+ * The step up between tiers - the question that makes the next tier the
+ * obvious answer. There is no bridge after the last beat: the loop goes back
+ * to the start, and with motion off these read as plain lines between the
+ * stacked beats.
+ */
+const BRIDGES: Partial<Record<TierKey, { ask: string; to: TierKey }>> = {
+  tracked: { ask: "Want these placements secured for you?", to: "mentioned" },
+  mentioned: { ask: "Want to move the Google listing as well as the answer?", to: "cited" },
+  cited: { ask: "Running this for several clients?", to: "everywhere" },
+};
 
 const tierOf = (key: TierKey) => TIERS.find((t) => t.key === key);
 
@@ -125,9 +154,12 @@ const LINK_BLUE = "#1a0dab";
 
 type SerpRow = { site: string; path: string; title: string; snippet?: string; you?: boolean };
 
-function SerpPanel(p: { keyword: string; from: number; to: number; rows: SerpRow[] }) {
+function SerpPanel(p: { keyword: string; from: number; to: number; rows: SerpRow[]; at?: number }) {
   return (
-    <div className="seq-rise" style={{ ...CARD, overflow: "hidden" }}>
+    <div
+      className="seq-rise"
+      style={{ ...CARD, overflow: "hidden", ["--proc-at" as string]: (p.at ?? 0).toFixed(2) + "s" } as React.CSSProperties}
+    >
       <div style={{ padding: "9px 14px", borderBottom: "1px solid " + T.hair }}>
         <div style={{ border: "1px solid " + T.line, borderRadius: "999px", padding: "5px 12px", fontSize: "12px" }}>
           {p.keyword}
@@ -141,7 +173,7 @@ function SerpPanel(p: { keyword: string; from: number; to: number; rows: SerpRow
           // its travel from the numbers; the rest settle on a delay.
           const motion = r.you
             ? seqClimb(p.from, p.to)
-            : { className: "seq-settle", style: { animationDelay: (0.5 + n * 0.06).toFixed(2) + "s" } };
+            : { className: "seq-settle", style: { animationDelay: "calc(var(--proc-at, 0s) + " + (0.5 + n * 0.06).toFixed(2) + "s)" } };
           return (
             <div
               key={r.site + r.path}
@@ -217,7 +249,7 @@ const STANDING: { name: string; named: boolean }[] = [
 function BeatTracked() {
   return (
     <div style={{ display: "grid", gap: "14px" }}>
-      <div style={{ ...soft, display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+      <div {...seqStep(0, { ...soft, display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" })}>
         <span style={{ fontSize: "13.5px", color: T.ink }}>{ASK}</span>
         <div style={{ flexGrow: 1 }} />
         {FREE_ENGINES.map((key) => (
@@ -234,7 +266,7 @@ function BeatTracked() {
         {STANDING.map((s, n) => (
           <div
             key={s.name}
-            {...seqStep(n, {
+            {...seqStep(n + 1, {
               display: "flex",
               alignItems: "center",
               gap: "10px",
@@ -282,7 +314,7 @@ function BeatMentioned() {
         <div style={{ flexGrow: 1 }} />
         <span style={GOOD}>named</span>
       </div>
-      <SerpPanel keyword={ASK} from={10} to={5} rows={SERP_TEN} />
+      <SerpPanel keyword={ASK} from={10} to={5} rows={SERP_TEN} at={stepAt(2)} />
     </div>
   );
 }
@@ -292,8 +324,8 @@ function BeatMentioned() {
 function BeatCited() {
   return (
     <div style={{ display: "grid", gap: "14px" }}>
-      <SerpPanel keyword={ASK} from={5} to={1} rows={SERP_FIVE} />
-      <div {...seqStep(0, { ...soft, display: "flex", alignItems: "center", gap: "9px", flexWrap: "wrap" })}>
+      <SerpPanel keyword={ASK} from={5} to={1} rows={SERP_FIVE} at={stepAt(0)} />
+      <div {...seqStep(2, { ...soft, display: "flex", alignItems: "center", gap: "9px", flexWrap: "wrap" })}>
         <EngineLogo engine="perplexity" size={15} title={ENGINE_SPECS.perplexity.label} />
         <span style={{ fontSize: "12.5px", color: T.soft }}>
           {"sources: "}
@@ -308,28 +340,43 @@ function BeatCited() {
 
 /* ── Beat 4: every engine ───────────────────────────────────────── */
 
+/**
+ * alwayseverywhere is the portfolio tier - "all of it, across a portfolio:
+ * multiple clients under one agreement" in the packages section. The picture
+ * said "every engine names you", which is alwayscited's promise, so a reader
+ * could not tell the top tier from the one below it. Settled 25 Sep 2026.
+ */
+const PORTFOLIO: { name: string; named: number }[] = [
+  { name: "[Client A]", named: FREE_ENGINES.length },
+  { name: "[Client B]", named: Math.max(FREE_ENGINES.length - 1, 0) },
+  { name: "[Client C]", named: FREE_ENGINES.length },
+];
+
 function BeatEverywhere() {
   return (
-    <div style={{ display: "grid", gap: "10px" }}>
-      {FREE_ENGINES.map((key, n) => (
+    <div style={{ ...CARD, overflow: "hidden" }}>
+      <div {...seqStep(0, { padding: "10px 14px", borderBottom: "1px solid " + T.hair, background: T.bg })}>
+        <span style={MICRO}>Your clients, one agreement</span>
+      </div>
+      {PORTFOLIO.map((c, n) => (
         <div
-          key={key}
-          {...seqStep(n, {
+          key={c.name}
+          {...seqStep(n + 1, {
             display: "flex",
             alignItems: "center",
             gap: "10px",
-            background: T.wash,
-            border: "1px solid " + T.washLine,
-            borderRadius: "14px",
-            padding: "12px 16px",
+            padding: "11px 14px",
+            borderBottom: n === PORTFOLIO.length - 1 ? undefined : "1px solid " + T.hair,
           })}
         >
-          <span style={{ display: "grid", placeItems: "center", color: T.ink }}>
-            <EngineLogo engine={key} size={17} title={ENGINE_SPECS[key].label} />
+          <span style={{ fontSize: "13.5px", color: T.ink, fontWeight: 600, minWidth: "90px" }}>{c.name}</span>
+          <span style={{ display: "flex", gap: "6px", color: T.ink }}>
+            {FREE_ENGINES.map((key) => (
+              <EngineLogo key={key} engine={key} size={15} title={ENGINE_SPECS[key].label} />
+            ))}
           </span>
-          <span style={{ fontSize: "13.5px", color: T.ink }}>{ENGINE_SPECS[key].label}</span>
           <div style={{ flexGrow: 1 }} />
-          <span style={GOOD}>names you</span>
+          <span style={GOOD}>{c.named + " of " + FREE_ENGINES.length}</span>
         </div>
       ))}
     </div>
@@ -353,6 +400,8 @@ const BODIES: Record<TierKey, () => React.JSX.Element> = {
  */
 export default function ProcessSequence(p: { heading?: string }) {
   const [beat, setBeat] = useState(0);
+  /** Between beats, the bridge card for the beat that just finished. */
+  const [bridging, setBridging] = useState(false);
   /** Taken by a click or a hover; autoplay never resumes on its own after that. */
   const [held, setHeld] = useState(false);
   const holdRef = useRef(false);
@@ -364,21 +413,34 @@ export default function ProcessSequence(p: { heading?: string }) {
     // it the beats would still be cycling under a reader who asked for no
     // motion, while the CSS has already stacked all four for them.
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const t = setTimeout(() => setBeat((n) => (n + 1) % BEATS.length), BEAT_MS);
+    const hasBridge = Boolean(BRIDGES[BEATS[beat].tier]);
+    const t = setTimeout(
+      () => {
+        if (!bridging && hasBridge) setBridging(true);
+        else {
+          setBridging(false);
+          setBeat((n) => (n + 1) % BEATS.length);
+        }
+      },
+      bridging ? BRIDGE_MS : BEAT_MS,
+    );
     return () => clearTimeout(t);
-  }, [beat, held]);
+  }, [beat, bridging, held]);
 
   const hold = () => {
     holdRef.current = true;
     setHeld(true);
   };
 
+  /** How long the active tab's bar takes to fill: its beat plus its bridge. */
+  const fillMs = BEAT_MS + (BRIDGES[BEATS[beat].tier] ? BRIDGE_MS : 0);
 
   const body = (
     <div
       className="proc"
       onMouseEnter={hold}
       onFocusCapture={hold}
+      style={{ ["--proc-step" as string]: STEP_S + "s", ["--proc-first" as string]: FIRST_STEP_S + "s" } as React.CSSProperties}
     >
       {p.heading ? (
         <h2 style={{ margin: "0 0 18px", fontSize: "25px", fontWeight: 700, letterSpacing: "-0.03em" }}>
@@ -389,7 +451,9 @@ export default function ProcessSequence(p: { heading?: string }) {
       {/* The rail. It is gone rather than dead when motion is off, because all
           four beats are on the page then and there is nothing to move between.
           The control is 24px tall for WCAG 2.5.8 even though the mark in it is
-          3px, which is the same correction the old rail carried. */}
+          3px, which is the same correction the old rail carried. The active
+          bar fills over the beat's time, so a reader can see how long they
+          have; once the reader takes over it is simply full. */}
       <div className="proc-rail" role="tablist" aria-label="The four tiers">
         {BEATS.map((b, n) => (
           <button
@@ -401,6 +465,7 @@ export default function ProcessSequence(p: { heading?: string }) {
             aria-selected={n === beat}
             onClick={() => {
               setBeat(n);
+              setBridging(false);
               hold();
             }}
             style={{
@@ -422,9 +487,25 @@ export default function ProcessSequence(p: { heading?: string }) {
                 height: "3px",
                 borderRadius: "3px",
                 marginTop: "7px",
-                background: n === beat ? T.accent : T.line,
+                background: T.line,
+                overflow: "hidden",
               }}
-            />
+            >
+              {n === beat ? (
+                <span
+                  key={beat + (held ? "-held" : "")}
+                  className={held ? undefined : "proc-fill"}
+                  style={
+                    {
+                      display: "block",
+                      height: "100%",
+                      background: T.accent,
+                      ["--proc-fill" as string]: fillMs + "ms",
+                    } as React.CSSProperties
+                  }
+                />
+              ) : null}
+            </span>
           </button>
         ))}
       </div>
@@ -433,51 +514,77 @@ export default function ProcessSequence(p: { heading?: string }) {
         {BEATS.map((b, n) => {
           const tier = tierOf(b.tier);
           const Body = BODIES[b.tier];
+          const bridge = BRIDGES[b.tier];
+          const on = n === beat;
           return (
-            <div
-              key={b.tier}
-              id={"proc-beat-" + b.tier}
-              role="tabpanel"
-              aria-labelledby={"proc-tab-" + b.tier}
-              className="proc-beat"
-              data-on={n === beat ? "1" : undefined}
-            >
-              <div style={{ ...CARD, padding: "20px 22px 24px" }}>
-                <div style={{ display: "flex", alignItems: "baseline", gap: "10px", flexWrap: "wrap" }}>
-                  <span style={{ fontSize: "20px", fontWeight: 700, letterSpacing: "-0.028em" }}>
-                    <TierName tier={b.tier} />
-                  </span>
-                  {tier ? (
-                    <span
-                      style={{
-                        fontSize: "13px",
-                        fontWeight: 600,
-                        background: T.wash,
-                        borderRadius: "999px",
-                        padding: "3px 11px",
-                      }}
-                    >
-                      {tier.priceLabel}
+            <Fragment key={b.tier}>
+              <div
+                id={"proc-beat-" + b.tier}
+                role="tabpanel"
+                aria-labelledby={"proc-tab-" + b.tier}
+                className="proc-beat"
+                data-on={on && !bridging ? "1" : undefined}
+              >
+                <div style={{ ...CARD, padding: "20px 22px 24px" }}>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: "10px", flexWrap: "wrap" }}>
+                    <span style={{ fontSize: "20px", fontWeight: 700, letterSpacing: "-0.028em" }}>
+                      <TierName tier={b.tier} />
                     </span>
-                  ) : null}
-                </div>
-                <p style={{ margin: "10px 0 0", fontSize: "18px", fontWeight: 600, letterSpacing: "-0.02em" }}>
-                  {b.line}
-                </p>
-                {tier?.priceBasis ? (
-                  <p style={{ margin: "6px 0 0", fontSize: "12.5px", color: T.soft, lineHeight: 1.55 }}>
-                    {tier.priceBasis}
-                  </p>
-                ) : null}
-                {/* The pictures are decorative to a screen reader - every one
-                    of them is placeholder brands in a drawing - so each beat
-                    says in words what its picture shows. */}
-                <p className="sr-only">{b.alt}</p>
-                <div style={{ marginTop: "16px" }} key={beat}>
-                  <Body />
+                    {tier ? (
+                      <span
+                        style={{
+                          fontSize: "13px",
+                          fontWeight: 600,
+                          background: T.wash,
+                          borderRadius: "999px",
+                          padding: "3px 11px",
+                        }}
+                      >
+                        {tier.priceLabel}
+                      </span>
+                    ) : null}
+                  </div>
+                  <div key={on ? beat : "rest"}>
+                    <p className="proc-line" style={{ margin: "10px 0 0", fontSize: "18px", fontWeight: 600, letterSpacing: "-0.02em" }}>
+                      {b.line}
+                    </p>
+                    {tier?.priceBasis ? (
+                      <p className="proc-line" style={{ margin: "6px 0 0", fontSize: "12.5px", color: T.soft, lineHeight: 1.55 }}>
+                        {tier.priceBasis}
+                      </p>
+                    ) : null}
+                    {/* The pictures are decorative to a screen reader - every one
+                        of them is placeholder brands in a drawing - so each beat
+                        says in words what its picture shows. */}
+                    <p className="sr-only">{b.alt}</p>
+                    <div style={{ marginTop: "16px" }}>
+                      <Body />
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
+              {bridge ? (
+                <div className="proc-beat proc-bridge" data-on={on && bridging ? "1" : undefined}>
+                  <div
+                    key={on && bridging ? "b" + beat : "rest"}
+                    style={{
+                      background: T.wash,
+                      border: "1px solid " + T.washLine,
+                      borderRadius: "16px",
+                      padding: "22px 24px",
+                      textAlign: "center",
+                    }}
+                  >
+                    <p className="proc-line" style={{ margin: 0, fontSize: "18px", fontWeight: 600, letterSpacing: "-0.02em", color: T.ink }}>
+                      {bridge.ask}
+                    </p>
+                    <p className="proc-bridge-to" style={{ margin: "8px 0 0", fontSize: "20px", fontWeight: 700, letterSpacing: "-0.028em" }}>
+                      <TierName tier={bridge.to} />
+                    </p>
+                  </div>
+                </div>
+              ) : null}
+            </Fragment>
           );
         })}
       </div>

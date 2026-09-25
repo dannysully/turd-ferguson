@@ -15,7 +15,6 @@ import {
   engineLabel,
   fmtDate,
   isSubject,
-  kindLabel,
   leaderboardCaption,
   ordinal,
   placementCopy,
@@ -25,6 +24,7 @@ import {
 import { btn, field, label } from "./screens";
 import WalkthroughForm from "./WalkthroughForm";
 import { type Inline, parseAnswer } from "./answer-markdown";
+import { type Band, bandOf, selfServeCount } from "@/lib/scan/placement-difficulty";
 
 /**
  * The result, free and unlocked, from Flow2Free.dc.html and Flow3Report.dc.html.
@@ -74,17 +74,6 @@ const QUIET = pill(T.chip, T.soft);
  * a domain the classifier did not reach is a different finding from one it
  * read and could not place.
  */
-function KindPill(p: { kind: string | null; note: string | null }) {
-  const label = kindLabel(p.kind);
-  if (!label) return null;
-  const style = p.kind === "placement" ? pill(T.wash, T.accent) : QUIET;
-  return (
-    <span title={p.note ?? undefined} style={style}>
-      {label}
-    </span>
-  );
-}
-
 function Head(p: { title: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="board-head confirm-head" style={{ marginBottom: "14px" }}>
@@ -513,6 +502,95 @@ function ShareOfVoice(p: { r: RunScanResponse }) {
 
 /* ── The placement list ── */
 
+const BAND_COLOUR: Record<Band, string> = { Easy: T.goodFg, Moderate: T.warnFg, Hard: T.badFg };
+const BAND_PILL: Record<Band, React.CSSProperties> = {
+  Easy: pill(T.goodBg, T.goodFg),
+  Moderate: pill(T.warnBg, T.warnFg),
+  Hard: pill(T.badBg, T.badFg),
+};
+
+/**
+ * How hard a placement is, as a half dial out of 100 with the band in words
+ * beside it - the word is always there, so colour never carries it alone.
+ * `placement-difficulty.ts` is the rule; this is the painting.
+ */
+function DifficultyCell(p: { score: number | null; basis: string | null }) {
+  if (p.score === null) return <span style={{ fontSize: "12.5px", color: T.soft }}>Not scored</span>;
+  const band = bandOf(p.score);
+  // A half circle of radius 18: its length is pi x 18, and the filled part is that times score / 100.
+  const r = 18;
+  const len = Math.PI * r;
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+      <svg width="44" height="28" viewBox="0 0 44 28" role="img" aria-label={"Difficulty " + p.score + " out of 100, " + band}>
+        <path d="M4 24 A18 18 0 0 1 40 24" fill="none" stroke={T.line} strokeWidth="5" strokeLinecap="round" />
+        <path
+          d="M4 24 A18 18 0 0 1 40 24"
+          fill="none"
+          stroke={BAND_COLOUR[band]}
+          strokeWidth="5"
+          strokeLinecap="round"
+          strokeDasharray={(len * p.score) / 100 + " " + len}
+        />
+        <text x="22" y="25" textAnchor="middle" fontSize="11" fontWeight="700" fill={T.ink}>
+          {p.score}
+        </text>
+      </svg>
+      <div>
+        <div style={{ fontSize: "13px", fontWeight: 600, color: BAND_COLOUR[band] }}>{band}</div>
+        {p.basis ? <div style={{ fontSize: "12px", color: T.soft, lineHeight: 1.4 }}>{p.basis}</div> : null}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Which of these the visitor could land alone, and the step up for the rest -
+ * Danny, 25 Sep 2026: "we want people to understand whether they could do this
+ * themselves or would be better off with us doing it for them". Only drawn when
+ * the rows were scored; an unscored list says nothing rather than zero.
+ */
+function SelfServe(p: { r: RunScanResponse }) {
+  const rows = p.r.opportunities ?? [];
+  const { easy, scored } = selfServeCount(rows);
+  if (!scored) return null;
+  const rest = scored - easy;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "16px" }}>
+      <p style={{ margin: 0, fontSize: "14.5px", lineHeight: 1.6, color: T.ink }}>
+        <strong style={{ fontWeight: 700 }}>
+          {easy === 1 ? "You could place 1 of these yourself." : "You could place " + easy + " of these yourself."}
+        </strong>
+        {rest > 0 ? " The other " + rest + " need an editorial pitch or a budget." : ""}
+      </p>
+      {rest > 0 ? (
+        <div
+          style={{
+            background: T.wash,
+            border: "1px solid " + T.washLine,
+            borderRadius: "14px",
+            padding: "16px 18px",
+            display: "flex",
+            alignItems: "center",
+            gap: "16px",
+            flexWrap: "wrap",
+          }}
+        >
+          <div style={{ flexGrow: 1, minWidth: "220px" }}>
+            <div style={{ fontSize: "14.5px", fontWeight: 700, color: T.ink }}>Want us to secure the hard ones?</div>
+            <p style={{ margin: "4px 0 0", fontSize: "13.5px", lineHeight: 1.55, color: T.soft }}>
+              <TierName tier="mentioned" /> places you in the pages the engines already cite.
+            </p>
+          </div>
+          <a href="/alwaysmentioned" style={{ fontSize: "14px", fontWeight: 600, color: T.accent, textDecoration: "none" }}>
+            See <TierName tier="mentioned" />
+          </a>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 /**
  * No page to be placed into, said once and used on both sides of the gate.
  *
@@ -538,7 +616,7 @@ function PlacementTable(p: { r: RunScanResponse }) {
     <div style={{ ...CARD, overflow: "hidden" }}>
       <div className="res-prow res-head" style={{ background: "#fbfbfc", borderBottom: "1px solid " + T.line }}>
         <div style={MICRO}>Page</div>
-        <div style={MICRO}>Kind</div>
+        <div style={MICRO}>Difficulty</div>
         <div style={{ ...MICRO, textAlign: "right" }}>Questions</div>
         <div style={{ ...MICRO, textAlign: "right" }}>Answers you would win</div>
       </div>
@@ -554,7 +632,7 @@ function PlacementTable(p: { r: RunScanResponse }) {
             ) : null}
           </div>
           <div>
-            <KindPill kind={o.kind} note={o.note} />
+            <DifficultyCell score={o.difficulty ?? null} basis={o.difficulty_basis ?? null} />
           </div>
           <div style={{ fontSize: "13.5px", textAlign: "right", color: T.soft }}>{o.absent_questions}</div>
           <div style={{ fontSize: "13.5px", fontWeight: 600, textAlign: "right" }}>{o.absent_answers}</div>
@@ -588,7 +666,9 @@ function PlanCards(p: { r: RunScanResponse }) {
         >
           <div style={{ display: "flex", alignItems: "baseline", gap: "10px" }}>
             <div style={{ ...MICRO, flexGrow: 1 }}>{PLAN_ORDER[i] + " - join"}</div>
-            <div style={{ fontSize: "12px", color: T.soft }}>{kindLabel(o.kind)}</div>
+            {typeof o.difficulty === "number" ? (
+              <span style={BAND_PILL[bandOf(o.difficulty)]}>{bandOf(o.difficulty) + " - " + o.difficulty}</span>
+            ) : null}
           </div>
           <div style={{ fontSize: "14px", fontWeight: 600, marginTop: "7px", lineHeight: 1.4 }}>{o.domain}</div>
           {o.note ? (
@@ -741,6 +821,7 @@ export default function ResultView(p: {
         </Head>
         {opps.length ? (
           <div>
+            <SelfServe r={r} />
             <PlanCards r={r} />
             {opps.length > PLAN_ORDER.length ? (
               <div style={{ marginTop: "16px" }}>

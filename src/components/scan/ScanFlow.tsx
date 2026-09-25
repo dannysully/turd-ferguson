@@ -14,6 +14,7 @@ import type {
   ScanQuestion,
 } from "@/lib/scan";
 import { OFFER_AFTER_MS, OFFER_COPY, OFFER_STEP, offerReady } from "@/lib/scan/email-offer";
+import type { MarketReason } from "@/lib/scan/market-pick";
 import { type EngineResult, parseEngineResults } from "@/lib/scan/engine-results";
 import { ENGINE_SPECS, isEngine, knownEngines } from "@/lib/scan/engines";
 // The words the pipeline writes into `scans.step`, mapped back to a position.
@@ -279,7 +280,7 @@ function toResult(t: Teaser, domain: string, full: FullPayload | null): RunScanR
     platform: "google",
     read_at: (t.read_at ?? new Date().toISOString()).slice(0, 10),
     topic: t.topic ?? "",
-    market: t.market ?? "UK",
+    market: t.market ?? "US",
     brand: {
       name: t.brand ?? domain,
       named_in: t.named,
@@ -341,6 +342,8 @@ export default function ScanFlow(p: {
   positioning: string | null;
   topic: string;
   market: Market;
+  /** Why the market was picked, for the line under the toggle. See market-pick.ts. */
+  marketReason?: MarketReason | null;
   variants: string[];
   /** The scan status as the server read it, which decides where we open. */
   status: string;
@@ -854,6 +857,7 @@ export default function ScanFlow(p: {
             positioning={p.positioning}
             initialTopic={p.topic}
             initialMarket={p.market}
+            marketReason={p.marketReason ?? null}
             variants={p.variants}
             onRun={onRun}
             running={busy}

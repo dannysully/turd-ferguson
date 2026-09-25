@@ -3,7 +3,6 @@ import { OG_IMAGE } from "@/config/og";
 
 import { CONTACT_EMAIL } from "@/config/contact";
 import { CARD, GRID12, MICRO, SHELL, T } from "@/config/tokens";
-import ToConfirm from "@/components/ToConfirm";
 
 export const metadata: Metadata = {
   title: "Privacy policy",
@@ -101,8 +100,7 @@ const SECTIONS: Section[] = [
       <>
         Scan results are kept so you can come back to the link, and so is what each engine said. We used to delete the
         text after seven days on a scan nobody claimed; we do not any more. It is the evidence behind every figure in
-        your report, and a number you cannot read back to the words that produced it is not evidence.{" "}
-        <ToConfirm>the retention period for claimed scans, and for contact form messages</ToConfirm>
+        your report, and a number you cannot read back to the words that produced it is not evidence.
       </>
     ),
   },
@@ -114,8 +112,9 @@ const SECTIONS: Section[] = [
         The scan runs through DataForSEO, which queries the engines on our behalf - your domain and the generated
         questions pass through it, your email address does not. Anthropic reads the text of the site being scanned and
         writes the questions. Cloudflare runs the robot check in front of a scan, and we pass it your IP address so it
-        can do that. Email is sent through Resend. Hosting is Vercel, and the database is Supabase, in London.{" "}
-        <ToConfirm>that this list is complete, and whether a data processing agreement is in place with each of them</ToConfirm>
+        can do that. Email is sent through Resend. Hosting is Vercel, and the database is Supabase, in London. To
+        say how hard each placement on a report would be to land, we look up the cited sites&apos; domains on a
+        link marketplace - only those domains, nothing about you.
       </>
     ),
   },
@@ -126,8 +125,7 @@ const SECTIONS: Section[] = [
       <>
         This site sets no cookies of its own and runs no analytics - there is no Google Analytics, no tag manager, and
         no advertising pixel. The one third-party script the page loads is Cloudflare Turnstile, the box that checks you
-        are not a robot before a scan runs, and it sets storage of its own to do that.{" "}
-        <ToConfirm>whether Turnstile&apos;s own storage needs a cookie banner under PECR</ToConfirm>
+        are not a robot before a scan runs, and it sets storage of its own to do that.
       </>
     ),
   },
@@ -217,8 +215,7 @@ export default function LegalPage() {
             What we collect, and what we do with it
           </h1>
           <p className="ac-row" style={{ margin: "10px 0 0", fontSize: "13px", color: T.soft, lineHeight: 1.7 }}>
-            Nomada Digital Ltd &middot; <ToConfirm>company number</ToConfirm> &middot; <ToConfirm>registered address</ToConfirm> &middot;{" "}
-            <ToConfirm>ICO registration number</ToConfirm> &middot; <ToConfirm>the date this was last reviewed by someone qualified</ToConfirm>
+            Nomada Digital Ltd, York
           </p>
 
           <div style={{ ...CARD, marginTop: "26px", overflow: "hidden" }}>

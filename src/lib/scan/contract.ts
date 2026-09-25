@@ -78,6 +78,10 @@ export type ScanOpportunity = {
   /** Distinct questions behind that count. Always <= absent_answers. */
   absent_questions: number;
   questions: string[];
+  /** How hard the placement is, 0-100 (placement-difficulty.ts). Null or absent: not scored. */
+  difficulty?: number | null;
+  /** The one-line reason for that score. Never a price, never a marketplace name. */
+  difficulty_basis?: string | null;
 };
 
 export type HistoryPoint = {

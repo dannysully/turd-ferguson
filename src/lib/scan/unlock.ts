@@ -9,6 +9,7 @@ import {
   type KindRow,
   type QuestionRow,
 } from "@/lib/scan/opportunities";
+import { readDifficulty } from "@/lib/scan/difficulty-read";
 import { runGatedScan } from "@/lib/scan/pipeline";
 import { type CountableAnswer, reportCounts } from "@/lib/scan/report-counts";
 import { getSettings } from "@/lib/scan/settings";
@@ -97,6 +98,9 @@ export type UnlockPayload = {
     absent_answers: number;
     absent_questions: number;
     questions: string[];
+    /** 0-100, from placement-difficulty.ts. Absent when not scored. */
+    difficulty?: number | null;
+    difficulty_basis?: string | null;
   }>;
 };
 
@@ -402,11 +406,15 @@ export async function buildUnlockPayload(scanId: string): Promise<UnlockPayload>
       })),
   }));
 
+  const difficulty = await readDifficulty(scanId);
   const opportunities = deriveOpportunities({
     citations: sources,
     answers: answerRows,
     questions: (questions ?? []) as QuestionRow[],
     kinds,
+  }).map((o) => {
+    const d = difficulty.get(o.domain);
+    return { ...o, difficulty: d?.difficulty ?? null, difficulty_basis: d?.basis ?? null };
   });
 
   return {

@@ -56,6 +56,8 @@ export const RECOMMENDED: Requirement[] = [
   { key: "CRON_SECRET", why: "the stall reaper and the purge job refuse to run without it" },
   { key: "ADMIN_USER", why: "/admin/scans stays shut without it" },
   { key: "ADMIN_PASSWORD", why: "/admin/scans stays shut without it" },
+  /** 25 Sep 2026. Unset, every placement reads "Not scored"; nothing else changes. */
+  { key: "FATGRID_API_KEY", why: "scores how hard each placement is to land" },
 ];
 
 /**

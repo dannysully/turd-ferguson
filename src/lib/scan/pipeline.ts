@@ -11,6 +11,7 @@ import {
   QUESTION_COUNT,
 } from "./anthropic";
 import { brandKey, displayNamesFor, namesSubject, subjectKeys } from "./brand-name";
+import { scoreScanDifficulty } from "./difficulty";
 import { readEngine } from "./dataforseo";
 import { type Market, normalizeDomain } from "./domain";
 // What one engine found, and the order the reads are issued in so that engines
@@ -876,6 +877,20 @@ async function readAndStore(input: {
   const sourceErr = await timed(timings, "sources", () => sourceKinds);
   spend.anthropicCalls += sourceCalls.calls;
   if (sourceErr) console.warn(`[scan] source kinds skipped for ${scanId}: ${sourceErr}`);
+
+  /**
+   * How hard each placement is to land (25 Sep 2026, placement-difficulty.ts).
+   * Needs the kinds above, so it waits for them; never fatal, and a scan with
+   * no marketplace key simply has no dials.
+   */
+  if (!sourceErr) {
+    try {
+      const scored = await scoreScanDifficulty(scanId);
+      if (scored) console.log(`[scan] placement difficulty scored ${scored} sources for ${scanId}`);
+    } catch (err) {
+      console.warn(`[scan] placement difficulty skipped for ${scanId}: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
 
   return {
     answered,

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import ScanFlow from "@/components/scan/ScanFlow";
 import { isMarket } from "@/lib/scan/domain";
+import type { MarketReason } from "@/lib/scan/market-pick";
 import { isFreePassDead, isGatedPassDead } from "@/lib/scan/stall";
 import { buildUnlockPayload, opportunityShape, type UnlockPayload } from "@/lib/scan/unlock";
 import { supabaseAdmin } from "@/lib/supabase/admin";
@@ -162,7 +163,21 @@ export default async function ScanTokenPage({ params }: { params: Promise<{ toke
    * deliver, and never took it back.
    */
   const gatedStatus = isGatedPassDead(scan) ? "failed" : ((scan.gated_status as string | null) ?? "none");
-  const market = isMarket(scan.market) ? scan.market : "UK";
+  const market = isMarket(scan.market) ? scan.market : "US";
+
+  /**
+   * Why that market, for the line under the confirm screen's toggle. Read on
+   * its own so a database without the 20260925000000 column still renders the
+   * report - it only loses the sentence.
+   */
+  let marketReason: MarketReason | null = null;
+  if (scan.status === "pending_topic") {
+    const { data: reasonRow, error: reasonErr } = await db.from("scans").select("market_reason").eq("id", scan.id).maybeSingle();
+    // Logged, not thrown: a missing column costs the sentence, never the page.
+    if (reasonErr) console.warn(`[scan] could not read the market reason for ${token}: ${reasonErr.message}`);
+    const r = (reasonRow as { market_reason?: string | null } | null)?.market_reason;
+    if (r === "chosen" || r === "domain ending" || r === "rankings" || r === "default") marketReason = r;
+  }
 
   /**
    * A pass the platform killed renders as failed, not as still running.
@@ -189,6 +204,7 @@ export default async function ScanTokenPage({ params }: { params: Promise<{ toke
       positioning={positioning}
       topic={topic}
       market={market}
+      marketReason={marketReason}
       variants={variants}
       status={status}
       engines={engines}

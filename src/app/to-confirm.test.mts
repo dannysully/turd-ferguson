@@ -70,9 +70,15 @@ test("the marker is still in use, so the rules below are not guarding nothing", 
   // Three when this was written - /legal, /white-label and the vibe-retail case
   // study. If this ever drops to zero it means every claim got its source, which
   // is good news and wants a deliberate edit here rather than a silent pass.
+  //
+  // Two since 25 Sep 2026: /legal's markers came off the public page on Danny's
+  // hand-over of the call. Each sentence they sat beside is true without them;
+  // the open facts (company number, registered address, ICO number, review
+  // date, retention for claimed scans and contact messages, DPAs, PECR) are one
+  // item on docs/blocked.md rather than orange text on a live privacy policy.
   assert.ok(
-    USERS.length >= 3,
-    `only ${USERS.length} pages render ToConfirm and 3 did: ${USERS.map((u) => u.file).join(", ") || "none"}`,
+    USERS.length >= 2,
+    `only ${USERS.length} pages render ToConfirm and 2 did: ${USERS.map((u) => u.file).join(", ") || "none"}`,
   );
 });
 
