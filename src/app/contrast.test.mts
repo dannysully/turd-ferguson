@@ -428,6 +428,9 @@ const CSS_COLOURS: Record<string, string> = {
     "var(--ink) on var(--surface) - 18.66:1. The drawer's paging controls, which render only behind a completed scan and so are on no swept page",
   ".run-mail-btn":
     "#ffffff on #0f1115 - 18.66:1. The running screen's Email me button, HeroSequence.dc.html (Q08, 25 Sep 2026); running is a client phase, so on no swept page",
+  ".wt-option":
+    "var(--soft) on the .wt-toggle track, var(--chip) - 4.72:1. The unchosen half of the walkthrough switch, ScanResult.dc.html (Q10, 25 Sep 2026); the result is on no swept page",
+  ".wt-option--on": "var(--ink) on var(--surface) - 18.66:1. The chosen half of the same switch",
 };
 
 /**
@@ -461,8 +464,11 @@ const CSS_GROUNDS: Record<string, string> = {
   ".res-qbtn": "transparent - it takes the ground of the row it wraps, which is what the inline walk already measures",
   ".res-qbtn:hover:not(:disabled)": "var(--bg) on hover only. A hover state is not a resting ground, and the text on it is the row's own",
   ".proc-schema": "var(--bg), the page ground, inside the white product panel on the cited tier - a code block, and the only place on the site that sets one",
-  ".wt-option": "var(--surface), a card-on-card control on the report's white ground",
-  ".wt-option--on": "var(--wash), the selected half of the same toggle - the purple wash, which soft clears since blocked.md 9 was answered",
+  // 25 Sep 2026 (Q10): ScanResult.dc.html's switch - a chip track with the
+  // chosen half raised in white. Was a surface card per option, wash when on.
+  ".wt-toggle": "var(--chip), the grey track of the walkthrough switch; the unchosen label on it is soft",
+  ".wt-option": "transparent - it takes the .wt-toggle track it sits in",
+  ".wt-option--on": "var(--surface), the chosen half of the same switch, raised in white with ink text",
 };
 
 test("the stylesheet's own grounds are the recorded set, and the page ground is the token", (t) => {

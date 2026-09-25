@@ -186,9 +186,10 @@ const OFF_PALETTE: Record<string, Entry> = {
       "src/app/what-is-aeo/page.tsx": 1,
       "src/app/white-label/page.tsx": 1,
       "src/components/scan/ConfirmScreen.tsx": 1,
-      // 3 -> 2 on 25 Sep 2026 (Q09): the question table's header row went,
-      // as ScanResult.dc.html draws the rows with no header.
-      "src/components/scan/ResultView.tsx": 2,
+      // ResultView.tsx left this list on 25 Sep 2026: 3 -> 2 in Q09 (the
+      // question table's header row went) and 2 -> 0 in Q10 (the placement
+      // table's header and the answer cards' head band are white on
+      // ScanResult.dc.html).
     },
   },
   "#3f4451": {
@@ -316,10 +317,21 @@ const OFF_PALETTE: Record<string, Entry> = {
     boards: 1,
     sites: { "src/components/home/dark.ts": 1 },
   },
+  "rgba(124,58,237,.25)": {
+    why: "the upper-right purple wash on the result's dark alwaystracked card, from ScanResult.dc.html (Q10, 25 Sep 2026). `T.accent` at 25%, written as the board writes it.",
+    boards: 1,
+    sites: { "src/components/home/dark.ts": 1 },
+  },
   "rgba(17,18,24,0)": {
-    why: "the fade-out stop of the hero's two washes and the packages band's one (Q04, 25 Sep): the dark ground at zero alpha, so the wash fades into the ground rather than through grey.",
-    boards: 4,
-    sites: { "src/components/home/dark.ts": 3 },
+    why: "the fade-out stop of the hero's two washes, the packages band's one and the result's alwaystracked card's one (Q04 and Q10, 25 Sep): the dark ground at zero alpha, so the wash fades into the ground rather than through grey.",
+    boards: 5,
+    // 3 -> 4 on 25 Sep 2026 (Q10): TRACKED_WASH.
+    sites: { "src/components/home/dark.ts": 4 },
+  },
+  "rgba(0,0,0,.08)": {
+    why: "the 1px lift under the chosen half of the walkthrough switch, from ScanResult.dc.html (Q10, 25 Sep 2026). A shadow colour, not a surface one - **do not tokenise it**, for the same reason as the ProcessSequence panel shadow.",
+    boards: 1,
+    sites: { "src/app/globals.css": 1 },
   },
   "#a855f7": {
     why: "the far stop of the primary CTA gradient, and the subject of blocked.md 31 - white measures 3.96 on it, under AA. `contrast.test.mts` pins both stops by measurement and fails if either moves, so this entry is the palette half of a value that already has a contrast half.",

@@ -72,10 +72,13 @@ export default function WalkthroughForm(p: { token: string }) {
     );
   }
 
+  // ScanResult.dc.html's switch: two short labels on a grey track, and the
+  // chosen one's note under it rather than inside each half.
   const options: { key: "video" | "demo"; title: string; note: string }[] = [
-    { key: "video", title: "Walkthrough video", note: "A Loom of the platform, recorded against this report." },
-    { key: "demo", title: "Book a demo", note: "Danny takes you through it on a call." },
+    { key: "video", title: "Loom walkthrough", note: "A Loom of the platform, recorded against this report." },
+    { key: "demo", title: "Demo with Danny", note: "Danny takes you through it on a call." },
   ];
+  const chosen = options.find((o) => o.key === kind) ?? options[0];
 
   return (
     <form onSubmit={submit} noValidate>
@@ -89,11 +92,13 @@ export default function WalkthroughForm(p: { token: string }) {
             onClick={() => setKind(o.key)}
             className={"wt-option" + (kind === o.key ? " wt-option--on" : "")}
           >
-            <span style={{ fontSize: "14px", fontWeight: 600, color: T.ink }}>{o.title}</span>
-            <span style={{ fontSize: "12.5px", color: T.soft, lineHeight: 1.5 }}>{o.note}</span>
+            {o.title}
           </button>
         ))}
       </div>
+      <p aria-live="polite" style={{ margin: "14px 0 0", fontSize: "13.5px", lineHeight: 1.5, color: T.soft, minHeight: "42px" }}>
+        {chosen.note}
+      </p>
       <label htmlFor="wt-email" style={{ ...label, marginTop: "14px", display: "block" }}>
         Work email
       </label>
@@ -104,6 +109,7 @@ export default function WalkthroughForm(p: { token: string }) {
         autoComplete="email"
         maxLength={SCAN_LIMITS.email}
         required
+        placeholder="you@company.com"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         style={field}

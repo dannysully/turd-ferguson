@@ -2,7 +2,9 @@
 
 import EngineLogo from "@/components/EngineLogo";
 import TierName from "@/components/TierName";
-import { D } from "@/components/home/dark";
+import { D, TRACKED_WASH } from "@/components/home/dark";
+import { TIERS, TRACKED_QUESTIONS } from "@/config/pricing";
+import { count } from "@/lib/plural";
 import { SCAN_LIMITS } from "@/config/contact";
 import { track } from "@/lib/analytics";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -17,7 +19,6 @@ import {
   fmtDate,
   isSubject,
   leaderboardCaption,
-  ordinal,
   placementCopy,
   questionPill,
   resultFigures,
@@ -66,8 +67,6 @@ const pill = (bg: string, fg: string): React.CSSProperties => ({
   whiteSpace: "nowrap",
 });
 
-const YES = pill(T.goodBg, T.goodFg);
-const NO = pill(T.badBg, T.badFg);
 const QUIET = pill(T.chip, T.soft);
 /** The question row's pill, from ScanResult.dc.html: purple when named, quiet when not. */
 const ROW_NAMED = pill(T.wash, T.accentHover);
@@ -77,15 +76,24 @@ const ROW_NAMED = pill(T.wash, T.accentHover);
  * a domain the classifier did not reach is a different finding from one it
  * read and could not place.
  */
-function Head(p: { title: React.ReactNode; children: React.ReactNode }) {
-  return (
+function Head(p: { title: React.ReactNode; children: React.ReactNode; aside?: React.ReactNode }) {
+  const head = (
     // ScanResult.dc.html: a 26px heading with its description beside it on the
     // same baseline, 32px apart. `.board-head` stacks them on a phone.
-    <div className="board-head" style={{ display: "flex", alignItems: "baseline", gap: "32px", marginBottom: "18px" }}>
+    <div className="board-head" style={{ display: "flex", alignItems: "baseline", gap: "32px", marginBottom: p.aside ? 0 : "18px" }}>
       <h2 style={{ margin: 0, fontSize: "26px", fontWeight: 700, letterSpacing: "-0.03em", color: T.ink, flexShrink: 0 }}>
         {p.title}
       </h2>
       <p style={{ margin: 0, fontSize: "14.5px", lineHeight: 1.6, color: T.soft }}>{p.children}</p>
+    </div>
+  );
+  if (!p.aside) return head;
+  // The board's "Where to get placed" row: the self-serve count at the right
+  // end of the heading line. `.res-headrow` stacks it under on a phone.
+  return (
+    <div className="res-headrow">
+      {head}
+      <div style={{ fontSize: "15px", fontWeight: 700, color: T.ink }}>{p.aside}</div>
     </div>
   );
 }
@@ -247,6 +255,7 @@ function AnswerDrawer(p: {
   if (!q) return null;
   const brand = p.r.brand.name;
   const answers = q.answers ?? [];
+  const rank = typeof q.google_rank === "number" ? "Google #" + q.google_rank : "Not in Google top " + SERP_DEPTH;
   const step = (d: number) => {
     const next = qs[at + d];
     if (next) p.onMove(next.idx);
@@ -256,46 +265,42 @@ function AnswerDrawer(p: {
     <>
       <div className="ans-backdrop" onClick={p.onClose} aria-hidden="true" />
       <aside className="ans-drawer" role="dialog" aria-modal="true" aria-labelledby="ans-title">
+        {/* ScanResult.dc.html: "Question N of M · Google #N" beside the three
+            44px paging buttons, the question at 22px, then one card per engine
+            with its verdict pill, what it said, and the pages it cited. */}
         <div className="ans-drawer__head">
-          <div style={{ ...MICRO, flexGrow: 1 }}>{"Question " + (at + 1) + " of " + qs.length + " - " + q.kind}</div>
+          <div style={{ fontSize: "12.5px", color: T.soft, flexGrow: 1 }}>{"Question " + (at + 1) + " of " + qs.length + " · " + rank}</div>
           <button type="button" className="ans-nav" onClick={() => step(-1)} disabled={at <= 0} aria-label="Previous question">
-            ‹
+            <Chevron d="M15 6l-6 6 6 6" />
           </button>
           <button type="button" className="ans-nav" onClick={() => step(1)} disabled={at >= qs.length - 1} aria-label="Next question">
-            ›
+            <Chevron d="M9 6l6 6-6 6" />
           </button>
           <button type="button" className="ans-nav" ref={closeRef} onClick={p.onClose} aria-label="Close">
-            ×
+            <Chevron d="M6 6l12 12M18 6L6 18" />
           </button>
         </div>
-        <div style={{ padding: "18px 24px 32px" }}>
-          <h2 id="ans-title" style={{ margin: 0, fontSize: "19px", fontWeight: 700, letterSpacing: "-0.022em", lineHeight: 1.35 }}>
+        <div style={{ padding: "4px 26px 32px" }}>
+          <h2 id="ans-title" style={{ margin: 0, fontSize: "22px", fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.2 }}>
             {q.question}
           </h2>
-          <p style={{ margin: "8px 0 0", fontSize: "13px", color: T.soft }}>
-            {typeof q.google_rank === "number"
-              ? "You rank " + ordinal(q.google_rank) + " on Google for this."
-              : "You are not in Google's top " + SERP_DEPTH + " for this."}
-          </p>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "18px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "14px", marginTop: "14px" }}>
             {answers.map((a) => {
               const state = answerState(a);
               const direct = isEngine(a.engine) && ENGINE_SPECS[a.engine].kind === "model";
               const cited = a.citations ?? [];
               return (
-                <div key={a.engine} style={{ border: "1px solid " + T.line, borderRadius: "14px", overflow: "hidden" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "9px", padding: "11px 14px", background: "#fbfbfc", borderBottom: "1px solid " + T.line }}>
-                    <EngineLogo engine={a.engine} size={17} />
-                    <span style={{ fontSize: "13.5px", fontWeight: 600, flexGrow: 1 }}>
-                      {engineLabel(a.engine)}
-                      {direct ? <span style={{ fontWeight: 500, color: T.soft }}> - asked directly</span> : null}
-                    </span>
-                    <span style={state === "named" ? YES : state === "no answer" ? QUIET : NO}>
-                      {state === "named" ? "names " + brand : state === "no answer" ? "no answer" : "does not name " + brand}
+                <div key={a.engine} style={{ border: "1px solid " + T.line, borderRadius: "14px", padding: "14px 16px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                    <EngineLogo engine={a.engine} size={18} />
+                    <span style={{ fontSize: "13.5px", fontWeight: 700 }}>{engineLabel(a.engine)}</span>
+                    {direct ? <span style={{ fontSize: "11.5px", color: T.soft }}>asked directly</span> : null}
+                    <span style={{ ...(state === "named" ? ROW_NAMED : QUIET), marginLeft: "auto", fontSize: "11.5px", padding: "3px 9px" }}>
+                      {state === "named" ? "Names " + brand : state === "no answer" ? "No answer" : "Does not name " + brand}
                     </span>
                   </div>
-                  <div style={{ padding: "12px 14px" }}>
+                  <div style={{ marginTop: "10px" }}>
                     {a.response_text?.trim() ? (
                       <AnswerText source={a.response_text} />
                     ) : (
@@ -306,22 +311,19 @@ function AnswerDrawer(p: {
                       </p>
                     )}
                     {cited.length ? (
-                      <div style={{ marginTop: "12px", paddingTop: "10px", borderTop: "1px solid " + T.hair }}>
-                        <div style={{ ...MICRO, color: T.soft, marginBottom: "6px" }}>{"Cited " + cited.length + (cited.length === 1 ? " page" : " pages")}</div>
-                        <ol style={{ margin: 0, paddingLeft: "18px", display: "flex", flexDirection: "column", gap: "4px" }}>
-                          {cited.slice(0, 8).map((c, i) => (
-                            <li key={(c.url ?? c.domain) + i} style={{ fontSize: "12.5px", color: T.soft, lineHeight: 1.5 }}>
-                              {c.url ? (
-                                <a href={c.url} target="_blank" rel="noopener noreferrer nofollow" style={{ color: T.ink }}>
-                                  {c.domain}
-                                </a>
-                              ) : (
-                                <span style={{ color: T.ink }}>{c.domain}</span>
-                              )}
-                              {c.title ? " - " + c.title : ""}
-                            </li>
-                          ))}
-                        </ol>
+                      <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "10px" }} aria-label={"Cited " + count(cited.length, "page")}>
+                        {cited.slice(0, 8).map((c, i) => {
+                          const chip: React.CSSProperties = { fontSize: "11.5px", color: T.soft, background: T.chip, borderRadius: "6px", padding: "3px 8px", textDecoration: "none" };
+                          return c.url ? (
+                            <a key={c.url + i} href={c.url} target="_blank" rel="noopener noreferrer nofollow" title={c.title ?? undefined} style={chip}>
+                              {c.domain}
+                            </a>
+                          ) : (
+                            <span key={c.domain + i} title={c.title ?? undefined} style={chip}>
+                              {c.domain}
+                            </span>
+                          );
+                        })}
                       </div>
                     ) : null}
                   </div>
@@ -332,6 +334,14 @@ function AnswerDrawer(p: {
         </div>
       </aside>
     </>
+  );
+}
+
+function Chevron(p: { d: string }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d={p.d} />
+    </svg>
   );
 }
 
@@ -455,16 +465,20 @@ function ShareOfVoice(p: { r: RunScanResponse }) {
           ? "The same question set scored for every brand we could read. Part of this leaderboard did not come back, so names are missing from it - the counts below are real, but we are not publishing a ranking off a list we know is short."
           : "The same question set scored for every brand in the category. This is the gap, and it is the number that has to move."}
       </Head>
-      <div style={{ ...CARD, padding: "22px 26px" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: "11px", maxWidth: "820px" }}>
+      {/* ScanResult.dc.html: name, a 10px rounded bar, the count in bold at the
+          right. The board's "/ 20" is not drawn: these are mention counts and can
+          exceed the answer total (39 against 17 answers on the 25 Sep US scan),
+          so "of N answers" would be false. */}
+      <div style={{ ...CARD, borderRadius: "18px", padding: "10px 22px 18px" }}>
+        <div style={{ display: "flex", flexDirection: "column" }}>
           {rows.slice(0, SOV_ROWS).map((b) => {
             const you = isSubject(b, p.r.brand.name);
             return (
-              <div key={b.brand} className="seq-sov">
-                <div style={{ fontSize: "13.5px", fontWeight: you ? 700 : 500, color: you ? T.ink : T.soft }}>
+              <div key={b.brand} className="res-sov">
+                <div style={{ fontSize: "14px", fontWeight: 600, color: you ? T.accentHover : T.ink, minWidth: 0, overflowWrap: "anywhere" }}>
                   {b.brand}
                 </div>
-                <div style={{ height: "22px", background: T.chip, borderRadius: "4px", overflow: "hidden" }}>
+                <div style={{ height: "10px", background: T.hair, borderRadius: "5px", overflow: "hidden" }}>
                   {/* acGrow, at Flow2Free.dc.html's own .8s cubic-bezier -
                       seq-bar is already that exact declaration. Time-based
                       rather than scroll-driven because this arrives when the
@@ -477,26 +491,18 @@ function ShareOfVoice(p: { r: RunScanResponse }) {
                       height: "100%",
                       width: Math.round((b.mentions / top) * 100) + "%",
                       background: you ? T.accent : "#c8cad0",
-                      borderRadius: "4px",
+                      borderRadius: "5px",
                     }}
                   />
                 </div>
-                <div
-                  style={{
-                    fontSize: "14px",
-                    fontWeight: 700,
-                    letterSpacing: "-0.02em",
-                    textAlign: "right",
-                    color: you ? T.ink : T.soft,
-                  }}
-                >
+                <div style={{ fontSize: "14px", fontWeight: 700, textAlign: "right", color: T.ink }}>
                   {b.mentions}
                 </div>
               </div>
             );
           })}
         </div>
-        <p style={{ margin: "14px 0 0", fontSize: "12.5px", color: T.soft }}>
+        <p style={{ margin: "16px 0 0", fontSize: "12.5px", color: T.soft }}>
           {leaderboardCaption(rows.length, partial)}
         </p>
       </div>
@@ -507,107 +513,127 @@ function ShareOfVoice(p: { r: RunScanResponse }) {
 /* ── The placement list ── */
 
 const BAND_COLOUR: Record<Band, string> = { Easy: T.goodFg, Moderate: T.warnFg, Hard: T.badFg };
-const BAND_PILL: Record<Band, React.CSSProperties> = {
-  Easy: pill(T.goodBg, T.goodFg),
-  Moderate: pill(T.warnBg, T.warnFg),
-  Hard: pill(T.badBg, T.badFg),
-};
+
+/** The answers a page fed that did not name you, as the board's pill words it. */
+const feeds = (n: number) => "Feeds " + count(n, "answer") + " you miss";
 
 /**
- * How hard a placement is, as a half dial out of 100 with the band in words
- * beside it - the word is always there, so colour never carries it alone.
- * `placement-difficulty.ts` is the rule; this is the painting.
+ * How hard a placement is, as ScanResult.dc.html draws it on a card: a 92px
+ * half dial with the score under its arc, and "Difficulty, out of 100" over the
+ * band in words beside it - the word is always there, so colour never carries
+ * it alone. `placement-difficulty.ts` is the rule; this is the painting.
  */
-function DifficultyCell(p: { score: number | null }) {
-  if (p.score === null) return <span style={{ fontSize: "12.5px", color: T.soft }}>Not scored</span>;
+function Dial(p: { score: number | null }) {
+  if (p.score === null) {
+    return <div style={{ fontSize: "13px", color: T.soft, minHeight: "56px", display: "flex", alignItems: "center" }}>Not scored</div>;
+  }
   const band = bandOf(p.score);
-  // A half circle of radius 18: its length is pi x 18, and the filled part is that times score / 100.
-  const r = 18;
-  const len = Math.PI * r;
+  // The board's arc is radius 40; its length, pi x 40, rounds to its 126.
+  const len = 126;
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-      <svg width="44" height="28" viewBox="0 0 44 28" role="img" aria-label={"Difficulty " + p.score + " out of 100, " + band}>
-        <path d="M4 24 A18 18 0 0 1 40 24" fill="none" stroke={T.line} strokeWidth="5" strokeLinecap="round" />
-        <path
-          d="M4 24 A18 18 0 0 1 40 24"
-          fill="none"
-          stroke={BAND_COLOUR[band]}
-          strokeWidth="5"
-          strokeLinecap="round"
-          strokeDasharray={(len * p.score) / 100 + " " + len}
-        />
-        <text x="22" y="25" textAnchor="middle" fontSize="11" fontWeight="700" fill={T.ink}>
+    <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+      <div style={{ position: "relative", width: "92px", height: "56px", flexShrink: 0 }}>
+        <svg width="92" height="56" viewBox="0 0 92 56" fill="none" aria-hidden="true">
+          <path d="M6 50 A40 40 0 0 1 86 50" stroke={T.hair} strokeWidth="8" strokeLinecap="round" />
+          <path
+            className="res-dial"
+            d="M6 50 A40 40 0 0 1 86 50"
+            stroke={BAND_COLOUR[band]}
+            strokeWidth="8"
+            strokeLinecap="round"
+            strokeDasharray={len}
+            strokeDashoffset={len - Math.round((len * p.score) / 100)}
+          />
+        </svg>
+        <div style={{ position: "absolute", left: 0, right: 0, bottom: "2px", textAlign: "center", fontSize: "19px", fontWeight: 700, letterSpacing: "-0.02em", color: T.ink }}>
           {p.score}
-        </text>
-      </svg>
-      <div style={{ fontSize: "13px", fontWeight: 600, color: BAND_COLOUR[band] }}>{band}</div>
+        </div>
+      </div>
+      <div>
+        <div style={{ fontSize: "12px", color: T.soft }}>Difficulty, out of 100</div>
+        <div style={{ fontSize: "16px", fontWeight: 700, color: BAND_COLOUR[band] }}>{band}</div>
+      </div>
     </div>
   );
 }
 
-/**
- * Which of these the visitor could land alone, and the step up for the rest -
- * Danny, 25 Sep 2026: "we want people to understand whether they could do this
- * themselves or would be better off with us doing it for them". Only drawn when
- * the rows were scored; an unscored list says nothing rather than zero.
- */
-function SelfServe(p: { r: RunScanResponse }) {
-  const rows = p.r.opportunities ?? [];
-  const { easy, scored } = selfServeCount(rows);
-  if (!scored) return null;
-  const rest = scored - easy;
+/** The table's difficulty cell: a 56px bar filled to the score, and the band. */
+function DifficultyBar(p: { score: number | null }) {
+  if (p.score === null) return <span style={{ fontSize: "12.5px", color: T.soft }}>Not scored</span>;
+  const band = bandOf(p.score);
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "16px" }}>
-      <p style={{ margin: 0, fontSize: "14.5px", lineHeight: 1.6, color: T.ink }}>
-        <strong style={{ fontWeight: 700 }}>
-          {easy === 1 ? "You could place 1 of these yourself." : "You could place " + easy + " of these yourself."}
-        </strong>
-        {rest > 0 ? " The other " + rest + " need an editorial pitch or a budget." : ""}
-      </p>
-      {rest > 0 ? (
-        // The board's dark ink card (ScanResult.dc.html, QF1). The tier name is
-        // in the sentence, through TierName under `.on-dark`; the button is
-        // plain words, so no lockup sits inside a coloured link.
-        <div
-          className="on-dark"
-          style={{
-            background: T.ink,
-            color: T.surface,
-            borderRadius: "18px",
-            padding: "22px 26px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: "16px",
-            flexWrap: "wrap",
-          }}
-        >
-          <div style={{ flexGrow: 1, minWidth: "220px" }}>
-            <div style={{ fontSize: "18px", fontWeight: 700, color: T.surface }}>Want us to secure the hard ones?</div>
-            <p style={{ margin: "4px 0 0", fontSize: "14px", lineHeight: 1.55, color: D.muted }}>
-              That is <TierName tier="mentioned" />: placements in the pages the engines cite, links included.
-            </p>
-          </div>
-          <a
-            href="/alwaysmentioned"
-            style={{
-              background: T.surface,
-              color: T.ink,
-              fontSize: "14.5px",
-              fontWeight: 600,
-              padding: "12px 18px",
-              borderRadius: "10px",
-              textDecoration: "none",
-              minHeight: "44px",
-              boxSizing: "border-box",
-              display: "flex",
-              alignItems: "center",
-            }}
-          >
-            See how it works
-          </a>
-        </div>
-      ) : null}
+    <span style={{ display: "flex", alignItems: "center", gap: "8px" }} aria-label={"Difficulty " + p.score + " out of 100, " + band}>
+      <span aria-hidden="true" style={{ width: "56px", height: "6px", background: T.hair, borderRadius: "3px", overflow: "hidden", flexShrink: 0 }}>
+        <span className="seq-bar" style={{ display: "block", height: "6px", width: p.score + "%", background: BAND_COLOUR[band] }} />
+      </span>
+      <span style={{ fontWeight: 600, color: BAND_COLOUR[band] }}>{band}</span>
+    </span>
+  );
+}
+
+/**
+ * Which of these the visitor could land alone - Danny, 25 Sep 2026: "we want
+ * people to understand whether they could do this themselves or would be
+ * better off with us doing it for them". Only drawn when the rows were
+ * scored; an unscored list says nothing rather than zero. The board sets it
+ * at the right end of the section's heading line.
+ */
+function selfServeLine(r: RunScanResponse): string | null {
+  const { easy, scored } = selfServeCount(r.opportunities ?? []);
+  if (!scored) return null;
+  return "You could place " + easy + " of these yourself.";
+}
+
+/**
+ * The step up for the rest, under the table as the board places it. The board's
+ * dark ink card (ScanResult.dc.html, QF1). The tier name is in the sentence,
+ * through TierName under `.on-dark`; the button is plain words, so no lockup
+ * sits inside a coloured link. Drawn only when some scored row is not one the
+ * visitor could land alone.
+ */
+function HardOnes(p: { r: RunScanResponse }) {
+  const { easy, scored } = selfServeCount(p.r.opportunities ?? []);
+  if (!scored || scored - easy <= 0) return null;
+  return (
+    <div
+      className="on-dark"
+      style={{
+        marginTop: "16px",
+        background: T.ink,
+        color: T.surface,
+        borderRadius: "18px",
+        padding: "22px 26px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: "16px",
+        flexWrap: "wrap",
+      }}
+    >
+      <div style={{ flexGrow: 1, minWidth: "220px" }}>
+        <div style={{ fontSize: "18px", fontWeight: 700, color: T.surface }}>Want us to secure the hard ones?</div>
+        <p style={{ margin: "4px 0 0", fontSize: "14px", lineHeight: 1.55, color: D.muted }}>
+          That is <TierName tier="mentioned" />: placements in the pages the engines cite, links included.
+        </p>
+      </div>
+      <a
+        href="/alwaysmentioned"
+        style={{
+          background: T.surface,
+          color: T.ink,
+          fontSize: "14.5px",
+          fontWeight: 600,
+          padding: "12px 18px",
+          borderRadius: "10px",
+          textDecoration: "none",
+          minHeight: "44px",
+          boxSizing: "border-box",
+          display: "flex",
+          alignItems: "center",
+        }}
+      >
+        See how it works
+      </a>
     </div>
   );
 }
@@ -631,40 +657,36 @@ function NoPlacements(p: { sources: readonly SourceEntry[] }) {
   );
 }
 
-function PlacementTable(p: { r: RunScanResponse }) {
-  const rows = p.r.opportunities ?? [];
+/**
+ * Every row after the first three, as the board's table: page, then a column
+ * the board fills with the brands each page names. Which brands a page names
+ * is not derivable (opportunities.ts - scan_brands is per scan, not per page),
+ * so that column says how many engines cite the page instead, which the scan
+ * does record. Answers you miss, then difficulty as a bar.
+ */
+function PlacementTable(p: { r: RunScanResponse; rows: RunScanResponse["opportunities"] }) {
+  const rows = p.rows ?? [];
+  const engines = p.r.engines.length;
   return (
-    <div style={{ ...CARD, overflow: "hidden" }}>
-      <div className="res-prow res-head" style={{ background: "#fbfbfc", borderBottom: "1px solid " + T.line }}>
-        <div style={MICRO}>Page</div>
-        <div style={MICRO}>Difficulty</div>
-        <div style={{ ...MICRO, textAlign: "right" }}>Questions</div>
-        <div style={{ ...MICRO, textAlign: "right" }}>Answers you would win</div>
+    <div style={{ ...CARD, borderRadius: "18px", overflow: "hidden", marginTop: "16px" }}>
+      <div className="res-prow res-head" style={{ fontSize: "12px", fontWeight: 600, color: T.soft, borderBottom: "1px solid " + T.line }}>
+        <span>Page</span>
+        <span>Cited by</span>
+        <span>Answers you miss</span>
+        <span>Difficulty</span>
       </div>
-      {rows.map((o) => (
-        <div key={o.domain} className="res-prow" style={{ borderBottom: "1px solid " + T.hair }}>
-          <div>
-            <div style={{ fontSize: "13.5px", fontWeight: 600 }}>{o.domain}</div>
-            {/* What the board shows under a row, as far as the scan records it:
-                how many engines cite the page. Which brands it names is not
-                derivable (opportunities.ts), so nothing stands in for it. */}
-            {o.cited_by ? (
-              <div style={{ fontSize: "12.5px", color: T.soft, marginTop: "2px" }}>
-                {"Cited by " + o.cited_by + " of " + p.r.engines.length + " engines"}
-              </div>
-            ) : null}
-            {o.questions.length ? (
-              <div style={{ fontSize: "12.5px", color: T.soft, marginTop: "4px", lineHeight: 1.5 }}>
-                {o.questions.slice(0, 2).join(" - ") +
-                  (o.questions.length > 2 ? " - and " + (o.questions.length - 2) + " more" : "")}
-              </div>
-            ) : null}
-          </div>
-          <div>
-            <DifficultyCell score={o.difficulty ?? null} />
-          </div>
-          <div style={{ fontSize: "13.5px", textAlign: "right", color: T.soft }}>{o.absent_questions}</div>
-          <div style={{ fontSize: "13.5px", fontWeight: 600, textAlign: "right" }}>{o.absent_answers}</div>
+      {rows.map((o, i) => (
+        <div key={o.domain} className="res-prow" style={{ fontSize: "13.5px", borderTop: i ? "1px solid " + T.hair : undefined }}>
+          <span style={{ minWidth: 0, overflowWrap: "anywhere" }}>
+            <span style={{ fontWeight: 600, color: T.ink }}>{o.domain}</span>
+            {o.note ? <span style={{ color: T.soft }}>{" · " + o.note}</span> : null}
+          </span>
+          <span style={{ color: T.soft }}>{o.cited_by ? o.cited_by + " of " + engines + " engines" : ""}</span>
+          <span style={{ color: T.ink }}>
+            {o.absent_answers}
+            <span className="res-mob"> answers you miss</span>
+          </span>
+          <DifficultyBar score={o.difficulty ?? null} />
         </div>
       ))}
     </div>
@@ -672,51 +694,37 @@ function PlacementTable(p: { r: RunScanResponse }) {
 }
 
 /**
- * The first three, as the brief.
+ * The first three, as cards: the dial, the page, what it feeds.
  *
- * The board labels them join / join / create. Only join is derivable: a
- * "create" row is a page that does not exist yet, and nothing in the scan
- * records the absence of a page. So these are the three highest-value pages
- * that can be joined, and the create idea is left to the sentence under them
- * rather than dressed up as a finding.
+ * The board labels them join / join / create and names the brands each page
+ * carries. Only join is derivable, and so is not the brand list: a "create"
+ * row is a page that does not exist yet, and nothing in the scan records the
+ * absence of a page. So these are the three highest-value pages that can be
+ * joined, and the second pill says how many engines cite the page - the fact
+ * the scan does hold - where the board's says which brands it names.
  */
-function PlanCards(p: { r: RunScanResponse }) {
-  /* The slice and the labels share one ceiling. Two typed threes is the ladder
-     species this repo keeps finding, and a fourth label with no row to hang on
-     - or a fourth row with no label - is what it looks like here. */
-  const rows = (p.r.opportunities ?? []).slice(0, PLAN_ORDER.length);
+function PlanCards(p: { r: RunScanResponse; rows: RunScanResponse["opportunities"] }) {
+  const rows = p.rows ?? [];
   if (!rows.length) return null;
+  const engines = p.r.engines.length;
+  const chip = (bg: string, fg: string): React.CSSProperties => ({
+    fontSize: "11.5px",
+    fontWeight: 600,
+    color: fg,
+    background: bg,
+    borderRadius: "999px",
+    padding: "3px 9px",
+  });
   return (
-    <div className="seq-three" style={{ marginTop: "16px" }}>
-      {rows.map((o, i) => (
-        <div
-          key={o.domain}
-          style={{ background: T.bg, border: "1px solid " + T.line, borderRadius: "14px", padding: "18px" }}
-        >
-          <div style={{ display: "flex", alignItems: "baseline", gap: "10px" }}>
-            <div style={{ ...MICRO, flexGrow: 1 }}>{PLAN_ORDER[i] + " - join"}</div>
-            {typeof o.difficulty === "number" ? (
-              <span style={BAND_PILL[bandOf(o.difficulty)]}>{bandOf(o.difficulty) + " - " + o.difficulty}</span>
-            ) : null}
-          </div>
-          <div style={{ fontSize: "14px", fontWeight: 600, marginTop: "7px", lineHeight: 1.4 }}>{o.domain}</div>
-          {o.note ? (
-            <p style={{ margin: "8px 0 0", fontSize: "13px", lineHeight: 1.6, color: T.soft }}>{o.note}</p>
-          ) : null}
-          <div
-            style={{
-              marginTop: "11px",
-              paddingTop: "9px",
-              borderTop: "1px solid " + T.line,
-              display: "flex",
-              alignItems: "baseline",
-              gap: "8px",
-            }}
-          >
-            <span style={{ fontSize: "19px", fontWeight: 700, letterSpacing: "-0.03em", color: T.accent }}>
-              {o.absent_answers}
-            </span>
-            <span style={{ fontSize: "12.5px", color: T.soft }}>answers you would win</span>
+    <div className="seq-three">
+      {rows.map((o) => (
+        <div key={o.domain} style={{ background: T.surface, border: "1px solid " + T.line, borderRadius: "18px", padding: "20px", minWidth: 0 }}>
+          <Dial score={o.difficulty ?? null} />
+          <div style={{ fontSize: "15px", fontWeight: 700, marginTop: "16px", lineHeight: 1.3, color: T.ink, overflowWrap: "anywhere" }}>{o.domain}</div>
+          {o.note ? <div style={{ fontSize: "12.5px", color: T.soft, marginTop: "4px", lineHeight: 1.5 }}>{o.note}</div> : null}
+          <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "14px" }}>
+            <span style={chip(T.wash, T.accentHover)}>{feeds(o.absent_answers)}</span>
+            {o.cited_by ? <span style={chip(T.chip, T.soft)}>{"Cited by " + o.cited_by + " of " + engines + " engines"}</span> : null}
           </div>
         </div>
       ))}
@@ -724,44 +732,50 @@ function PlanCards(p: { r: RunScanResponse }) {
   );
 }
 
-function TrackedSection(p: { token: string; questions: number }) {
-  const point = (title: string, body: string) => (
-    <div style={{ borderTop: "1px solid " + T.line, paddingTop: "12px" }}>
-      <div style={{ fontSize: "14px", fontWeight: 600, color: T.ink }}>{title}</div>
-      <p style={{ margin: "4px 0 0", fontSize: "13.5px", lineHeight: 1.6, color: T.soft }}>{body}</p>
+/**
+ * alwaystracked, as ScanResult.dc.html draws it: a dark card with the purple
+ * wash upper right, the argument in four tiles on the left and the walkthrough
+ * ask in a white card on the right. The price line is `pricing.ts`'s label and
+ * question count, never typed here - the tracked tier is a floor, and "from"
+ * travels with the figure.
+ */
+function TrackedSection(p: { token: string }) {
+  const tracked = TIERS.find((t) => t.id === "tracked");
+  const tile = (title: string, body: React.ReactNode) => (
+    <div style={{ background: D.card, border: "1px solid " + D.cardLine, borderRadius: "14px", padding: "14px 16px" }}>
+      <div style={{ fontSize: "14px", fontWeight: 700, color: T.surface }}>{title}</div>
+      <div style={{ fontSize: "13px", lineHeight: 1.5, color: D.muted, marginTop: "4px" }}>{body}</div>
     </div>
   );
   return (
-    <section id="tracked">
-      <div className="page-split" style={{ ...CARD, padding: "28px", rowGap: "24px" }}>
-        <div>
-          <h2 style={{ margin: 0, fontSize: "22px", fontWeight: 700, letterSpacing: "-0.025em", lineHeight: 1.25 }}>
-            This was one reading. <TierName tier="tracked" /> keeps it running.
-          </h2>
-          <p style={{ margin: "10px 0 16px", fontSize: "14px", lineHeight: 1.65, color: T.soft }}>
-            {"You have just seen " +
-              p.questions +
-              " questions on one day. alwaystracked is the same measurement, run for you every week, so you can see what moves and why."}
-          </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            {point("Your own prompts", "Add the questions your buyers actually ask, and track every engine's answer to each one over time.")}
-            {point(
-              "Adjacent opportunities",
-              "The sites cited today are not always ones you can get onto. It also finds the pages that are not cited yet but are the kind these engines reach for - where the right piece has a real chance of being picked up.",
-            )}
-            {point(
-              "Reporting, not placement",
-              "alwaystracked tells you where you stand and where the openings are. Getting the placements is a separate service, alwaysmentioned, where we approach the sites and write what gets you in.",
-            )}
+    <section id="tracked" className="res-tracked on-dark" style={{ background: TRACKED_WASH + ", " + D.ground, color: T.surface }}>
+      <div>
+        <div style={{ fontSize: "18px", fontWeight: 700 }}>
+          <TierName tier="tracked" />
+        </div>
+        <h2 style={{ margin: "10px 0 0", fontSize: "38px", fontWeight: 700, letterSpacing: "-0.035em", lineHeight: 1.08, color: T.surface }} className="res-tracked-h">
+          This was one reading. See it every week.
+        </h2>
+        <div className="res-tiles">
+          {tile("Weekly, not once", TRACKED_QUESTIONS + " questions, checked every week.")}
+          {tile("Your own questions", "The ones your buyers actually ask, not ours.")}
+          {tile("Adjacent openings", "Pages not cited yet, of the kind these engines reach for.")}
+          {tile(
+            "Reporting only",
+            <>
+              Winning the placements is <TierName tier="mentioned" />.
+            </>,
+          )}
+        </div>
+        {tracked ? (
+          <div style={{ fontSize: "13px", color: D.muted, marginTop: "18px" }}>
+            {tracked.priceLabel[0].toUpperCase() + tracked.priceLabel.slice(1) + ", " + TRACKED_QUESTIONS + " questions checked weekly."}
           </div>
-        </div>
-        <div style={{ background: T.bg, border: "1px solid " + T.line, borderRadius: "14px", padding: "20px" }}>
-          <div style={{ fontSize: "15px", fontWeight: 700, color: T.ink }}>See alwaystracked on your own data</div>
-          <p style={{ margin: "4px 0 14px", fontSize: "13.5px", lineHeight: 1.6, color: T.soft }}>
-            It is set up for each client, so the quickest way to see it is a walkthrough of this report.
-          </p>
-          <WalkthroughForm token={p.token} />
-        </div>
+        ) : null}
+      </div>
+      <div style={{ background: T.surface, color: T.ink, borderRadius: "18px", padding: "24px", minWidth: 0 }}>
+        <div style={{ fontSize: "17px", fontWeight: 700, marginBottom: "16px" }}>See it on your own report</div>
+        <WalkthroughForm token={p.token} />
       </div>
     </section>
   );
@@ -847,34 +861,29 @@ export default function ResultView(p: {
       <QuestionTable r={r} onOpen={setOpenIdx} />
 
       {/* Where to get placed - the sources, cut down to the ones worth acting on. */}
-      <section id="plan">
-        <Head title="Where to get placed">
-          Of every page the engines drew on, the ones feeding answers you are missing from, where an article can
-          realistically run. Ranked by how many answers a placement would put you into.
+      {/* 72px between sections on the board: the page's 26px gap plus 46. */}
+      <section id="plan" style={{ marginTop: "46px" }}>
+        <Head title="Where to get placed" aside={opps.length ? selfServeLine(r) : null}>
+          Pages feeding answers you are missing from, where an article can run.
         </Head>
         {opps.length ? (
           <div>
-            <SelfServe r={r} />
-            <PlanCards r={r} />
-            {opps.length > PLAN_ORDER.length ? (
-              <div style={{ marginTop: "16px" }}>
-                <PlacementTable r={r} />
-              </div>
-            ) : null}
-            <p style={{ margin: "14px 0 0", fontSize: "13.5px", lineHeight: 1.65, color: T.soft }}>
-              These are the pages already being cited. <TierName tier="mentioned" /> is how we get you onto them - and
-              where inclusion is not editorially possible, we find the equivalent page and write the content that gets
-              you in.
-            </p>
+            <PlanCards r={r} rows={opps.slice(0, PLAN_ORDER.length)} />
+            {opps.length > PLAN_ORDER.length ? <PlacementTable r={r} rows={opps.slice(PLAN_ORDER.length)} /> : null}
+            <HardOnes r={r} />
           </div>
         ) : (
           <NoPlacements sources={r.sources} />
         )}
       </section>
 
-      <ShareOfVoice r={r} />
+      <div style={{ marginTop: "46px" }}>
+        <ShareOfVoice r={r} />
+      </div>
 
-      <TrackedSection token={p.token} questions={qs.length} />
+      <div style={{ marginTop: "46px" }}>
+        <TrackedSection token={p.token} />
+      </div>
 
       <AnswerDrawer r={r} idx={openIdx} onClose={close} onMove={setOpenIdx} />
     </div>

@@ -41,6 +41,8 @@ export const WASH =
   "radial-gradient(600px 460px at 92% 78%, rgba(124,58,237,.16), rgba(17,18,24,0) 70%)";
 /** The packages band's single wash, upper right, from Packages.dc.html. */
 export const PACKAGES_WASH = "radial-gradient(640px 420px at 85% 20%, rgba(124,58,237,.2), rgba(17,18,24,0) 70%)";
+/** The alwaystracked card on the scan result, upper right, from ScanResult.dc.html. */
+export const TRACKED_WASH = "radial-gradient(600px 400px at 90% 0%, rgba(124,58,237,.25), rgba(17,18,24,0) 70%)";
 export const WASH_SIZE = "100% 1040px";
 /** The header's height on the dark ground: 14px padding, a 38px button, 14px. */
 export const HEADER_H = 66;
