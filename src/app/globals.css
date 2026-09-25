@@ -276,7 +276,9 @@ html[data-motion="on"] .stair-step { animation: stair-step 10s infinite both; an
   }
 }
 
-/* Footer: brand block plus three link columns on the 12-column grid. */
+/* Footer: brand block plus three link columns on the 12-column grid. Not a
+   .board-head: that rule's display:block on a phone dropped this row-gap and
+   ran the stacked columns together (Q05, 25 Sep 2026). */
 .footer-col {
   grid-column: span 2;
 }

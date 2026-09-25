@@ -66,7 +66,7 @@ export default function Footer() {
   return (
     <footer style={{ marginTop: "44px", borderTop: `1px solid ${T.line}` }}>
       <div
-        className="board-head footer-grid"
+        className="footer-grid"
         style={{
           ...GRID12,
           alignItems: "start",
