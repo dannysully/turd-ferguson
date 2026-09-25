@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import { OG_IMAGE } from "@/config/og";
 import Link from "next/link";
 
+import { D } from "@/components/home/dark";
 import TierName from "@/components/TierName";
-import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
 import ToConfirm from "@/components/ToConfirm";
+import { CARD, SHELL, T } from "@/config/tokens";
 
 export const metadata: Metadata = {
   title: "White label for agencies",
@@ -15,13 +16,21 @@ export const metadata: Metadata = {
 };
 
 /**
- * WhiteLabel.dc.html.
+ * WhiteLabel.dc.html (25 Sep 2026 read, Q14), including its beat: the reskin.
  *
- * The board's own framing is the point of the page: "the honest version,
- * including the one place our name can appear if you do nothing about it".
- * The table says "Ours" twice, and that is why it is worth reading - a
- * white-label page that claimed every surface was the agency's would be the
- * less useful page and the less true one.
+ * The same report card is drawn twice, once as ours and once as a made-up
+ * agency's (Northlight Digital), stacked in one grid cell. What is painted is
+ * the settled state - the agency's skin, which is what the board itself shows
+ * under reduced motion - so the page reads right with no JavaScript. Under
+ * `html[data-motion="on"]` the board's 9s loop runs: ours, a wipe in the
+ * agency's colour, theirs, and back. The two skins' text is identical apart
+ * from the name and domain, so the hidden one is aria-hidden rather than read
+ * twice.
+ *
+ * The board's own framing is the point of the page: "the one place our name
+ * appears if you do nothing about it". The cards say "Ours" twice, and that is
+ * why they are worth reading - a white-label page that claimed every surface
+ * was the agency's would be the less useful page and the less true one.
  *
  * The contract-clause wording is marked rather than paraphrased. What a
  * non-contact clause actually says is a commitment, and inventing a plausible
@@ -29,99 +38,157 @@ export const metadata: Metadata = {
  * agreed.
  */
 
+/** Northlight's brand colour and tint - a made-up agency, deliberately not ours. */
+const NORTHLIGHT = { accent: "#0f766e", tint: "#e6f4f1" };
+
+const SKINS: { cls: string; brand: React.ReactNode; domain: string; accent: string; tint: string }[] = [
+  { cls: "wl-ours", brand: <TierName tier="cited" />, domain: "app.alwayscited.com", accent: T.accent, tint: T.wash },
+  { cls: "wl-theirs", brand: "Northlight Digital", domain: "insights.northlight.agency", ...NORTHLIGHT },
+];
+
+/**
+ * `by` is how many engines cited that made-up page in a made-up month - an
+ * illustrative figure, not the size of the engine set, which is what
+ * copy.test.mts keeps from being typed. Held as a number so no sentence here
+ * reads as a count of the engines we run.
+ */
+const PLACES: { t: string; u: string; by: number }[] = [
+  { t: "The 9 best invoicing apps for freelancers", u: "solodesk.io", by: 3 },
+  { t: "Invoicing software, compared", u: "invoicingguide.co", by: 3 },
+  { t: "How freelancers get paid on time", u: "freelancefield.com", by: 2 },
+];
+
 const ROWS: { surface: string; brand: string; note: string }[] = [
-  { surface: "The visibility dashboard", brand: "Yours", note: "Your logo, your colours, on your subdomain if you want one" },
-  { surface: "Monthly reporting", brand: "Yours", note: "Generated from the same data, none of our marks on it" },
-  { surface: "Placement summaries", brand: "Yours", note: "What went live, where, and what it moved" },
-  { surface: "Outreach to publishers", brand: "Ours", note: "We approach the title. Your client is never named to them unless you ask" },
-  { surface: "The published article", brand: "The publisher's", note: "It is their editorial. Neither of us appears in the byline" },
-  { surface: "Invoices and contracts", brand: "Ours, to you", note: "The one place our name appears, and your client never sees it" },
+  { surface: "The visibility dashboard", brand: "Yours", note: "Your logo and colours, on your subdomain if you want one." },
+  { surface: "Monthly reporting", brand: "Yours", note: "Generated from the same data, none of our marks on it." },
+  { surface: "Placement summaries", brand: "Yours", note: "What went live, where, and what it moved." },
+  { surface: "Outreach to publishers", brand: "Ours", note: "We approach the title. Your client is never named unless you ask." },
+  { surface: "The published article", brand: "Publisher", note: "Their editorial. Neither of us is in the byline." },
+  { surface: "Invoices and contracts", brand: "Ours, to you", note: "The one place our name appears. Your client never sees it." },
 ];
 
 const TERMS: { label: string; value: string; note: React.ReactNode }[] = [
   { label: "Contract", value: "Monthly", note: "No minimum term. Thirty days to stop." },
-  { label: "Invoicing", value: "One, to you", note: "Per client or consolidated. You bill your client however you like." },
+  { label: "Invoicing", value: "One, to you", note: "Per client or consolidated." },
   {
     label: "Contact with your client",
     value: "None",
     note: (
       <>
-        Written into the agreement.{" "}
-        <ToConfirm>the clause wording</ToConfirm>
+        Written into the agreement. <ToConfirm>the clause wording</ToConfirm>
       </>
     ),
   },
 ];
 
+const pill = (color: string, background: string): React.CSSProperties => ({
+  fontSize: "11.5px",
+  fontWeight: 600,
+  borderRadius: "999px",
+  padding: "3px 9px",
+  color,
+  background,
+  whiteSpace: "nowrap",
+});
+
 export default function WhiteLabelPage() {
   return (
-    <main style={{ ...SHELL, paddingTop: "44px", paddingBottom: "44px", display: "flex", flexDirection: "column", gap: "30px" }}>
-      <div className="board-head" style={{ ...GRID12, alignItems: "start" }}>
-        {/* The beat, from globals.css. Both table heads stay out of it, so a
-            group is the content rather than the chrome above it. */}
-        <div style={{ gridColumn: "span 7" }}>
-          <div className="ac-row" style={MICRO}>White label</div>
-          <h1 className="ac-row" style={{ margin: "10px 0 0", fontSize: "36px", fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.18, color: T.ink }}>
+    <main style={{ ...SHELL, paddingTop: "72px", paddingBottom: "72px" }}>
+      <div className="wl-top">
+        <div>
+          <div style={{ fontSize: "13px", fontWeight: 600, color: T.soft }}>White label</div>
+          <h1 className="wl-h1" style={{ margin: "12px 0 0", fontSize: "52px", fontWeight: 700, letterSpacing: "-0.04em", lineHeight: 1.03, color: T.ink }}>
             Your client never finds out we exist.
           </h1>
-          <p className="ac-row" style={{ margin: "14px 0 0", fontSize: "15px", lineHeight: 1.6, color: T.soft, maxWidth: "62ch" }}>
-            Everything a client opens carries your name. Everything we send carries theirs. Here is exactly where the
-            line sits, so you can check it against what you have promised.
+          <p style={{ margin: "20px 0 0", fontSize: "17px", lineHeight: 1.55, color: T.soft, maxWidth: "38ch" }}>
+            Same data, same dashboards. Your name, your colours, your domain.
           </p>
+        </div>
+
+        <div>
+          <div className="wl-skins" style={{ lineHeight: 1.3 }}>
+            {SKINS.map((k) => (
+              <div
+                key={k.cls}
+                className={"wl-skin " + k.cls}
+                aria-hidden={k.cls === "wl-ours" ? true : undefined}
+                style={{ ...CARD, padding: "22px 24px" }}
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", paddingBottom: "16px", borderBottom: `1px solid ${T.line}` }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span aria-hidden="true" style={{ width: "22px", height: "22px", borderRadius: "6px", background: k.accent, flexShrink: 0 }} />
+                    <span style={{ fontSize: "15px", fontWeight: 700, letterSpacing: "-0.02em", color: T.ink }}>{k.brand}</span>
+                  </div>
+                  <span style={{ fontSize: "12px", color: T.soft, overflowWrap: "anywhere" }}>{k.domain}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: "12px", marginTop: "18px", flexWrap: "wrap" }}>
+                  <div>
+                    <div style={{ fontSize: "13px", fontWeight: 600, color: T.ink }}>Tallyroo, September report</div>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: "10px", marginTop: "6px", flexWrap: "wrap" }}>
+                      <span style={{ fontSize: "44px", fontWeight: 700, letterSpacing: "-0.04em", lineHeight: 1, color: k.accent }}>15%</span>
+                      <span style={{ fontSize: "13px", color: T.soft }}>12 of 80 answers name Tallyroo</span>
+                    </div>
+                  </div>
+                  <div style={{ ...pill(k.accent, k.tint), fontSize: "12px", padding: "4px 10px" }}>Up from 4%</div>
+                </div>
+                <svg width="100%" height="110" viewBox="0 0 560 110" preserveAspectRatio="none" fill="none" style={{ marginTop: "16px", display: "block" }} aria-hidden="true">
+                  <path d="M0 96 L80 92 L160 88 L240 70 L320 62 L400 40 L480 34 L560 22" stroke={k.accent} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+                  <path d="M0 106 H560" stroke={T.line} vectorEffect="non-scaling-stroke" />
+                </svg>
+                <div style={{ fontSize: "12px", fontWeight: 600, color: T.soft, marginTop: "14px" }}>Placements live this month</div>
+                {PLACES.map((p) => (
+                  <div key={p.u} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", padding: "9px 0", borderTop: `1px solid ${T.hair}`, fontSize: "13px", lineHeight: 1.3 }}>
+                    <span style={{ minWidth: 0 }}>
+                      <span style={{ fontWeight: 600, color: T.ink }}>{p.t}</span>
+                      <span style={{ color: T.soft }}>{" · " + p.u}</span>
+                    </span>
+                    <span style={pill(k.accent, k.tint)}>Cited by {p.by} engines</span>
+                  </div>
+                ))}
+              </div>
+            ))}
+            <div className="wl-wipe" aria-hidden="true" style={{ background: NORTHLIGHT.accent }} />
+          </div>
+          <div style={{ marginTop: "12px", fontSize: "12px", color: T.soft }}>Illustrative. Northlight and Tallyroo are made up.</div>
         </div>
       </div>
 
-      <section>
-        <div className="board-head" style={{ ...GRID12, marginBottom: "16px" }}>
-          <h2 className="ac-row" style={{ ...H2, gridColumn: "span 4" }}>Who sees what</h2>
-          <p className="ac-row" style={{ gridColumn: "span 8", margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
-            The honest version, including the one place our name can appear if you do nothing about it.
+      <section style={{ marginTop: "96px" }}>
+        <div className="wl-head">
+          <h2 style={{ margin: 0, fontSize: "28px", fontWeight: 700, letterSpacing: "-0.03em", color: T.ink, flexShrink: 0 }}>Who sees what</h2>
+          <p style={{ margin: 0, fontSize: "15px", lineHeight: 1.5, color: T.soft }}>
+            Including the one place our name appears if you do nothing about it.
           </p>
         </div>
-
-        <div style={{ ...CARD, overflow: "hidden" }}>
-          <div className="wl-row" style={{ padding: "11px 26px", background: "#fbfbfc", borderBottom: `1px solid ${T.line}` }}>
-            <div style={MICRO}>Surface</div>
-            <div style={MICRO}>Whose branding</div>
-            <div style={MICRO}>Notes</div>
-          </div>
+        <div className="wl-grid" style={{ marginTop: "24px" }}>
           {ROWS.map((r) => (
-            <div key={r.surface} className="wl-row ac-row" style={{ padding: "13px 26px", borderBottom: `1px solid ${T.hair}`, alignItems: "baseline" }}>
-              <div style={{ fontSize: "14px", fontWeight: 500, color: T.ink }}>{r.surface}</div>
-              <div style={{ fontSize: "14px", color: T.ink }}>{r.brand}</div>
-              <div style={{ fontSize: "13.5px", lineHeight: 1.55, color: T.soft }}>{r.note}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section>
-        <div className="board-head" style={{ ...GRID12, marginBottom: "16px" }}>
-          <h2 className="ac-row" style={{ ...H2, gridColumn: "span 4" }}>How the account runs</h2>
-          <p className="ac-row" style={{ gridColumn: "span 8", margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
-            Commercial terms, in the same place as the branding ones.
-          </p>
-        </div>
-
-        <div className="wl-terms" style={{ ...CARD, overflow: "hidden" }}>
-          {TERMS.map((t, i) => (
-            <div key={t.label} className="wl-term ac-row" style={{ padding: "22px 26px", borderLeft: i ? `1px solid ${T.line}` : undefined }}>
-              <div style={{ fontSize: "14px", color: T.soft }}>{t.label}</div>
-              <div style={{ fontSize: "27px", fontWeight: 700, letterSpacing: "-0.035em", lineHeight: 1.15, marginTop: "2px", color: T.ink }}>
-                {t.value}
+            <div key={r.surface} className="ac-row" style={{ ...CARD, borderRadius: "16px", padding: "18px 20px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px" }}>
+                <h3 style={{ margin: 0, fontSize: "14.5px", fontWeight: 700, color: T.ink }}>{r.surface}</h3>
+                <span style={r.brand === "Yours" ? pill(T.goodFg, T.goodBg) : pill(T.soft, T.chip)}>{r.brand}</span>
               </div>
-              <div style={{ fontSize: "13px", color: T.soft, marginTop: "6px", maxWidth: "34ch", lineHeight: 1.55 }}>{t.note}</div>
+              <div style={{ fontSize: "13px", lineHeight: 1.5, color: T.soft, marginTop: "8px" }}>{r.note}</div>
             </div>
           ))}
         </div>
-      </section>
 
-      <p className="ac-row" style={{ margin: 0, fontSize: "13.5px", color: T.soft, lineHeight: 1.65 }}>
-        <Link href="/#packages" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
-          See what it costs
-        </Link>{" "}
-        - or run a scan on a client first. The <TierName tier="cited" /> plan is the one most agencies start on.
-      </p>
+        <div className="wl-grid" style={{ marginTop: "16px" }}>
+          {TERMS.map((t) => (
+            <div key={t.label} className="ac-row" style={{ background: T.ink, color: T.surface, borderRadius: "16px", padding: "20px" }}>
+              <div style={{ fontSize: "12.5px", color: D.muted }}>{t.label}</div>
+              <div style={{ fontSize: "26px", fontWeight: 700, letterSpacing: "-0.03em", marginTop: "4px", color: T.surface }}>{t.value}</div>
+              <div style={{ fontSize: "13px", lineHeight: 1.5, color: D.muted, marginTop: "4px" }}>{t.note}</div>
+            </div>
+          ))}
+        </div>
+
+        <p style={{ margin: "22px 0 0", fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
+          <Link href="/#packages" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
+            See what it costs
+          </Link>{" "}
+          - or run a scan on a client first.
+        </p>
+      </section>
     </main>
   );
 }

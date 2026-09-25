@@ -185,7 +185,8 @@ const OFF_PALETTE: Record<string, Entry> = {
       // pr-agencies/page.tsx left on 25 Sep 2026 (Q12): the dead coverage
       // card is D.card on the dark fan-out now.
       "src/app/what-is-aeo/page.tsx": 1,
-      "src/app/white-label/page.tsx": 1,
+      // white-label/page.tsx left on 25 Sep 2026 (Q14): the table header row
+      // went when the rows became WhiteLabel.dc.html's six cards.
       "src/components/scan/ConfirmScreen.tsx": 1,
       // ResultView.tsx left this list on 25 Sep 2026: 3 -> 2 in Q09 (the
       // question table's header row went) and 2 -> 0 in Q10 (the placement
@@ -368,6 +369,18 @@ const OFF_PALETTE: Record<string, Entry> = {
     why: "Anthropic's own brand clay, on the Claude chip. Not ours to change or to tokenise.",
     boards: 0,
     sites: { "src/lib/scan/engines.ts": 1 },
+  },
+  // Added 25 Sep 2026 (Q14). A made-up agency's brand, the other half of the
+  // white-label reskin: the point of the beat is that it is not our purple.
+  "#0f766e": {
+    why: "Northlight Digital's brand teal on /white-label's reskin demo (WhiteLabel.dc.html) - the made-up agency the report is reskinned for. Must stay not-ours: a token would make it part of our system.",
+    boards: 1,
+    sites: { "src/app/white-label/page.tsx": 1 },
+  },
+  "#e6f4f1": {
+    why: "Northlight Digital's pill tint on the same reskin demo, drawn by WhiteLabel.dc.html beside #0f766e. Same reason: the agency's colour, not ours.",
+    boards: 1,
+    sites: { "src/app/white-label/page.tsx": 1 },
   },
 
   // ---- the two no board draws ----------------------------------------------

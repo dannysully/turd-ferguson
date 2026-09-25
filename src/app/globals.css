@@ -379,43 +379,54 @@ html[data-motion="on"] .chart-dot.in-view {
   }
 }
 
-/* White label: surface / branding / notes on the 12-column grid. */
-.wl-row {
+/* White label (WhiteLabel.dc.html, Q14, 25 Sep 2026): headline beside the
+   reskin at 5fr / 7fr, then "Who sees what" and the terms as 3-up cards.
+   The two skins share one grid cell, so the stack is as tall as the taller
+   card rather than a fixed 470px. At rest the agency's skin shows - the
+   board's own reduced-motion state; the loop runs only under motion-on. */
+.wl-top {
   display: grid;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  column-gap: 24px;
+  grid-template-columns: 5fr 7fr;
+  gap: 64px;
+  align-items: center;
 }
-.wl-row > * {
-  grid-column: span 4;
+.wl-skins { display: grid; position: relative; }
+.wl-skin { grid-area: 1 / 1; }
+.wl-ours { opacity: 0; }
+.wl-wipe {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -1px;
+  height: 3px;
+  border-radius: 3px;
+  transform-origin: left center;
+  transform: scaleX(0);
+  opacity: 0;
 }
-.wl-terms {
-  display: flex;
+.wl-head { display: flex; align-items: baseline; gap: 40px; }
+.wl-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
 }
-.wl-term {
-  flex-grow: 1;
-  flex-basis: 0;
+html[data-motion="on"] .wl-ours { animation: wlOurs 9s infinite both; }
+html[data-motion="on"] .wl-theirs { animation: wlTheirs 9s infinite both; }
+html[data-motion="on"] .wl-wipe { animation: wlWipe 9s infinite ease-in-out both; }
+@keyframes wlOurs { 0%, 42% { opacity: 1; } 50%, 92% { opacity: 0; } 100% { opacity: 1; } }
+@keyframes wlTheirs { 0%, 42% { opacity: 0; } 50%, 92% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes wlWipe { 0%, 40% { transform: scaleX(0); opacity: 1; } 46% { transform: scaleX(1); opacity: 1; } 52%, 100% { transform: scaleX(1); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  html[data-motion="on"] :is(.wl-ours, .wl-theirs, .wl-wipe) { animation: none; }
+}
+@media (max-width: 1000px) {
+  .wl-top { grid-template-columns: 1fr; gap: 36px; }
+  .wl-grid { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 860px) {
-  .wl-row {
-    grid-template-columns: 1fr;
-    row-gap: 4px;
-  }
-  .wl-row > * {
-    grid-column: 1 / -1;
-  }
-  .wl-row:first-of-type {
-    display: none;
-  }
-  .wl-terms {
-    display: block;
-  }
-  .wl-term {
-    border-left: 0 !important;
-    border-top: 1px solid var(--line);
-  }
-  .wl-term:first-child {
-    border-top: 0;
-  }
+  .wl-h1 { font-size: 36px !important; }
+  .wl-head { flex-direction: column; gap: 8px; }
+  .wl-grid { grid-template-columns: 1fr; }
 }
 
 /* PR agencies: the hero's coverage fan-out (PRAgencies.dc.html, Q12, 25 Sep
