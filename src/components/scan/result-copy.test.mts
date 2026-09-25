@@ -91,3 +91,24 @@ test("no tier name sits inside a link, bar the logo", () => {
   assert.equal(logo.length, 1, "the header logo is the one allowed lockup in a link, and the sweep should still see it");
   assert.deepEqual(sites.filter((s) => !LOGO.has(s.split(":")[0]!)), []);
 });
+
+/**
+ * R16/R17, 25 September 2026. The classifier's note is database text, so the
+ * sweep above cannot see what it says - "Marketplace/directory listing..."
+ * reached the live table. Every note that leaves the server goes through
+ * `publicNote` (opportunities.ts, tested there); this pins that no builder
+ * reads a raw note past it, and that the result paints notes in exactly the
+ * two places that read those filtered rows.
+ */
+test("every note that reaches the result has been through publicNote", () => {
+  const opp = read("src/lib/scan/opportunities.ts");
+  const unlock = read("src/lib/scan/unlock.ts");
+  assert.match(opp, /note: publicNote\(classified\?\.note\)/, "deriveOpportunities no longer filters the note");
+  assert.match(unlock, /note: publicNote\(kindOf\.get\(c\.source_domain\)\?\.note\)/, "the sources list no longer filters the note");
+  for (const [file, src] of [["opportunities.ts", opp], ["unlock.ts", unlock]] as const) {
+    assert.doesNotMatch(src, /note: [^\n]*\?\.note \?\? null/, `${file} copies a raw classifier note`);
+  }
+  const paints = read("src/components/scan/ResultView.tsx").match(/\bo\.note\b/g) ?? [];
+  // Two sites, each reading o.note twice (the guard and the text): PlanCards and PlacementTable.
+  assert.equal(paints.length, 4, "ResultView paints a note somewhere new - check it reads a filtered row");
+});

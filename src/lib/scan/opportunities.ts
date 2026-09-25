@@ -65,6 +65,31 @@ export type Opportunity = {
 };
 
 /**
+ * A classifier note as the visitor may read it, or null.
+ *
+ * R16/R17, 25 September 2026. The note is free text the source classifier
+ * wrote per domain, and it reached the result verbatim in two places - the
+ * three cards and the "page · note" table. One live scan printed
+ * "Marketplace/directory listing marketing agencies" beside mayple.com, which
+ * QF1(a) says must never happen: nothing on the result names or implies a
+ * marketplace or a price beside a placement. A source-file census cannot see
+ * this, because the words are in the database, not the code.
+ *
+ * So the whole note is dropped when it trips, not edited: a half-sentence is
+ * worse than none, and the row reads fine as the domain alone. Applied where
+ * the rows are built, so the page, the embedded payload and /full all get the
+ * same answer and no render site has to remember.
+ */
+const SALE_WORDS =
+  /market\s*place|listed on|listing|directory|for sale|sponsored|paid (post|placement|link)|guest post|price|pricing|[$£€]\s?\d|\d+\s?(usd|gbp|eur)\b/i;
+
+export function publicNote(note: string | null | undefined): string | null {
+  const t = (note ?? "").trim();
+  if (!t) return null;
+  return SALE_WORDS.test(t) ? null : t;
+}
+
+/**
  * The placement opportunities: pages that fed answers the brand was NOT
  * named in, and that we could realistically be placed into.
  *
@@ -140,7 +165,7 @@ export function deriveOpportunities(input: {
     const row: Opportunity = oppBy.get(c.source_domain) ?? {
       domain: c.source_domain,
       kind: k,
-      note: classified?.note ?? null,
+      note: publicNote(classified?.note),
       absent_answers: 0,
       absent_questions: 0,
       questions: [],

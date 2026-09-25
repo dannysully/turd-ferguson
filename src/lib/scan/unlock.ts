@@ -4,6 +4,7 @@ import { after } from "next/server";
 
 import {
   deriveOpportunities,
+  publicNote,
   type AnswerRow,
   type CitationRow,
   type KindRow,
@@ -342,7 +343,7 @@ export async function buildUnlockPayload(scanId: string): Promise<UnlockPayload>
       engines: [],
       urls: [],
       kind: kindOf.get(c.source_domain)?.kind ?? null,
-      note: kindOf.get(c.source_domain)?.note ?? null,
+      note: publicNote(kindOf.get(c.source_domain)?.note),
     };
     const key = `${c.source_domain}|${c.question_id}|${c.engine}`;
     if (!counted.has(key)) {

@@ -3,6 +3,7 @@ import { test } from "node:test";
 
 import {
   deriveOpportunities,
+  publicNote,
   type AnswerRow,
   type CitationRow,
   type KindRow,
@@ -233,4 +234,43 @@ test("a domain named for something on Object.prototype is not classified by inhe
     kinds: [],
   });
   assert.deepEqual(out, []);
+});
+
+/**
+ * R16/R17, 25 September 2026: a classifier note that names a marketplace, a
+ * listing or a price never leaves the derivation, so neither the three cards
+ * nor the "page · note" table can print it, whichever domains sort highest.
+ * The fixture is the live mayple.com note word for word.
+ */
+test("a note naming a marketplace, a listing or a price does not reach the rows", () => {
+  const rows = deriveOpportunities({
+    questions: [q("q1", "best b2b seo agency uk")],
+    answers: [answer("q1", "perplexity", false)],
+    citations: [cite("mayple.com", "q1", "perplexity"), cite("example-blog.com", "q1", "perplexity")],
+    kinds: [
+      { domain: "mayple.com", kind: "placement", note: "Marketplace/directory listing marketing agencies", on_topic: true },
+      { domain: "example-blog.com", kind: "placement", note: "Roundup of UK SEO agencies", on_topic: true },
+    ],
+  });
+  const mayple = rows.find((r) => r.domain === "mayple.com");
+  assert.ok(mayple, "the row itself stays - only its note goes");
+  assert.equal(mayple.note, null);
+  assert.equal(rows.find((r) => r.domain === "example-blog.com")?.note, "Roundup of UK SEO agencies");
+  for (const r of rows) assert.doesNotMatch(JSON.stringify(r), /marketplace|listed on|\$\s?\d/i);
+});
+
+test("publicNote drops every sale word, keeps an ordinary note", () => {
+  for (const bad of [
+    "Marketplace/directory listing marketing agencies",
+    "Listed on a link market place",
+    "Sponsored posts from $150",
+    "Guest post site, pricing on request",
+    "Agency directory",
+    "Charges £80 per article",
+  ]) {
+    assert.equal(publicNote(bad), null, bad);
+  }
+  assert.equal(publicNote("  Industry news site covering SaaS  "), "Industry news site covering SaaS");
+  assert.equal(publicNote(null), null);
+  assert.equal(publicNote(""), null);
 });
