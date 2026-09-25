@@ -663,10 +663,28 @@ html[data-motion="on"] .ac-stamp.in-view {
   padding: 10px 26px;
   align-items: baseline;
 }
+/* A textarea's baseline is its bottom edge, so baseline alignment pushed every
+   body row down to 47px against the board's 39. Top-aligned, the question box's
+   negative margin puts its text on the same line as the cells beside it. */
+.q-row:not(.q-head) { align-items: start; }
 
 @media (max-width: 860px) {
   .confirm-top { grid-template-columns: 1fr; row-gap: 20px; }
-  .q-row { grid-template-columns: 1fr auto; row-gap: 4px; }
+  /* Five cells in two columns scrambled the order at 390 - number and question
+     on one line, cluster and intent on the next, Remove adrift under them. Named
+     areas instead: the question across the top, what it is under it. */
+  .q-row {
+    grid-template-columns: 20px minmax(0, 1fr) auto auto;
+    grid-template-areas: "n q q q" ". c i r";
+    column-gap: 12px;
+    row-gap: 4px;
+    padding: 12px 18px;
+  }
+  .q-row > :nth-child(1) { grid-area: n; }
+  .q-row > :nth-child(2) { grid-area: q; }
+  .q-row > :nth-child(3) { grid-area: c; }
+  .q-row > :nth-child(4) { grid-area: i; }
+  .q-row > :nth-child(5) { grid-area: r; }
   /* Nothing left to label once the row reflows into two columns. */
   .q-head { display: none; }
 }

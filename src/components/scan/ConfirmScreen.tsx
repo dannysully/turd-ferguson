@@ -122,6 +122,9 @@ const quietBtn: React.CSSProperties = {
   border: 0,
   cursor: "pointer",
   padding: "4px 6px",
+  // The padding is hit area, not layout: without this the Remove cell was the
+  // tallest in the row and set every question row 7px over the board's.
+  margin: "-4px -6px",
 };
 
 export default function ConfirmScreen(p: {
@@ -393,8 +396,10 @@ export default function ConfirmScreen(p: {
             onChange={(e) => setTopic(e.target.value)}
             style={fieldStyle}
           />
-          <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
-            <legend style={fieldLabel}>Market</legend>
+          {/* A legend's top margin is not honoured inside a fieldset, so the
+              board's 14px gap above "Market" lives on the fieldset instead. */}
+          <fieldset style={{ border: 0, padding: 0, margin: "14px 0 0" }}>
+            <legend style={{ ...fieldLabel, margin: "0 0 6px", padding: 0 }}>Market</legend>
             <div style={{ display: "flex", gap: "8px" }}>
               {(["UK", "US"] as Market[]).map((m) => (
                 <button
@@ -484,7 +489,7 @@ export default function ConfirmScreen(p: {
               Which clusters matter to you
             </h2>
             <p style={{ margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
-              Keep the ones you care about and drop the rest - the question count comes down with them. Better{" "}
+              We found {clusters.length}. Keep the ones you care about and drop the rest - the question count comes down with them. Better{" "}
               {MAX_QUESTIONS} sharp questions on the cluster that matters than one each on clusters you do not care about.
             </p>
           </div>
@@ -592,7 +597,9 @@ export default function ConfirmScreen(p: {
                 </div>
                 <div style={{ fontSize: "12.5px", color: T.soft }}>{q.cluster}</div>
                 <div style={MICRO}>{INTENT[q.kind] ?? INTENT.custom}</div>
-                <div style={{ textAlign: "right" }}>
+                {/* Flex, not text-align: an inline button sits on the div's own
+                    16px line and made this the tallest cell in the row. */}
+                <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: "3px" }}>
                   <button type="button" onClick={() => remove(i)} aria-label={removeLabel} style={quietBtn}>
                     Remove
                   </button>

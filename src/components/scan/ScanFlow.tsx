@@ -809,10 +809,10 @@ export default function ScanFlow(p: {
 
   const stepLabel =
     phase === "confirm"
-      ? "Step 1 of 3 - confirm"
+      ? "Step 1 of 3 · Confirm"
       : phase === "running"
-        ? "Step 2 of 3 - running"
-        : "Step 3 of 3 - result";
+        ? "Step 2 of 3 · Running"
+        : "Step 3 of 3 · Result";
 
   /**
    * Nothing to place them into, and we knew it before the address was asked
