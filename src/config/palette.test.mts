@@ -186,7 +186,9 @@ const OFF_PALETTE: Record<string, Entry> = {
       "src/app/what-is-aeo/page.tsx": 1,
       "src/app/white-label/page.tsx": 1,
       "src/components/scan/ConfirmScreen.tsx": 1,
-      "src/components/scan/ResultView.tsx": 3,
+      // 3 -> 2 on 25 Sep 2026 (Q09): the question table's header row went,
+      // as ScanResult.dc.html draws the rows with no header.
+      "src/components/scan/ResultView.tsx": 2,
     },
   },
   "#3f4451": {

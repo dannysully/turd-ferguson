@@ -69,6 +69,8 @@ const pill = (bg: string, fg: string): React.CSSProperties => ({
 const YES = pill(T.goodBg, T.goodFg);
 const NO = pill(T.badBg, T.badFg);
 const QUIET = pill(T.chip, T.soft);
+/** The question row's pill, from ScanResult.dc.html: purple when named, quiet when not. */
+const ROW_NAMED = pill(T.wash, T.accentHover);
 
 /**
  * What kind of site each cited page is. Unclassified renders nothing at all:
@@ -77,35 +79,36 @@ const QUIET = pill(T.chip, T.soft);
  */
 function Head(p: { title: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="board-head confirm-head" style={{ marginBottom: "14px" }}>
-      <h2 style={{ margin: 0, fontSize: "19px", fontWeight: 700, letterSpacing: "-0.022em", color: T.ink }}>
+    // ScanResult.dc.html: a 26px heading with its description beside it on the
+    // same baseline, 32px apart. `.board-head` stacks them on a phone.
+    <div className="board-head" style={{ display: "flex", alignItems: "baseline", gap: "32px", marginBottom: "18px" }}>
+      <h2 style={{ margin: 0, fontSize: "26px", fontWeight: 700, letterSpacing: "-0.03em", color: T.ink, flexShrink: 0 }}>
         {p.title}
       </h2>
-      <p style={{ margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>{p.children}</p>
+      <p style={{ margin: 0, fontSize: "14.5px", lineHeight: 1.6, color: T.soft }}>{p.children}</p>
     </div>
   );
 }
 
-function Metric(p: { label: string; value: React.ReactNode; note: string; first?: boolean }) {
+/**
+ * One figure in its own card, as the board draws them: label, then the value.
+ * The note is the denominator in words, which the board leaves out; it stays,
+ * visually hidden, because "of 5" means "of the questions an engine answered"
+ * and a screen reader has no other way to learn that.
+ */
+function Metric(p: { label: string; value: React.ReactNode; note: string }) {
   return (
-    <div
-      style={{
-        flexGrow: 1,
-        flexBasis: 0,
-        padding: "20px 22px",
-        borderLeft: p.first ? undefined : "1px solid " + T.line,
-      }}
-    >
-      <div style={{ fontSize: "13px", color: T.soft }}>{p.label}</div>
-      <div style={{ fontSize: "32px", fontWeight: 700, letterSpacing: "-0.035em", lineHeight: 1.1, marginTop: "2px" }}>
+    <div style={{ background: T.surface, border: "1px solid " + T.line, borderRadius: "16px", padding: "16px", minWidth: 0 }}>
+      <div style={{ fontSize: "12.5px", color: T.soft }}>{p.label}</div>
+      <div style={{ fontSize: "30px", fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.15, marginTop: "4px", color: T.ink }}>
         {p.value}
       </div>
-      <div style={{ fontSize: "12.5px", color: T.soft, marginTop: "5px", maxWidth: "32ch" }}>{p.note}</div>
+      <span className="sr-only">{p.note}</span>
     </div>
   );
 }
 
-const unit: React.CSSProperties = { fontSize: "14px", fontWeight: 600, color: T.soft, letterSpacing: 0 };
+const unit: React.CSSProperties = { fontSize: "15px", color: T.soft, letterSpacing: 0 };
 
 /* ── Question by question ── */
 
@@ -123,7 +126,7 @@ function answerState(a: EngineAnswer): "named" | "not named" | "no answer" {
 function EngineMarks(p: { answers: EngineAnswer[] }) {
   if (!p.answers.length) return null;
   return (
-    <div style={{ display: "flex", gap: "5px", justifyContent: "flex-end" }}>
+    <div style={{ display: "flex", gap: "8px" }}>
       {p.answers.map((a) => {
         const state = answerState(a);
         return (
@@ -133,14 +136,14 @@ function EngineMarks(p: { answers: EngineAnswer[] }) {
             style={{
               width: "26px",
               height: "26px",
-              borderRadius: "999px",
+              borderRadius: "7px",
               display: "grid",
               placeItems: "center",
               background: T.surface,
               color: T.ink,
               border:
                 state === "named"
-                  ? "1.5px solid " + T.goodFg
+                  ? "1.5px solid " + T.accent
                   : state === "no answer"
                     ? "1px dashed " + T.line
                     : "1px solid " + T.line,
@@ -160,18 +163,15 @@ function QuestionTable(p: { r: RunScanResponse; onOpen: (idx: number) => void })
   const qs = p.r.questions ?? [];
   if (!qs.length) return null;
   return (
-    <section>
+    // 64px under the headline on the board: the page's 26px gap plus this.
+    <section style={{ marginTop: "38px" }}>
       <Head title="Question by question">
-        Every question we asked, and which engines named you. Open any question to read what each engine said and
-        the pages it cited.
+        Open a question to read what each engine said and which pages it cited.
       </Head>
-      <div style={{ ...CARD, overflow: "hidden" }}>
-        <div className="res-qrow res-qrow--eng res-head" style={{ background: "#fbfbfc", borderBottom: "1px solid " + T.line }}>
-          <div style={MICRO}>Question</div>
-          <div style={{ ...MICRO, textAlign: "right" }}>Engines</div>
-          <div style={{ ...MICRO, textAlign: "right" }}>Named</div>
-        </div>
-        {qs.map((q) => {
+      {/* ScanResult.dc.html: no header row; question, engine marks, Google
+          position, the pill, and a chevron that says the row opens. */}
+      <div style={{ ...CARD, borderRadius: "18px", overflow: "hidden" }}>
+        {qs.map((q, i) => {
           const label = questionPill(q);
           const silent = label === "no answer";
           const hit = label !== "not named" && !silent;
@@ -181,24 +181,27 @@ function QuestionTable(p: { r: RunScanResponse; onOpen: (idx: number) => void })
             <button
               key={q.idx}
               type="button"
-              className="res-qrow res-qrow--eng res-qbtn"
+              className="res-qline res-qbtn"
               disabled={!open}
               onClick={() => p.onOpen(q.idx)}
               aria-haspopup="dialog"
-              style={{ borderBottom: "1px solid " + T.hair }}
+              style={{ borderTop: i ? "1px solid " + T.hair : undefined }}
             >
-              <div style={{ fontSize: "13.5px", color: T.ink, textAlign: "left" }}>
-                {q.question}
-                <span style={{ display: "block", ...MICRO, marginTop: "3px", color: T.soft }}>
-                  {q.kind}
-                  {typeof q.google_rank === "number" ? " - Google " + ordinal(q.google_rank) : ""}
-                  {open ? " - read the answers" : ""}
-                </span>
-              </div>
+              <span style={{ fontSize: "15px", fontWeight: 600, color: T.ink }}>{q.question}</span>
               <EngineMarks answers={answers} />
-              <div style={{ textAlign: "right" }}>
-                <span style={silent ? QUIET : hit ? YES : NO}>{label}</span>
-              </div>
+              <span style={{ fontSize: "13px", color: T.soft, whiteSpace: "nowrap" }}>
+                {typeof q.google_rank === "number" ? "Google #" + q.google_rank : "Not in Google top " + SERP_DEPTH}
+              </span>
+              <span style={{ justifySelf: "start" }}>
+                <span style={{ ...(hit ? ROW_NAMED : QUIET), fontSize: "12px", padding: "4px 10px" }}>{hit ? "Named " + label : label[0].toUpperCase() + label.slice(1)}</span>
+              </span>
+              {open ? (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={T.soft} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M9 6l6 6-6 6" />
+                </svg>
+              ) : (
+                <span />
+              )}
             </button>
           );
         })}
@@ -783,37 +786,41 @@ export default function ResultView(p: {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "26px" }}>
       {/* Headline */}
-      <div className="confirm-top">
+      {/* ScanResult.dc.html: the headline beside three figure cards, both
+          sitting on one bottom line. The board prints the domain and read date
+          in its own header bar; this page keeps the sitewide header, so they
+          stay as the line above the headline. */}
+      <div className="res-top">
         <div>
-          <div style={MICRO}>{p.domain + " - read " + fmtDate(r.read_at)}</div>
-          <h1 style={{ margin: "10px 0 0", fontSize: "32px", fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.2, color: T.ink }}>
+          <div style={MICRO}>{p.domain + " · read " + fmtDate(r.read_at)}</div>
+          <h1 className="res-h1" style={{ margin: "10px 0 0", fontSize: "50px", fontWeight: 700, letterSpacing: "-0.04em", lineHeight: 1.04, color: T.ink }}>
             {f.headline}
           </h1>
-          <div style={{ marginTop: "14px", display: "flex", gap: "8px", flexWrap: "wrap" }}>
+          <p style={{ margin: "14px 0 0", fontSize: "16px", lineHeight: 1.5, color: T.soft }}>{f.standfirst}</p>
+          <div style={{ marginTop: "18px", display: "flex", gap: "8px", flexWrap: "wrap" }}>
             {r.engines.map((e) => (
               <div
                 key={e.engine}
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: "7px",
+                  gap: "6px",
                   background: T.surface,
                   border: "1px solid " + T.line,
                   borderRadius: "999px",
-                  padding: "4px 11px 4px 8px",
+                  padding: "5px 11px 5px 6px",
                   color: T.ink,
                 }}
               >
-                <EngineLogo engine={e.engine} size={15} />
-                <span style={{ fontSize: "12px", color: T.soft }}>{e.label}</span>
+                <EngineLogo engine={e.engine} size={16} />
+                <span style={{ fontSize: "12.5px", fontWeight: 600 }}>{e.label}</span>
               </div>
             ))}
           </div>
         </div>
 
-        <div style={{ ...CARD, display: "flex", overflow: "hidden", alignSelf: "start", flexWrap: "wrap" }}>
+        <div className="res-metrics">
           <Metric
-            first
             label="Answers naming you"
             value={
               <>
@@ -823,7 +830,7 @@ export default function ResultView(p: {
             note={f.pct === null ? "No engine answered yet." : f.pct + "% across the question set"}
           />
           <Metric
-            label="Questions with no mention"
+            label="Questions, no mention"
             value={
               <>
                 {f.blank} <span style={unit}>{"of " + f.answeredQuestions}</span>
@@ -832,7 +839,7 @@ export default function ResultView(p: {
             note="Of the questions an engine answered at all."
           />
           {f.bestRank !== null ? (
-            <Metric label="Best Google position" value={ordinal(f.bestRank)} note="Your best organic position on any of these questions." />
+            <Metric label="Best Google position" value={"#" + f.bestRank} note="Your best organic position on any of these questions." />
           ) : null}
         </div>
       </div>

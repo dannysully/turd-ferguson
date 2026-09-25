@@ -1174,3 +1174,50 @@ html[data-motion="on"] .ways-now4 { animation: ways-now4 9s infinite both; }
 }
 .run-mail-btn:hover { opacity: .88; }
 .run-mail-btn:disabled { opacity: .7; cursor: default; }
+
+/* ── The scan result, top half (ScanResult.dc.html, Q09, 25 Sep 2026) ── */
+
+/* The headline beside a 520px column of figure cards, sharing a bottom line.
+   Stacks below 860px. */
+.res-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 520px;
+  column-gap: 48px;
+  align-items: end;
+}
+/* Three cards, or two when there is no Google position - equal either way. */
+.res-metrics {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+/* Question, engine marks, Google position, the pill, the chevron. */
+.res-qline {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 170px 170px 130px 20px;
+  column-gap: 16px;
+  align-items: center;
+  padding: 16px 22px;
+  min-height: 60px;
+}
+@media (max-width: 860px) {
+  .res-top { grid-template-columns: 1fr; row-gap: 24px; }
+  /* The question across the top; marks, position and pill under it. */
+  /* Position on its own line: beside the marks it ran into the pill at 390. */
+  .res-qline {
+    grid-template-columns: auto minmax(0, 1fr) 20px;
+    grid-template-areas: "q q c" "m p c" "r r c";
+    row-gap: 8px;
+    padding: 14px 18px;
+  }
+  .res-qline > :nth-child(1) { grid-area: q; }
+  .res-qline > :nth-child(2) { grid-area: m; }
+  .res-qline > :nth-child(3) { grid-area: r; }
+  .res-qline > :nth-child(4) { grid-area: p; justify-self: end !important; }
+  .res-qline > :nth-child(5) { grid-area: c; }
+}
+@media (max-width: 480px) {
+  .res-metrics { gap: 8px; }
+  .res-h1 { font-size: 36px !important; }
+}

@@ -214,6 +214,16 @@ export function leaderboardCaption(rowCount: number, partial: boolean): string {
   return "Mentions across the answers these engines gave, " + body + tail;
 }
 
+/**
+ * The line under the headline, from ScanResult.dc.html ("Five buyer questions,
+ * each put to four engines. Everything below is free."). In figures, from the
+ * scan's own question list and engine list. Nothing on the finished result is
+ * gated any more, so the second sentence is true of every scan that reaches it.
+ */
+export function standfirst(questions: number, engines: number): string {
+  return count(questions, "buyer question") + ", each put to " + count(engines, "engine") + ". Everything below is free.";
+}
+
 export function headline(answers: number, missing: number): string {
   if (answers === 0) return "No engine answered these questions yet.";
   if (missing === 0) return "Every answer named you.";
@@ -318,6 +328,7 @@ export type ResultFigures = {
   /** Share of answers, or null when nothing was answered. Never estimated. */
   pct: number | null;
   headline: string;
+  standfirst: string;
   /**
    * Counted over the questions that got an answer, and shown over them too.
    *
@@ -368,6 +379,7 @@ export function resultFigures(
     missing,
     pct: answers > 0 ? Math.round((named / answers) * 100) : null,
     headline: headline(answers, missing),
+    standfirst: standfirst(qs.length, r.engines.length),
     answeredQuestions,
     blank: tallies.filter((t) => t.answered > 0 && t.named === 0).length,
     bestRank: ranks.length ? Math.min(...ranks) : null,
