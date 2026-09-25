@@ -54,6 +54,14 @@ export type Opportunity = {
   absent_questions: number;
   /** The questions themselves, deduplicated, for the report. */
   questions: string[];
+  /**
+   * How many distinct engines cited this page anywhere in the scan, named or
+   * not - "cited by 3 of 4 engines" on the result row. Read straight off the
+   * citation rows, so it is as exact as the counts above. Which brands the page
+   * names is still not derivable (see below), so the row shows this and nothing
+   * in place of that.
+   */
+  cited_by: number;
 };
 
 /**
@@ -114,11 +122,17 @@ export function deriveOpportunities(input: {
    */
   const questionIdsBy = new Map<string, Set<string>>();
   const seenAnswer = new Set<string>();
+  const enginesBy = new Map<string, Set<string>>();
   for (const c of input.citations) {
     const classified = kindOf.get(c.source_domain);
     const k = classified?.kind ?? null;
     if (!k || !PLACEABLE.has(k)) continue;
     if (classified?.on_topic === false) continue;
+    // Before the named check: an engine that cited the page in an answer that
+    // did name the brand still cites the page.
+    const engines = enginesBy.get(c.source_domain) ?? new Set<string>();
+    engines.add(c.engine);
+    enginesBy.set(c.source_domain, engines);
     const answerKey = `${c.source_domain}|${c.question_id}|${c.engine}`;
     if (seenAnswer.has(answerKey)) continue;
     seenAnswer.add(answerKey);
@@ -130,6 +144,7 @@ export function deriveOpportunities(input: {
       absent_answers: 0,
       absent_questions: 0,
       questions: [],
+      cited_by: 0,
     };
     row.absent_answers += 1;
     const ids = questionIdsBy.get(c.source_domain) ?? new Set<string>();
@@ -141,6 +156,7 @@ export function deriveOpportunities(input: {
   }
   for (const row of oppBy.values()) {
     row.absent_questions = questionIdsBy.get(row.domain)?.size ?? row.questions.length;
+    row.cited_by = enginesBy.get(row.domain)?.size ?? 0;
   }
   return [...oppBy.values()].sort(
     (a, b) => b.absent_answers - a.absent_answers || a.domain.localeCompare(b.domain),

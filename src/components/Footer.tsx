@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import BrandMark from "./BrandMark";
-import TierName, { type TierKey } from "./TierName";
+import TierName, { TIER_PLAIN, type TierKey } from "./TierName";
 import { CONTACT_EMAIL } from "@/config/contact";
 import { GRID12, MICRO, T } from "@/config/tokens";
 
@@ -104,9 +104,12 @@ export default function Footer() {
 
         <Column title="Plans">
           {TIER_PAGES.map((tier) => (
-            <li key={tier}>
-              <Link href={`/always${tier}`} style={link}>
-                <TierName tier={tier} />
+            // The lockup beside the link rather than inside it (QF1, Danny, 25
+            // Sep 2026): no tier name inside a coloured link anywhere.
+            <li key={tier} style={{ fontSize: "13.5px", color: T.ink }}>
+              <TierName tier={tier} />{" "}
+              <Link href={`/always${tier}`} style={link} aria-label={`Details of the ${TIER_PLAIN[tier]} plan`}>
+                Details
               </Link>
             </li>
           ))}

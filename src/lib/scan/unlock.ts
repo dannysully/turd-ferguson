@@ -98,9 +98,10 @@ export type UnlockPayload = {
     absent_answers: number;
     absent_questions: number;
     questions: string[];
+    /** Distinct engines that cited the page anywhere in the scan. */
+    cited_by: number;
     /** 0-100, from placement-difficulty.ts. Absent when not scored. */
     difficulty?: number | null;
-    difficulty_basis?: string | null;
   }>;
 };
 
@@ -414,7 +415,10 @@ export async function buildUnlockPayload(scanId: string): Promise<UnlockPayload>
     kinds,
   }).map((o) => {
     const d = difficulty.get(o.domain);
-    return { ...o, difficulty: d?.difficulty ?? null, difficulty_basis: d?.basis ?? null };
+    // difficulty_basis stays stored on the row and never leaves the server
+    // (Danny, 25 Sep 2026, QF1): nothing on the result may name or imply a
+    // marketplace or a price, and the basis is where that could come from.
+    return { ...o, difficulty: d?.difficulty ?? null };
   });
 
   return {

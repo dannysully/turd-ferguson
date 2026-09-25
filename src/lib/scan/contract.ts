@@ -80,8 +80,15 @@ export type ScanOpportunity = {
   questions: string[];
   /** How hard the placement is, 0-100 (placement-difficulty.ts). Null or absent: not scored. */
   difficulty?: number | null;
-  /** The one-line reason for that score. Never a price, never a marketplace name. */
-  difficulty_basis?: string | null;
+  /**
+   * Distinct engines that cited the page anywhere in the scan. Optional because
+   * scans unlocked before 25 Sep 2026 were served without it.
+   *
+   * difficulty_basis is stored on the row and deliberately not on this type
+   * (QF1, Danny, 25 Sep 2026): the result may not name or imply a marketplace
+   * or a price, so the reason behind a score does not leave the server.
+   */
+  cited_by?: number;
 };
 
 export type HistoryPoint = {

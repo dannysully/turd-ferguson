@@ -2,6 +2,7 @@
 
 import EngineLogo from "@/components/EngineLogo";
 import TierName from "@/components/TierName";
+import { D } from "@/components/home/dark";
 import { SCAN_LIMITS } from "@/config/contact";
 import { track } from "@/lib/analytics";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -514,7 +515,7 @@ const BAND_PILL: Record<Band, React.CSSProperties> = {
  * beside it - the word is always there, so colour never carries it alone.
  * `placement-difficulty.ts` is the rule; this is the painting.
  */
-function DifficultyCell(p: { score: number | null; basis: string | null }) {
+function DifficultyCell(p: { score: number | null }) {
   if (p.score === null) return <span style={{ fontSize: "12.5px", color: T.soft }}>Not scored</span>;
   const band = bandOf(p.score);
   // A half circle of radius 18: its length is pi x 18, and the filled part is that times score / 100.
@@ -536,10 +537,7 @@ function DifficultyCell(p: { score: number | null; basis: string | null }) {
           {p.score}
         </text>
       </svg>
-      <div>
-        <div style={{ fontSize: "13px", fontWeight: 600, color: BAND_COLOUR[band] }}>{band}</div>
-        {p.basis ? <div style={{ fontSize: "12px", color: T.soft, lineHeight: 1.4 }}>{p.basis}</div> : null}
-      </div>
+      <div style={{ fontSize: "13px", fontWeight: 600, color: BAND_COLOUR[band] }}>{band}</div>
     </div>
   );
 }
@@ -564,26 +562,46 @@ function SelfServe(p: { r: RunScanResponse }) {
         {rest > 0 ? " The other " + rest + " need an editorial pitch or a budget." : ""}
       </p>
       {rest > 0 ? (
+        // The board's dark ink card (ScanResult.dc.html, QF1). The tier name is
+        // in the sentence, through TierName under `.on-dark`; the button is
+        // plain words, so no lockup sits inside a coloured link.
         <div
+          className="on-dark"
           style={{
-            background: T.wash,
-            border: "1px solid " + T.washLine,
-            borderRadius: "14px",
-            padding: "16px 18px",
+            background: T.ink,
+            color: T.surface,
+            borderRadius: "18px",
+            padding: "22px 26px",
             display: "flex",
             alignItems: "center",
+            justifyContent: "space-between",
             gap: "16px",
             flexWrap: "wrap",
           }}
         >
           <div style={{ flexGrow: 1, minWidth: "220px" }}>
-            <div style={{ fontSize: "14.5px", fontWeight: 700, color: T.ink }}>Want us to secure the hard ones?</div>
-            <p style={{ margin: "4px 0 0", fontSize: "13.5px", lineHeight: 1.55, color: T.soft }}>
-              <TierName tier="mentioned" /> places you in the pages the engines already cite.
+            <div style={{ fontSize: "18px", fontWeight: 700, color: T.surface }}>Want us to secure the hard ones?</div>
+            <p style={{ margin: "4px 0 0", fontSize: "14px", lineHeight: 1.55, color: D.muted }}>
+              That is <TierName tier="mentioned" />: placements in the pages the engines cite, links included.
             </p>
           </div>
-          <a href="/alwaysmentioned" style={{ fontSize: "14px", fontWeight: 600, color: T.accent, textDecoration: "none" }}>
-            See <TierName tier="mentioned" />
+          <a
+            href="/alwaysmentioned"
+            style={{
+              background: T.surface,
+              color: T.ink,
+              fontSize: "14.5px",
+              fontWeight: 600,
+              padding: "12px 18px",
+              borderRadius: "10px",
+              textDecoration: "none",
+              minHeight: "44px",
+              boxSizing: "border-box",
+              display: "flex",
+              alignItems: "center",
+            }}
+          >
+            See how it works
           </a>
         </div>
       ) : null}
@@ -624,6 +642,14 @@ function PlacementTable(p: { r: RunScanResponse }) {
         <div key={o.domain} className="res-prow" style={{ borderBottom: "1px solid " + T.hair }}>
           <div>
             <div style={{ fontSize: "13.5px", fontWeight: 600 }}>{o.domain}</div>
+            {/* What the board shows under a row, as far as the scan records it:
+                how many engines cite the page. Which brands it names is not
+                derivable (opportunities.ts), so nothing stands in for it. */}
+            {o.cited_by ? (
+              <div style={{ fontSize: "12.5px", color: T.soft, marginTop: "2px" }}>
+                {"Cited by " + o.cited_by + " of " + p.r.engines.length + " engines"}
+              </div>
+            ) : null}
             {o.questions.length ? (
               <div style={{ fontSize: "12.5px", color: T.soft, marginTop: "4px", lineHeight: 1.5 }}>
                 {o.questions.slice(0, 2).join(" - ") +
@@ -632,7 +658,7 @@ function PlacementTable(p: { r: RunScanResponse }) {
             ) : null}
           </div>
           <div>
-            <DifficultyCell score={o.difficulty ?? null} basis={o.difficulty_basis ?? null} />
+            <DifficultyCell score={o.difficulty ?? null} />
           </div>
           <div style={{ fontSize: "13.5px", textAlign: "right", color: T.soft }}>{o.absent_questions}</div>
           <div style={{ fontSize: "13.5px", fontWeight: 600, textAlign: "right" }}>{o.absent_answers}</div>

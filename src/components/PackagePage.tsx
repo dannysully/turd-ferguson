@@ -200,18 +200,15 @@ export default function PackagePage({
             {notIncluded.upgradeTo && notIncluded.href ? (
               <>
                 {" "}
-                {/* Ink, not accent. Colouring the whole word in brand purple
-                    flattens the lockup into one colour - the accent half is
-                    the only part that is purple, and TierName owns that. The
-                    underline is what makes it read as a link once the colour
-                    is no longer doing that job. */}
+                {/* The lockup in the sentence and plain words in the link (QF1,
+                    Danny, 25 Sep 2026): no tier name inside a link anywhere. */}
+                <TierName tier={notIncluded.upgradeTo} />.{" "}
                 <Link
                   href={notIncluded.href}
                   style={{ color: T.ink, textDecoration: "underline", textUnderlineOffset: "2px" }}
                 >
-                  <TierName tier={notIncluded.upgradeTo} />
+                  See how it works
                 </Link>
-                .
               </>
             ) : null}
           </p>
@@ -232,15 +229,15 @@ export default function PackagePage({
           {TIERS.map((t, i) => {
             const here = t.key === tier.key;
             return (
-              <a
+              // A card, not a link: the lockup and the gloss are text, and the
+              // link is plain words at the foot (QF1, Danny, 25 Sep 2026).
+              <div
                 key={t.id}
                 className="ac-row"
-                href={t.href}
                 style={{
                   flexGrow: 1,
                   flexBasis: "220px",
                   padding: "20px 24px",
-                  textDecoration: "none",
                   display: "block",
                   background: here ? T.wash : T.surface,
                   borderLeft: i ? "1px solid " + T.line : undefined,
@@ -254,7 +251,15 @@ export default function PackagePage({
                   {here ? "You are here. " : ""}
                   <TierText>{GLOSS[t.key]}</TierText>
                 </div>
-              </a>
+                {here ? null : (
+                  <Link
+                    href={t.href}
+                    style={{ display: "inline-block", marginTop: "10px", fontSize: "13px", fontWeight: 600, color: T.ink, textDecoration: "underline", textUnderlineOffset: "2px" }}
+                  >
+                    See the plan
+                  </Link>
+                )}
+              </div>
             );
           })}
         </div>
