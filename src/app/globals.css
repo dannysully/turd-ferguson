@@ -1026,3 +1026,39 @@ details > summary { list-style: none; }
   .res-qrow--eng { grid-template-columns: 1fr auto; }
   .res-qrow--eng > :nth-child(2) { grid-column: 1 / -1; grid-row: 2; justify-content: flex-start; }
 }
+
+/* -- The homepage engine demo (Main.dc.html, 25 Sep 2026) ---------- */
+/* EngineDemo.tsx. Layout first, unscoped: four cards across, two below
+   960px - including a phone, where one column made the demo four screens
+   long. The question never wraps; it clips. */
+.demo-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-top: 28px; }
+@media (max-width: 960px) { .demo-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .demo-grid { gap: 10px; } .demo-card { padding: 12px !important; } }
+.demo-typed { display: inline-block; white-space: nowrap; overflow: hidden; vertical-align: bottom; max-width: 30em; }
+.demo-caret { display: inline-block; width: 1.5px; height: 18px; margin-left: 2px; flex: none; }
+
+/* The board's own 12s loop, every from-state under html[data-motion="on"]:
+   with no script, or reduced motion, the demo is its settled frame. The
+   cards and their pills stagger by --demo-d, the board's .15s per card. */
+@keyframes demo-type { 0%, 4% { max-width: 0; animation-timing-function: steps(38, end); } 20%, 100% { max-width: 30em; } }
+@keyframes demo-blink { 50% { opacity: 0; } }
+@keyframes demo-card { 0%, 22% { opacity: 0; transform: translateY(14px); } 28%, 92% { opacity: 1; transform: none; } 97%, 100% { opacity: 0; } }
+@keyframes demo-miss { 0%, 38% { opacity: 0; transform: scale(.7); } 42%, 92% { opacity: 1; transform: none; } 97%, 100% { opacity: 0; } }
+@keyframes demo-verdict { 0%, 48% { opacity: 0; transform: translateY(8px); } 53%, 92% { opacity: 1; transform: none; } 97%, 100% { opacity: 0; } }
+html[data-motion="on"] .demo-typed { animation: demo-type 12s infinite; }
+html[data-motion="on"] .demo-caret { animation: demo-blink 1s steps(1) infinite; }
+html[data-motion="on"] .demo-card { animation: demo-card 12s infinite cubic-bezier(.2, .7, .2, 1) both; animation-delay: var(--demo-d, 0s); }
+html[data-motion="on"] .demo-miss { animation: demo-miss 12s infinite both; animation-delay: var(--demo-d, 0s); }
+html[data-motion="on"] .demo-verdict { animation: demo-verdict 12s infinite both; }
+@media (prefers-reduced-motion: reduce) {
+  html[data-motion="on"] :is(.demo-typed, .demo-caret, .demo-card, .demo-miss, .demo-verdict) {
+    animation: none;
+    opacity: 1;
+    transform: none;
+    max-width: 30em;
+  }
+}
+@media (max-width: 600px) {
+  .hero-field { flex-direction: column; }
+  .hero-field > input { min-height: 48px; }
+}

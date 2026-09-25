@@ -3,6 +3,7 @@
 import type { Market } from "@/lib/scan";
 import { WAITLIST_LIMITS } from "@/config/contact";
 import { T } from "@/config/tokens";
+import { D } from "@/components/home/dark";
 
 /**
  * The two screens that come before a scan has a token: the domain field, and
@@ -35,8 +36,28 @@ export function DomainScreen(p: {
   error?: string; busy?: boolean; readOnly?: boolean; id?: string;
   /** Server action for the no-JS path. With JS, onSubmit prevents default and handles it. */
   action?: (formData: FormData) => void | Promise<void>;
+  /** The homepage hero's field, from Main.dc.html: one dark pill, label hidden, "Run a free scan". */
+  dark?: boolean;
 }) {
   const id = p.id ?? "scan-domain";
+  if (p.dark) {
+    return (
+      <form action={p.action} onSubmit={p.onSubmit ?? ((e) => e.preventDefault())} noValidate>
+        <label htmlFor={id} className="sr-only">Your domain</label>
+        <div className="hero-field" style={{ display: "flex", gap: "8px", background: D.field, border: `1px solid ${D.fieldLine}`, borderRadius: "14px", padding: "6px" }}>
+          <input id={id} name="domain" inputMode="url" autoComplete="url" placeholder="yourdomain.com"
+            maxLength={WAITLIST_LIMITS.domain}
+            value={p.value} onChange={(e) => p.onChange?.(e.target.value)}
+            style={{ flex: "1 1 auto", minWidth: 0, fontFamily: "inherit", fontSize: "16px", background: "transparent", border: 0, color: T.surface, padding: "0 14px", outline: "none", minHeight: "44px" }}
+            aria-invalid={Boolean(p.error)} aria-describedby={p.error ? `${id}-err` : undefined} {...ro(p.readOnly)} />
+          <button type="submit" className="btn-primary" style={{ fontFamily: "inherit", background: T.accent, color: T.surface, border: 0, fontSize: "15px", fontWeight: 600, padding: "0 22px", borderRadius: "10px", cursor: "pointer", minHeight: "44px", flex: "none" }} disabled={p.busy || p.readOnly} tabIndex={p.readOnly ? -1 : undefined}>
+            {p.busy ? "Checking" : "Run a free scan"}
+          </button>
+        </div>
+        {p.error && <p id={`${id}-err`} role="alert" style={{ fontSize: "0.8125rem", color: D.missFg, marginTop: "0.5rem", textAlign: "left" }}>{p.error}</p>}
+      </form>
+    );
+  }
   return (
     <form action={p.action} onSubmit={p.onSubmit ?? ((e) => e.preventDefault())} noValidate>
       <label htmlFor={id} style={label}>Domain</label>

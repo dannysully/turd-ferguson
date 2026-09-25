@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 import BrandMark from "./BrandMark";
 import TierName from "./TierName";
 import { T } from "@/config/tokens";
+import { D, HEADER_H, WASH, WASH_SIZE } from "./home/dark";
 
 /**
  * The topbar, from the boards.
@@ -13,6 +15,11 @@ import { T } from "@/config/tokens";
  * The board's nav, complete: Packages, Compare, White label, Blog. Compare
  * ships without its competitor columns - see that page for why - so it is
  * linked now. Packages still points at the homepage section.
+ *
+ * On `/` only it sits on the hero's dark ground, as Main.dc.html draws it:
+ * no hairline, links in D.muted, the lockup lifted with `.on-dark`. The wash
+ * is painted here as well as on the hero, sized to the same box, so the two
+ * read as one surface. Every other route keeps the light bar.
  */
 
 const navLinks = [
@@ -30,11 +37,11 @@ const linkStyle: React.CSSProperties = {
   textDecoration: "none",
 };
 
-function Logo() {
+function Logo({ dark }: { dark: boolean }) {
   return (
-    <Link href="/" style={{ display: "flex", alignItems: "center", gap: "3px", textDecoration: "none" }}>
-      <BrandMark id="hdr" size={15} />
-      <span style={{ fontSize: "15px", fontWeight: 700, letterSpacing: "-0.022em", color: T.ink }}>
+    <Link href="/" className={dark ? "on-dark" : undefined} style={{ display: "flex", alignItems: "center", gap: dark ? "4px" : "3px", textDecoration: "none" }}>
+      <BrandMark id="hdr" size={15} colour={dark ? D.accent : undefined} />
+      <span style={{ fontSize: "15px", fontWeight: 700, letterSpacing: "-0.022em", color: dark ? T.surface : T.ink }}>
         <TierName tier="cited" />
       </span>
     </Link>
@@ -43,9 +50,25 @@ function Logo() {
 
 export default function Header() {
   const [open, setOpen] = useState(false);
+  const dark = usePathname() === "/";
+  const links = dark ? { ...linkStyle, color: D.muted } : linkStyle;
+  const bar = dark ? T.surface : T.ink;
 
   return (
-    <header style={{ background: T.bg, borderBottom: `1px solid ${T.line}` }}>
+    <header
+      style={
+        dark
+          ? {
+              backgroundColor: D.ground,
+              backgroundImage: WASH,
+              backgroundSize: WASH_SIZE,
+              backgroundRepeat: "no-repeat",
+              minHeight: `${HEADER_H}px`,
+              boxSizing: "border-box",
+            }
+          : { background: T.bg, borderBottom: `1px solid ${T.line}` }
+      }
+    >
       <div
         style={{
           maxWidth: "1180px",
@@ -56,12 +79,12 @@ export default function Header() {
           gap: "16px",
         }}
       >
-        <Logo />
+        <Logo dark={dark} />
         <div style={{ flexGrow: 1 }} />
 
         <nav className="nav-links" style={{ display: "flex", alignItems: "center", gap: "20px" }} aria-label="Main navigation">
           {navLinks.map((link) => (
-            <Link key={link.href} href={link.href} style={linkStyle}>
+            <Link key={link.href} href={link.href} style={links}>
               {link.label}
             </Link>
           ))}
@@ -72,8 +95,8 @@ export default function Header() {
               color: "#ffffff",
               fontSize: "14px",
               fontWeight: 600,
-              padding: "8px 16px",
-              borderRadius: "10px",
+              padding: dark ? "9px 16px" : "8px 16px",
+              borderRadius: dark ? "9px" : "10px",
               textDecoration: "none",
             }}
           >
@@ -88,9 +111,9 @@ export default function Header() {
           aria-label={open ? "Close menu" : "Open menu"}
           aria-expanded={open}
         >
-          <span style={{ display: "block", width: "20px", height: "2px", background: T.ink, marginBottom: "5px" }} />
-          <span style={{ display: "block", width: "20px", height: "2px", background: T.ink, marginBottom: "5px" }} />
-          <span style={{ display: "block", width: "20px", height: "2px", background: T.ink }} />
+          <span style={{ display: "block", width: "20px", height: "2px", background: bar, marginBottom: "5px" }} />
+          <span style={{ display: "block", width: "20px", height: "2px", background: bar, marginBottom: "5px" }} />
+          <span style={{ display: "block", width: "20px", height: "2px", background: bar }} />
         </button>
       </div>
 

@@ -19,7 +19,7 @@ import Turnstile from "./Turnstile";
  *
  * A cached complete scan goes to the same place. The token is the scan.
  */
-export default function LiveScanChecker({ initialDomain = "" }: { initialDomain?: string }) {
+export default function LiveScanChecker({ initialDomain = "", dark = false }: { initialDomain?: string; dark?: boolean }) {
   const router = useRouter();
   const [domain, setDomain] = useState(initialDomain);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
@@ -69,8 +69,9 @@ export default function LiveScanChecker({ initialDomain = "" }: { initialDomain?
         onSubmit={onDomain}
         error={error}
         busy={busy}
+        dark={dark}
       />
-      <Turnstile onToken={setTurnstileToken} />
+      <Turnstile onToken={setTurnstileToken} theme={dark ? "dark" : "light"} />
     </div>
   );
 }

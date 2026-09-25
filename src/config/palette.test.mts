@@ -233,7 +233,92 @@ const OFF_PALETTE: Record<string, Entry> = {
   "#a78bfa": {
     why: "the lockup accent lifted for a dark ground, in `.on-dark .tier-name__accent`. `T.accent` is unreadable on near-black, and this still goes through `TierName` rather than a hand-coloured span.",
     boards: 2,
-    sites: { "src/app/globals.css": 1 },
+    // dark.ts since 25 Sep 2026: the header mark and the h1 accent on the
+    // homepage's dark hero, which are not lockups and so cannot reach it
+    // through `.on-dark`.
+    sites: { "src/app/globals.css": 1, "src/components/home/dark.ts": 1 },
+  },
+
+  // The homepage's dark hero, from Main.dc.html (25 Sep 2026, Q02). All of
+  // them are written once, in components/home/dark.ts, and the board counts
+  // are docs/boards-2026-09-25/, which is the later read - docs/design draws
+  // none of them bar #c4b5fd. Several are drawn by the other dark boards
+  // (PRAgencies, ScanResult, HeroSequence) too, so whether they become a dark
+  // token set is the same design-system call as blocked.md 33.
+  "#111218": {
+    why: "the dark hero ground on `/`, under the header as well. Drawn by every dark Final-site board, which is the strongest case on this list for a token.",
+    boards: 7,
+    sites: { "src/components/home/dark.ts": 1 },
+  },
+  "#1b1c23": {
+    why: "the scan field and the typed-question pill on the dark hero, one step above the ground.",
+    boards: 1,
+    sites: { "src/components/home/dark.ts": 1 },
+  },
+  "#2a2b33": {
+    why: "the hairline round the dark field and the typed-question pill - the dark ground's `T.line`.",
+    boards: 1,
+    sites: { "src/components/home/dark.ts": 1 },
+  },
+  "#17181f": {
+    why: "the engine card ground in the homepage demo, between the hero ground and the field.",
+    boards: 3,
+    sites: { "src/components/home/dark.ts": 1 },
+  },
+  "#262730": {
+    why: "the engine card's hairline in the homepage demo.",
+    boards: 3,
+    sites: { "src/components/home/dark.ts": 1 },
+  },
+  "#24252d": {
+    why: "the two placeholder text bars on each engine card - a non-text mark, never measured for contrast.",
+    boards: 3,
+    sites: { "src/components/home/dark.ts": 1 },
+  },
+  "#a1a1aa": {
+    why: "nav links and the standfirst on the dark hero; 7.29 on #111218. The dark boards' `soft`, drawn by eight of them.",
+    boards: 8,
+    sites: { "src/components/home/dark.ts": 1 },
+  },
+  "#8b8b95": {
+    why: "the line under the scan field on the dark hero; 5.54 on #111218. Its board sibling #6f7480 measures 3.99 there and is not used - `T.faint` takes those roles.",
+    boards: 1,
+    sites: { "src/components/home/dark.ts": 1 },
+  },
+  "#d4d4d8": {
+    why: "the engine name on a dark demo card; 11.97 on #17181f.",
+    boards: 3,
+    sites: { "src/components/home/dark.ts": 1 },
+  },
+  "#c4b5fd": {
+    why: "the typing caret in the demo question - a non-text mark.",
+    boards: 4,
+    sites: { "src/components/home/dark.ts": 1 },
+  },
+  "#fca5a5": {
+    why: "the 'not named' pill text on a dark card, and the field's error line on the dark hero; 9.32 on #17181f. `T.badFg` is for light grounds.",
+    boards: 1,
+    sites: { "src/components/home/dark.ts": 1 },
+  },
+  "rgba(239,68,68,.14)": {
+    why: "the 'not named' pill ground on a dark card - the dark board's `T.badBg`.",
+    boards: 1,
+    sites: { "src/components/home/dark.ts": 1 },
+  },
+  "rgba(124,58,237,.22)": {
+    why: "the upper-left purple wash on the dark hero. `T.accent` at 22%, written as the board writes it.",
+    boards: 2,
+    sites: { "src/components/home/dark.ts": 1 },
+  },
+  "rgba(124,58,237,.16)": {
+    why: "the lower-right purple wash on the dark hero. `T.accent` at 16%.",
+    boards: 1,
+    sites: { "src/components/home/dark.ts": 1 },
+  },
+  "rgba(17,18,24,0)": {
+    why: "the fade-out stop of both hero washes: the hero ground at zero alpha, so the wash fades into the ground rather than through grey.",
+    boards: 4,
+    sites: { "src/components/home/dark.ts": 2 },
   },
   "#a855f7": {
     why: "the far stop of the primary CTA gradient, and the subject of blocked.md 31 - white measures 3.96 on it, under AA. `contrast.test.mts` pins both stops by measurement and fails if either moves, so this entry is the palette half of a value that already has a contrast half.",

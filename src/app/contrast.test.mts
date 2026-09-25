@@ -157,6 +157,13 @@ export function measure(page: string, html: string): Measured[] {
     const [whole, closing, name, attrs] = m;
     const tag = name!.toLowerCase();
     if (closing) {
+      // A void or shape element never pushed, so its closing tag must not pop.
+      // React writes `<line ...></line>` and `<path ...></path>`, and before
+      // 25 Sep 2026 each of those popped the element that held the svg - so
+      // everything after an inline mark inherited the ground from one level
+      // up. Invisible while every mark sat on a light ground; the homepage's
+      // dark hero is where it first measured wrong.
+      if (VOID.has(tag)) continue;
       if (stack.length > 1) stack.pop();
       continue;
     }
@@ -223,6 +230,12 @@ test("the ground walk carries a background down the tag stack", () => {
     `<div style="background:#0f1115"><div style="background:transparent"><p style="color:#fff">a</p></div></div>`,
   );
   assert.equal(transparent[0]!.ground, "#0f1115", "`transparent` is not a ground, it is the absence of one");
+
+  const marked = measure(
+    "fixture",
+    `<div style="background:#0f1115"><svg><g><line x1="1"></line><path d="M0"></path></g></svg><p style="color:#fff">a</p></div>`,
+  );
+  assert.equal(marked[0]!.ground, "#0f1115", "a closing </line> or </path> popped the ground out from under an inline svg");
 });
 
 test("the walk skips what is never painted, and sizes what is", () => {

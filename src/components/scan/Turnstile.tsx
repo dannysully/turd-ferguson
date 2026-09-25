@@ -19,7 +19,7 @@ const SCRIPT_SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js?render
  * local development works without a Cloudflare account; the server still
  * refuses unverified requests in production.
  */
-export default function Turnstile({ onToken }: { onToken: (token: string | null) => void }) {
+export default function Turnstile({ onToken, theme = "light" }: { onToken: (token: string | null) => void; theme?: "light" | "dark" }) {
   const holder = useRef<HTMLDivElement>(null);
   const widget = useRef<string | null>(null);
   const cb = useRef(onToken);
@@ -43,7 +43,7 @@ export default function Turnstile({ onToken }: { onToken: (token: string | null)
         callback: (token: string) => cb.current(token),
         "expired-callback": () => cb.current(null),
         "error-callback": () => cb.current(null),
-        theme: "light",
+        theme,
       });
     }
 
@@ -67,7 +67,7 @@ export default function Turnstile({ onToken }: { onToken: (token: string | null)
         widget.current = null;
       }
     };
-  }, [siteKey]);
+  }, [siteKey, theme]);
 
   if (!siteKey) return null;
   return <div ref={holder} style={{ marginTop: "0.875rem" }} />;

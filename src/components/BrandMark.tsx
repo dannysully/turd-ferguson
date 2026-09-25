@@ -26,7 +26,7 @@ import { T } from "@/config/tokens";
  * rotation keyframes, which 7224dcf removed, and they had carried no style
  * since. Everything here is inline.
  */
-export default function BrandMark({ size = 18 }: { id: string; size?: number }) {
+export default function BrandMark({ size = 18, colour = T.accent }: { id: string; size?: number; colour?: string }) {
   return (
     <svg
       width={size}
@@ -36,7 +36,7 @@ export default function BrandMark({ size = 18 }: { id: string; size?: number }) 
       aria-hidden="true"
       style={{ display: "block", flexShrink: 0 }}
     >
-      <g stroke={T.accent} strokeWidth="4.5" strokeLinecap="round">
+      <g stroke={colour} strokeWidth="4.5" strokeLinecap="round">
         <line x1="16" y1="4.5" x2="16" y2="27.5" />
         <line x1="6.041" y1="10.25" x2="25.959" y2="21.75" />
         <line x1="25.959" y1="10.25" x2="6.041" y2="21.75" />

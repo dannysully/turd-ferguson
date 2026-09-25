@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { OG_IMAGE } from "@/config/og";
-import HeroSection from "@/components/scan/HeroSection";
-import AnswerExplorer from "@/components/home/AnswerExplorer";
+import HomeHero from "@/components/home/HomeHero";
 import TwoWays from "@/components/home/TwoWays";
 import ScanFacts from "@/components/home/ScanFacts";
 import ProcessSequence from "@/components/ProcessSequence";
@@ -27,7 +26,9 @@ export const metadata: Metadata = {
 export default function HomePage() {
   return (
     <>
-      <HeroSection />
+      {/* Dark hero, scan field and the engine demo, from Main.dc.html. The
+          demo replaces AnswerExplorer. */}
+      <HomeHero />
 
       {/* The product, shown rather than described. Supersedes the dark
           "why it works" block, which described the same thing in prose. */}
@@ -35,7 +36,6 @@ export default function HomePage() {
           a two-column layout a phone cannot do much with. */}
       <ScanFacts />
 
-      <AnswerExplorer />
       <TwoWays />
 
       {/* The four tiers, as four pictures. One explanation of them on this
