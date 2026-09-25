@@ -32,11 +32,14 @@ export default function HomeHero() {
       }}
     >
       <div style={{ maxWidth: "1180px", margin: "0 auto", padding: "72px 24px 52px", boxSizing: "border-box", textAlign: "center" }}>
-        <h1 style={{ margin: 0, fontSize: "clamp(34px, 5vw, 64px)", fontWeight: 700, letterSpacing: "-0.04em", lineHeight: 1.04, color: T.surface }}>
+        {/* The page's one h1 is the search phrase, read but not painted (Danny,
+            25 Sep, R15). The headline below looks exactly as it did as the h1. */}
+        <h1 className="sr-only">AI SEO agency</h1>
+        <p style={{ margin: 0, fontSize: "clamp(34px, 5vw, 64px)", fontWeight: 700, letterSpacing: "-0.04em", lineHeight: 1.04, color: T.surface }}>
           Every AI tool shows you the gap.
           <br />
           <span style={{ color: D.accent }}>We close it.</span>
-        </h1>
+        </p>
         <p style={{ margin: "22px auto 0", fontSize: "18px", lineHeight: 1.55, color: D.muted, maxWidth: "52ch" }}>
           We find the pages the answers are built from, then get you named inside them.
         </p>

@@ -8,13 +8,13 @@ import HomeFaq from "@/components/home/HomeFaq";
 import Results from "@/components/home/Results";
 
 export const metadata: Metadata = {
-  title: "LLM Visibility Checker | alwayscited",
+  title: "AI SEO agency | AI visibility tools - alwayscited",
   description:
     "Check whether AI engines name your client. A free scan shows who Google AI Overviews and ChatGPT cite for a topic. Then get placed in them.",
   alternates: { canonical: "https://alwayscited.com" },
   openGraph: {
     images: OG_IMAGE,
-    title: "LLM Visibility Checker | alwayscited",
+    title: "AI SEO agency | AI visibility tools - alwayscited",
     description: "Check whether AI engines name your client. Free scan, then get placed in the sources they cite. Prices on the page.",
     url: "https://alwayscited.com",
   },
