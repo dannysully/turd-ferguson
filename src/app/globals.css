@@ -418,22 +418,30 @@ html[data-motion="on"] .chart-dot.in-view {
   }
 }
 
-/* PR agencies: coverage, the flow, and the answers it feeds. */
-.coverage-flow {
+/* PR agencies: the hero's coverage fan-out (PRAgencies.dc.html, Q12, 25 Sep
+   2026) - pieces, the wires, the answers they feed, 340px / 1fr / 380px. On a
+   phone the wires go (they only mean anything between two columns) and the
+   dead piece says "read by no engine" in its own line instead. */
+.pr-fan {
   display: grid;
-  grid-template-columns: 1fr 120px 1fr;
-  column-gap: 20px;
-  align-items: start;
+  grid-template-columns: 340px minmax(0, 1fr) 380px;
+  margin-top: 48px;
+  align-items: stretch;
+}
+.pr-mob { display: none; }
+.pr-two {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+@media (max-width: 1000px) {
+  .pr-fan { grid-template-columns: 1fr; row-gap: 28px; }
+  .pr-fan__wires { display: none; }
+  .pr-mob { display: inline; }
 }
 @media (max-width: 860px) {
-  .coverage-flow {
-    grid-template-columns: 1fr;
-    row-gap: 16px;
-  }
-  /* The connector only means anything beside two columns. */
-  .coverage-flow__svg {
-    display: none !important;
-  }
+  .pr-two { grid-template-columns: 1fr; }
+  .pr-h1 { font-size: 38px !important; }
 }
 
 .three-up {

@@ -56,9 +56,12 @@ function scanForms(): { file: string; markup: string }[] {
 
 test("the census finds every /scan GET form, not the ones a page walk reached", () => {
   const forms = scanForms();
+  // 5 -> 4 on 25 Sep 2026 (Q12): /pr-agencies lost its free-scan form card,
+  // because PRAgencies.dc.html (25 Sep read) has none - the page's one door
+  // is the coverage check, and the sitewide header keeps "Free scan".
   assert.ok(
-    forms.length >= 5,
-    `only ${forms.length} /scan forms were found - a browser saw three and there are five, so a shrinking count here means the probe has gone blind, not that a form was removed`,
+    forms.length >= 4,
+    `only ${forms.length} /scan forms were found - there are four, so a shrinking count here means the probe has gone blind, not that a form was removed`,
   );
 });
 

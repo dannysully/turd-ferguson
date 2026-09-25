@@ -182,7 +182,8 @@ const OFF_PALETTE: Record<string, Entry> = {
     boards: 10,
     sites: {
       "src/app/compare/page.tsx": 1,
-      "src/app/pr-agencies/page.tsx": 1,
+      // pr-agencies/page.tsx left on 25 Sep 2026 (Q12): the dead coverage
+      // card is D.card on the dark fan-out now.
       "src/app/what-is-aeo/page.tsx": 1,
       "src/app/white-label/page.tsx": 1,
       "src/components/scan/ConfirmScreen.tsx": 1,
@@ -197,11 +198,9 @@ const OFF_PALETTE: Record<string, Entry> = {
     boards: 2,
     sites: { "src/app/case-studies/vibe-retail/page.tsx": 2, "src/components/PostShell.tsx": 1 },
   },
-  "#d6d8dd": {
-    why: "the inactive step marker on the PR agencies ladder, from PRAgencies.dc.html.",
-    boards: 2,
-    sites: { "src/app/pr-agencies/page.tsx": 2 },
-  },
+  // "#d6d8dd" left this list on 25 Sep 2026 (Q12): the grey stub of the dead
+  // piece on /pr-agencies, its only site, is D.quiet on the dark fan-out now,
+  // as PRAgencies.dc.html (25 Sep read) draws it.
   "#c8cad0": {
     why: "the 'not you' bar on a share-of-voice chart, from Flow2Free.dc.html and HeroSequence.dc.html.",
     boards: 2,
@@ -303,9 +302,10 @@ const OFF_PALETTE: Record<string, Entry> = {
     sites: { "src/components/home/dark.ts": 1 },
   },
   "rgba(124,58,237,.22)": {
-    why: "the upper-left purple wash on the dark hero. `T.accent` at 22%, written as the board writes it.",
-    boards: 2,
-    sites: { "src/components/home/dark.ts": 1 },
+    why: "the upper-left purple wash on the dark hero, and on the /pr-agencies hero (WASH_PR, Q12, 25 Sep 2026). `T.accent` at 22%, written as the board writes it.",
+    boards: 3,
+    // 1 -> 2 on 25 Sep 2026 (Q12): WASH_PR.
+    sites: { "src/components/home/dark.ts": 2 },
   },
   "rgba(124,58,237,.16)": {
     why: "the lower-right purple wash on the dark hero. `T.accent` at 16%.",
@@ -324,9 +324,9 @@ const OFF_PALETTE: Record<string, Entry> = {
   },
   "rgba(17,18,24,0)": {
     why: "the fade-out stop of the hero's two washes, the packages band's one and the result's alwaystracked card's one (Q04 and Q10, 25 Sep): the dark ground at zero alpha, so the wash fades into the ground rather than through grey.",
-    boards: 5,
-    // 3 -> 4 on 25 Sep 2026 (Q10): TRACKED_WASH.
-    sites: { "src/components/home/dark.ts": 4 },
+    boards: 6,
+    // 3 -> 4 on 25 Sep 2026 (Q10): TRACKED_WASH. 4 -> 5 the same day (Q12): WASH_PR.
+    sites: { "src/components/home/dark.ts": 5 },
   },
   "rgba(0,0,0,.08)": {
     why: "the 1px lift under the chosen half of the walkthrough switch, from ScanResult.dc.html (Q10, 25 Sep 2026). A shadow colour, not a surface one - **do not tokenise it**, for the same reason as the ProcessSequence panel shadow.",
