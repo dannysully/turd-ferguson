@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import BrandMark from "./BrandMark";
-import TierName, { TIER_PLAIN, type TierKey } from "./TierName";
+import TierName from "./TierName";
 import { CONTACT_EMAIL } from "@/config/contact";
 import { GRID12, MICRO, T } from "@/config/tokens";
 
@@ -12,8 +12,9 @@ import { GRID12, MICRO, T } from "@/config/tokens";
  * above it, and it was the last large navy surface on the site.
  *
  * The board's "For" column is back now that /seo-agencies and /pr-agencies
- * exist. The tier column is not in the board but is useful and harmless, so
- * the brand block plus four columns of two fills the twelve exactly.
+ * exist. The extra tier column came off on 25 Sep 2026 (Q05): the board has
+ * three columns - Product, For, Company - and the tier pages are one click
+ * away from every package table button and the header's Packages link.
  *
  * Privacy now points at /legal. Terms still does not: terms of service are
  * not drafted, and a link labelled Terms that opens a privacy policy is
@@ -22,13 +23,11 @@ import { GRID12, MICRO, T } from "@/config/tokens";
 
 const PRODUCT: [string, string][] = [
   ["Free scan", "/#scan"],
+  ["Coverage checker", "/coverage-check"],
   ["Packages", "/#packages"],
   ["White label", "/white-label"],
-  ["Coverage check", "/coverage-check"],
   ["Compare", "/compare"],
 ];
-
-const TIER_PAGES: TierKey[] = ["tracked", "mentioned", "cited", "everywhere"];
 
 /** The board's "For" column, which now has pages behind it. */
 const FOR: [string, string][] = [
@@ -43,7 +42,7 @@ const COMPANY: [string, string][] = [
   ["Contact", "/contact"],
 ];
 
-const link: React.CSSProperties = { fontSize: "13.5px", color: T.soft, textDecoration: "none" };
+const link: React.CSSProperties = { fontSize: "13.5px", lineHeight: 1.3, color: T.soft, textDecoration: "none" };
 const listStyle: React.CSSProperties = {
   margin: "12px 0 0",
   padding: 0,
@@ -51,6 +50,7 @@ const listStyle: React.CSSProperties = {
   display: "flex",
   flexDirection: "column",
   gap: "9px",
+  lineHeight: 1.3,
 };
 
 function Column({ title, children }: { title: string; children: React.ReactNode }) {
@@ -97,19 +97,6 @@ export default function Footer() {
             <li key={label}>
               <Link href={href} style={link}>
                 {label}
-              </Link>
-            </li>
-          ))}
-        </Column>
-
-        <Column title="Plans">
-          {TIER_PAGES.map((tier) => (
-            // The lockup beside the link rather than inside it (QF1, Danny, 25
-            // Sep 2026): no tier name inside a coloured link anywhere.
-            <li key={tier} style={{ fontSize: "13.5px", color: T.ink }}>
-              <TierName tier={tier} />{" "}
-              <Link href={`/always${tier}`} style={link} aria-label={`Details of the ${TIER_PLAIN[tier]} plan`}>
-                Details
               </Link>
             </li>
           ))}

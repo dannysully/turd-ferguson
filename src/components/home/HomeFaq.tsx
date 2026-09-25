@@ -1,5 +1,6 @@
 import { WAITLIST_LIMITS } from "@/config/contact";
-import { QUESTIONS } from "@/config/scan-shape";
+import { FREE_ENGINE_COUNT, QUESTIONS } from "@/config/scan-shape";
+import { word } from "./EngineDemo";
 import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
 import { ORG_REF, SITE_REF, ld } from "@/config/schema";
 import Link from "next/link";
@@ -106,7 +107,7 @@ export default function HomeFaq() {
         <div style={{ ...CARD, overflow: "hidden" }}>
           {FAQS.map((f) => (
             <details key={f.q} className="faq-row ac-row" style={{ borderBottom: `1px solid ${T.hair}` }}>
-              <summary className="board-head faq-summary" style={{ ...GRID12, padding: "17px 26px", cursor: "pointer" }}>
+              <summary className="board-head faq-summary" style={{ ...GRID12, padding: "17px 26px", cursor: "pointer", lineHeight: 1.3 }}>
                 <span style={{ gridColumn: "span 5", fontSize: "15px", fontWeight: 600, color: T.ink }}>{f.q}</span>
                 <span style={{ gridColumn: "span 7", fontSize: "13.5px", color: T.soft }}>{f.hint}</span>
               </summary>
@@ -120,15 +121,16 @@ export default function HomeFaq() {
         </div>
       </section>
 
-      <section style={{ ...SHELL, marginTop: "34px", marginBottom: "44px" }}>
+      <section style={{ ...SHELL, marginTop: "34px" }}>
         <div className="board-head closing-scan ac-row" style={{ ...CARD, ...GRID12, alignItems: "center", padding: "34px 40px" }}>
           <div style={{ gridColumn: "span 6" }}>
             <h2 style={{ margin: 0, fontSize: "25px", fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.22, color: T.ink }}>
               Pick a domain and find out.
             </h2>
             <p style={{ margin: "10px 0 0", fontSize: "14.5px", lineHeight: 1.6, color: T.soft }}>
-              {"Up to " + QUESTIONS + " questions across the clusters you keep, with every source behind every answer." +
-                " It takes a few minutes and we email you when it is done."}
+              {/* The board's line, counted the way the hero counts it. */}
+              {word(QUESTIONS)} buyer questions, {word(FREE_ENGINE_COUNT).toLowerCase()} engines, every answer and every
+              source it cited. It takes around two minutes, or we email you the result.
             </p>
           </div>
 
