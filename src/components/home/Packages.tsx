@@ -131,7 +131,7 @@ export default function Packages() {
           <table className="pkg-table">
             <caption className="sr-only">What each tier adds</caption>
             <colgroup>
-              <col style={{ width: "35.5%" }} />
+              <col className="pkg-col-what" />
               {TIERS.map((t) => (
                 <col key={t.id} />
               ))}
