@@ -1,6 +1,7 @@
 import "server-only";
 
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { currentBasis } from "./placement-difficulty";
 
 /**
  * The stored difficulty scores for a scan's sources, keyed by domain.
@@ -23,7 +24,7 @@ export async function readDifficulty(scanId: string): Promise<Map<string, { diff
     return out;
   }
   for (const r of (data ?? []) as { domain: string; difficulty: number | null; difficulty_basis: string | null }[]) {
-    if (typeof r.difficulty === "number") out.set(r.domain, { difficulty: r.difficulty, basis: r.difficulty_basis });
+    if (typeof r.difficulty === "number") out.set(r.domain, { difficulty: r.difficulty, basis: currentBasis(r.difficulty_basis) });
   }
   return out;
 }

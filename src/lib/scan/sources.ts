@@ -44,6 +44,18 @@ export async function classifySources(
    * Still returned as anthropicCalls, so the ordinary path reads as it did.
    */
   billed: { calls: number } = { calls: 0 },
+  /**
+   * The names this pass's brand chain judged to be suppliers - the "who is
+   * being named instead" list - resolved once `classifyBrands` has ruled.
+   *
+   * This function is started the moment the citations are stored, which is
+   * before the brand chain has written `scan_brands`. So on a first pass the
+   * read below found no competitors at all, the prompt said "none
+   * identified", and category vendors cited for their own blog posts went on
+   * the placement list (N9, 25 Sep 2026, scan 28a07760). The reads still
+   * start early; only the model call waits for this.
+   */
+  leaderboard: Promise<string[]> = Promise.resolve([]),
 ): Promise<{ anthropicCalls: number; classified: number; unassessed: number }> {
   const db = supabaseAdmin();
 
@@ -134,7 +146,9 @@ export async function classifySources(
 
   let unassessed = 0;
   if (unknown.length) {
-    const competitors = [...new Set(brands.filter((b) => !b.is_subject).map((b) => b.brand))];
+    const competitors = [
+      ...new Set([...brands.filter((b) => !b.is_subject).map((b) => b.brand), ...(await leaderboard)]),
+    ];
     const judged = await classifySourceDomains(
       {
         topic: (scan.topic as string | null) ?? "",

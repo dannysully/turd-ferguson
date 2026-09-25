@@ -672,7 +672,19 @@ async function readAndStore(input: {
    * the call: source kinds are a column, not a reason to lose a paid scan.
    */
   const sourceCalls = { calls: 0 };
-  const sourceKinds = classifySources(scanId, sourceCalls).then(
+  /**
+   * The judged competitors, handed to the classification when the brand chain
+   * has them (N9, 25 Sep 2026). Its reads start now; its model call waits for
+   * this, so a vendor's own blog is judged against the leaderboard rather
+   * than against an empty `scan_brands`. That puts the source model call
+   * after `classifyBrands` instead of alongside it - seconds, against a
+   * placement list that named competitors as places to be placed.
+   */
+  let nameLeaderboard: (names: string[]) => void = () => {};
+  const leaderboard = new Promise<string[]>((resolve) => {
+    nameLeaderboard = resolve;
+  });
+  const sourceKinds = classifySources(scanId, sourceCalls, leaderboard).then(
     () => null,
     (err: unknown) => (err instanceof Error ? err.message : String(err)),
   );
@@ -814,6 +826,7 @@ async function readAndStore(input: {
         (judged.failedBatches ? `, ${judged.failedBatches} batch(es) failed to classify` : ""),
     );
   }
+  nameLeaderboard([...suppliers].map((key) => displayFor.get(key) ?? key));
   checkDeadline();
 
   const brandRows: { scan_id: string; engine: Engine; brand: string; mentions: number; is_subject: boolean }[] = [];

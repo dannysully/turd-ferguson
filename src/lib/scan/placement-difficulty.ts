@@ -13,7 +13,8 @@
  *   listed over $1,000        hard        65-85
  *   a review or directory site,
  *     not listed              moderate    50 - organic effort, not a purchase
- *   not listed anywhere       hard        80 - an editorial pitch
+ *   not listed on a
+ *     marketplace             hard        80 - an editorial pitch
  *   DR 80 or more             up to +10, capped at 100
  *
  * The price itself is never shown and the marketplace is never named: the
@@ -28,6 +29,23 @@ export type Band = "Easy" | "Moderate" | "Hard";
 export type Difficulty = { score: number; band: Band; basis: string };
 
 export const EASY_MAX_PRICE = 300;
+/**
+ * We check one marketplace's inventory, so absence says the site is not
+ * listed there - not that it is sold nowhere. Worded to claim only that
+ * (25 September 2026, N8).
+ */
+export const NOT_LISTED_BASIS = "Not listed on link marketplaces - an editorial pitch";
+
+/**
+ * A basis as stored, in today's words. Scans scored before N8 saved the
+ * earlier not-listed sentence, which claimed the site was sold nowhere; the
+ * row still means "not listed", so it renders as that.
+ */
+export function currentBasis(stored: string | null): string | null {
+  if (stored !== null && stored.startsWith("Not sold")) return NOT_LISTED_BASIS;
+  return stored;
+}
+
 export const MODERATE_MAX_PRICE = 1000;
 
 export function bandOf(score: number): Band {
@@ -67,7 +85,7 @@ export function scoreDifficulty(input: { listing: Listing; kind: string }): Diff
     basis = "Earned through reviews and a listing";
   } else {
     score = 80;
-    basis = "Not sold anywhere - an editorial pitch";
+    basis = NOT_LISTED_BASIS;
   }
 
   const dr = listing?.dr ?? null;

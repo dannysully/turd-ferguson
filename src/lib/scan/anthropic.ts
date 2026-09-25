@@ -8,6 +8,7 @@ import { QUESTIONS } from "@/config/scan-shape";
 
 import type { Market } from "./domain";
 import { countingFetch, withRetry } from "./retry-policy";
+import { sourceKindRequest, sourceKindSystem } from "./source-kind-prompt";
 
 const MODEL = "claude-opus-5";
 
@@ -662,13 +663,6 @@ const SourceJudgement = z.object({
  */
 const CLASSIFY_BATCH = 50;
 
-/** Query strings are most of the length of a cited URL and none of the meaning. */
-function trimUrl(url: string | null): string {
-  if (!url) return "";
-  const cut = url.split("?")[0].split("#")[0];
-  return cut.length > 120 ? `${cut.slice(0, 120)}...` : cut;
-}
-
 export async function classifySourceDomains(input: {
   topic: string;
   brand: string;
@@ -723,56 +717,8 @@ async function classifyBatch(
     // being a number somebody picked once.
     max_tokens: Math.min(8000, 600 + domains.length * 90),
     output_config: { effort: EFFORT, format: zodOutputFormat(SourceJudgement) },
-    system: [
-      "You are given website domains that AI search engines cited when answering",
-      `buyers' questions about ${input.topic || "a product category"}. Sort each one.`,
-      "",
-      "competitor: the domain belongs to a company that sells this to the same",
-      "buyers. A domain that is plainly one of the named competitors is a",
-      "competitor. So is a seller in this category you recognise even when it is",
-      "not named.",
-      "",
-      "placement: a publication, magazine, newspaper, trade title, blog, industry",
-      "body, comparison or listicle site, or any editorial site where an article",
-      "about this category could be published, or a brand written into an",
-      "existing one.",
-      "",
-      "other: anything else. A community or social site, an encyclopaedia, a",
-      "government or academic site, a marketplace, a search engine's own",
-      "property, a tool or product unrelated to the category.",
-      "",
-      "Then judge on_topic SEPARATELY from kind, using the page titles and URLs",
-      "under each domain. kind is what the site is; on_topic is whether these",
-      "particular pages are about this category. A national newspaper is a",
-      "placement, but a page about horse racing owners or an unrelated company",
-      "filing is not on topic, and neither is a fashion title cited for a shoe",
-      "trends piece. Set on_topic false whenever the cited pages are about",
-      "something else, however good the publication. Being unsure is not a",
-      "reason to say true.",
-      "",
-      "The note is one short line a business reader takes in at a glance: what",
-      "the site is and, for a placement, who reads it. Twelve words at most. No",
-      "marketing language. Examples: 'UK trade title for finance teams',",
-      "'Sells the same thing to the same buyers', 'Comparison site ranking",
-      "suppliers in this category'.",
-      "",
-      "Return every domain you were given, spelled exactly as given, once each.",
-    ].join("\n"),
-    messages: [
-      {
-        role: "user",
-        content: [
-          `Subject brand: ${input.brand}`,
-          `Named competitors: ${input.competitors.length ? input.competitors.join(", ") : "none identified"}`,
-          "",
-          "Domains, each with the pages the engines cited:",
-          ...domains.flatMap((d) => [
-            `- ${d.domain}`,
-            ...d.pages.slice(0, 3).map((p) => `    ${p.title ?? "(no title)"}  ${trimUrl(p.url)}`),
-          ]),
-        ].join("\n"),
-      },
-    ],
+    system: sourceKindSystem(input.topic),
+    messages: [{ role: "user", content: sourceKindRequest(input, domains) }],
   }));
 
   return res.parsed_output?.sources ?? [];

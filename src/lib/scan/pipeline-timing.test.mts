@@ -86,6 +86,12 @@ test("classifySources is called exactly once in the pipeline", () => {
  * of following them. `await classifySources(...)` would put it back in the line
  * while leaving rule 1 perfectly green - the count is right and the concurrency
  * is gone. That is the shape this rule exists for.
+ *
+ * Moved 25 Sep 2026 (N9): its reads still overlap the brand chain, but its
+ * model call now waits on a `leaderboard` promise that is resolved once
+ * `classifyBrands` has ruled. Without the judged competitors the classifier
+ * put vendors' own blogs on the placement list. Still started, not awaited in
+ * line - `source-kind-prompt.test.mts` holds the hand-off.
  */
 test("the source classification is started, not awaited in line", () => {
   const src = pipeline();
