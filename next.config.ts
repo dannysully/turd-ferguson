@@ -168,6 +168,22 @@ const nextConfig: NextConfig = {
   outputHashSalt: process.env.VERCEL_GIT_COMMIT_SHA ?? "",
 
   /**
+   * The salt above did not close it. 15710d1 (25 Sep 2026) deployed with a
+   * fresh salted stylesheet name, Last-Modified that deploy, and still without
+   * one rule of the block that commit appended to globals.css - every rule up
+   * to the one before it was there, and a local build of the same tree has
+   * them all. So the bytes were stale, not the filename: a CSS transform from
+   * an earlier build was reused. Next 16.3 turned on Turbopack's filesystem
+   * cache for `next build` by default, in .next/cache/turbopack, and Vercel
+   * restores .next/cache between deploys - the one place an earlier build's
+   * work can come from. Off, so every production build compiles from source.
+   * Costs build time only.
+   */
+  experimental: {
+    turbopackFileSystemCacheForBuild: false,
+  },
+
+  /**
    * /example is gone - Danny, 19 Sep 2026: "We no longer need example you
    * can remove this." It was live for weeks and may be linked from
    * somewhere neither of us can see, so it redirects rather than 404s.
