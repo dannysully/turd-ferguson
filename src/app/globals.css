@@ -768,6 +768,12 @@ html[data-motion="on"] .proc-beats { gap: 0; }
 html[data-motion="on"] .proc-beat { grid-area: 1 / 1; visibility: hidden; }
 html[data-motion="on"] .proc-beat[data-on="1"] { visibility: visible; animation: seqIn .45s ease-out both; }
 html[data-motion="on"] .proc-rail { display: flex; gap: 6px; margin-bottom: 14px; }
+/* Four lockups do not fit 390px side by side; the rail scrolls inside itself
+   rather than pushing the page sideways - 25 Sep 2026, seen live at 390. */
+@media (max-width: 560px) {
+  html[data-motion="on"] .proc-rail { overflow-x: auto; scrollbar-width: none; }
+  html[data-motion="on"] .proc-rail > button { flex-shrink: 0; }
+}
 
 /* The pace, 25 Sep 2026 - see BEAT_MS in ProcessSequence.tsx. Inside the
    sequence every step of a beat lands --proc-step apart after --proc-first,
