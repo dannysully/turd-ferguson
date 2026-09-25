@@ -124,8 +124,8 @@ const SECTIONS: Section[] = [
     body: (
       <>
         This site sets no cookies of its own and runs no analytics - there is no Google Analytics, no tag manager, and
-        no advertising pixel. The one third-party script the page loads is Cloudflare Turnstile, the box that checks you
-        are not a robot before a scan runs, and it sets storage of its own to do that.
+        no advertising pixel. The one third-party script the page loads is Cloudflare Turnstile, which checks you are not
+        a robot before a scan runs - usually without showing anything - and it sets storage of its own to do that.
       </>
     ),
   },

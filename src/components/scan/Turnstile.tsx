@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 declare global {
   interface Window {
@@ -23,6 +23,7 @@ export default function Turnstile({ onToken, theme = "light" }: { onToken: (toke
   const holder = useRef<HTMLDivElement>(null);
   const widget = useRef<string | null>(null);
   const cb = useRef(onToken);
+  const [challenge, setChallenge] = useState(false);
 
   // Kept in a ref so a changing callback does not tear down and re-render the
   // widget, which would drop a token the visitor has already solved for.
@@ -43,6 +44,11 @@ export default function Turnstile({ onToken, theme = "light" }: { onToken: (toke
         callback: (token: string) => cb.current(token),
         "expired-callback": () => cb.current(null),
         "error-callback": () => cb.current(null),
+        // Invisible unless Cloudflare decides to challenge (Danny, 25 Sep). The
+        // server check is unchanged: a token is still required to start a scan.
+        appearance: "interaction-only",
+        "before-interactive-callback": () => setChallenge(true),
+        "after-interactive-callback": () => setChallenge(false),
         theme,
       });
     }
@@ -70,5 +76,6 @@ export default function Turnstile({ onToken, theme = "light" }: { onToken: (toke
   }, [siteKey, theme]);
 
   if (!siteKey) return null;
-  return <div ref={holder} style={{ marginTop: "0.875rem" }} />;
+  // The gap above the box only while there is a box to space.
+  return <div ref={holder} style={{ marginTop: challenge ? "0.875rem" : 0 }} />;
 }
