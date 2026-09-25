@@ -134,8 +134,11 @@ function sourceFiles(): string[] {
  * a line here genuinely can hold two.
  */
 function sitesIn(rel: string): number {
-  const src = code(readFileSync(join(ROOT, rel), "utf8"));
-  return [...src.matchAll(new RegExp(CLAIM.source, "gi"))].length;
+  return claimsIn(readFileSync(join(ROOT, rel), "utf8"));
+}
+
+function claimsIn(raw: string): number {
+  return [...code(raw).matchAll(new RegExp(CLAIM.source, "gi"))].length;
 }
 
 // ------------------------------------------------------------------ rules
@@ -182,6 +185,27 @@ test("blocked.md 29 stayed closed - no surface describes the stored answers that
     "a surface is recorded as publishing the retired wording. blocked.md 29 is closed; either this is a " +
       "deliberate exception, in which case say why here, or the wording has come back somewhere.",
   );
+});
+
+test("the probe still sees the claim when it is there", () => {
+  /**
+   * Until 24 September 2026 the tree itself proved this: ten recorded sites,
+   * each counted, so a matcher or a comment strip that went blind failed on
+   * the count. Emptying the list was right - the wording call landed - and it
+   * took that proof with it, because the rule left over passes on a probe
+   * that finds nothing anywhere. Restored 25 Sep 2026 by the audit of the
+   * 24 Sep removals: the counting is shown on copy, and the walk is shown to
+   * reach files that still mention the words in their prose.
+   */
+  assert.equal(claimsIn('const body = "The answer is stored verbatim, word for word.";'), 2);
+  assert.equal(claimsIn('title: "Full response text"'), 1);
+  assert.equal(claimsIn("// the old copy said verbatim\n/* and word for word */"), 0, "a comment is not a surface");
+
+  // The prose mentions are what `code()` exists to drop, so the raw files must
+  // still hold some for this walk to be reading the files it thinks it is.
+  const mentions = sourceFiles().filter((f) => CLAIM.test(readFileSync(join(ROOT, f), "utf8")));
+  // 18 files on 25 Sep 2026, every one of them in a comment.
+  assert.ok(mentions.length >= 18, `only ${mentions.length} source files mention the retired words even in a comment, was 18 - the walk has narrowed`);
 });
 
 test("every surface records why the page sweeps can or cannot see it", () => {

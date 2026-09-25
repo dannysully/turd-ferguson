@@ -237,9 +237,13 @@ const PASS_ENTRIES = exportedFunctions(pipelineSrc)
  * that calls something already in the set, and any route whose body does. Runs
  * to a fixed point rather than a fixed number of rounds, so a third hop added
  * later needs no edit.
+ *
+ * Takes its file set as an argument so the transitive hop can be proved on a
+ * fixture - see "the closure follows a pass through a helper", below.
  */
-function passReachingRoutes(): { routes: string[]; indirect: string[]; reached: string[] } {
-  const files = sourceFiles(ROOT).map((file) => ({ file, src: read(file) }));
+function passReachingRoutes(
+  files: { file: string; src: string }[] = sourceFiles(ROOT).map((file) => ({ file, src: read(file) })),
+): { routes: string[]; indirect: string[]; reached: string[] } {
   const targets = new Set(PASS_ENTRIES);
   const routes = new Set<string>();
   const direct = new Set<string>();
@@ -391,7 +395,13 @@ test("no route reaches a pass through a helper without being recorded", () => {
    * of deleted: every route the closure reaches indirectly must be one
    * `KNOWN_HELPERS` explains. That still fails the day a new module starts a
    * pass from outside a route segment, which is the direction that costs
-   * money, and it cannot be satisfied by the closure going blind.
+   * money.
+   *
+   * **It said here that this "cannot be satisfied by the closure going
+   * blind", and that was wrong** (audit of the 24 Sep removals, 25 Sep 2026).
+   * A closure narrowed to direct calls returns no indirect routes, and an
+   * empty list passes this. The floor it replaced was the only thing proving
+   * the hop worked, so the proof is back as a fixture in the next test.
    */
   const unexplained = INDIRECT_ROUTES.filter(
     (r) => !Object.keys(KNOWN_HELPERS).some((h) => r.includes(h)),
@@ -401,6 +411,27 @@ test("no route reaches a pass through a helper without being recorded", () => {
     [],
     `these routes reach a pass through a module no reason covers:\n${unexplained.join("\n")}`,
   );
+});
+
+test("the closure follows a pass through a helper", () => {
+  /**
+   * What the `>= 2` floor proved until 24 September 2026, when the tree's only
+   * two indirect routes went with the email gate: that a route calling a helper
+   * which calls the pipeline is found, and is found as indirect. The tree has
+   * none to count now, so the hop is proved on a fixture instead. If the
+   * closure is ever narrowed to direct calls, this fails where the rule above
+   * would pass on an empty list.
+   */
+  const pass = PASS_ENTRIES[0]!;
+  const found = passReachingRoutes([
+    { file: "src/app/api/fixture/direct/route.ts", src: `export async function POST() {\n  await ${pass}(x);\n}` },
+    { file: "src/app/api/fixture/indirect/route.ts", src: "export async function POST() {\n  await startIt(x);\n}" },
+    { file: "src/lib/fixture/helper.ts", src: `export async function startIt(x) {\n  return ${pass}(x);\n}` },
+    { file: "src/app/api/fixture/bystander/route.ts", src: "export async function GET() {\n  return read(x);\n}" },
+  ]);
+  assert.deepEqual(found.routes, ["src/app/api/fixture/direct/route.ts", "src/app/api/fixture/indirect/route.ts"]);
+  assert.deepEqual(found.indirect, ["src/app/api/fixture/indirect/route.ts"], "the one-hop route was not found as indirect");
+  assert.deepEqual(found.reached, ["src/lib/fixture/helper.ts"], "the helper that starts a pass was not found");
 });
 
 test("a route may not ask for more time than the pipeline needs without starting a pass", () => {
