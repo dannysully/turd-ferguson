@@ -409,6 +409,8 @@ const CSS_COLOURS: Record<string, string> = {
   ".faq-row[open] .faq-summary span:first-child": "var(--accent) #7c3aed, the same value as the tier accent",
   ".tier-quiet .tier-name,.tier-quiet .tier-name__accent":
     "var(--soft), so it is the token blocked.md 9 moved and clears AA on every ground the site draws since it was answered",
+  ".proc-schema":
+    "var(--soft) on var(--bg) - 4.80:1, which clears AA for body text since blocked.md 9 was answered. It is a code sample in a product panel, and it is illustrative schema rather than anything a reader has to act on",
   ".ans-nav":
     "var(--ink) on var(--surface) - 18.66:1. The drawer's paging controls, which render only behind a completed scan and so are on no swept page",
 };
@@ -442,6 +444,7 @@ const CSS_GROUNDS: Record<string, string> = {
   ".ans-nav": "var(--surface), a control on the drawer's own ground",
   ".res-qbtn": "transparent - it takes the ground of the row it wraps, which is what the inline walk already measures",
   ".res-qbtn:hover:not(:disabled)": "var(--bg) on hover only. A hover state is not a resting ground, and the text on it is the row's own",
+  ".proc-schema": "var(--bg), the page ground, inside the white product panel on the cited tier - a code block, and the only place on the site that sets one",
   ".wt-option": "var(--surface), a card-on-card control on the report's white ground",
   ".wt-option--on": "var(--wash), the selected half of the same toggle - the purple wash, which soft clears since blocked.md 9 was answered",
 };

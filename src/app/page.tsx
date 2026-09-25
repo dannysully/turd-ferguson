@@ -41,7 +41,10 @@ export default function HomePage() {
       {/* The four tiers, as four pictures. One explanation of them on this
           page and the same component on the scan waiting screen - there used
           to be two, and they did not agree about what $99 buys. */}
-      <ProcessSequence heading="Four tiers, each one adding to the last" />
+      <ProcessSequence
+        heading="Four tiers. Each one adds to the last."
+        standfirst="Start with measurement and stop there if you want. Everything above it is the same programme, doing more of the work."
+      />
 
       {/* Packages and white label, from Packages.dc.html. Replaces the
           old pricing table and the separate white-label block. */}

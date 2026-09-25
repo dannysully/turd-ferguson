@@ -210,6 +210,16 @@ const OFF_PALETTE: Record<string, Entry> = {
     boards: 2,
     sites: { "src/components/scan/ResultView.tsx": 1 },
   },
+  "rgba(15,17,21,.28)": {
+    why:
+      "the soft shadow under a floating product panel in ProcessSequence, from the 25 Sep 2026 site brief - " +
+      "which allows a shadow there and states that everything else keeps hairlines. It is `T.ink` at 28%, not a " +
+      "fourth grey: the shadow under a white panel on a near-white ground has to be the ink or it reads brown. " +
+      "**Do not tokenise it.** A shadow colour is not a surface colour, nothing else on the site may use it, and " +
+      "a token would invite exactly that.",
+    boards: 1,
+    sites: { "src/components/ProcessSequence.tsx": 1 },
+  },
   "#c9ccd3": {
     why:
       "the 'not you' dot, from HeroSequence.dc.html and Journey.dc.html. **Do not tidy this into `#c8cad0`.** " +
@@ -260,11 +270,6 @@ const OFF_PALETTE: Record<string, Entry> = {
     why: "Anthropic's own brand clay, on the Claude chip. Not ours to change or to tokenise.",
     boards: 0,
     sites: { "src/lib/scan/engines.ts": 1 },
-  },
-  "#1a0dab": {
-    why: "Google's SERP link blue, in the SerpPanel mock of a result page - HeroSequence's, until ProcessSequence replaced it and the panel moved with the argument it draws. A rendering of somebody else's interface, the same class as the five above.",
-    boards: 1,
-    sites: { "src/components/ProcessSequence.tsx": 1 },
   },
 
   // ---- the two no board draws ----------------------------------------------

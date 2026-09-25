@@ -58,3 +58,6 @@ next-env.d.ts
 # tells every session to run `git add src supabase`, so without this line one
 # of them stages pooler-url into a public repo.
 /supabase/.temp/
+
+# Design briefs - images and boards, large and not source.
+/docs/site-brief-*/

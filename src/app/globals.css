@@ -735,6 +735,28 @@ html[data-motion="on"] .seq-rise { animation: seqRise 1s cubic-bezier(.2,.7,.3,1
    four beats on the page there is nothing for it to move between, and a tab
    list that selects the thing already in front of you is a control that lies
    about what it does. */
+/* -- The four-tier sequence's own layout (25 Sep site brief) ------ */
+/* Two columns: the argument, then the screen you would get. One column on a
+   phone, with the panel under the claim it is evidence for. */
+.proc-head { display: grid; gap: 14px; margin-bottom: 26px; }
+.proc-stage { display: grid; gap: 28px; align-items: center; }
+.proc-headline { font-size: 34px; }
+.proc-foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 18px; flex-wrap: wrap; }
+.proc-qrow { display: grid; grid-template-columns: 1fr repeat(4, 58px); gap: 4px; align-items: center; }
+.proc-schema { margin: 8px 0 0; font-size: 11px; line-height: 1.6; color: var(--soft); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; overflow-x: auto; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+@media (min-width: 900px) {
+  .proc-head { grid-template-columns: 1.1fr 1fr; align-items: start; gap: 40px; }
+  .proc-stage { grid-template-columns: 1fr 1.15fr; gap: 48px; }
+  .proc-headline { font-size: 40px; }
+}
+
+/* The question grid collapses rather than scrolling sideways: the engine
+   columns are the finding, so they stay and the question wraps. */
+@media (max-width: 560px) {
+  .proc-qrow { grid-template-columns: 1fr repeat(4, 40px); }
+}
+
 .proc-beats { display: grid; gap: 28px; }
 .proc-rail { display: none; }
 
