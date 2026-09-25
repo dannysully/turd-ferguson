@@ -194,11 +194,6 @@ const OFF_PALETTE: Record<string, Entry> = {
     boards: 2,
     sites: { "src/app/case-studies/vibe-retail/page.tsx": 2, "src/components/PostShell.tsx": 1 },
   },
-  "#e8e8ea": {
-    why: "the divider inside a dark or tinted card, one step heavier than `T.line`.",
-    boards: 3,
-    sites: { "src/components/home/Packages.tsx": 2 },
-  },
   "#d6d8dd": {
     why: "the inactive step marker on the PR agencies ladder, from PRAgencies.dc.html.",
     boards: 2,
@@ -314,10 +309,15 @@ const OFF_PALETTE: Record<string, Entry> = {
     boards: 1,
     sites: { "src/components/home/dark.ts": 1 },
   },
+  "rgba(124,58,237,.2)": {
+    why: "the upper-right purple wash on the dark packages band, from Packages.dc.html (Q04, 25 Sep 2026). `T.accent` at 20%, written as the board writes it.",
+    boards: 1,
+    sites: { "src/components/home/dark.ts": 1 },
+  },
   "rgba(17,18,24,0)": {
-    why: "the fade-out stop of both hero washes: the hero ground at zero alpha, so the wash fades into the ground rather than through grey.",
+    why: "the fade-out stop of the hero's two washes and the packages band's one (Q04, 25 Sep): the dark ground at zero alpha, so the wash fades into the ground rather than through grey.",
     boards: 4,
-    sites: { "src/components/home/dark.ts": 2 },
+    sites: { "src/components/home/dark.ts": 3 },
   },
   "#a855f7": {
     why: "the far stop of the primary CTA gradient, and the subject of blocked.md 31 - white measures 3.96 on it, under AA. `contrast.test.mts` pins both stops by measurement and fails if either moves, so this entry is the palette half of a value that already has a contrast half.",
