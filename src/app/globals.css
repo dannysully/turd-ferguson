@@ -429,6 +429,53 @@ html[data-motion="on"] .chart-dot.in-view {
   align-items: stretch;
 }
 .pr-mob { display: none; }
+
+/* SEO agencies (SEOAgencies.dc.html, Q13, 25 Sep 2026): headline beside the
+   scan card at 7fr / 4fr on one bottom line, then the beat - the Google
+   result, the placement between two link lines, the ChatGPT answer. */
+.seo-top {
+  display: grid;
+  grid-template-columns: 7fr 4fr;
+  gap: 64px;
+  align-items: end;
+}
+.seo-beat {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px minmax(0, 1fr);
+  margin-top: 28px;
+  align-items: center;
+}
+.seo-beat__mid { position: relative; display: flex; flex-direction: column; align-items: center; }
+.seo-beat__wires { position: absolute; top: 50%; margin-top: -60px; left: 0; }
+.seo-notes {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 14px;
+  font-size: 12px;
+}
+/* One pass of the board's 10s loop, cued by the link lines being drawn: the
+   placement's row climbs from #10 into third and pushes two rows down, and
+   the answer settles with it. Keyframes only - at rest, with no JavaScript
+   or with reduced motion, every row is simply where it ends up. */
+html[data-motion="on"] .seo-beat:has(.flow-line.in-view) .seo-climb { animation: seoClimb 1.2s .5s cubic-bezier(.3,.7,.2,1) both; }
+html[data-motion="on"] .seo-beat:has(.flow-line.in-view) .seo-down { animation: seoDown 1.2s .5s cubic-bezier(.3,.7,.2,1) both; }
+html[data-motion="on"] .seo-beat:has(.flow-line.in-view) .seo-answer { animation: seoAnswer .6s 1.5s ease-out both; }
+@keyframes seoClimb { from { transform: translateY(132px); } }
+@keyframes seoDown { from { transform: translateY(-44px); } }
+@keyframes seoAnswer { from { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) {
+  html[data-motion="on"] .seo-beat:has(.flow-line.in-view) :is(.seo-climb, .seo-down, .seo-answer) { animation: none; }
+}
+@media (max-width: 1000px) {
+  .seo-top { grid-template-columns: 1fr; gap: 28px; }
+  .seo-beat { grid-template-columns: 1fr; row-gap: 16px; }
+  .seo-beat__wires { display: none; }
+  .seo-notes { flex-direction: column; gap: 4px; }
+}
+@media (max-width: 860px) {
+  .seo-h1 { font-size: 36px !important; }
+}
 .pr-two {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

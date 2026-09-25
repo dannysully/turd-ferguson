@@ -3,8 +3,9 @@ import { WAITLIST_LIMITS } from "@/config/contact";
 import { OG_IMAGE } from "@/config/og";
 import Link from "next/link";
 
+import { D } from "@/components/home/dark";
 import { TIERS, TRACKED_QUESTIONS } from "@/config/pricing";
-import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
+import { CARD, SHELL, T } from "@/config/tokens";
 
 export const metadata: Metadata = {
   title: "For SEO agencies",
@@ -15,18 +16,23 @@ export const metadata: Metadata = {
 };
 
 /**
- * SEOAgencies.dc.html.
+ * SEOAgencies.dc.html (25 Sep 2026 read, Q13), including its beat: one
+ * placement moving both the Google row and the answer.
  *
  * The argument the whole page rests on is "one placement, two jobs": the same
  * article Google reads as a link is the article the engines read as a source.
  * That is why it is not a second service for an agency to staff.
  *
- * The entry price comes from src/config/pricing.ts, as everywhere else, so a
- * price change moves every page at once.
+ * What is painted is the settled state - Tallyroo at #3 on Google, "was #10",
+ * and second in the ChatGPT answer with the placement as its source - so the
+ * page reads the same with no JavaScript or reduced motion. The motion is one
+ * pass, not the board's 10s loop: the two link lines draw on the homepage
+ * charts' `.flow-line` trigger, and the Google rows and the answer take their
+ * cue from the same line through `:has(.flow-line.in-view)` in globals.css.
  *
- * The scan box is a GET to /scan rather than a second LiveScanChecker, for
- * the same reason as the homepage's closing form: that component hardcodes
- * id="scan-email", so a second instance duplicates a DOM id.
+ * The entry price comes from src/config/pricing.ts, as everywhere else. The
+ * scan box is a GET to /scan rather than a second LiveScanChecker: that
+ * component hardcodes id="scan-email", so a second instance duplicates an id.
  */
 
 const tracked = TIERS.find((t) => t.id === "tracked");
@@ -34,143 +40,197 @@ const tracked = TIERS.find((t) => t.id === "tracked");
 const QUESTIONS: { q: string; a: string }[] = [
   {
     q: "How long before anything moves?",
-    a: "A placement is live in weeks, not months. Citation usually follows the next time the engine reads the page. Google position moves on its own schedule, and we report the two separately rather than averaging them into one number.",
+    a: "A placement is live in weeks. Citation usually follows the next time the engine reads the page. Google moves on its own schedule, and we report the two separately.",
   },
   {
-    q: "Do I need links, or do mentions count?",
-    a: "An unlinked mention can get a brand named in an answer. A link does that and moves the Google position. Every placement we run carries one, which is why the two measures move together.",
+    q: "Links, or do mentions count?",
+    a: "An unlinked mention can get a brand named. A link does that and moves the Google position, so every placement we run carries one.",
   },
   {
     q: "What do I resell this at?",
-    a: "Your call. The prices on the packages page are what you pay us, not what your client pays you.",
+    a: "Your call. The packages page shows what you pay us, not what your client pays you.",
   },
 ];
 
+/** The Google result, settled: Tallyroo has climbed into third. */
+const SERP: { n: number; name: string; domain: string; you?: boolean; cls?: string }[] = [
+  { n: 1, name: "Ledgerbird", domain: "ledgerbird.com" },
+  { n: 2, name: "Stackbill", domain: "stackbill.io" },
+  { n: 3, name: "Tallyroo", domain: "tallyroo.com", you: true, cls: "seo-climb" },
+  { n: 4, name: "Pennywell", domain: "pennywell.com", cls: "seo-down" },
+  { n: 5, name: "Billcraft", domain: "billcraft.app", cls: "seo-down" },
+];
+
 export default function SeoAgenciesPage() {
+  const soft: React.CSSProperties = { color: T.soft };
   return (
-    <main style={{ ...SHELL, paddingTop: "44px", paddingBottom: "44px", display: "flex", flexDirection: "column", gap: "32px" }}>
-      <div className="board-head" style={{ ...GRID12, alignItems: "start" }}>
-        {/* The beat, from globals.css. The scan card animates whole - the
-            input and the button inside it are one thing to a reader. */}
-        <div style={{ gridColumn: "span 7" }}>
-          <div className="ac-row" style={MICRO}>For SEO agencies</div>
-          <h1 className="ac-row" style={{ margin: "10px 0 0", fontSize: "36px", fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.18, color: T.ink }}>
+    <main style={{ ...SHELL, paddingTop: "64px", paddingBottom: "64px" }}>
+      <div className="seo-top">
+        <div>
+          <div style={{ fontSize: "13px", fontWeight: 600, color: T.soft }}>For SEO agencies</div>
+          <h1 className="seo-h1" style={{ margin: "12px 0 0", fontSize: "50px", fontWeight: 700, letterSpacing: "-0.04em", lineHeight: 1.04, color: T.ink }}>
             Sell AI visibility without building a second supply chain.
           </h1>
-          <p className="ac-row" style={{ margin: "14px 0 0", fontSize: "15px", lineHeight: 1.6, color: T.soft, maxWidth: "62ch" }}>
-            Your clients are asking about ChatGPT. The honest answer is that the work is placement on third-party
-            pages, which is the work you already do - aimed at a different target list. We run it under your name.
+          <p style={{ margin: "18px 0 0", fontSize: "17px", lineHeight: 1.55, color: T.soft, maxWidth: "54ch" }}>
+            The work is placement on third-party pages, which you already do. It is aimed at a different target list,
+            and we run it under your name.
           </p>
         </div>
 
-        <div className="ac-row" style={{ ...CARD, gridColumn: "span 5", padding: "24px" }}>
-          <div style={MICRO}>Free scan</div>
-          <p style={{ margin: "8px 0 16px", fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
-            Run a client you already rank well for. The gap between position 1 and being named is usually the surprise.
-          </p>
-          <form action="/scan" method="get">
-            <label htmlFor="seo-domain" style={{ ...MICRO, display: "block", marginBottom: "6px" }}>
-              Domain
+        <div style={{ ...CARD, borderRadius: "18px", padding: "20px" }}>
+          <div style={{ fontSize: "14px", fontWeight: 700, color: T.ink }}>Scan a client you already rank well for</div>
+          <div style={{ fontSize: "13px", lineHeight: 1.5, color: T.soft, marginTop: "4px" }}>
+            The gap between position 1 and being named is usually the surprise.
+          </div>
+          <form action="/scan" method="get" style={{ display: "flex", gap: "8px", marginTop: "14px" }}>
+            <label htmlFor="seo-domain" className="sr-only">
+              Client domain
             </label>
-            <div style={{ display: "flex", gap: "8px" }}>
-              <input
-                id="seo-domain"
-                name="domain"
-                type="text"
-                maxLength={WAITLIST_LIMITS.domain}
-                inputMode="url"
-                autoComplete="url"
-                placeholder="yourdomain.com"
-                style={{
-                  flexGrow: 1,
-                  minWidth: 0,
-                  fontFamily: "inherit",
-                  fontSize: "14px",
-                  color: T.ink,
-                  background: T.surface,
-                  border: `1px solid ${T.line}`,
-                  borderRadius: "10px",
-                  padding: "11px 13px",
-                }}
-              />
-              <button
-                type="submit"
-                style={{
-                  fontFamily: "inherit",
-                  fontSize: "14px",
-                  fontWeight: 600,
-                  color: "#ffffff",
-                  background: T.accent,
-                  border: 0,
-                  borderRadius: "10px",
-                  padding: "11px 20px",
-                  cursor: "pointer",
-                }}
-              >
-                Check
-              </button>
-            </div>
+            <input
+              id="seo-domain"
+              name="domain"
+              type="text"
+              maxLength={WAITLIST_LIMITS.domain}
+              inputMode="url"
+              autoComplete="url"
+              placeholder="clientdomain.com"
+              style={{
+                flexGrow: 1,
+                minWidth: 0,
+                fontFamily: "inherit",
+                fontSize: "14px",
+                color: T.ink,
+                background: T.surface,
+                border: `1px solid ${T.line}`,
+                borderRadius: "10px",
+                padding: "0 12px",
+                minHeight: "44px",
+              }}
+            />
+            <button
+              type="submit"
+              style={{
+                fontFamily: "inherit",
+                fontSize: "14px",
+                fontWeight: 600,
+                color: "#ffffff",
+                background: T.accent,
+                border: 0,
+                borderRadius: "10px",
+                padding: "0 18px",
+                minHeight: "44px",
+                cursor: "pointer",
+              }}
+            >
+              Check
+            </button>
           </form>
         </div>
       </div>
 
-      <section>
-        <div className="board-head" style={{ ...GRID12, marginBottom: "16px" }}>
-          <h2 className="ac-row" style={{ ...H2, gridColumn: "span 4" }}>One placement, two jobs</h2>
-          <p className="ac-row" style={{ gridColumn: "span 8", margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
-            This is why the line item is not a new service. The same article Google reads as a link is the article the
-            engines read as a source.
+      <section style={{ marginTop: "72px" }}>
+        <div className="board-head" style={{ display: "flex", alignItems: "baseline", gap: "40px" }}>
+          <h2 style={{ margin: 0, fontSize: "28px", fontWeight: 700, letterSpacing: "-0.03em", flexShrink: 0, color: T.ink }}>
+            One placement, two jobs
+          </h2>
+          <p style={{ margin: 0, fontSize: "15px", lineHeight: 1.55, color: T.soft }}>
+            The article Google reads as a link is the article the engines read as a source.
           </p>
         </div>
 
-        <div className="two-up">
-          <div className="ac-row" style={{ ...CARD, padding: "24px" }}>
-            <div style={MICRO}>Google reads a link</div>
-            <p style={{ margin: "10px 0 0", fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
-              Authority passes to the page the anchor points at, and the article itself ranks for the term. Measured as
-              position, daily, with a note on whether an AI Overview sits above it.
-            </p>
+        <div className="seo-beat">
+          <div style={{ ...CARD, borderRadius: "18px", padding: "20px 22px" }}>
+            <div style={{ fontSize: "12px", color: T.soft }}>Google · best invoicing software for freelancers</div>
+            <ol style={{ listStyle: "none", margin: "12px 0 0", padding: 0, display: "flex", flexDirection: "column", gap: "4px" }}>
+              {SERP.map((r) => (
+                <li key={r.name} style={{ display: "flex", alignItems: "center", minHeight: "40px", fontSize: "13.5px" }}>
+                  <span style={{ width: "34px", flexShrink: 0, fontSize: "13px", fontWeight: 700, color: T.soft }}>{r.n}</span>
+                  <span
+                    className={r.cls}
+                    style={{
+                      flexGrow: 1,
+                      minWidth: 0,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      minHeight: "40px",
+                      borderRadius: "10px",
+                      padding: r.you ? "0 10px" : "0 0 0 10px",
+                      background: r.you ? T.wash : undefined,
+                      position: "relative",
+                      zIndex: r.you ? 1 : undefined,
+                    }}
+                  >
+                    <span style={{ fontWeight: r.you ? 700 : 600, color: r.you ? T.accentHover : T.ink }}>{r.name}</span>
+                    <span style={soft}>{r.domain}</span>
+                    {r.you ? (
+                      <span style={{ marginLeft: "auto", fontSize: "11.5px", fontWeight: 600, color: T.accentHover, whiteSpace: "nowrap" }}>was #10</span>
+                    ) : null}
+                  </span>
+                </li>
+              ))}
+            </ol>
           </div>
-          <div className="ac-row" style={{ ...CARD, border: `1px solid ${T.accent}`, padding: "24px" }}>
-            <div style={{ ...MICRO, color: T.accent }}>The engines read a source</div>
-            <p style={{ margin: "10px 0 0", fontSize: "14px", lineHeight: 1.6, color: T.ink }}>
-              The article becomes one of the pages an answer is assembled from, so the brand gets named. Measured
-              across the question set, on every engine.
-            </p>
+
+          <div className="seo-beat__mid">
+            <svg className="seo-beat__wires" width="260" height="120" viewBox="0 0 260 120" fill="none" aria-hidden="true">
+              <path className="flow-line" pathLength={1} d="M130 60 C 70 60, 60 30, 0 30" stroke={T.accent} strokeWidth="1.6" />
+              <path className="flow-line" pathLength={1} d="M130 60 C 190 60, 200 90, 260 90" stroke={T.accent} strokeWidth="1.6" />
+            </svg>
+            <div style={{ position: "relative", background: T.ink, color: T.surface, borderRadius: "14px", padding: "14px 16px", width: "200px", boxSizing: "border-box" }}>
+              <div style={{ fontSize: "11px", color: D.muted }}>Placement · solodesk.io</div>
+              <div style={{ fontSize: "13.5px", fontWeight: 700, marginTop: "4px", lineHeight: 1.3 }}>The 9 best invoicing apps for freelancers</div>
+              <div style={{ fontSize: "11px", color: D.caret, marginTop: "8px" }}>Link to tallyroo.com</div>
+            </div>
           </div>
+
+          <div style={{ background: D.ground, borderRadius: "18px", padding: "20px 22px", color: T.surface, minHeight: "304px", boxSizing: "border-box" }}>
+            <div style={{ fontSize: "12px", color: D.muted }}>
+              <span style={{ color: T.surface, fontWeight: 600 }}>ChatGPT</span> · best invoicing software for freelancers
+            </div>
+            <div aria-hidden="true" style={{ height: "6px", background: D.bar, borderRadius: "3px", marginTop: "16px", width: "90%" }} />
+            <div aria-hidden="true" style={{ height: "6px", background: D.bar, borderRadius: "3px", marginTop: "6px", width: "70%" }} />
+            <div className="seo-answer" style={{ marginTop: "18px", fontSize: "14px", lineHeight: 2.1 }}>
+              <div>1. Ledgerbird</div>
+              <div style={{ background: D.card, border: "1px solid " + D.accent, color: T.surface, borderRadius: "6px", margin: "0 -8px", padding: "0 8px", fontWeight: 700 }}>
+                2. Tallyroo
+              </div>
+              <div>3. Stackbill</div>
+              <div style={{ marginTop: "14px", fontSize: "11.5px", color: D.muted, lineHeight: 1.5 }}>Sources</div>
+              <div style={{ display: "inline-block", marginTop: "4px", fontSize: "11.5px", fontWeight: 600, color: D.cardHead, background: D.card, border: "1px solid " + D.cardLine, borderRadius: "999px", padding: "0 10px", lineHeight: 1.8 }}>
+                solodesk.io
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="seo-notes" style={{ color: T.soft }}>
+          <span>Measured as a position, daily</span>
+          <span>Illustrative. Every brand shown is made up.</span>
+          <span>Measured across the question set, every engine</span>
         </div>
       </section>
 
-      <section>
-        <div className="board-head" style={{ ...GRID12, marginBottom: "16px" }}>
-          <h2 className="ac-row" style={{ ...H2, gridColumn: "span 4" }}>The three questions you are about to ask</h2>
-          <p className="ac-row" style={{ gridColumn: "span 8", margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
-            Answered here rather than on a call.
-          </p>
-        </div>
-
-        <div style={{ ...CARD, overflow: "hidden" }}>
-          {QUESTIONS.map((item, i) => (
-            <div
-              key={item.q}
-              className="board-head ac-row"
-              style={{ ...GRID12, padding: "20px 26px", borderTop: i ? `1px solid ${T.hair}` : undefined }}
-            >
-              <div style={{ gridColumn: "span 4", fontSize: "14.5px", fontWeight: 600, color: T.ink }}>{item.q}</div>
-              <div style={{ gridColumn: "span 8", fontSize: "14px", lineHeight: 1.6, color: T.soft }}>{item.a}</div>
+      <section style={{ marginTop: "80px" }}>
+        <h2 style={{ margin: 0, fontSize: "28px", fontWeight: 700, letterSpacing: "-0.03em", color: T.ink }}>
+          The three questions you are about to ask
+        </h2>
+        <div className="three-up" style={{ gap: "16px", marginTop: "22px" }}>
+          {QUESTIONS.map((item) => (
+            <div key={item.q} style={{ ...CARD, borderRadius: "16px", padding: "20px" }}>
+              <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 700, color: T.ink }}>{item.q}</h3>
+              <p style={{ margin: "8px 0 0", fontSize: "14px", lineHeight: 1.55, color: T.soft }}>{item.a}</p>
             </div>
           ))}
         </div>
+        <p style={{ margin: "20px 0 0", fontSize: "14px", color: T.soft, lineHeight: 1.6 }}>
+          <Link href="/#packages" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
+            See all packages
+          </Link>
+          {/* "a week" said something the other three surfaces did not: the basis
+              is questions checked weekly, not new questions every week. */}
+          {tracked ? ` - ${tracked.priceLabel} for tracking alone, at ${TRACKED_QUESTIONS} questions checked weekly.` : "."}
+        </p>
       </section>
-
-      <p className="ac-row" style={{ margin: 0, fontSize: "13.5px", color: T.soft, lineHeight: 1.65 }}>
-        <Link href="/#packages" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
-          See all packages
-        </Link>
-        {/* "a week" said something the other three surfaces did not: the basis
-            is questions checked weekly, not new questions every week. */}
-        {tracked ? ` - ${tracked.priceLabel} for tracking alone, at ${TRACKED_QUESTIONS} questions checked weekly.` : "."}
-      </p>
     </main>
   );
 }
