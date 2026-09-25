@@ -38,8 +38,7 @@ export default function HomeHero() {
           <span style={{ color: D.accent }}>We close it.</span>
         </h1>
         <p style={{ margin: "22px auto 0", fontSize: "18px", lineHeight: 1.55, color: D.muted, maxWidth: "52ch" }}>
-          We find the pages the answers are built from, then get you named inside them. White-label for agencies, the
-          same if you are the brand.
+          We find the pages the answers are built from, then get you named inside them.
         </p>
 
         <div style={{ margin: "30px auto 0", maxWidth: "520px" }}>

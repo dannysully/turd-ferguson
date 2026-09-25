@@ -55,7 +55,7 @@ export default function HeroSection({
       >
         {/* Phone board only: the desktop board has no label above the h1. */}
         <div className="phone-only ac-row" style={{ ...MICRO, marginBottom: "10px" }}>
-          AI search visibility, white-labelled
+          AI search visibility
         </div>
 
         <h1
@@ -96,12 +96,11 @@ export default function HeroSection({
           <span className="ac-stamp" style={pill}>
             named inside them
           </span>
-          . Built white-label for agencies, and it works the same if you are the brand.
+          .
         </p>
 
         <p className="phone-only ac-row" style={{ margin: "12px 0 0", fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
-          Free scan, then editorial placements in the pages the engines actually cite. White-label for agencies, and
-          the same if you are the brand.
+          Free scan, then editorial placements in the pages the engines actually cite.
         </p>
 
         {/* Above the field rather than below it: it is the reason they are on
