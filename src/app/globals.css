@@ -1058,6 +1058,37 @@ html[data-motion="on"] .demo-verdict { animation: demo-verdict 12s infinite both
     max-width: 30em;
   }
 }
+
+/* -- Two ways into an answer (Main.dc.html, 25 Sep 2026) ----------- */
+/* TwoWays.tsx. Heading and standfirst share a baseline, stacked below 860px;
+   two cards, one column below 860px. The settled frame - Tallyroo placed at
+   3, Pennywell at 4, the new page drawn with both pills - is the unscoped
+   state. The board's 9s loop plays only under html[data-motion="on"]. */
+.ways-head { display: flex; align-items: baseline; gap: 40px; }
+.ways-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin-top: 36px; }
+@media (max-width: 860px) {
+  .ways-head { display: block; }
+  .ways-head > p { margin-top: 10px !important; }
+  .ways-grid { grid-template-columns: 1fr; gap: 16px; margin-top: 24px; }
+  .ways-grid > div { padding: 22px !important; }
+}
+.ways-was3 { opacity: 0; }
+@keyframes ways-row-new { 0%, 15% { opacity: 0; max-height: 0; transform: translateX(-10px); } 25%, 92% { opacity: 1; max-height: 40px; transform: none; } 98%, 100% { opacity: 0; max-height: 0; } }
+@keyframes ways-pill-new { 0%, 30% { opacity: 0; } 34%, 92% { opacity: 1; } 98%, 100% { opacity: 0; } }
+@keyframes ways-draw { 0%, 12% { clip-path: inset(0 0 100% 0); } 40%, 92% { clip-path: inset(0 0 0 0); } 98%, 100% { clip-path: inset(0 0 100% 0); } }
+@keyframes ways-rank { 0%, 48% { opacity: 0; transform: translateY(6px); } 54%, 92% { opacity: 1; transform: none; } 98%, 100% { opacity: 0; } }
+@keyframes ways-was3 { 0%, 16% { opacity: 1; } 18%, 94% { opacity: 0; } 98%, 100% { opacity: 1; } }
+@keyframes ways-now4 { 0%, 16% { opacity: 0; } 18%, 94% { opacity: 1; } 98%, 100% { opacity: 0; } }
+html[data-motion="on"] .ways-row-new { animation: ways-row-new 9s infinite cubic-bezier(.2, .7, .2, 1) both; }
+html[data-motion="on"] .ways-pill-new { animation: ways-pill-new 9s infinite both; }
+html[data-motion="on"] .ways-draw { animation: ways-draw 9s infinite ease-out both; }
+html[data-motion="on"] .ways-rank { animation: ways-rank 9s infinite both; animation-delay: var(--ways-d, 0s); }
+html[data-motion="on"] .ways-was3 { animation: ways-was3 9s infinite both; }
+html[data-motion="on"] .ways-now4 { animation: ways-now4 9s infinite both; }
+@media (prefers-reduced-motion: reduce) {
+  html[data-motion="on"] :is(.ways-row-new, .ways-pill-new, .ways-draw, .ways-rank, .ways-was3, .ways-now4) { animation: none; }
+}
+
 @media (max-width: 600px) {
   .hero-field { flex-direction: column; }
   .hero-field > input { min-height: 48px; }

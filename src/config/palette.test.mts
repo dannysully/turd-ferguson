@@ -185,7 +185,6 @@ const OFF_PALETTE: Record<string, Entry> = {
       "src/app/pr-agencies/page.tsx": 1,
       "src/app/what-is-aeo/page.tsx": 1,
       "src/app/white-label/page.tsx": 1,
-      "src/components/home/AnswerExplorer.tsx": 1,
       "src/components/scan/ConfirmScreen.tsx": 1,
       "src/components/scan/ResultView.tsx": 3,
     },

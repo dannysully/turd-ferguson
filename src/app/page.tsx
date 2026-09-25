@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { OG_IMAGE } from "@/config/og";
 import HomeHero from "@/components/home/HomeHero";
 import TwoWays from "@/components/home/TwoWays";
-import ScanFacts from "@/components/home/ScanFacts";
 import ProcessSequence from "@/components/ProcessSequence";
 import Packages from "@/components/home/Packages";
 import HomeFaq from "@/components/home/HomeFaq";
@@ -30,12 +29,8 @@ export default function HomePage() {
           demo replaces AnswerExplorer. */}
       <HomeHero />
 
-      {/* The product, shown rather than described. Supersedes the dark
-          "why it works" block, which described the same thing in prose. */}
-      {/* Phone board only: a compact stand-in for the panel below, which is
-          a two-column layout a phone cannot do much with. */}
-      <ScanFacts />
-
+      {/* Two ways into an answer, the rest of Main.dc.html. ScanFacts, the
+          phone stand-in for AnswerExplorer, went with it (Q03, 25 Sep). */}
       <TwoWays />
 
       {/* The four tiers, as four pictures. One explanation of them on this

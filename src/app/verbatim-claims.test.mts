@@ -204,8 +204,10 @@ test("the probe still sees the claim when it is there", () => {
   // The prose mentions are what `code()` exists to drop, so the raw files must
   // still hold some for this walk to be reading the files it thinks it is.
   const mentions = sourceFiles().filter((f) => CLAIM.test(readFileSync(join(ROOT, f), "utf8")));
-  // 18 files on 25 Sep 2026, every one of them in a comment.
-  assert.ok(mentions.length >= 18, `only ${mentions.length} source files mention the retired words even in a comment, was 18 - the walk has narrowed`);
+  // 18 files on 25 Sep 2026, every one of them in a comment. 17 later the same
+  // day (Q03): worked-example.ts was deleted with AnswerExplorer, its only
+  // reader, and its "the verbatim answer" comment went with it.
+  assert.ok(mentions.length >= 17, `only ${mentions.length} source files mention the retired words even in a comment, was 17 - the walk has narrowed`);
 });
 
 test("every surface records why the page sweeps can or cannot see it", () => {

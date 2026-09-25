@@ -1,72 +1,127 @@
-import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
+import { FREE_ENGINE_COUNT } from "@/config/scan-shape";
+import { CARD, SHELL, T } from "@/config/tokens";
 
 /**
- * "Two ways into an answer" - join a page that already feeds answers, or
- * create the page that should exist. The second card is the one with the
- * accent border, because creating the missing page is the half nobody else
- * sells and the half that makes alwaysmentioned worth buying.
+ * "Two ways into an answer", from Main.dc.html (25 Sep 2026): join a page that
+ * already feeds answers, or create the page that should exist. The second card
+ * has the accent border, because creating the missing page is the half nobody
+ * else sells.
+ *
+ * Each card shows its move rather than describing it. On the left, Tallyroo is
+ * placed third in a cited round-up and Pennywell drops to fourth; on the right,
+ * the missing page draws itself and picks up a ranking and a citation. Every
+ * word is DOM text. The motion is the board's 9s loop, and every from-state
+ * sits under html[data-motion="on"] in globals.css, so with no JavaScript or
+ * reduced motion each card is its settled frame: placed, and cited.
  */
 
-const item: React.CSSProperties = {
-  fontSize: "13.5px",
-  lineHeight: 1.55,
-  paddingTop: "9px",
-  borderTop: `1px solid ${T.hair}`,
-};
+const BRAND = "Tallyroo";
 
-const list: React.CSSProperties = {
-  margin: "14px 0 0",
-  padding: 0,
-  listStyle: "none",
-  display: "flex",
-  flexDirection: "column",
-  gap: "9px",
+const num: React.CSSProperties = { color: T.soft, display: "inline-block", width: "22px" };
+const bar = (width: string, marginTop: string): React.CSSProperties => ({
+  height: "6px",
+  background: T.hair,
+  borderRadius: "3px",
+  marginTop,
+  width,
+});
+const pill: React.CSSProperties = {
+  fontSize: "11.5px",
+  fontWeight: 600,
+  borderRadius: "999px",
+  padding: "4px 10px",
 };
 
 export default function TwoWays() {
   return (
-    <section style={{ ...SHELL, marginTop: "40px" }}>
-      <div className="board-head" style={{ ...GRID12, marginBottom: "16px" }}>
-        <h2 style={{ ...H2, gridColumn: "span 4" }}>Two ways into an answer</h2>
-        <p style={{ gridColumn: "span 8", margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
-          Getting into the pages already being cited is the obvious half. The other half is writing the page that
-          should exist in that category and does not - it earns its own ranking, and the engines pick it up as a
-          source because of it.
+    <section style={{ ...SHELL, paddingTop: "clamp(56px, 7vw, 88px)" }}>
+      <div className="ways-head">
+        <h2 style={{ margin: 0, fontSize: "clamp(26px, 3.4vw, 34px)", fontWeight: 700, letterSpacing: "-0.03em", color: T.ink, flexShrink: 0 }}>
+          Two ways into an answer
+        </h2>
+        <p style={{ margin: 0, fontSize: "15px", lineHeight: 1.6, color: T.soft, maxWidth: "52ch" }}>
+          Both are placements on sites we do not own. Neither is content on your own site, because that is not where
+          the answers come from.
         </p>
       </div>
 
-      <div className="two-up">
-        <div className="ac-row" style={{ ...CARD, padding: "24px" }}>
-          <div style={MICRO}>Join a page that already feeds answers</div>
-          <p style={{ margin: "10px 0 0", fontSize: "14px", lineHeight: 1.65, color: T.soft }}>
-            The scan names the listicles, round-ups and review pages the engines keep drawing on. Where inclusion is
-            an editorial conversation, we have it. Fastest route, capped by what already exists.
+      <div className="ways-grid" role="group" aria-label="Illustrative example">
+        <div style={{ ...CARD, padding: "28px" }}>
+          <h3 style={{ margin: 0, fontSize: "20px", fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.3, color: T.ink }}>
+            Join a page that already feeds answers
+          </h3>
+          <p style={{ margin: "8px 0 0", fontSize: "14.5px", lineHeight: 1.55, color: T.soft }}>
+            Get into the round-ups the engines already cite. Fastest route, capped by what exists.
           </p>
-          <ul style={list}>
-            <li style={{ ...item, color: T.soft }}>Listicle and round-up inclusion</li>
-            <li style={{ ...item, color: T.soft }}>Correcting a mention that is wrong or out of date</li>
-            <li style={{ ...item, color: T.soft }}>Link insertion into an article already being cited</li>
-          </ul>
+          <div style={{ marginTop: "22px", border: `1px solid ${T.line}`, borderRadius: "14px", padding: "16px 18px" }}>
+            <div style={{ fontSize: "11.5px", color: T.soft }}>solodesk.io · cited by {FREE_ENGINE_COUNT - 1} of {FREE_ENGINE_COUNT} engines</div>
+            <div style={{ fontSize: "15px", fontWeight: 700, marginTop: "4px", color: T.ink }}>
+              The 9 best invoicing apps for freelancers
+            </div>
+            <ol style={{ listStyle: "none", margin: "10px 0 0", padding: 0, fontSize: "13.5px", lineHeight: 2, color: T.ink }}>
+              <li><span style={num}>1.</span>Ledgerbird</li>
+              <li><span style={num}>2.</span>Stackbill</li>
+              <li
+                className="ways-row-new"
+                style={{
+                  overflow: "hidden",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  background: T.wash,
+                  borderRadius: "8px",
+                  margin: "0 -8px",
+                  padding: "0 8px",
+                  fontWeight: 700,
+                  color: T.accentHover,
+                }}
+              >
+                <span><span style={{ display: "inline-block", width: "22px" }}>3.</span>{BRAND}</span>
+                <span className="ways-pill-new" style={{ ...pill, fontSize: "11px", color: T.goodFg, background: T.goodBg, padding: "2px 9px", lineHeight: 1.6 }}>
+                  Placed
+                </span>
+              </li>
+              <li>
+                <span style={{ ...num, position: "relative" }}>
+                  <span className="ways-was3" aria-hidden="true">3.</span>
+                  <span className="ways-now4" style={{ position: "absolute", left: 0 }}>4.</span>
+                </span>
+                Pennywell
+              </li>
+            </ol>
+          </div>
         </div>
 
-        <div className="ac-row" style={{ ...CARD, border: `1px solid ${T.accent}`, padding: "24px" }}>
-          <div style={{ ...MICRO, color: T.accent }}>Create the page that should exist</div>
-          <p style={{ margin: "10px 0 0", fontSize: "14px", lineHeight: 1.65, color: T.ink }}>
-            Where no page covers the cut a buyer is asking about, we write one on a third-party site with the
-            authority to rank for it. It ranks in its own right, and that is exactly what makes an engine treat it as
-            a source.
+        <div style={{ ...CARD, border: `1px solid ${T.washLine}`, padding: "28px" }}>
+          <h3 style={{ margin: 0, fontSize: "20px", fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.3, color: T.ink }}>
+            Create the page that should exist
+          </h3>
+          <p style={{ margin: "8px 0 0", fontSize: "14.5px", lineHeight: 1.55, color: T.soft }}>
+            Where nobody covers the cut a buyer asks about, we write it on a site with the authority to rank.
           </p>
-          <ul style={list}>
-            <li style={{ ...item, color: T.ink }}>A comparison or &ldquo;best for&rdquo; page for the cut nobody has covered</li>
-            <li style={{ ...item, color: T.ink }}>An alternatives page on a site the engines already trust</li>
-            <li style={{ ...item, color: T.ink }}>Placed on a domain chosen for topical fit, not just for its DR</li>
-          </ul>
+          <div style={{ marginTop: "22px", border: `1px solid ${T.line}`, borderRadius: "14px", overflow: "hidden" }}>
+            <div style={{ background: T.bg, padding: "7px 12px", borderBottom: `1px solid ${T.line}`, fontSize: "11.5px", color: T.soft, overflowWrap: "anywhere" }}>
+              freelancefield.com/invoicing-two-currencies
+            </div>
+            <div className="ways-draw" style={{ padding: "16px 18px" }}>
+              <div style={{ fontSize: "15px", fontWeight: 700, color: T.ink }}>
+                Best invoicing software for freelancers who bill in two currencies
+              </div>
+              <div aria-hidden="true" style={bar("94%", "12px")} />
+              <div aria-hidden="true" style={bar("80%", "6px")} />
+              <div aria-hidden="true" style={bar("60%", "6px")} />
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginTop: "14px" }}>
+                <span className="ways-rank" style={{ ...pill, color: T.ink, background: T.chip }}>Google #4</span>
+                <span className="ways-rank" style={{ ...pill, color: T.accentHover, background: T.wash, ["--ways-d" as string]: ".15s" }}>
+                  Now cited by ChatGPT
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-
-      <p style={{ margin: "16px 0 0", fontSize: "13.5px", lineHeight: 1.65, color: T.soft }}>
-        Both are editorial placements on sites we do not own. Neither is content on your own site, because that is
-        not where the answers come from.
+      <p style={{ margin: "16px 0 0", fontSize: "12px", color: T.soft }}>
+        Illustrative. {BRAND} and every brand shown are made up.
       </p>
     </section>
   );
