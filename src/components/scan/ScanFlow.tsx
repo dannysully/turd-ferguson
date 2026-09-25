@@ -24,7 +24,7 @@ import { ENGINE_SPECS, isEngine, knownEngines } from "@/lib/scan/engines";
 // for the rest of the run. See lib/scan/run-steps.ts.
 import { RUN_STEPS, STEP_INDEX } from "@/lib/scan/run-steps";
 
-import ProcessSequence from "@/components/ProcessSequence";
+import ProcessSequence, { WAITING_TEMPO } from "@/components/ProcessSequence";
 
 import ConfirmScreen from "./ConfirmScreen";
 import ScanProgress from "./ScanProgress";
@@ -960,7 +960,7 @@ export default function ScanFlow(p: {
               slow={slow}
               headingRef={headingRef}
             />
-            <ProcessSequence />
+            <ProcessSequence tempo={WAITING_TEMPO} />
           </div>
         ) : null}
 

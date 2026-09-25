@@ -54,13 +54,23 @@ import { seqStep } from "./scan/seq-stagger";
  *   attested, and none of them appear here.
  */
 
-/** The panel builds, then holds until BEAT_MS; the bridge then hands over. */
-const BEAT_MS = 16_000;
-const BRIDGE_MS = 5_000;
+/**
+ * The pace, a prop since 25 Sep 2026 (QF2). Each panel builds, then holds until
+ * `beatMs`; the bridge then hands over for `bridgeMs`. Inside a tier the first
+ * step lands at `firstStepS`, then one every `stepS`.
+ */
+export type Tempo = { beatMs: number; bridgeMs: number; stepS: number; firstStepS: number };
 
-/** The stagger inside a tier: first step at `FIRST_STEP_S`, then every `STEP_S`. */
-const STEP_S = 1.2;
-const FIRST_STEP_S = 1.6;
+/** The homepage: 16s a beat and 5s bridges, about 79s round. */
+export const HOME_TEMPO: Tempo = { beatMs: 16_000, bridgeMs: 5_000, stepS: 1.2, firstStepS: 1.6 };
+
+/**
+ * The scan waiting screen (Danny, 25 Sep 2026): about 40s round, so it plays
+ * about three times in a two-minute scan - 8s a beat, 2.7s bridges, and the
+ * parts arriving at half the homepage interval. Journey.dc.html's 40s loop is
+ * the live timing here.
+ */
+export const WAITING_TEMPO: Tempo = { beatMs: 8_000, bridgeMs: 2_700, stepS: 0.6, firstStepS: 0.8 };
 
 /**
  * What a week of alwaystracked covers, derived rather than typed.
@@ -462,7 +472,8 @@ const BODIES: Record<TierKey, () => React.JSX.Element> = {
  * waiting screen drops it inside a shell it already has, under a progress
  * block that already carries the heading, so it takes neither.
  */
-export default function ProcessSequence(p: { heading?: string; standfirst?: string }) {
+export default function ProcessSequence(p: { heading?: string; standfirst?: string; tempo?: Tempo }) {
+  const { beatMs: BEAT_MS, bridgeMs: BRIDGE_MS, stepS: STEP_S, firstStepS: FIRST_STEP_S } = p.tempo ?? HOME_TEMPO;
   const [beat, setBeat] = useState(0);
   /** Between tiers, the bridge card for the tier that just finished. */
   const [bridging, setBridging] = useState(false);
@@ -488,7 +499,7 @@ export default function ProcessSequence(p: { heading?: string; standfirst?: stri
       bridging ? BRIDGE_MS : BEAT_MS,
     );
     return () => clearTimeout(t);
-  }, [beat, bridging, held]);
+  }, [beat, bridging, held, BEAT_MS, BRIDGE_MS]);
 
   /** Pin a tier. Hover pins too: a story that moves on while you read is worse. */
   const hold = () => setHeld(true);
