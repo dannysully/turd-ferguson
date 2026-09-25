@@ -540,14 +540,25 @@ export default function ProcessSequence(p: { heading?: string; standfirst?: stri
             style={{
               flexGrow: 1,
               border: 0,
-              padding: "11px 0",
+              padding: "4px 0",
               minHeight: "44px",
               appearance: "none",
               background: "transparent",
               cursor: "pointer",
             }}
           >
-            <span style={{ display: "block", fontSize: "14px", fontWeight: 600, letterSpacing: "-0.018em" }}>
+            {/* The board rings the tier that is playing. */}
+            <span
+              style={{
+                display: "inline-block",
+                fontSize: "14px",
+                fontWeight: 600,
+                letterSpacing: "-0.018em",
+                padding: "7px 12px",
+                borderRadius: "999px",
+                border: "1px solid " + (n === beat ? T.accent : "transparent"),
+              }}
+            >
               <TierName tier={b.tier} />
             </span>
             <span

@@ -148,6 +148,26 @@ const nextConfig: NextConfig = {
   supportsImmutableAssets: false,
 
   /**
+   * A salt per commit, because the flag above was not enough - 25 Sep 2026.
+   *
+   * Observed on production at 3ac41a6: /api/version and the HTML were that
+   * commit's (proc-stage, proc-foot in the markup), and the one stylesheet the
+   * HTML loaded, /_next/static/chunks/0ny167djlbgig.css, was 27,530 bytes with
+   * none of the .proc-head/.proc-stage/.proc-qrow rules 3ac41a6 added. A local
+   * build of the same tree makes a 30,024-byte sheet that has them. The chunk
+   * came back `max-age=31536000, immutable` with no ?dpl= on the URL, so the
+   * homepage's four tiers rendered as one unstyled column with the question
+   * grid run together - and every check short of reading the served CSS said
+   * it had shipped.
+   *
+   * Salting with the commit gives every deploy filenames no earlier deploy can
+   * have used, which closes the reuse whatever its cause. Empty off Vercel, so
+   * local builds and their census readings are unchanged. Verify by reading
+   * the served stylesheet for a rule the commit added, not by reading the HTML.
+   */
+  outputHashSalt: process.env.VERCEL_GIT_COMMIT_SHA ?? "",
+
+  /**
    * /example is gone - Danny, 19 Sep 2026: "We no longer need example you
    * can remove this." It was live for weeks and may be linked from
    * somewhere neither of us can see, so it redirects rather than 404s.
