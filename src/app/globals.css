@@ -703,6 +703,35 @@ html[data-motion="on"] .ac-stamp.in-view {
   }
 }
 
+/* The coverage form's drop zone: the file input inside is transparent, so
+   its focus ring is drawn on the zone. */
+.cc-drop:focus-within {
+  outline: 2px solid var(--brand-purple);
+  outline-offset: 2px;
+}
+
+/* A reading's baseline: three cells in one accent-edged card, as the
+   board's result states it. Stacks on a phone, rules moving to the top. */
+.cc-baseline {
+  display: flex;
+}
+.cc-baseline > * {
+  flex: 1 1 0;
+  padding: 20px 24px;
+}
+.cc-baseline > * + * {
+  border-left: 1px solid var(--line);
+}
+@media (max-width: 720px) {
+  .cc-baseline {
+    flex-direction: column;
+  }
+  .cc-baseline > * + * {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+}
+
 /* ── The scan flow: confirm ─────────────────────────────────────── */
 
 /* What we read off the site beside the card that corrects it. The board is

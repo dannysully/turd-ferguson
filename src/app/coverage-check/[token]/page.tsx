@@ -10,6 +10,7 @@ import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
 import { COVERAGE_PROMPT_COUNT } from "@/lib/coverage/prompts";
 import { visitorReason } from "@/lib/coverage/reading-error";
 import { readCampaign, type ReadingAnswer } from "@/lib/coverage/reading";
+import { countNamed, type ReadingQuestion } from "@/lib/coverage/reading-figures";
 import { canRerun, readingState, shouldPoll } from "@/lib/coverage/reading-state";
 import { count, isAre } from "@/lib/plural";
 import { ENGINE_SPECS } from "@/lib/scan/engines";
@@ -85,6 +86,33 @@ function dateOf(iso: string | null): string {
  * benchmark, so it stays the label; the time is added only where it is needed
  * to disambiguate.
  */
+/** "26 Sep" - the baseline cell's figure. The full date is in the header. */
+function shortDateOf(iso: string | null): string {
+  if (!iso) return "";
+  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" }).replace("Sept", "Sep");
+}
+
+const BASELINE_FIGURE: React.CSSProperties = {
+  fontSize: "32px",
+  fontWeight: 700,
+  letterSpacing: "-0.035em",
+  lineHeight: 1.1,
+  marginTop: "2px",
+  color: T.ink,
+};
+const BASELINE_NOTE: React.CSSProperties = { margin: "5px 0 0", fontSize: "12.5px", lineHeight: 1.5, color: T.soft };
+
+/**
+ * One question's named figure, in the board's three pill colours: every
+ * engine, some, none. Counted by `countNamed` over that one row, so its
+ * denominator is what was asked, the same as the headline's.
+ */
+function namedPill(q: ReadingQuestion) {
+  const n = countNamed([q]);
+  const tone = n.count === 0 ? [T.badBg, T.badFg] : n.count === n.of ? [T.goodBg, T.goodFg] : [T.warnBg, T.warnFg];
+  return { text: `${n.count} of ${n.of}`, bg: tone[0], fg: tone[1] };
+}
+
 function timeOf(iso: string | null): string {
   if (!iso) return "";
   return new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
@@ -109,6 +137,7 @@ export default async function CampaignReadingPage({ params }: { params: Promise<
 
   const engineCount = reading?.engines.length ?? 0;
   const placedSources = sources.filter((s) => s.placed);
+  const citedPieces = pieces.filter((p) => p.pageEngines.length > 0).length;
 
   /**
    * What the source list actually shows.
@@ -163,19 +192,9 @@ export default async function CampaignReadingPage({ params }: { params: Promise<
           </p>
         </div>
 
+        {!complete && (
         <div style={{ ...CARD, gridColumn: "span 4", padding: "20px" }}>
           <div style={MICRO}>Where the brand stands</div>
-          {complete ? (
-            <>
-              <div style={{ fontSize: "30px", fontWeight: 700, letterSpacing: "-0.03em", marginTop: "8px", color: T.ink }}>
-                {named.count} of {named.of}
-              </div>
-              <p style={{ margin: "6px 0 0", fontSize: "13px", lineHeight: 1.55, color: T.soft }}>
-                answers named {campaign.brand}, across {count(questions.length, "question")} on{" "}
-                {count(engineCount, "engine")}. A measured zero is a finding, not a blank.
-              </p>
-            </>
-          ) : (
             <p style={{ margin: "8px 0 0", fontSize: "13px", lineHeight: 1.55, color: T.soft }}>
               {/* "Fills in on its own" is only true while something is actually
                   running. It was shown in every non-complete state, including
@@ -187,9 +206,45 @@ export default async function CampaignReadingPage({ params }: { params: Promise<
                   ? "That reading stopped before it finished, so there is nothing measured to show."
                   : "This reading never started, so there is nothing to show yet."}
             </p>
-          )}
         </div>
+        )}
       </div>
+
+      {/* The board's baseline, stated as a baseline: three cells in one
+          accent-edged card. The middle cell counts pieces cited as a page and
+          nothing looser - a publication-only citation is its own state further
+          down, and folding it in here would call a placement cited when what
+          was cited was another page on the same title. */}
+      {complete && (
+        <div className="cc-baseline" style={{ ...CARD, borderColor: T.accent, overflow: "hidden" }}>
+          <div>
+            <div style={{ fontSize: "13px", color: T.soft }}>Named</div>
+            <div style={BASELINE_FIGURE}>
+              {named.count} of {named.of}
+            </div>
+            <p style={BASELINE_NOTE}>
+              Answers naming {campaign.brand}, across {count(questions.length, "question")} on{" "}
+              {count(engineCount, "engine")}. A measured zero is a finding, not a blank.
+            </p>
+          </div>
+          <div>
+            <div style={{ fontSize: "13px", color: T.soft }}>Your coverage cited</div>
+            <div style={{ ...BASELINE_FIGURE, color: T.accent }}>
+              {pieces.length > 0 ? `${citedPieces} of ${pieces.length}` : "No list"}
+            </div>
+            <p style={BASELINE_NOTE}>
+              {pieces.length > 0
+                ? "Pieces you gave us that an engine cited as a page."
+                : "No coverage was uploaded with this campaign, so nothing is marked as yours."}
+            </p>
+          </div>
+          <div>
+            <div style={{ fontSize: "13px", color: T.soft }}>Reading taken</div>
+            <div style={BASELINE_FIGURE}>{shortDateOf(reading?.completedAt ?? null)}</div>
+            <p style={BASELINE_NOTE}>Stored with the questions and every source, so it can be re-run identically.</p>
+          </div>
+        </div>
+      )}
 
       {running && (
         <div style={{ ...CARD, padding: "20px 24px", background: T.wash, borderColor: T.washLine }}>
@@ -246,10 +301,26 @@ export default async function CampaignReadingPage({ params }: { params: Promise<
                 style={{ padding: "16px 26px", borderTop: i ? `1px solid ${T.hair}` : undefined }}
               >
                 <div style={{ display: "flex", gap: "10px", alignItems: "baseline", flexWrap: "wrap" }}>
-                  <span className="ac-stamp" style={pill(T.chip, T.soft)}>
+                  {/* Stored lowercase; the board writes the kind capitalised.
+                      The news question is the weak one, flagged as on the
+                      landing page. */}
+                  <span
+                    style={{
+                      ...(q.kind.toLowerCase() === "news" ? pill(T.warnBg, T.warnFg) : pill(T.chip, T.soft)),
+                      textTransform: "capitalize",
+                    }}
+                  >
                     {q.kind}
                   </span>
-                  <span style={{ fontSize: "14.5px", color: T.ink }}>{q.question}</span>
+                  <span style={{ fontSize: "14.5px", color: T.ink, flex: "1 1 240px" }}>{q.question}</span>
+                  {(() => {
+                    const n = namedPill(q);
+                    return (
+                      <span className="ac-stamp" style={pill(n.bg, n.fg)}>
+                        named {n.text}
+                      </span>
+                    );
+                  })()}
                 </div>
                 <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "10px" }}>
                   {q.answers.map((a) => {

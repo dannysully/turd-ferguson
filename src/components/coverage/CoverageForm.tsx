@@ -301,8 +301,37 @@ export default function CoverageForm() {
           <p style={{ margin: "6px 0 0", fontSize: "12.5px", color: T.soft, lineHeight: 1.5 }}>
             {`One URL per line, up to ${MAX_COVERAGE_URLS}. We report on each one: whether the engines cited that page, or the publication, or neither.`}
           </p>
-          <p style={{ margin: "10px 0 6px", ...MICRO }}>or upload a list</p>
-          <input id="cc-coverage" type="file" accept=".csv,.txt,text/csv,text/plain" onChange={onFile} style={{ ...field, padding: "9px 11px" }} />
+          {/* The board's dashed drop zone. The native input stays, stretched
+              transparent over the zone, so a dropped file, a click and the
+              keyboard all reach the real control; the label is its name,
+              which the bare "Choose file" button never had. */}
+          <label
+            htmlFor="cc-coverage"
+            className="cc-drop"
+            style={{
+              position: "relative",
+              display: "block",
+              marginTop: "10px",
+              border: `1px dashed ${T.soft}`,
+              borderRadius: "12px",
+              padding: "14px",
+              textAlign: "center",
+              background: T.surface,
+              fontSize: "13px",
+              color: T.soft,
+              cursor: "pointer",
+            }}
+          >
+            Or drop a CSV of URLs here, or{" "}
+            <span style={{ fontWeight: 600, color: T.accent }}>choose a file</span>
+            <input
+              id="cc-coverage"
+              type="file"
+              accept=".csv,.txt,text/csv,text/plain"
+              onChange={onFile}
+              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0, cursor: "pointer" }}
+            />
+          </label>
           {/* The parse result, and the only feedback a chosen file gets. It is
               polite rather than assertive because it is usually good news -
               "2 links found" - and it must not cut across the file picker
