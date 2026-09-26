@@ -48,6 +48,7 @@ export default function PackagePage({
   included,
   sections,
   notIncluded,
+  beat,
 }: {
   tier: Tier;
   /** Kept in the signature: the four pages still pass them. */
@@ -62,6 +63,8 @@ export default function PackagePage({
    * for itself.
    */
   notIncluded?: { text: string; upgradeTo?: TierKey; href?: string };
+  /** A tier's own beat, directly under the header. Only /alwaystracked has one (R25). */
+  beat?: React.ReactNode;
 }) {
   const price = splitPriceLabel(tier.priceLabel);
   return (
@@ -157,6 +160,8 @@ export default function PackagePage({
           </Link>
         </div>
       </div>
+
+      {beat}
 
       <div>
         <div className="board-head confirm-head" style={{ marginBottom: "14px" }}>

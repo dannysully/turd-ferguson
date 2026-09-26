@@ -429,6 +429,53 @@ html[data-motion="on"] .wl-wipe { animation: wlWipe 9s infinite ease-in-out both
   .wl-grid { grid-template-columns: 1fr; }
 }
 
+/* alwaystracked: the weekly-report beat (TrackedBeat.dc.html, R25, 26 Sep
+   2026). The unanimated styles are the settled state - lens on row 5, its
+   after line showing - so no-JS and reduced motion read that. The 10s walk
+   runs only once Motion.tsx has set data-motion. */
+.tb-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  column-gap: 24px;
+  row-gap: 14px;
+  align-items: start;
+}
+.tb-report { grid-column: span 8; }
+.tb-argument { grid-column: span 4; }
+.tb-note { grid-column: 1 / -1; }
+.tb-cols { display: grid; grid-template-columns: minmax(0, 1fr) 150px 110px; column-gap: 16px; }
+.tb-lens { transform: translateY(216px); }
+.tb-row { opacity: .38; }
+.tb-was { opacity: 0; }
+.tb-off { opacity: .25; filter: grayscale(1); }
+html[data-motion="on"] .tb-lens { animation: tbLens 10s infinite cubic-bezier(.45,0,.2,1) both; }
+html[data-motion="on"] .tb-r1 { animation: tbR1 10s infinite both; }
+html[data-motion="on"] .tb-r2 { animation: tbR2 10s infinite both; }
+html[data-motion="on"] .tb-r3 { animation: tbR3 10s infinite both; }
+html[data-motion="on"] .tb-r4 { animation: tbR4 10s infinite both; }
+html[data-motion="on"] .tb-r6 { animation: tbR6 10s infinite both; }
+/* The moved row follows tbWas alone, as the board's later .was rule overrides its .r5. */
+html[data-motion="on"] .tb-was { animation: tbWas 10s infinite both; }
+html[data-motion="on"] .tb-now { animation: tbNow 10s infinite both; }
+@keyframes tbLens { 0%, 8% { transform: translateY(0); } 14%, 20% { transform: translateY(54px); } 26%, 32% { transform: translateY(108px); } 38%, 44% { transform: translateY(162px); } 52%, 92% { transform: translateY(216px); } 100% { transform: translateY(0); } }
+@keyframes tbR1 { 0%, 9% { opacity: 1; filter: none; } 13%, 95% { opacity: .38; filter: blur(1.2px); } 100% { opacity: 1; filter: none; } }
+@keyframes tbR2 { 0%, 10% { opacity: .38; filter: blur(1.2px); } 14%, 20% { opacity: 1; filter: none; } 24%, 100% { opacity: .38; filter: blur(1.2px); } }
+@keyframes tbR3 { 0%, 22% { opacity: .38; filter: blur(1.2px); } 26%, 32% { opacity: 1; filter: none; } 36%, 100% { opacity: .38; filter: blur(1.2px); } }
+@keyframes tbR4 { 0%, 34% { opacity: .38; filter: blur(1.2px); } 38%, 44% { opacity: 1; filter: none; } 48%, 100% { opacity: .38; filter: blur(1.2px); } }
+@keyframes tbR6 { 0%, 100% { opacity: .38; filter: blur(1.2px); } }
+@keyframes tbWas { 0%, 56% { opacity: 1; } 60%, 94% { opacity: 0; } 100% { opacity: 1; } }
+@keyframes tbNow { 0%, 56% { opacity: 0; transform: translateY(4px); } 60%, 94% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  html[data-motion="on"] :is(.tb-lens, .tb-r1, .tb-r2, .tb-r3, .tb-r4, .tb-r6, .tb-was, .tb-now) { animation: none; }
+}
+@media (max-width: 1000px) {
+  .tb-report, .tb-argument { grid-column: 1 / -1; }
+}
+@media (max-width: 640px) {
+  .tb-cols { grid-template-columns: minmax(0, 1fr) 128px 40px; column-gap: 8px; }
+  .tb-meta, .tb-pill, .tb-was-rank { display: none; }
+}
+
 /* PR agencies: the hero's coverage fan-out (PRAgencies.dc.html, Q12, 25 Sep
    2026) - pieces, the wires, the answers they feed, 340px / 1fr / 380px. On a
    phone the wires go (they only mean anything between two columns) and the

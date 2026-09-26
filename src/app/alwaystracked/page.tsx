@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { OG_IMAGE } from "@/config/og";
 import PackagePage from "@/components/PackagePage";
+import TrackedBeat from "@/components/TrackedBeat";
 import { priceProse, TIERS } from "@/config/pricing";
 
 const tier = TIERS.find((t) => t.id === "tracked")!;
@@ -25,6 +26,7 @@ export default function Page() {
   return (
     <PackagePage
       tier={tier}
+      beat={<TrackedBeat />}
       headline="Know what your coverage"
       headlineAccent="actually did."
       standfirst="The scan tells you where a client stands today. alwaystracked keeps reading, week after week, so you can show a client what changed and when it changed."
