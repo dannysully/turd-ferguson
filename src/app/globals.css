@@ -755,6 +755,13 @@ html[data-motion="on"] .ac-stamp.in-view {
 }
 .confirm-head > h2 { grid-column: span 4; }
 .confirm-head > p  { grid-column: span 8; }
+/* The evidence index opens with a micro and an h1 in one div, which took a
+   single twelfth and set the h1 one word a line (Q18, 26 Sep 2026). */
+.confirm-head > div { grid-column: span 4; }
+
+/* A study card on the evidence index: the board reverses .confirm-top, text 5
+   and figures 7, so the three stat cells hold "#83 to #4" on one line. */
+.study-top { grid-template-columns: 5fr 7fr; }
 
 /* The question table: number, question, cluster, intent, and the control that
    drops a row. */
@@ -771,7 +778,8 @@ html[data-motion="on"] .ac-stamp.in-view {
 .q-row:not(.q-head) { align-items: start; }
 
 @media (max-width: 860px) {
-  .confirm-top { grid-template-columns: 1fr; row-gap: 20px; }
+  .confirm-top,
+  .confirm-top.study-top { grid-template-columns: 1fr; row-gap: 20px; }
   /* Five cells in two columns scrambled the order at 390 - number and question
      on one line, cluster and intent on the next, Remove adrift under them. Named
      areas instead: the question across the top, what it is under it. */

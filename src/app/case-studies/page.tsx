@@ -72,7 +72,7 @@ export default function CaseStudiesPage() {
               rather than animating its own stat panels - it is already a row,
               and a row inside a row reads as mush. */}
           <div className="ac-row" style={MICRO}>Evidence</div>
-          <h1 className="ac-row" style={{ margin: "8px 0 0", fontSize: "27px", fontWeight: 700, letterSpacing: "-0.03em", color: T.ink }}>
+          <h1 className="ac-row" style={{ margin: "8px 0 0", fontSize: "27px", fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.2, color: T.ink }}>
             What the work actually moved
           </h1>
         </div>
@@ -87,7 +87,7 @@ export default function CaseStudiesPage() {
         href="/case-studies/vibe-retail"
         style={{ ...CARD, display: "block", padding: "28px 30px", textDecoration: "none" }}
       >
-        <div className="confirm-top">
+        <div className="confirm-top study-top">
           <div>
             <div style={{ ...MICRO, color: T.accent }}>US retail SaaS - eight weeks</div>
             <h2
@@ -106,6 +106,8 @@ export default function CaseStudiesPage() {
               A single editorial placement, on a third-party page that already ranked for the category.
             </p>
           </div>
+          {/* Cells wrap at 150px: with a zero basis the panel never wrapped,
+              and at 390 "#83 to #4" broke over three lines (Q18). */}
           <div
             style={{
               display: "flex",
@@ -117,7 +119,7 @@ export default function CaseStudiesPage() {
               flexWrap: "wrap",
             }}
           >
-            <div style={{ flexGrow: 1, flexBasis: 0, padding: "18px 20px" }}>
+            <div style={{ flexGrow: 1, flexBasis: "150px", padding: "18px 20px" }}>
               <div style={{ fontSize: "12.5px", color: T.soft }}>Money keyword</div>
               <div
                 style={{
@@ -133,7 +135,7 @@ export default function CaseStudiesPage() {
               </div>
               <div style={{ fontSize: "12px", color: T.soft, marginTop: "5px" }}>Over {KEYWORD_EIGHT_WEEKS.scope}</div>
             </div>
-            <div style={{ flexGrow: 1, flexBasis: 0, padding: "18px 20px", borderLeft: "1px solid " + T.line }}>
+            <div style={{ flexGrow: 1, flexBasis: "150px", padding: "18px 20px", borderLeft: "1px solid " + T.line }}>
               <div style={{ fontSize: "12.5px", color: T.soft }}>ChatGPT brand visibility</div>
               <div
                 style={{
@@ -149,7 +151,7 @@ export default function CaseStudiesPage() {
               </div>
               <div style={{ fontSize: "12px", color: T.soft, marginTop: "5px" }}>Of the {CHATGPT_VISIBILITY.scope}</div>
             </div>
-            <div style={{ flexGrow: 1, flexBasis: 0, padding: "18px 20px", borderLeft: "1px solid " + T.line }}>
+            <div style={{ flexGrow: 1, flexBasis: "150px", padding: "18px 20px", borderLeft: "1px solid " + T.line }}>
               <div style={{ fontSize: "12.5px", color: T.soft }}>The same keyword</div>
               <div
                 style={{
