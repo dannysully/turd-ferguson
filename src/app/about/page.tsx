@@ -41,6 +41,9 @@ const aboutSchema = {
   about: ORG_REF,
 };
 
+/** The worked example in "Scope every claim": answers naming the brand. */
+const EXAMPLE_NAMED = 6;
+
 const RULES = [
   {
     title: "Unmeasured is excluded, never zero",
@@ -52,14 +55,21 @@ const RULES = [
   },
   {
     title: "Scope every claim",
+    // The example is a count first and a percentage second, both from the scan
+    // shape, so the two always agree. It used to print "24% of 20 answers",
+    // which is 4.8 answers - a figure no reading can produce.
     body:
-      'An "AI visibility: 24%" reads as a total. We write 24% of ' +
+      '"AI visibility: ' +
+      Math.round((EXAMPLE_NAMED / FREE_ANSWERS) * 100) +
+      '%" reads as a total. We write "' +
+      EXAMPLE_NAMED +
+      " of " +
       FREE_ANSWERS +
-      ' answers, across ' +
+      " answers, across " +
       QUESTIONS +
-      ' questions and ' +
+      " questions and " +
       FREE_ENGINE_COUNT +
-      ' engines, read on a date. A percentage without its denominator is not a finding.',
+      ' engines, read 18 Sep". A percentage without its denominator is not a finding.',
   },
   {
     title: "Say what is measured and what is inferred",
@@ -155,18 +165,9 @@ export default function AboutPage() {
               Small team, no account managers between you and the people doing the work.
             </p>
           </div>
-          <div style={{ ...CARD, display: "flex", overflow: "hidden", flexWrap: "wrap" }}>
-            {TEAM.map((name, i) => (
-              <div
-                key={name}
-                className="ac-row"
-                style={{
-                  flexGrow: 1,
-                  flexBasis: "150px",
-                  padding: "20px 24px",
-                  borderLeft: i ? "1px solid " + T.line : undefined,
-                }}
-              >
+          <div className="team-row" style={{ ...CARD, overflow: "hidden" }}>
+            {TEAM.map((name) => (
+              <div key={name} className="ac-row">
                 <div style={{ fontSize: "14.5px", fontWeight: 600 }}>{name}</div>
               </div>
             ))}

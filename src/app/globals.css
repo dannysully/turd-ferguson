@@ -763,6 +763,18 @@ html[data-motion="on"] .ac-stamp.in-view {
    and figures 7, so the three stat cells hold "#83 to #4" on one line. */
 .study-top { grid-template-columns: 5fr 7fr; }
 
+/* The team strip on /about: one row of equal cells with hairlines between. It
+   used to wrap to two columns on a phone, which left a stray left rule on the
+   third name and none between rows (Q20, 26 Sep 2026); there it stacks. */
+.team-row { display: flex; }
+.team-row > * { flex: 1 1 0; min-width: 0; padding: 20px 24px; }
+.team-row > * + * { border-left: 1px solid var(--line); }
+@media (max-width: 860px) {
+  .team-row { flex-direction: column; }
+  .team-row > * { padding: 14px 20px; }
+  .team-row > * + * { border-left: 0; border-top: 1px solid var(--line); }
+}
+
 /* The question table: number, question, cluster, intent, and the control that
    drops a row. */
 .q-row {
