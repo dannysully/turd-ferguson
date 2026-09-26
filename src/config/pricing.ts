@@ -26,6 +26,16 @@ import { listOf } from "@/config/scan-shape";
 export const CONTACT_URL = "/contact";
 
 /**
+ * /contact for one tier, as `?tier=<plain tier word>` - the one pattern for
+ * carrying a tier to the form, read back by ContactTier. Only alwaystracked
+ * uses it today: it is set up by hand, with no checkout (Danny, 26 Sep 2026).
+ */
+export const CONTACT_TIER_PARAM = "tier";
+export function contactUrlFor(tier: TierKey): string {
+  return `${CONTACT_URL}?${CONTACT_TIER_PARAM}=${encodeURIComponent(TIER_PLAIN[tier])}`;
+}
+
+/**
  * How many questions the tracking base price covers.
  *
  * Declared here because it is half of what $99 buys, and a number that says

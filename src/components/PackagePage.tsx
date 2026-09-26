@@ -1,5 +1,5 @@
 import TierName, { TierText, type TierKey } from "@/components/TierName";
-import { CONTACT_URL, TIERS, TRACKED_QUESTIONS, type Tier } from "@/config/pricing";
+import { CONTACT_URL, TIERS, TRACKED_QUESTIONS, contactUrlFor, type Tier } from "@/config/pricing";
 import { splitPriceLabel } from "@/config/price-label";
 import { ld } from "@/config/schema";
 import { serviceSchema } from "@/config/service-schema";
@@ -123,7 +123,7 @@ export default function PackagePage({
             {tier.priceBasis ?? "Monthly, no minimum term, white-labelled. What you pay us, not what you charge on."}
           </p>
           <a
-            href={CONTACT_URL}
+            href={tier.key === "tracked" ? contactUrlFor("tracked") : CONTACT_URL}
             className="btn-primary"
             style={{
               display: "block",

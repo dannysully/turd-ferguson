@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { OG_IMAGE } from "@/config/og";
 
 import ContactForm from "@/components/ContactForm";
+import ContactTier from "@/components/ContactTier";
 import { CONTACT_EMAIL } from "@/config/contact";
 import { CARD, MICRO, SHELL, T } from "@/config/tokens";
 import { ORG_REF, SITE_REF, ld } from "@/config/schema";
@@ -96,6 +98,9 @@ export default function ContactPage() {
           </div>
 
           <div className="ac-row" style={{ ...CARD, padding: "26px", alignSelf: "start" }}>
+            <Suspense fallback={null}>
+              <ContactTier />
+            </Suspense>
             <ContactForm />
           </div>
         </div>

@@ -85,7 +85,7 @@ export default function ContactForm() {
       <div role="status" style={{ background: T.wash, border: "1px solid " + T.accent, borderRadius: "14px", padding: "20px 22px" }}>
         <p style={{ margin: 0, fontSize: "15px", fontWeight: 600, color: T.ink }}>Message received.</p>
         <p style={{ margin: "6px 0 0", fontSize: "14px", lineHeight: 1.65, color: T.soft }}>
-          It reaches the people doing the work, and is usually answered the same working day.
+          It reaches the people doing the work.
         </p>
       </div>
     );
@@ -193,7 +193,8 @@ export default function ContactForm() {
         {pending ? "Sending" : "Send"}
       </button>
       <p style={{ margin: "12px 0 0", fontSize: "12.5px", lineHeight: 1.55, color: T.soft }}>
-        Goes to a person, usually answered the same working day. We do not add you to anything - see the{" "}
+        {/* No reply time: none is promised anywhere (Danny, 26 Sep 2026, R24). */}
+        Goes to a person. We do not add you to anything - see the{" "}
         <Link href="/legal" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
           privacy policy
         </Link>

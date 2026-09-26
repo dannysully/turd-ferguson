@@ -1,5 +1,5 @@
 import TierName, { type TierKey } from "@/components/TierName";
-import { TIERS } from "@/config/pricing";
+import { TIERS, contactUrlFor } from "@/config/pricing";
 import { splitPriceLabel } from "@/config/price-label";
 import { CARD, SHELL, T } from "@/config/tokens";
 
@@ -35,9 +35,11 @@ function priceNode(label: string, per: React.CSSProperties): React.ReactNode {
   );
 }
 
-/** The board's button labels. The everywhere tier's goes to a call, not a page. */
+/** The board's button labels. The everywhere tier's goes to a call, not a page;
+ *  the tracked tier's to /contact with the tier carried, as it is set up by
+ *  hand (Danny, 26 Sep 2026). */
 const CTA: Record<TierKey, { label: string; href?: string }> = {
-  tracked: { label: "Start tracking" },
+  tracked: { label: "Start tracking", href: contactUrlFor("tracked") },
   mentioned: { label: "Get placed" },
   cited: { label: "Go for position #1" },
   everywhere: { label: "Talk to us", href: "/contact" },
