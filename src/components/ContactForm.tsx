@@ -25,6 +25,9 @@ const inputStyle: React.CSSProperties = {
   border: "1px solid " + T.line,
   borderRadius: "10px",
   padding: "11px 13px",
+  // The board's controls sit at the browser's own line height. Inheriting the
+  // body's 1.6 made each field 6px taller and the textarea 22px (Q21, 26 Sep).
+  lineHeight: "normal",
 };
 
 /**
@@ -175,6 +178,12 @@ export default function ContactForm() {
           fontFamily: "inherit",
           fontSize: "15px",
           fontWeight: 600,
+          lineHeight: "normal",
+          // Flat accent and no glow, as the board draws it; the class keeps
+          // the hover.
+          background: T.accent,
+          color: T.surface,
+          boxShadow: "none",
           border: 0,
           borderRadius: "10px",
           padding: "13px 20px",
