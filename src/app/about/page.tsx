@@ -127,11 +127,11 @@ export default function AboutPage() {
           </div>
 
           <div className="ac-row" style={{ ...CARD, padding: "24px", alignSelf: "start" }}>
-            <div style={MICRO}>Why agencies only</div>
+            <div style={MICRO}>Why agencies first</div>
             <p style={{ margin: "10px 0 0", fontSize: "14px", lineHeight: 1.7, color: T.soft }}>
-              Selling direct would put us in front of the clients our partners already have. That is a short-term
-              revenue decision with a long-term cost, so we do not make it. Every engagement runs through an agency,
-              under their name.
+              We are an agency, so we built this to be run by agencies, under their own name. That is the default,
+              and the work is priced for it. A brand can come to us direct at the same prices; we do not go after
+              the clients our partners already have.
             </p>
           </div>
         </div>
