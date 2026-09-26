@@ -94,7 +94,9 @@ export default function ComparePage() {
         </div>
       </div>
 
-      <div style={{ ...CARD, overflow: "hidden" }}>
+      {/* --cmp-cols is read by .cmp-row in globals.css, so a column added to
+          COLUMNS gets its track without anyone touching the stylesheet. */}
+      <div style={{ ...CARD, overflow: "hidden", ["--cmp-cols" as string]: COLUMNS.length } as React.CSSProperties}>
         <div className="cmp-row" style={{ padding: "11px 26px", background: "#fbfbfc", borderBottom: `1px solid ${T.line}` }}>
           <div style={MICRO}>&nbsp;</div>
           {COLUMNS.map((c) => (

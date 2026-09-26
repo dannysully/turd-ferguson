@@ -21,7 +21,7 @@ export default function Page() {
       tier={tier}
       headline="Get cited,"
       headlineAccent="and rank for it."
-      standfirst="Everything in alwaysmentioned, then we go after the ranking directly. Schema work on your client's pages and link insertions from the placements, so the same coverage that wins the AI answer also moves the keyword. This is the one most agencies buy."
+      standfirst="Everything in alwaysmentioned, then we go after the ranking directly. Schema work on your client's pages and link insertions from the placements, so the same coverage that wins the AI answer also moves the keyword."
       included={[
         "Everything in alwaysmentioned, including the placements and the tracking",
         "Schema work on your client's target pages",

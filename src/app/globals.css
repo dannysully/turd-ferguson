@@ -678,10 +678,13 @@ html[data-motion="on"] .ac-stamp.in-view {
 }
 
 /* Comparison table. One column today, and the grid is generated from the
-   column set so adding a competitor does not mean rebuilding it. */
+   column set so adding a competitor does not mean rebuilding it: the page
+   sets --cmp-cols to its column count. It was `repeat(auto-fit, minmax(0,
+   1fr))`, which never made the value track - every "Yes" wrapped under its
+   feature at desktop width (found on Q17, 26 Sep 2026). */
 .cmp-row {
   display: grid;
-  grid-template-columns: 2fr repeat(auto-fit, minmax(0, 1fr));
+  grid-template-columns: 2fr repeat(var(--cmp-cols, 1), minmax(0, 1fr));
   column-gap: 16px;
 }
 @media (max-width: 860px) {
