@@ -65,6 +65,13 @@ const ROOT = join(import.meta.dirname, "..", "..");
 const CARD = "src/app/opengraph-image.tsx";
 const TWITTER = "src/app/twitter-image.tsx";
 const LAYOUT = "src/app/layout.tsx";
+/**
+ * The second source the card may quote, since 26 Sep 2026 (Danny, R26: the
+ * card mirrors the homepage hero). Its painted text is on `/`, which every
+ * page sweep reads, so a sentence drawn from it has still been seen by
+ * price-claims, white-label-claims and copy.test.mts before it reaches a share.
+ */
+const HERO = "src/components/home/HomeHero.tsx";
 
 /**
  * Next's global fallback renders its own document, outside the root layout, so
@@ -200,17 +207,21 @@ test("every sentence the card draws is one the site already publishes", () => {
   const markup = cardMarkup();
   const spans = new Set(lockupSpans(markup));
   const title = layoutTitleDefault();
+  // The hero's drawn literals, read the same way as the card's, so a sentence
+  // only counts if the homepage paints it - not if a comment there mentions it.
+  const hero = drawnLiterals(sourceOf(HERO));
+  assert.ok(hero.length >= 3, `read only ${hero.length} drawn literals out of ${HERO}`);
 
   const drawn = drawnLiterals(markup).filter((s) => !spans.has(s));
   assert.ok(drawn.length > 0, "no drawn text found in the card - the markup scan has stopped reading it");
 
-  const unsourced = drawn.filter((s) => !title.includes(s));
+  const unsourced = drawn.filter((s) => !title.includes(s) && !hero.includes(s));
   assert.deepEqual(
     unsourced,
     [],
     `the card draws text that appears nowhere a page sweep reads:\n` +
       unsourced.map((s) => `  ${JSON.stringify(s)}`).join("\n") +
-      `\nthe root layout title is ${JSON.stringify(title)}`,
+      `\nthe root layout title is ${JSON.stringify(title)}; ${HERO} paints ${JSON.stringify(hero)}`,
   );
 });
 

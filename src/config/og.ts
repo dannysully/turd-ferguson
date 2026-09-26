@@ -35,5 +35,5 @@ export const OG_IMAGE = {
   type: "image/png",
   width: 1200,
   height: 630,
-  alt: "alwayscited - be the brand AI recommends",
+  alt: "alwayscited - Every AI tool shows you the gap. We close it. We find the pages the answers are built from, then get you named inside them. With the engine marks along the bottom.",
 };
