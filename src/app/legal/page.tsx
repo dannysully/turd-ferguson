@@ -41,9 +41,10 @@ export const metadata: Metadata = {
  * processor the page did not name. Never stored and never disclosed are
  * different promises and the page was only keeping the first.
  *
- * Where a clause needs a fact nobody has given me, the page says so in the
- * open. An invented retention period or a guessed company number is worse
- * than a visible gap, and every marker is in docs/blocked.md.
+ * Where a clause needs a fact nobody has given me, it is left out rather than
+ * guessed: an invented company number is worse than an absent one. The page
+ * carries no drafting markers (Q22, 26 Sep 2026); every open gap is in
+ * docs/blocked.md instead.
  */
 
 
@@ -98,8 +99,8 @@ const SECTIONS: Section[] = [
     title: "How long we keep it",
     body: (
       <>
-        Scan results are kept so you can come back to the link, and so is what each engine said. We used to delete the
-        text after seven days on a scan nobody claimed; we do not any more. It is the evidence behind every figure in
+        Scan results are kept indefinitely, so you can come back to the link, and so is what each engine said. We used
+        to delete the text after seven days on a scan nobody claimed; we do not any more. It is the evidence behind every figure in
         your report, and a number you cannot read back to the words that produced it is not evidence.
       </>
     ),
@@ -203,10 +204,11 @@ export default function LegalPage() {
             ))}
             .
           </p>
-          <p className="ac-row" style={{ margin: "20px 0 0", fontSize: "12.5px", lineHeight: 1.6, color: T.soft }}>
-            Drafted as a structure, not as legal advice. It needs a solicitor before it can be relied on - this site
-            processes personal data of UK and EU residents.
-          </p>
+          {/* The board's [DRAFTED BY CLAUDE ... solicitor] note, and the plain
+              "Drafted as a structure" line that stood in for it, are off the
+              public page (queue Q22, 26 Sep 2026: no drafting markers). The
+              solicitor check is still owed; it is tracked in docs/blocked.md,
+              not published. */}
         </aside>
 
         <div style={{ gridColumn: "span 9" }}>
