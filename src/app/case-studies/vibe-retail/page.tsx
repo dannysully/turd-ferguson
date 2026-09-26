@@ -161,7 +161,7 @@ export default function CaseStudyPage() {
               One listicle placement, on a page already ranking for the category
             </h1>
             <p className="ac-row" style={{ margin: "14px 0 0", fontSize: "15px", lineHeight: 1.6, color: T.soft, maxWidth: "64ch" }}>
-              Client unnamed at the agency request. The position below is the account owner's own reading, over the
+              The client is Vibe Retail. The position below is the account owner's own reading, over the
               window stated beside it.
             </p>
           </div>
