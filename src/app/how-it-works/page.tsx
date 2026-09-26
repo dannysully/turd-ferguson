@@ -89,7 +89,7 @@ const WORK: { heading: string; body: string }[] = [
   },
   {
     heading: "Links that land where you want them",
-    body: "Every placement carries a link to the page you want ranked, not only the homepage. That is what lets one article move a citation and a position at once.",
+    body: "Every placement carries at least a link to the brand. Some also carry a contextual link to the page you want ranked, and that is the link that moves the Google position most. A placement can win the citation without it, so we report the two separately.",
   },
 ];
 

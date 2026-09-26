@@ -44,7 +44,7 @@ const QUESTIONS: { q: string; a: string }[] = [
   },
   {
     q: "Links, or do mentions count?",
-    a: "An unlinked mention can get a brand named. A link does that and moves the Google position, so every placement we run carries one.",
+    a: "An unlinked mention can get a brand named. Every placement we run carries at least a brand link; a contextual link to a chosen page is what moves the Google position most, and not every placement carries one - so we report the two separately.",
   },
   {
     q: "What do I resell this at?",

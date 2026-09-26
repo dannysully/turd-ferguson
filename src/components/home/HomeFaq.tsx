@@ -30,7 +30,7 @@ export const FAQS: Faq[] = [
   {
     q: "Do I need links, or do mentions count?",
     hint: "Both, and they do different jobs",
-    a: "An unlinked mention can get a brand named in an answer. A link does that and moves the Google position. Every placement we run carries one, which is why the two measures move together rather than separately.",
+    a: "An unlinked mention can get a brand named in an answer. Every placement we run carries at least a link to the brand; what moves the Google position most is a contextual link to a chosen page, and not every placement carries one. So the two measures can move separately, and we report them separately.",
   },
   {
     q: "How long before anything moves?",
