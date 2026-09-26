@@ -1,5 +1,6 @@
 import TierName, { TierText, type TierKey } from "@/components/TierName";
 import { CONTACT_URL, TIERS, TRACKED_QUESTIONS, type Tier } from "@/config/pricing";
+import { splitPriceLabel } from "@/config/price-label";
 import { ld } from "@/config/schema";
 import { serviceSchema } from "@/config/service-schema";
 import { CARD, MICRO, SHELL, T } from "@/config/tokens";
@@ -15,6 +16,9 @@ import Link from "next/link";
  */
 
 export type PackageSection = { heading: string; body: string };
+
+/** The board's "/mo per client" treatment: a qualifier beside the figure, small and soft. */
+const PRICE_UNIT: React.CSSProperties = { fontSize: "15px", fontWeight: 600, color: T.soft, letterSpacing: 0 };
 
 const GLOSS: Record<string, string> = {
   // The count comes from pricing.ts. It was typed here, which made this the
@@ -59,6 +63,7 @@ export default function PackagePage({
    */
   notIncluded?: { text: string; upgradeTo?: TierKey; href?: string };
 }) {
+  const price = splitPriceLabel(tier.priceLabel);
   return (
     <section style={{ ...SHELL, paddingTop: "40px", display: "flex", flexDirection: "column", gap: "28px" }}>
       <script
@@ -106,8 +111,13 @@ export default function PackagePage({
         </div>
 
         <div className="ac-row" style={{ ...CARD, padding: "24px", alignSelf: "start" }}>
+          {/* The board sets the qualifiers small and soft beside the figure.
+              Split by the site's one price-label reader, which returns a label
+              it cannot parse whole, at figure size. */}
           <div style={{ fontSize: "36px", fontWeight: 700, letterSpacing: "-0.035em", lineHeight: 1.1 }}>
-            {tier.priceLabel}
+            {price.prefix ? <span style={PRICE_UNIT}>{price.prefix}</span> : null}
+            {price.figure}
+            {price.suffix ? <span style={PRICE_UNIT}>{price.suffix}</span> : null}
           </div>
           <p style={{ margin: "8px 0 16px", fontSize: "13.5px", lineHeight: 1.6, color: T.soft }}>
             {tier.priceBasis ?? "Monthly, no minimum term, white-labelled. What you pay us, not what you charge on."}
