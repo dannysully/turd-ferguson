@@ -5,7 +5,6 @@ import Link from "next/link";
 
 import { CHATGPT_VISIBILITY, KEYWORD_EIGHT_WEEKS, KEYWORD_FOUR_MONTHS } from "@/config/client-results";
 import { CARD, MICRO, SHELL, T } from "@/config/tokens";
-import ToConfirm from "@/components/ToConfirm";
 import { ORG_REF, ld } from "@/config/schema";
 
 /**
@@ -286,9 +285,6 @@ export default function CaseStudyPage() {
                 frozen prompt set. One engine and one denominator, deliberately: a figure that moves between
                 denominators is not a figure. Google positions are daily readings from an independent tracker rather
                 than our own run.
-              </p>
-              <p style={{ margin: "10px 0 0", fontSize: "13px", lineHeight: 1.6, color: T.soft }}>
-                <ToConfirm>how many prompts were in the set, and the dates each reading covers</ToConfirm>
               </p>
             </div>
 

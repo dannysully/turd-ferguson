@@ -66,7 +66,7 @@ test("the walk read the tree, so a zero below cannot pass as a clean sweep", () 
  */
 const USERS = FILES.filter((f) => f.file !== COMPONENT && /<ToConfirm[\s>]/.test(f.source));
 
-test("the marker is still in use, so the rules below are not guarding nothing", () => {
+test("every page that renders the marker is recorded here - none, since 26 Sep 2026", () => {
   // Three when this was written - /legal, /white-label and the vibe-retail case
   // study. If this ever drops to zero it means every claim got its source, which
   // is good news and wants a deliberate edit here rather than a silent pass.
@@ -76,9 +76,18 @@ test("the marker is still in use, so the rules below are not guarding nothing", 
   // the open facts (company number, registered address, ICO number, review
   // date, retention for claimed scans and contact messages, DPAs, PECR) are one
   // item on docs/blocked.md rather than orange text on a live privacy policy.
-  assert.ok(
-    USERS.length >= 2,
-    `only ${USERS.length} pages render ToConfirm and 2 did: ${USERS.map((u) => u.file).join(", ") || "none"}`,
+  //
+  // Zero since 26 Sep 2026 (Danny, dropped rather than confirmed): /white-label's
+  // "the clause wording" came off, leaving "Written into the agreement.", and the
+  // vibe-retail Method card's "how many prompts were in the set, and the dates
+  // each reading covers" was cut with its paragraph. Nothing was filled in; the
+  // sentences that stayed are true without the marker. The floor becomes an
+  // exact census: the component and the rules below stay, so the next claim
+  // that needs a marker joins here by a deliberate edit to this list.
+  assert.deepEqual(
+    USERS.map((u) => u.file),
+    [],
+    `pages render ToConfirm and none did as of 26 Sep 2026 - record each one here: ${USERS.map((u) => u.file).join(", ")}`,
   );
 });
 

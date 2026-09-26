@@ -4,7 +4,6 @@ import Link from "next/link";
 
 import { D } from "@/components/home/dark";
 import TierName from "@/components/TierName";
-import ToConfirm from "@/components/ToConfirm";
 import { CARD, SHELL, T } from "@/config/tokens";
 
 export const metadata: Metadata = {
@@ -73,11 +72,7 @@ const TERMS: { label: string; value: string; note: React.ReactNode }[] = [
   {
     label: "Contact with your client",
     value: "None",
-    note: (
-      <>
-        Written into the agreement. <ToConfirm>the clause wording</ToConfirm>
-      </>
-    ),
+    note: "Written into the agreement.",
   },
 ];
 
