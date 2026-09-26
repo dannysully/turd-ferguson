@@ -469,6 +469,11 @@ const CSS_GROUNDS: Record<string, string> = {
   ".wt-toggle": "var(--chip), the grey track of the walkthrough switch; the unchosen label on it is soft",
   ".wt-option": "transparent - it takes the .wt-toggle track it sits in",
   ".wt-option--on": "var(--surface), the chosen half of the same switch, raised in white with ink text",
+  // 26 Sep 2026 (R18): the /what-is-aeo beat, WhatIsAeo.dc.html. The reader
+  // sees the keyframe block because the minifier puts its background after
+  // the colour; hlSeo's comes first and so is not matched, and says the same.
+  "@keyframes hlAeo":
+    "transparent, the start of a one-pass highlight on the word Tallyroo, which then sits on the grey AI Overview panel (T.bg) it is drawn in - ink on #f6f6f7, 17.5:1 - until it settles on its inline T.washLine ground",
 };
 
 test("the stylesheet's own grounds are the recorded set, and the page ground is the token", (t) => {

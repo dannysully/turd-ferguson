@@ -45,6 +45,14 @@ export const PACKAGES_WASH = "radial-gradient(640px 420px at 85% 20%, rgba(124,5
 export const WASH_PR = "radial-gradient(700px 480px at 10% 0%, rgba(124,58,237,.22), rgba(17,18,24,0) 70%)";
 /** The alwaystracked card on the scan result, upper right, from ScanResult.dc.html. */
 export const TRACKED_WASH = "radial-gradient(600px 400px at 90% 0%, rgba(124,58,237,.25), rgba(17,18,24,0) 70%)";
+/** The dark closing card's wash, upper left, from HowItWorks.dc.html and
+ *  WhatIsAeo.dc.html (R18, 26 Sep 2026). */
+export const CLOSE_WASH = "radial-gradient(ellipse 50% 90% at 0% 0%, rgba(124,58,237,.28), rgba(17,18,24,0) 70%)";
+/** The lift under a floating dark panel on the same two boards - the video
+ *  and the answer card on /how-it-works. A shadow, not a surface colour. */
+export const LIFT = "0 24px 60px -28px rgba(15,17,21,.45)";
+/** The softer lift under the light results page on /what-is-aeo. */
+export const LIFT_SOFT = "0 24px 60px -32px rgba(15,17,21,.30)";
 export const WASH_SIZE = "100% 1040px";
 /** The header's height on the dark ground: 14px padding, a 38px button, 14px. */
 export const HEADER_H = 66;

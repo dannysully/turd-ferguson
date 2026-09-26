@@ -2,16 +2,25 @@ import type { Metadata } from "next";
 import { OG_IMAGE } from "@/config/og";
 import Link from "next/link";
 
-import CtaSection from "@/components/CtaSection";
+import DarkClosing from "@/components/DarkClosing";
+import { D, LIFT_SOFT } from "@/components/home/dark";
+import { word } from "@/components/home/EngineDemo";
 import { TierText, TIER_PLAIN } from "@/components/TierName";
 import { DEAREST_PRICED_TIER, publishedPricesClause, quotedPricesClause, TIERS } from "@/config/pricing";
-import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
-import { ENGINES, ENGINE_SPECS, FREE_ENGINES } from "@/lib/scan/engines";
-import { listOf } from "@/config/scan-shape";
+import { CARD, GRID12, MICRO, SHELL, T } from "@/config/tokens";
+import { ENGINE_SPECS, FREE_ENGINES } from "@/lib/scan/engines";
+import { FREE_ENGINE_COUNT, listOf, QUESTIONS } from "@/config/scan-shape";
 import { ORG_REF, ld } from "@/config/schema";
 
 /**
- * What is AEO - the guide page.
+ * What is AEO - the guide page, built to WhatIsAeo.dc.html (R18, 26 Sep
+ * 2026). The board arrived after Q24; until then this page had none, and the
+ * paragraphs below record how it was held without one. The board's order: the
+ * definition beside its hero, the one beat (a results page with the Google row
+ * and the answer both marked - one pass, settling marked, not the board's 12s
+ * loop), the SEO/AEO table, a contents rail beside one sectioned card, the FAQ
+ * and the dark closing scan. The copy is the board's, which is the cut-down
+ * form of the sourced copy below; every sentence of it was already here.
  *
  * This and /how-it-works are the two public pages with no artboard, which is
  * why they were still on the pre-redesign palette - Georgia headings, navy
@@ -86,9 +95,6 @@ const articleSchema = jsonLd("Article", {
 });
 
 const freeEngines = listOf(FREE_ENGINES.map((e) => ENGINE_SPECS[e].label));
-const otherEngines = listOf(
-  ENGINES.filter((e) => !FREE_ENGINES.includes(e)).map((e) => ENGINE_SPECS[e].label),
-);
 
 const tracked = TIERS.find((t) => t.id === "tracked");
 const mentioned = TIERS.find((t) => t.id === "mentioned");
@@ -143,25 +149,25 @@ const FAQS: Faq[] = [
   {
     q: "Is AEO replacing SEO?",
     hint: "No - it sits on top of it",
-    a: "No. A placement is an ordinary editorial link as well as a page an engine can read as a source, so one article can move a citation and a Google position. We report the two separately rather than averaging them into one number, because only one of them may have moved and you should be able to tell which.",
+    a: "No. A placement is an ordinary editorial link as well as a page an engine can read as a source, so one article can move a citation and a Google position. We report the two separately, because only one of them may have moved.",
   },
   {
     q: "Can I do AEO myself?",
     hint: "The on-site half, yes",
-    a: "Some of it. You can structure your own pages for capture - FAQ schema, question-format headings, comparison tables, opening paragraphs written in the phrasing a buyer actually uses. What is harder to do from a desk is getting into the third-party pages the engines are already reading, because that is editorial relationship work rather than a change you can deploy.",
+    a: "Some of it. FAQ schema, question-format headings, comparison tables and opening lines in the buyer’s phrasing are all yours to ship. Getting into the third-party pages the engines already read is editorial relationship work, not a change you can deploy.",
   },
   {
     q: "Which AI systems do you read?",
     hint: FREE_ENGINES.length + " on the free scan",
-    a: "A free scan reads " + freeEngines + ". " + otherEngines + " costs materially more per run, so it sits on the tracking plan rather than the free check. We do not publish a ranking of which engine matters most - we have no source for one, and the honest answer is that it depends on who your buyers are.",
+    a: "A free scan reads " + freeEngines + ". We do not publish a ranking of which engine matters most - we have no source for one, and it depends on who your buyers are.",
   },
   {
     q: "How do you measure results?",
     hint: "Two measures, never averaged",
     a:
-      "Two things, kept apart. First: whether you were named in the answer, across a tracked question set" +
+      "Whether you were named in the answer, across a tracked question set" +
       (tracked?.priceBasis ? " - " + firstClause(tracked.priceBasis) : "") +
-      ". Second: the Google position for the same question, which comes back in the same response at no extra cost. A citation and a ranking are different outcomes and we never roll them into a single score.",
+      ". And the Google position for the same question, which comes back in the same read. A citation and a ranking are different outcomes and we never roll them into one score.",
   },
   {
     q: "What does it cost?",
@@ -185,45 +191,41 @@ const COMPARISON: { row: string; seo: string; aeo: string }[] = [
   { row: "Buyer touchpoint", seo: "A click", aeo: "No click needed" },
 ];
 
-const P: React.CSSProperties = {
-  margin: 0,
-  fontSize: "14.5px",
-  lineHeight: 1.7,
-  color: T.soft,
-  maxWidth: "72ch",
-};
+/** The Google results under the answer. Tallyroo is third - the row SEO
+ *  counts. Made-up brands, as the board's are, and said so under the card. */
+const SERP: { n: number; name: string; domain: string; you?: boolean }[] = [
+  { n: 1, name: "Ledgerbird", domain: "ledgerbird.com" },
+  { n: 2, name: "Stackbill", domain: "stackbill.io" },
+  { n: 3, name: "Tallyroo", domain: "tallyroo.com", you: true },
+  { n: 4, name: "Pennywell", domain: "pennywell.com" },
+];
 
-const LINK: React.CSSProperties = { fontWeight: 600, textDecoration: "none", color: T.accent };
+const CLOCKS: { label: string; head: string; body: string; accent?: boolean }[] = [
+  { label: "The placement", head: "Live in weeks", body: "It goes onto a page that already has standing, so nothing is built from zero." },
+  { label: "The citation", head: "The next time the engine reads the page", body: "Not a schedule anyone outside the engine controls.", accent: true },
+  { label: "The Google position", head: "On its own timetable", body: "Reported apart from the citation, so you can see which moved." },
+];
 
-/** One row, not one per paragraph - the same call PostShell made about body
- *  prose. A card is one thing to read; staggering inside it competes. */
-function Body({ children }: { children: React.ReactNode }) {
+const CONTENTS: { id: string; label: string }[] = [
+  { id: "decide", label: "How engines decide who to name" },
+  { id: "engineer", label: "Can it be engineered on purpose?" },
+  { id: "long", label: "How long it takes" },
+  { id: "faq", label: "Questions we get asked" },
+];
+
+const H2_BIG: React.CSSProperties = { margin: 0, fontSize: "28px", fontWeight: 700, letterSpacing: "-0.03em", color: T.ink };
+const H2_LONG: React.CSSProperties = { margin: 0, fontSize: "22px", fontWeight: 700, letterSpacing: "-0.025em", color: T.ink };
+const LEDE: React.CSSProperties = { margin: 0, fontSize: "15px", lineHeight: 1.6, color: T.soft };
+/** Long-form body prose, the value PostShell and the case study draw. */
+const PROSE: React.CSSProperties = { margin: "14px 0 0", fontSize: "15px", lineHeight: 1.7, color: "#3f4451", maxWidth: "68ch" };
+const SUB: React.CSSProperties = { margin: "8px 0 0", fontSize: "13px", fontWeight: 600, color: T.soft };
+
+function Head({ title, lede, id }: { title: string; lede: string; id?: string }) {
   return (
-    <div className="ac-row" style={{ ...CARD, padding: "26px 30px", display: "flex", flexDirection: "column", gap: "14px" }}>
-      {children}
+    <div id={id} className="board-head" style={{ ...GRID12, marginTop: "80px", scrollMarginTop: "2rem" }}>
+      <h2 style={{ ...H2_BIG, gridColumn: "span 5" }}>{title}</h2>
+      <p style={{ ...LEDE, gridColumn: "span 7" }}>{lede}</p>
     </div>
-  );
-}
-
-function Section({
-  title,
-  lede,
-  children,
-}: {
-  title: string;
-  lede: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section>
-      <div className="board-head" style={{ ...GRID12, marginBottom: "16px" }}>
-        <h2 className="ac-row" style={{ ...H2, gridColumn: "span 4" }}>{title}</h2>
-        <p className="ac-row" style={{ gridColumn: "span 8", margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
-          {lede}
-        </p>
-      </div>
-      {children}
-    </section>
   );
 }
 
@@ -233,196 +235,223 @@ export default function WhatIsAEOPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: articleSchema }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: faqSchema }} />
 
-      <main
-        style={{
-          ...SHELL,
-          paddingTop: "44px",
-          paddingBottom: "44px",
-          display: "flex",
-          flexDirection: "column",
-          gap: "32px",
-        }}
-      >
-        <div className="board-head" style={{ ...GRID12, alignItems: "start" }}>
-          <div style={{ gridColumn: "span 7" }}>
-            <div className="ac-row" style={MICRO}>Answer engine optimisation</div>
-            <h1
-              className="ac-row"
-              style={{
-                margin: "10px 0 0",
-                fontSize: "36px",
-                fontWeight: 700,
-                letterSpacing: "-0.03em",
-                lineHeight: 1.18,
-                color: T.ink,
-              }}
-            >
+      <main style={{ ...SHELL, paddingTop: "64px", paddingBottom: "64px" }}>
+        <div className="guide-top guide-top--aeo">
+          <div>
+            <div style={{ fontSize: "13px", fontWeight: 600, color: T.soft }}>Answer engine optimisation</div>
+            <h1 className="guide-h1" style={{ margin: "12px 0 0", fontSize: "48px", fontWeight: 700, letterSpacing: "-0.04em", lineHeight: 1.05, color: T.ink }}>
               What is AEO? A guide to answer engine optimisation.
             </h1>
-            <p className="ac-row" style={{ margin: "14px 0 0", fontSize: "15px", lineHeight: 1.6, color: T.soft, maxWidth: "62ch" }}>
-              AEO is getting a brand named inside the answer, rather than ranked in the links underneath it. Same
-              buyer, different surface, and a different thing to measure.
+            <p style={{ margin: "18px 0 0", fontSize: "17px", lineHeight: 1.55, color: T.soft, maxWidth: "52ch" }}>
+              Getting a brand named inside the answer, rather than ranked in the links underneath it. Same buyer,
+              different surface, different thing to measure.
             </p>
           </div>
 
-          <div className="ac-row" style={{ ...CARD, gridColumn: "span 5", padding: "24px" }}>
+          {/* Kept whole so it can be quoted - the definition the Article
+              schema's description repeats. */}
+          <div style={{ ...CARD, borderRadius: "18px", padding: "22px 24px" }}>
             <div style={MICRO}>The short version</div>
-            <p style={{ margin: "10px 0 0", fontSize: "14px", lineHeight: 1.65, color: T.soft }}>
+            <p style={{ margin: "10px 0 0", fontSize: "14.5px", lineHeight: 1.65, color: T.ink }}>
               AEO (answer engine optimisation) is the practice of getting a brand named and cited inside the answer an
-              AI search system generates - on Google&apos;s AI Overview, ChatGPT, Perplexity and the rest - rather than
-              ranked in the list of links below it. Where SEO targets a position, AEO targets the citation. They are
-              measured differently and won differently, which is the whole reason it has its own name.
+              AI search system generates - Google&apos;s AI Overview, ChatGPT, Perplexity and the rest - rather than
+              ranked in the list of links below it. Where SEO targets a position, AEO targets the citation.
             </p>
           </div>
         </div>
 
-        <Section
-          title="How AEO differs from SEO"
-          lede="Two surfaces, two measures. The confusing part is that one piece of work can move both."
-        >
-          <Body>
-            <p style={P}>
-              SEO targets the results page: the links and snippets that appear when someone runs a query. AEO targets
-              the generated response that sits above those links - Google&apos;s AI Overview, ChatGPT&apos;s answer,
-              Perplexity&apos;s summary. The buyer journey differs as a result. SEO assumes the buyer clicks a result
-              and lands on your site. AEO assumes they read the answer and may never click anything at all.
-            </p>
-            <p style={P}>
-              The measurements differ too. SEO is counted in keyword positions, organic traffic and conversions from
-              organic. AEO is counted in whether you were named in the answer, across a set of questions someone
-              actually asks. A first position and a citation are both worth having, but they are not the same finding,
-              and a report that averages them hides which one moved.
-            </p>
-            <p style={P}>
-              In practice the two overlap more than they compete. A placement is an ordinary editorial link as well as
-              a page an engine can read as a source, so a single article can do both jobs. We report them separately
-              rather than claiming one caused the other.
-            </p>
-            <p style={P}>
-              <Link href="/how-it-works" style={LINK}>
-                How we run those campaigns
-              </Link>
-            </p>
-          </Body>
-        </Section>
+        {/* The page's one beat: one results page, two measures. */}
+        <section style={{ marginTop: "72px" }}>
+          <div className="board-head" style={{ display: "flex", alignItems: "baseline", gap: "40px" }}>
+            <h2 style={{ ...H2_BIG, flexShrink: 0 }}>One results page, two things to measure</h2>
+            <p style={LEDE}>SEO counts where you sit in the links. AEO counts whether the answer above them names you.</p>
+          </div>
+          {/* The entrance is on a wrapper so the beat's own classes are the
+              only animation on each element; seq-stagger.test.mts holds that. */}
+          <div className="ac-row">
+          <div className="guide-beat">
+            <div style={{ ...CARD, borderRadius: "18px", padding: "22px 24px", boxShadow: LIFT_SOFT }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", border: "1px solid " + T.line, borderRadius: "999px", padding: "10px 16px" }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={T.soft} strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="M20 20l-3.5-3.5" />
+                </svg>
+                <span style={{ fontSize: "14.5px", color: T.ink }}>best invoicing software for freelancers</span>
+              </div>
+              <div style={{ marginTop: "16px", background: T.bg, borderRadius: "14px", padding: "16px 18px" }}>
+                <div style={MICRO}>AI Overview</div>
+                <p style={{ margin: "8px 0 0", fontSize: "14.5px", lineHeight: 1.7, color: T.ink }}>
+                  For most freelancers the usual picks are Ledgerbird for its free tier and{" "}
+                  <span className="aeo-hl-aeo" style={{ borderRadius: "5px", padding: "1px 5px", margin: "0 -2px", background: T.washLine, color: T.accentHover, fontWeight: 700 }}>
+                    Tallyroo
+                  </span>{" "}
+                  for recurring invoices and late-payment reminders. Stackbill suits anyone who also needs expenses.
+                </p>
+                <div style={{ marginTop: "10px", display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                  {["solodesk.io", "quillandcoin.co"].map((d) => (
+                    <span key={d} style={{ fontSize: "11.5px", fontWeight: 600, color: T.soft, background: T.surface, border: "1px solid " + T.line, borderRadius: "999px", padding: "1px 10px", lineHeight: 1.8 }}>
+                      {d}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <ol style={{ listStyle: "none", margin: "14px 0 0", padding: 0, display: "flex", flexDirection: "column", gap: "4px" }}>
+                {SERP.map((r) => (
+                  <li
+                    key={r.name}
+                    className={r.you ? "aeo-hl-seo" : undefined}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "12px",
+                      padding: "10px 12px",
+                      borderRadius: "10px",
+                      background: r.you ? T.chip : undefined,
+                      boxShadow: r.you ? "inset 0 0 0 1.5px " + T.ink : undefined,
+                    }}
+                  >
+                    <span style={{ width: "22px", fontSize: "13px", fontWeight: 700, color: r.you ? T.ink : T.soft }}>{r.n}</span>
+                    <span style={{ fontSize: "14px", fontWeight: r.you ? 700 : 600, color: T.ink }}>{r.name}</span>
+                    <span style={{ fontSize: "13px", color: T.soft }}>{r.domain}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <div className="aeo-card-seo" style={{ flexGrow: 1, background: T.surface, border: "1.5px solid " + T.ink, borderRadius: "18px", padding: "22px 24px", display: "flex", flexDirection: "column" }}>
+                <div style={MICRO}>SEO measures</div>
+                <div style={{ marginTop: "6px", fontSize: "16px", fontWeight: 700, color: T.ink }}>Your position on the keyword</div>
+                <div style={{ flexGrow: 1, minHeight: "16px" }} />
+                <div style={{ fontSize: "52px", fontWeight: 700, letterSpacing: "-0.04em", lineHeight: 1, color: T.ink }}>#3</div>
+                <div style={{ marginTop: "6px", fontSize: "13px", color: T.soft }}>The buyer has to scroll past the answer and click</div>
+              </div>
+              <div className="aeo-card-aeo" style={{ flexGrow: 1, background: T.surface, border: "1.5px solid " + T.accent, borderRadius: "18px", padding: "22px 24px", display: "flex", flexDirection: "column" }}>
+                <div style={{ ...MICRO, color: T.accent }}>AEO measures</div>
+                <div style={{ marginTop: "6px", fontSize: "16px", fontWeight: 700, color: T.ink }}>Whether the answer named you</div>
+                <div style={{ flexGrow: 1, minHeight: "16px" }} />
+                <div className="aeo-named" style={{ alignSelf: "flex-start", fontSize: "20px", fontWeight: 700, color: T.accentHover, background: T.wash, borderRadius: "999px", padding: "6px 16px" }}>
+                  Named
+                </div>
+                <div style={{ marginTop: "10px", fontSize: "13px", color: T.soft }}>Across every question, on every engine. No click needed</div>
+              </div>
+            </div>
+          </div>
+          </div>
+          <div className="guide-notes" style={{ color: T.soft }}>
+            <span>One piece of work can move both. We report them separately, never averaged.</span>
+            <span>Illustrative. Tallyroo and every brand shown are made up.</span>
+          </div>
+        </section>
 
-        <Section
-          title="How engines decide who to name"
-          lede="What follows is what our scans record. Nobody outside these companies can see the mechanism itself."
-        >
-          <Body>
-            <p style={P}>
-              We cannot see inside an engine, and anyone who tells you they can is guessing. What we can see is the set
-              of pages an answer was assembled from, because every scan we run records them alongside the answer
-              itself. Read enough of those and a pattern is hard to miss: the answer is not an independent product
-              evaluation. It repeats a ranked list from a page the engine treats as a source for that topic, and the
-              brand near the top of that list is usually the brand the answer names.
-            </p>
-            <p style={P}>
-              Topical fit appears to count for more than size. The pages we find behind an answer are more often narrow
-              trade titles than the biggest domains in a sector. We would rather put it that way than dress it up as a
-              rule about how the engines are built, because the first is something we observed and the second is
-              something we would be inventing.
-            </p>
-            <p style={P}>
-              Age shows up as well. Citation rates drift down as an article gets older and newer pages take its place
-              in the source set, which is why the programme is a replacement cycle rather than a one-off campaign, and
-              why the charts we show clients have dips in them.
-            </p>
-          </Body>
-        </Section>
-
-        <Section
-          title="Can this be engineered on purpose?"
-          lede="Yes, and the mechanism is specific enough to write down. It is not a content-marketing recommendation."
-        >
-          <Body>
-            <p style={P}>
-              The work is placement on the pages an engine is already reading for a category. Identify those pages -
-              which is what the free scan does, by reading the answers and recording every source behind them - then
-              secure editorial placement on them, with the brand positioned where a ranked list actually gets quoted
-              from. Then structure your own pages so a reader arriving from the answer finds the same story.
-            </p>
-            <p style={P}>
-              What you can do yourself is the on-site half. What needs a specialist is identifying the right
-              publications and getting into them editorially rather than by buying a slot.
-            </p>
-            <p style={P}>
-              We publish one worked example with a client&apos;s name against it, and it carries the window it happened
-              over rather than a bare number.
-            </p>
-            <p style={P}>
-              <Link href="/case-studies/vibe-retail" style={LINK}>
-                Read the Vibe Retail write-up
-              </Link>
-            </p>
-          </Body>
-        </Section>
-
-        <Section
-          title="How long it takes"
-          lede="The honest answer has parts that move on different clocks, so we do not quote one number."
-        >
-          <Body>
-            <p style={P}>
-              A placement is live in weeks rather than months. Citation usually follows the next time the engine reads
-              the page, which is not a schedule anyone outside the engine controls. A Google position moves on its own
-              timetable again. We report the three separately rather than averaging them into a single figure that
-              hides which one changed.
-            </p>
-            <p style={P}>
-              The structural reason it can move at all quickly: a placement does not have to build standing from
-              nothing. It goes onto a page the engine is already reading. The standing is already there, and the
-              placement uses it rather than creating it.
-            </p>
-            <p style={P}>
-              The caveat is durability. Positions inside an answer shift as engines change what they read and as newer
-              pages displace older ones. Holding a citation needs monitoring and fresh placements, which is why this
-              runs as a retainer rather than a one-off engagement.
-            </p>
-          </Body>
-        </Section>
-
-        <Section
-          title="At a glance"
-          lede="The differences that change what you do, rather than every difference there is."
-        >
-          <div style={{ ...CARD, overflow: "hidden" }}>
-            <div
-              className="board-head"
-              style={{
-                ...GRID12,
-                padding: "13px 26px",
-                background: "#fbfbfc",
-                borderBottom: "1px solid " + T.line,
-              }}
-            >
+        <section>
+          <Head title="How AEO differs from SEO" lede="The differences that change what you do, rather than every difference there is." />
+          <div style={{ ...CARD, borderRadius: "18px", overflow: "hidden", marginTop: "24px" }}>
+            <div className="board-head" style={{ ...GRID12, padding: "13px 26px", borderBottom: "1px solid " + T.line }}>
               <div style={{ ...MICRO, gridColumn: "span 4" }}>Difference</div>
               <div style={{ ...MICRO, gridColumn: "span 4" }}>SEO</div>
               <div style={{ ...MICRO, gridColumn: "span 4", color: T.accent }}>AEO</div>
             </div>
             {COMPARISON.map((c, i) => (
-              <div
-                key={c.row}
-                className="board-head ac-row"
-                style={{ ...GRID12, padding: "16px 26px", borderTop: i ? "1px solid " + T.hair : undefined }}
-              >
-                <div style={{ gridColumn: "span 4", fontSize: "14px", fontWeight: 600, color: T.ink }}>{c.row}</div>
-                <div style={{ gridColumn: "span 4", fontSize: "14px", lineHeight: 1.6, color: T.soft }}>{c.seo}</div>
-                <div style={{ gridColumn: "span 4", fontSize: "14px", lineHeight: 1.6, color: T.ink }}>{c.aeo}</div>
+              <div key={c.row} className="board-head" style={{ ...GRID12, padding: "16px 26px", borderTop: i ? "1px solid " + T.hair : undefined }}>
+                <div style={{ gridColumn: "span 4", fontSize: "14.5px", fontWeight: 600, color: T.ink }}>{c.row}</div>
+                <div style={{ gridColumn: "span 4", fontSize: "14.5px", color: T.soft }}>{c.seo}</div>
+                <div style={{ gridColumn: "span 4", fontSize: "14.5px", fontWeight: 500, color: T.ink }}>{c.aeo}</div>
               </div>
             ))}
           </div>
-        </Section>
+        </section>
 
-        <Section title="Questions we get asked" lede="Answered here rather than on a call.">
-          <div style={{ ...CARD, overflow: "hidden" }}>
-            {FAQS.map((f) => (
-              <details key={f.q} className="faq-row ac-row" style={{ borderBottom: "1px solid " + T.hair }}>
-                <summary
-                  className="board-head faq-summary"
-                  style={{ ...GRID12, padding: "17px 26px", cursor: "pointer" }}
-                >
+        <div className="guide-long">
+          <nav aria-label="On this page" className="guide-long__nav">
+            <div style={MICRO}>On this page</div>
+            <ul style={{ margin: "12px 0 0", padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: "2px" }}>
+              {CONTENTS.map((c, i) => (
+                <li key={c.id}>
+                  <a
+                    href={"#" + c.id}
+                    style={{
+                      display: "block",
+                      padding: "8px 12px",
+                      borderRadius: "10px",
+                      background: i === 0 ? T.surface : undefined,
+                      border: "1px solid " + (i === 0 ? T.line : "transparent"),
+                      fontSize: "14px",
+                      fontWeight: i === 0 ? 600 : 400,
+                      color: i === 0 ? T.ink : T.soft,
+                      textDecoration: "none",
+                    }}
+                  >
+                    {c.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+          <div className="guide-long__body" style={{ ...CARD, borderRadius: "18px" }}>
+            <section id="decide" style={{ scrollMarginTop: "2rem" }}>
+              <h2 style={H2_LONG}>How engines decide who to name</h2>
+              <p style={SUB}>What our scans record. Nobody outside these companies can see the mechanism itself.</p>
+              <p style={{ ...PROSE, marginTop: "16px" }}>
+                We cannot see inside an engine. What we can see is the set of pages an answer was assembled from,
+                because every scan records them beside the answer. Read enough of those and the pattern is hard to
+                miss: the answer repeats a ranked list from a page the engine treats as a source, and the brand near
+                the top of that list is usually the brand the answer names.
+              </p>
+              <p style={PROSE}>
+                Topical fit appears to count for more than size. The pages behind an answer are more often narrow trade
+                titles than the biggest domains in a sector. Age shows too: citation drifts down as an article gets
+                older and newer pages replace it, which is why the work is a replacement cycle, not a one-off.
+              </p>
+            </section>
+            <section id="engineer" style={{ scrollMarginTop: "2rem" }}>
+              <h2 style={H2_LONG}>Can it be engineered on purpose?</h2>
+              <p style={{ ...PROSE, marginTop: "16px" }}>
+                Yes, and the mechanism is specific enough to write down. Identify the pages an engine already reads for
+                a category - which is what the free scan does - then secure editorial placement on them, with the
+                brand where the ranked list gets quoted from. Then structure your own pages so a reader arriving from
+                the answer finds the same story.
+              </p>
+              <p style={PROSE}>
+                The on-site half you can do yourself. The part that needs a specialist is finding the right
+                publications and getting into them editorially rather than buying a slot.
+              </p>
+              <Link
+                href="/case-studies/vibe-retail"
+                style={{ marginTop: "18px", display: "flex", alignItems: "center", gap: "16px", background: T.bg, borderRadius: "14px", padding: "16px 18px", textDecoration: "none", color: T.ink }}
+              >
+                <div style={{ flexGrow: 1 }}>
+                  <div style={MICRO}>The one worked example with a client&apos;s name on it</div>
+                  <div style={{ marginTop: "4px", fontSize: "15px", fontWeight: 700 }}>Vibe Retail, with the window it happened over</div>
+                </div>
+                <span style={{ fontSize: "14px", fontWeight: 600, color: T.accent }}>Read it</span>
+              </Link>
+            </section>
+            <section id="long" style={{ scrollMarginTop: "2rem" }}>
+              <h2 style={H2_LONG}>How long it takes</h2>
+              <p style={SUB}>Three clocks, so we do not quote one number.</p>
+              <div className="guide-clocks">
+                {CLOCKS.map((c) => (
+                  <div key={c.label} style={{ border: "1px solid " + T.line, borderRadius: "14px", padding: "16px" }}>
+                    <div style={{ ...MICRO, color: c.accent ? T.accent : T.soft }}>{c.label}</div>
+                    <div style={{ marginTop: "6px", fontSize: "15px", fontWeight: 700, color: T.ink }}>{c.head}</div>
+                    <div style={{ marginTop: "6px", fontSize: "13.5px", lineHeight: 1.55, color: T.soft }}>{c.body}</div>
+                  </div>
+                ))}
+              </div>
+              <p style={{ ...PROSE, marginTop: "16px" }}>
+                The caveat is durability. Positions inside an answer shift as engines change what they read. Holding a
+                citation needs monitoring and fresh placements, which is why this runs as a retainer.
+              </p>
+            </section>
+          </div>
+        </div>
+
+        <section>
+          <Head id="faq" title="Questions we get asked" lede="Answered here rather than on a call." />
+          <div style={{ ...CARD, borderRadius: "18px", overflow: "hidden", marginTop: "16px" }}>
+            {FAQS.map((f, i) => (
+              <details key={f.q} open={i === 0} className="faq-row" style={{ borderBottom: "1px solid " + T.hair }}>
+                <summary className="board-head faq-summary" style={{ ...GRID12, padding: "17px 26px", cursor: "pointer" }}>
                   <span style={{ gridColumn: "span 5", fontSize: "15px", fontWeight: 600, color: T.ink }}>{f.q}</span>
                   {/* Through TierText for the same reason the answers are: a
                       hint is body copy, and the pricing one names the tier the
@@ -440,10 +469,16 @@ export default function WhatIsAEOPage() {
               </details>
             ))}
           </div>
-        </Section>
-      </main>
+        </section>
 
-      <CtaSection />
+        <DarkClosing id="aeo-close" title="Find out if the answers name you.">
+          {word(QUESTIONS)} buyer questions, {word(FREE_ENGINE_COUNT).toLowerCase()} engines, every answer and every
+          source.{" "}
+          <Link href="/how-it-works" style={{ color: D.caret, fontWeight: 600, textDecoration: "none" }}>
+            How we run the campaigns
+          </Link>
+        </DarkClosing>
+      </main>
     </>
   );
 }

@@ -487,6 +487,52 @@ html[data-motion="on"] .seo-beat:has(.flow-line.in-view) .seo-answer { animation
 @media (max-width: 860px) {
   .seo-h1 { font-size: 36px !important; }
 }
+/* /how-it-works and /what-is-aeo (HowItWorks.dc.html, WhatIsAeo.dc.html,
+   R18, 26 Sep 2026). The hero is .seo-top's shape - headline beside a card on
+   one bottom line - at each board's own split. */
+.guide-top { display: grid; grid-template-columns: 7fr 4fr; gap: 64px; align-items: end; }
+.guide-top--aeo { grid-template-columns: 7fr 5fr; gap: 56px; }
+.guide-flow { display: grid; grid-template-columns: 3fr 56px 4fr 56px 4fr; align-items: center; margin-top: 28px; }
+.guide-notes { display: flex; justify-content: space-between; gap: 16px; margin-top: 14px; font-size: 12px; }
+.guide-beat { display: grid; grid-template-columns: 7fr 4fr; gap: 24px; margin-top: 24px; align-items: stretch; }
+.guide-long { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: 24px; align-items: start; margin-top: 80px; }
+.guide-long__nav { grid-column: span 3; position: sticky; top: 24px; }
+.guide-long__body { grid-column: span 9; }
+.guide-long__body > section { padding: 30px 36px; }
+.guide-long__body > section + section { border-top: 1px solid #f2f2f4; }
+.guide-clocks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 18px; }
+.dark-close { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 24px; align-items: center; }
+/* The beat on /what-is-aeo: one pass of the board's 12s loop, cued by the
+   results card arriving. The Google row is marked first, then the answer
+   names the brand; both stay marked, which is the board's painted state and
+   what a visitor with no JavaScript or reduced motion sees from the start. */
+html[data-motion="on"] .ac-row.in-view > .guide-beat .aeo-hl-seo { animation: hlSeo .6s .5s ease-out both; }
+html[data-motion="on"] .ac-row.in-view > .guide-beat .aeo-card-seo { animation: cardSeo .6s .5s ease-out both; }
+html[data-motion="on"] .ac-row.in-view > .guide-beat .aeo-hl-aeo { animation: hlAeo .6s 1.8s ease-out both; }
+html[data-motion="on"] .ac-row.in-view > .guide-beat .aeo-card-aeo { animation: cardAeo .6s 1.8s ease-out both; }
+html[data-motion="on"] .ac-row.in-view > .guide-beat .aeo-named { animation: aeoNamed .6s 1.9s ease-out both; }
+@keyframes hlSeo { from { background: transparent; box-shadow: inset 0 0 0 1.5px transparent; } }
+@keyframes cardSeo { from { border-color: #ececee; } }
+@keyframes hlAeo { from { background: transparent; color: inherit; } }
+@keyframes cardAeo { from { border-color: #ececee; } }
+@keyframes aeoNamed { from { opacity: .25; } }
+@media (prefers-reduced-motion: reduce) {
+  html[data-motion="on"] .ac-row.in-view > .guide-beat :is(.aeo-hl-seo, .aeo-card-seo, .aeo-hl-aeo, .aeo-card-aeo, .aeo-named) { animation: none; }
+}
+@media (max-width: 1000px) {
+  .guide-top, .guide-top--aeo, .guide-beat { grid-template-columns: 1fr; gap: 28px; }
+  .guide-flow { grid-template-columns: 1fr; row-gap: 8px; }
+  .guide-flow__arrow { transform: rotate(90deg); justify-self: center; }
+  .guide-notes { flex-direction: column; gap: 4px; }
+  .guide-long__nav { display: none; }
+  .guide-long__body { grid-column: 1 / -1; }
+}
+@media (max-width: 860px) {
+  .guide-h1 { font-size: 36px !important; }
+  .guide-long__body > section { padding: 24px; }
+  .guide-clocks { grid-template-columns: 1fr; }
+  .dark-close { grid-template-columns: 1fr; row-gap: 20px; padding: 24px !important; }
+}
 .pr-two {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

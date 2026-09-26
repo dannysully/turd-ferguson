@@ -184,7 +184,8 @@ const OFF_PALETTE: Record<string, Entry> = {
       "src/app/compare/page.tsx": 1,
       // pr-agencies/page.tsx left on 25 Sep 2026 (Q12): the dead coverage
       // card is D.card on the dark fan-out now.
-      "src/app/what-is-aeo/page.tsx": 1,
+      // what-is-aeo/page.tsx left on 26 Sep 2026 (R18): the table header row
+      // is white on WhatIsAeo.dc.html.
       // white-label/page.tsx left on 25 Sep 2026 (Q14): the table header row
       // went when the rows became WhiteLabel.dc.html's six cards.
       "src/components/scan/ConfirmScreen.tsx": 1,
@@ -197,7 +198,10 @@ const OFF_PALETTE: Record<string, Entry> = {
   "#3f4451": {
     why: "body prose on the two long-form templates, drawn by BlogPost.dc.html and CaseStudy.dc.html - the two boards whose pages these are. Darker than `T.soft` because long-form body text is, at 9.74 on white against soft's 4.68.",
     boards: 2,
-    sites: { "src/app/case-studies/vibe-retail/page.tsx": 2, "src/components/PostShell.tsx": 1 },
+    // what-is-aeo/page.tsx joined on 26 Sep 2026 (R18): WhatIsAeo.dc.html
+    // draws its long-read card in #3f434c, the same role; this value is used
+    // rather than a third near-identical grey.
+    sites: { "src/app/case-studies/vibe-retail/page.tsx": 2, "src/app/what-is-aeo/page.tsx": 1, "src/components/PostShell.tsx": 1 },
   },
   // "#d6d8dd" left this list on 25 Sep 2026 (Q12): the grey stub of the dead
   // piece on /pr-agencies, its only site, is D.quiet on the dark fan-out now,
@@ -327,7 +331,23 @@ const OFF_PALETTE: Record<string, Entry> = {
     why: "the fade-out stop of the hero's two washes, the packages band's one and the result's alwaystracked card's one (Q04 and Q10, 25 Sep): the dark ground at zero alpha, so the wash fades into the ground rather than through grey.",
     boards: 6,
     // 3 -> 4 on 25 Sep 2026 (Q10): TRACKED_WASH. 4 -> 5 the same day (Q12): WASH_PR.
-    sites: { "src/components/home/dark.ts": 5 },
+    // 5 -> 6 on 26 Sep 2026 (R18): CLOSE_WASH.
+    sites: { "src/components/home/dark.ts": 6 },
+  },
+  "rgba(124,58,237,.28)": {
+    why: "the upper-left wash on the dark closing card of /how-it-works and /what-is-aeo (CLOSE_WASH, R18, 26 Sep 2026), from HowItWorks.dc.html and WhatIsAeo.dc.html. `T.accent` at 28%, written as the boards write it.",
+    boards: 2,
+    sites: { "src/components/home/dark.ts": 1 },
+  },
+  "rgba(15,17,21,.45)": {
+    why: "the lift under the launch video and the dark answer card on /how-it-works (LIFT, R18, 26 Sep 2026), from HowItWorks.dc.html. `T.ink` at 45%. A shadow colour, not a surface one - **do not tokenise it**, for the same reason as the ProcessSequence panel shadow.",
+    boards: 1,
+    sites: { "src/components/home/dark.ts": 1 },
+  },
+  "rgba(15,17,21,.30)": {
+    why: "the softer lift under the results card on /what-is-aeo (LIFT_SOFT, R18, 26 Sep 2026), from WhatIsAeo.dc.html. `T.ink` at 30%. A shadow colour - **do not tokenise it**.",
+    boards: 1,
+    sites: { "src/components/home/dark.ts": 1 },
   },
   "rgba(0,0,0,.08)": {
     why: "the 1px lift under the chosen half of the walkthrough switch, from ScanResult.dc.html (Q10, 25 Sep 2026). A shadow colour, not a surface one - **do not tokenise it**, for the same reason as the ProcessSequence panel shadow.",

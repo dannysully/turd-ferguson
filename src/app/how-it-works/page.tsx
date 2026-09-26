@@ -1,57 +1,37 @@
 import type { Metadata } from "next";
+import { WAITLIST_LIMITS } from "@/config/contact";
 import { OG_IMAGE } from "@/config/og";
 import Link from "next/link";
 
-import CtaSection from "@/components/CtaSection";
-import { TierText } from "@/components/TierName";
-import { pricePublication } from "@/config/pricing";
-import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
+import DarkClosing from "@/components/DarkClosing";
+import { D, LIFT } from "@/components/home/dark";
+import { word } from "@/components/home/EngineDemo";
+import { FREE_ENGINE_COUNT, QUESTIONS } from "@/config/scan-shape";
+import { TIERS, TRACKED_QUESTIONS } from "@/config/pricing";
+import { CARD, GRID12, MICRO, SHELL, T } from "@/config/tokens";
 import { ORG_REF, SITE_URL, ld } from "@/config/schema";
 import { LAUNCH_VIDEO, LAUNCH_VIDEO_SUMMARY } from "@/config/video";
 
 /**
- * How it works - the mechanism page.
+ * How it works - the mechanism page, built to HowItWorks.dc.html (R18,
+ * 26 Sep 2026). Until then it had no board and was judged against the built
+ * pages; the board arrived after Q24 and is the newer word.
  *
- * The second of the two public pages with no artboard, and the second half of
- * the same restyle: it was still on Georgia headings and the navy-and-orange
- * palette that predates the token system. Built to the inbox.md rules rather
- * than to a board, matching /seo-agencies, which is the nearest thing to a
- * sibling it has.
+ * Order, as the board draws it: the hero beside a scan box, the launch video
+ * (the page's one beat, Q23 - kept as the real `<video>`, its poster standing
+ * in for the board's placeholder frame), a static three-step diagram of why
+ * engines cite what they cite, one placement / two jobs, the three pieces of
+ * work, and the dark closing scan.
  *
- * This used to say "No motion, for the same reason as /what-is-aeo" - that a
- * beat's vocabulary comes from a board's own keyframes, so inventing one for a
- * boardless page was not following the rule. That was right when it was
- * written and is not any more. `91101d6` generalised `.ac-row` out of the
- * boards into globals.css as the site's one entrance, applied from two shared
- * templates across seven pages, so using it here copies the site rather than
- * inventing anything. The rule it was protecting - do not make up a beat - is
- * intact; what changed is that there is now a beat not to make up.
+ * Gone with the board: the "What we will not put on this page" section. It
+ * explained why an unsourced comparison table was removed; the board does not
+ * carry it, and nothing it said was a claim that needs to stay live.
  *
- * Three claims went, and the reasoning is the same as on that page - copy is
- * reversible, the claims were not sourced, and blocked.md had raised them
- * twice without an answer:
- *
- * - "The most recent placement we secured for a client went live in the
- *   morning. By that evening, Google's AI Overview was already pulling it to
- *   the top of the response - naming our client as Best Overall in their
- *   category." A client result with no date, no tracker and no name against
- *   it. Cut. The Vibe Retail write-up is the one worked example that carries
- *   a source, and /what-is-aeo links to it.
- * - "the highest-authority backlinks available" - a superlative about link
- *   value. Replaced by the one-placement-two-jobs framing the homepage and
- *   /seo-agencies already use, which describes what a placement is rather
- *   than ranking it against everything else.
- * - "Most agencies haven't internalised this yet, which is why most AEO
- *   services are still selling audits instead of placements." A claim about
- *   what other agencies sell. Cut.
- *
- * The three-column comparison table went with them. Its middle column,
- * "Generic AEO services", asserted that competitors deliver an audit
- * document, on an indefinite timescale, and prove it with a slide deck -
- * a whole column of unsourced claims about other companies, which is exactly
- * what /compare was parked over. The section that replaces it says so out
- * loud rather than quietly dropping the table, because a reader who saw the
- * old one deserves to know why it is gone.
+ * Kept from before, for the reasons recorded in git at `1cc49b1`: no client
+ * result without a dated source, no superlative about link value, and no
+ * claim about what other agencies sell. The diagram's brands are the boards'
+ * made-up ones and say so under it. The entry price is pricing.ts's, as on
+ * /seo-agencies.
  */
 
 export const metadata: Metadata = {
@@ -96,61 +76,48 @@ const videoSchema = ld({
   publisher: ORG_REF,
 });
 
+const tracked = TIERS.find((t) => t.id === "tracked");
+
 const WORK: { heading: string; body: string }[] = [
   {
     heading: "Placement on pages the engines already read",
-    body: "Editorial placements on the third-party pages a scan found behind the answers in your category, with the brand positioned where a ranked list actually gets quoted from. Not paid promotion dressed up as editorial.",
+    body: "Editorial placements on the third-party pages behind the answers in your category, with the brand where a ranked list gets quoted from. Not paid promotion dressed up as editorial.",
   },
   {
     heading: "On-site pages built for the question",
-    body: "The questions closest to a buying decision get pages written for them: question-format headings, comparison tables, FAQ schema, and an opening paragraph in the phrasing a buyer actually uses.",
+    body: "The questions closest to a buying decision get pages of their own: question-format headings, comparison tables, FAQ schema, and an opening line in the buyer's phrasing.",
   },
   {
     heading: "Links that land where you want them",
-    body: "Every placement we run carries a link, and it points at the page you want ranked rather than only at the homepage. That is what lets one article move a citation and a position at the same time.",
+    body: "Every placement carries a link to the page you want ranked, not only the homepage. That is what lets one article move a citation and a position at once.",
   },
 ];
 
-const P: React.CSSProperties = {
-  margin: 0,
-  fontSize: "14.5px",
-  lineHeight: 1.7,
-  color: T.soft,
-  maxWidth: "72ch",
-};
+/** Step 2 of the diagram: the pages the engine reads. The first is the
+ *  placement, so it takes the wash. Made-up domains, as the board's are. */
+const SOURCES: { title: string; domain: string; placed?: boolean }[] = [
+  { title: "The 9 best invoicing apps for freelancers", domain: "solodesk.io", placed: true },
+  { title: "Billing tools compared for sole traders", domain: "quillandcoin.co" },
+  { title: "Ledgerbird review", domain: "ledgerbird.com" },
+];
 
-const LINK: React.CSSProperties = { fontWeight: 600, textDecoration: "none", color: T.accent };
+const H2_BIG: React.CSSProperties = { margin: 0, fontSize: "28px", fontWeight: 700, letterSpacing: "-0.03em", color: T.ink };
+const LEDE: React.CSSProperties = { margin: 0, fontSize: "15px", lineHeight: 1.6, color: T.soft };
 
-/** One row, not one per paragraph. Prose arriving a line at a time is the
- *  sparkle PostShell declined for the same reason: a card is one thing to
- *  read, and staggering inside it competes with reading it. */
-function Body({ children }: { children: React.ReactNode }) {
+function Head({ title, lede }: { title: string; lede: string }) {
   return (
-    <div className="ac-row" style={{ ...CARD, padding: "26px 30px", display: "flex", flexDirection: "column", gap: "14px" }}>
-      {children}
+    <div className="board-head" style={{ ...GRID12, marginTop: "80px" }}>
+      <h2 style={{ ...H2_BIG, gridColumn: "span 5" }}>{title}</h2>
+      <p style={{ ...LEDE, gridColumn: "span 7" }}>{lede}</p>
     </div>
   );
 }
 
-function Section({
-  title,
-  lede,
-  children,
-}: {
-  title: string;
-  lede: string;
-  children: React.ReactNode;
-}) {
+function Arrow({ stroke }: { stroke: string }) {
   return (
-    <section>
-      <div className="board-head" style={{ ...GRID12, marginBottom: "16px" }}>
-        <h2 className="ac-row" style={{ ...H2, gridColumn: "span 4" }}>{title}</h2>
-        <p className="ac-row" style={{ gridColumn: "span 8", margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
-          {lede}
-        </p>
-      </div>
-      {children}
-    </section>
+    <svg className="guide-flow__arrow" width="56" height="16" viewBox="0 0 56 16" fill="none" aria-hidden="true">
+      <path d="M8 8h36M38 3l6 5-6 5" stroke={stroke} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
 
@@ -160,49 +127,68 @@ export default function HowItWorksPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: articleSchema }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: videoSchema }} />
 
-      <main
-        style={{
-          ...SHELL,
-          paddingTop: "44px",
-          paddingBottom: "44px",
-          display: "flex",
-          flexDirection: "column",
-          gap: "32px",
-        }}
-      >
-        <div className="board-head" style={{ ...GRID12, alignItems: "start" }}>
-          <div style={{ gridColumn: "span 7" }}>
-            <div className="ac-row" style={MICRO}>How it works</div>
-            <h1
-              className="ac-row"
-              style={{
-                margin: "10px 0 0",
-                fontSize: "36px",
-                fontWeight: 700,
-                letterSpacing: "-0.03em",
-                lineHeight: 1.18,
-                color: T.ink,
-              }}
-            >
+      <main style={{ ...SHELL, paddingTop: "64px", paddingBottom: "64px" }}>
+        <div className="guide-top">
+          <div>
+            <div style={{ fontSize: "13px", fontWeight: 600, color: T.soft }}>How it works</div>
+            <h1 className="guide-h1" style={{ margin: "12px 0 0", fontSize: "50px", fontWeight: 700, letterSpacing: "-0.04em", lineHeight: 1.04, color: T.ink }}>
               How AI search citations are engineered.
             </h1>
-            <p className="ac-row" style={{ margin: "14px 0 0", fontSize: "15px", lineHeight: 1.6, color: T.soft, maxWidth: "62ch" }}>
+            <p style={{ margin: "18px 0 0", fontSize: "17px", lineHeight: 1.55, color: T.soft, maxWidth: "54ch" }}>
               An answer is assembled from pages. Get onto those pages and you get named in the answer. That is the
               whole mechanism, and the rest of this page is how we do it.
             </p>
           </div>
 
-          <div className="ac-row" style={{ ...CARD, gridColumn: "span 5", padding: "24px" }}>
-            <div style={MICRO}>Start with the evidence</div>
-            <p style={{ margin: "10px 0 0", fontSize: "14px", lineHeight: 1.65, color: T.soft }}>
-              A free scan reads the answers in your category and records every page behind them, so the target list is
-              something you can look at rather than something we assert.
-            </p>
-            <p style={{ margin: "12px 0 0", fontSize: "14px" }}>
-              <Link href="/#scan" style={LINK}>
-                Run a free scan
-              </Link>
-            </p>
+          <div style={{ ...CARD, borderRadius: "18px", padding: "20px" }}>
+            <div style={{ fontSize: "14px", fontWeight: 700, color: T.ink }}>Start with the evidence</div>
+            <div style={{ fontSize: "13px", lineHeight: 1.5, color: T.soft, marginTop: "4px" }}>
+              A free scan records every page behind the answers in your category, so the target list is something you
+              can read.
+            </div>
+            <form action="/scan" method="get" style={{ display: "flex", gap: "8px", marginTop: "14px" }}>
+              <label htmlFor="hiw-domain" className="sr-only">
+                Domain
+              </label>
+              <input
+                id="hiw-domain"
+                name="domain"
+                type="text"
+                maxLength={WAITLIST_LIMITS.domain}
+                inputMode="url"
+                autoComplete="url"
+                placeholder="yourdomain.com"
+                style={{
+                  flexGrow: 1,
+                  minWidth: 0,
+                  fontFamily: "inherit",
+                  fontSize: "14px",
+                  color: T.ink,
+                  background: T.surface,
+                  border: `1px solid ${T.line}`,
+                  borderRadius: "10px",
+                  padding: "0 12px",
+                  minHeight: "44px",
+                }}
+              />
+              <button
+                type="submit"
+                style={{
+                  fontFamily: "inherit",
+                  fontSize: "14px",
+                  fontWeight: 600,
+                  color: "#ffffff",
+                  background: T.accent,
+                  border: 0,
+                  borderRadius: "10px",
+                  padding: "0 18px",
+                  minHeight: "44px",
+                  cursor: "pointer",
+                }}
+              >
+                Check
+              </button>
+            </form>
           </div>
         </div>
 
@@ -210,16 +196,15 @@ export default function HowItWorksPage() {
             autoplay and preload="none" - it is 3.4MB and most visitors read
             instead. The summary is visually hidden so a crawler and a screen
             reader get the argument the video makes without playing it. */}
-        <section id="video" style={{ scrollMarginTop: "2rem" }}>
-          <div className="board-head" style={{ ...GRID12, marginBottom: "16px" }}>
-            <h2 className="ac-row" style={{ ...H2, gridColumn: "span 4" }}>The 60-second version</h2>
-            <p className="ac-row" style={{ gridColumn: "span 8", margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
+        <section id="video" style={{ scrollMarginTop: "2rem", marginTop: "72px" }}>
+          <div className="board-head" style={{ display: "flex", alignItems: "baseline", gap: "40px" }}>
+            <h2 style={{ ...H2_BIG, flexShrink: 0 }}>The 60-second version</h2>
+            <p style={LEDE}>
               One buyer question, the brands the engines name instead, and the four tiers that get a brand into the
               answer.
             </p>
           </div>
           <video
-            className="ac-row"
             controls
             playsInline
             preload="none"
@@ -232,9 +217,10 @@ export default function HowItWorksPage() {
               width: "100%",
               height: "auto",
               aspectRatio: "16 / 9",
+              marginTop: "24px",
               borderRadius: "18px",
-              border: "1px solid " + T.line,
-              background: T.ink,
+              background: D.ground,
+              boxShadow: LIFT,
             }}
           >
             <source src={LAUNCH_VIDEO.src} type="video/mp4" />
@@ -249,99 +235,124 @@ export default function HowItWorksPage() {
           </div>
         </section>
 
-        <Section
-          title="Why engines cite what they cite"
-          lede="What follows is what our own scans record. Nobody outside these companies can see the mechanism itself."
-        >
-          <Body>
-            <p style={P}>
-              When somebody asks an engine which tool is best in a category, the answer that comes back is rarely an
-              independent evaluation. It reads like a ranked list restated from a page the engine treats as a source
-              for that topic - and every scan we run records those pages alongside the answer, so this is something we
-              read rather than something we infer.
-            </p>
-            <p style={P}>
-              That is what makes the outcome addressable. If the answer is assembled from a knowable set of pages, the
-              work is getting onto those pages rather than guessing at what an engine rewards.
-            </p>
-            <p style={P}>
-              <Link href="/what-is-aeo" style={LINK}>
-                The longer version, with what we can and cannot claim about it
-              </Link>
-            </p>
-          </Body>
-        </Section>
-
-        <Section
-          title="One placement, two jobs"
-          lede="This is why it is not a second service to staff. The same article does both pieces of work."
-        >
-          <div className="two-up">
-            <div className="ac-row" style={{ ...CARD, padding: "24px" }}>
-              <div style={MICRO}>Google reads a link</div>
-              <p style={{ margin: "10px 0 0", fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
-                Authority passes to the page the anchor points at, and the article itself ranks for the term. Measured
-                as a position, with a note on whether an AI Overview sits above it.
-              </p>
+        <section>
+          <Head
+            title="Why engines cite what they cite"
+            lede={
+              'The answer to "which tool is best" reads like a ranked list restated from pages the engine treats as sources. Every scan records those pages beside the answer, so this is something we read rather than infer.'
+            }
+          />
+          <div className="guide-flow">
+            <div style={{ ...CARD, borderRadius: "18px", padding: "20px 22px" }}>
+              <div style={MICRO}>1 · A buyer asks</div>
+              <div style={{ marginTop: "10px", fontSize: "17px", fontWeight: 600, lineHeight: 1.35, color: T.ink }}>
+                What is the best invoicing software for freelancers?
+              </div>
             </div>
-            <div className="ac-row" style={{ ...CARD, border: "1px solid " + T.accent, padding: "24px" }}>
-              <div style={{ ...MICRO, color: T.accent }}>The engines read a source</div>
-              <p style={{ margin: "10px 0 0", fontSize: "14px", lineHeight: 1.6, color: T.ink }}>
-                The article becomes one of the pages an answer is assembled from, so the brand gets named. Measured
-                across the question set, on every engine.
-              </p>
+            <Arrow stroke={T.faint} />
+            <div style={{ ...CARD, borderRadius: "18px", padding: "20px 22px" }}>
+              <div style={MICRO}>2 · The engine reads its sources</div>
+              <ul style={{ listStyle: "none", margin: "12px 0 0", padding: 0, display: "flex", flexDirection: "column", gap: "8px" }}>
+                {SOURCES.map((s) => (
+                  <li
+                    key={s.domain}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      borderRadius: "10px",
+                      padding: "10px 12px",
+                      background: s.placed ? T.wash : undefined,
+                      border: s.placed ? "1px solid " + T.wash : "1px solid " + T.hair,
+                    }}
+                  >
+                    <span style={{ fontSize: "13.5px", fontWeight: 600, flexGrow: 1, color: s.placed ? T.accentHover : T.ink }}>{s.title}</span>
+                    <span style={{ fontSize: "12px", color: s.placed ? T.accentHover : T.soft }}>{s.domain}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <Arrow stroke={T.accent} />
+            <div style={{ background: D.ground, borderRadius: "18px", padding: "20px 22px", color: T.surface, boxShadow: LIFT }}>
+              <div style={{ fontSize: "12px", fontWeight: 600, color: D.muted }}>3 · The answer names who those pages name</div>
+              <div style={{ marginTop: "12px", fontSize: "14px", lineHeight: 2.05 }}>
+                <div>1. Ledgerbird</div>
+                <div style={{ background: D.card, border: "1px solid " + D.accent, borderRadius: "6px", margin: "0 -8px", padding: "0 8px", fontWeight: 700 }}>
+                  2. Tallyroo
+                </div>
+                <div>3. Stackbill</div>
+              </div>
+              <div style={{ marginTop: "10px", display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                <span style={{ fontSize: "11.5px", fontWeight: 600, color: D.caret, background: D.card, border: "1px solid " + D.accent, borderRadius: "999px", padding: "1px 10px", lineHeight: 1.8 }}>
+                  solodesk.io
+                </span>
+                <span style={{ fontSize: "11.5px", fontWeight: 600, color: D.cardHead, background: D.card, border: "1px solid " + D.cardLine, borderRadius: "999px", padding: "1px 10px", lineHeight: 1.8 }}>
+                  quillandcoin.co
+                </span>
+              </div>
             </div>
           </div>
-        </Section>
+          <div className="guide-notes" style={{ color: T.soft }}>
+            <span>
+              Get onto step 2 and step 3 follows.{" "}
+              <Link href="/what-is-aeo" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
+                The longer version, with what we can and cannot claim
+              </Link>
+            </span>
+            <span>Illustrative. Tallyroo and every brand shown are made up.</span>
+          </div>
+        </section>
 
-        <Section
-          title="What we actually do"
-          lede="Three pieces of work. The first is the one nobody else is selling."
-        >
-          <div className="seq-three">
-            {WORK.map((w) => (
-              <div key={w.heading} className="ac-row" style={{ ...CARD, padding: "24px" }}>
-                <div style={{ fontSize: "14.5px", fontWeight: 600, color: T.ink, lineHeight: 1.4 }}>{w.heading}</div>
-                <p style={{ margin: "10px 0 0", fontSize: "14px", lineHeight: 1.65, color: T.soft }}>{w.body}</p>
+        <section>
+          <Head
+            title="One placement, two jobs"
+            lede="This is why it is not a second service to staff. The same article does both pieces of work, and we measure them separately."
+          />
+          <div className="two-up" style={{ gap: "16px", marginTop: "24px" }}>
+            {[
+              { label: "Google reads a link", body: "Authority passes to the page the anchor points at, and the article itself ranks for the term.", foot: "Measured as a position, with a note when an AI Overview sits above it", accent: false },
+              { label: "The engines read a source", body: "The article becomes one of the pages an answer is assembled from, so the brand gets named.", foot: "Measured across the question set, on every engine", accent: true },
+            ].map((c) => (
+              <div key={c.label} style={{ ...CARD, borderRadius: "18px", padding: "24px 26px", border: "1px solid " + (c.accent ? T.accent : T.line) }}>
+                <div style={{ ...MICRO, color: c.accent ? T.accent : T.soft }}>{c.label}</div>
+                <p style={{ margin: "10px 0 0", fontSize: "15px", lineHeight: 1.6, color: T.ink }}>{c.body}</p>
+                <div style={{ marginTop: "16px", paddingTop: "14px", borderTop: "1px solid " + T.hair, fontSize: "13px", color: T.soft }}>{c.foot}</div>
               </div>
             ))}
           </div>
-        </Section>
+        </section>
 
-        <Section
-          title="What we will not put on this page"
-          lede="A comparison table is only worth reading if every cell in it has a date against it."
-        >
-          <Body>
-            <p style={P}>
-              This page used to carry a three-column table setting us against traditional SEO and against generic AEO
-              services, with cells reading things like an audit document, indefinite and a slide deck. We had no
-              source for any of it. It has gone, and it is not coming back until somebody has sourced each cell with
-              a date - being wrong in public about a competitor is the expensive kind of wrong.
-            </p>
-            {/* This sentence used to read "Every price is published, from
-                tracking alone up to alwayseverywhere, and the placement counts
-                are on the package pages rather than behind a call" - in a
-                section whose whole subject is not publishing what we cannot
-                stand behind. It named, as the top of the published range, the
-                one tier whose price label is "Book a call", and the placement
-                count it promised for every package exists for one of the four.
-                Derived from pricing.ts now. */}
-            <p style={P}>
-              What we will say is what we do and what it costs, both of which are ours to state.{" "}
-              <TierText>{pricePublication()}</TierText> What each package includes is on its own page rather than
-              behind a call.
-            </p>
-            <p style={P}>
-              <Link href="/compare" style={LINK}>
-                What we do and what it costs
-              </Link>
-            </p>
-          </Body>
-        </Section>
+        <section>
+          <Head title="What we actually do" lede="Three pieces of work, all aimed at the pages the scan found." />
+          <ol className="three-up" style={{ listStyle: "none", margin: "24px 0 0", padding: 0, gap: "16px" }}>
+            {WORK.map((w, i) => (
+              <li key={w.heading} style={{ ...CARD, borderRadius: "18px", padding: "24px" }}>
+                <div
+                  aria-hidden="true"
+                  style={{ width: "32px", height: "32px", borderRadius: "999px", background: T.wash, color: T.accentHover, fontSize: "14px", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}
+                >
+                  {i + 1}
+                </div>
+                <h3 style={{ margin: "16px 0 0", fontSize: "16px", fontWeight: 700, lineHeight: 1.35, color: T.ink }}>{w.heading}</h3>
+                <p style={{ margin: "8px 0 0", fontSize: "14px", lineHeight: 1.6, color: T.soft }}>{w.body}</p>
+              </li>
+            ))}
+          </ol>
+          <p style={{ margin: "20px 0 0", fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
+            <Link href="/#packages" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
+              See all packages
+            </Link>
+            {tracked
+              ? ` - ${tracked.priceLabel} for tracking alone, at ${TRACKED_QUESTIONS} questions checked weekly. What each includes is on its own page, not behind a call.`
+              : "."}
+          </p>
+        </section>
+
+        <DarkClosing id="hiw-close" title="See which pages sit behind your answers.">
+          {word(QUESTIONS)} buyer questions, {word(FREE_ENGINE_COUNT).toLowerCase()} engines, every answer and every
+          source it cited. Around two minutes, or we email you the result.
+        </DarkClosing>
       </main>
-
-      <CtaSection />
     </>
   );
 }
