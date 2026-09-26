@@ -6,6 +6,8 @@ import ProcessSequence from "@/components/ProcessSequence";
 import Packages from "@/components/home/Packages";
 import HomeFaq from "@/components/home/HomeFaq";
 import Results from "@/components/home/Results";
+import Link from "next/link";
+import { SHELL, T } from "@/config/tokens";
 
 export const metadata: Metadata = {
   title: "AI SEO agency | AI visibility tools - alwayscited",
@@ -40,6 +42,15 @@ export default function HomePage() {
         heading="Four tiers. Each one adds to the last."
         standfirst="Start with measurement and stop there if you want. Everything above it is the same programme, doing more of the work."
       />
+
+      {/* One text link to the same argument as a video (Q23, 26 Sep 2026). */}
+      <div style={SHELL}>
+        <p style={{ margin: 0, fontSize: "14px" }}>
+          <Link href="/how-it-works#video" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
+            Watch the 60-second version
+          </Link>
+        </p>
+      </div>
 
       {/* Packages and white label, from Packages.dc.html. Replaces the
           old pricing table and the separate white-label block. */}

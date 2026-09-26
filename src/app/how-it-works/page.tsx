@@ -6,7 +6,8 @@ import CtaSection from "@/components/CtaSection";
 import { TierText } from "@/components/TierName";
 import { pricePublication } from "@/config/pricing";
 import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
-import { ORG_REF, ld } from "@/config/schema";
+import { ORG_REF, SITE_URL, ld } from "@/config/schema";
+import { LAUNCH_VIDEO, LAUNCH_VIDEO_SUMMARY } from "@/config/video";
 
 /**
  * How it works - the mechanism page.
@@ -78,6 +79,23 @@ const articleSchema = ld({
   publisher: ORG_REF,
 });
 
+/** The launch video, from the one record in config/video.ts; video.test.mts
+ *  holds this node against it and against the file. */
+const videoSchema = ld({
+  "@context": "https://schema.org",
+  "@type": "VideoObject",
+  name: LAUNCH_VIDEO.name,
+  description: LAUNCH_VIDEO.description,
+  thumbnailUrl: SITE_URL + LAUNCH_VIDEO.poster,
+  contentUrl: SITE_URL + LAUNCH_VIDEO.src,
+  uploadDate: LAUNCH_VIDEO.uploadDate,
+  duration: LAUNCH_VIDEO.duration,
+  width: LAUNCH_VIDEO.width,
+  height: LAUNCH_VIDEO.height,
+  inLanguage: "en",
+  publisher: ORG_REF,
+});
+
 const WORK: { heading: string; body: string }[] = [
   {
     heading: "Placement on pages the engines already read",
@@ -140,6 +158,7 @@ export default function HowItWorksPage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: articleSchema }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: videoSchema }} />
 
       <main
         style={{
@@ -186,6 +205,49 @@ export default function HowItWorksPage() {
             </p>
           </div>
         </div>
+
+        {/* The page's one beat (Q23, 26 Sep 2026): the launch video. No
+            autoplay and preload="none" - it is 3.4MB and most visitors read
+            instead. The summary is visually hidden so a crawler and a screen
+            reader get the argument the video makes without playing it. */}
+        <section id="video" style={{ scrollMarginTop: "2rem" }}>
+          <div className="board-head" style={{ ...GRID12, marginBottom: "16px" }}>
+            <h2 className="ac-row" style={{ ...H2, gridColumn: "span 4" }}>The 60-second version</h2>
+            <p className="ac-row" style={{ gridColumn: "span 8", margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
+              One buyer question, the brands the engines name instead, and the four tiers that get a brand into the
+              answer.
+            </p>
+          </div>
+          <video
+            className="ac-row"
+            controls
+            playsInline
+            preload="none"
+            poster={LAUNCH_VIDEO.poster}
+            width={LAUNCH_VIDEO.width}
+            height={LAUNCH_VIDEO.height}
+            aria-describedby="video-summary"
+            style={{
+              display: "block",
+              width: "100%",
+              height: "auto",
+              aspectRatio: "16 / 9",
+              borderRadius: "18px",
+              border: "1px solid " + T.line,
+              background: T.ink,
+            }}
+          >
+            <source src={LAUNCH_VIDEO.src} type="video/mp4" />
+          </video>
+          <div id="video-summary" className="sr-only">
+            <p>What the video shows:</p>
+            <ul>
+              {LAUNCH_VIDEO_SUMMARY.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+          </div>
+        </section>
 
         <Section
           title="Why engines cite what they cite"

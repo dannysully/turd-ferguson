@@ -429,6 +429,16 @@ const PRICE_EXEMPT: Record<string, PriceExemption> = {
     why: "a measured client result, not a price",
     only: ["$1,300"],
   },
+  "src/config/video.ts": {
+    // Added 26 Sep 2026 (Q23). The launch video is a rendered file and these
+    // are the figures painted into it, read off its frames - a fact about the
+    // video, not a second price table. They are typed because they cannot be
+    // derived: re-deriving them from pricing.ts would make the record agree
+    // with the site while the video said something else. video.test.mts holds
+    // them equal to pricing.ts, which is what makes a price change fail loudly.
+    why: "what the rendered launch video paints, held against pricing.ts by video.test.mts",
+    only: ["$99", "$995", "$2,495"],
+  },
 };
 
 export function typedPrices(source: string, file: string): Hit[] {

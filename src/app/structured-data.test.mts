@@ -351,6 +351,7 @@ test("every own-domain URL in the structured data is a real route", (t) => {
   const pages: Page[] = sweptPages();
   const bad: string[] = [];
   const checked = new Set<string>();
+  const publicFiles = new Set<string>();
 
   for (const { page, html } of pages) {
     for (const raw of ldBlocks(html)) {
@@ -368,12 +369,27 @@ test("every own-domain URL in the structured data is a real route", (t) => {
         // resolving it the way `page-head.test.mts` resolves an href would fail
         // on every correct `@id` on the site.
         const route = routeOf(url);
-        if (!routes.has(route)) bad.push(`${page}: ${url} -> ${route} is not a route in the build`);
+        // A static file in public/ is served at its path without being a
+        // route. The launch video and its poster (Q23, 26 Sep 2026) are the
+        // first own-domain URLs in the JSON-LD that are files rather than
+        // routes; they count as real only if the file is actually there.
+        if (routes.has(route)) continue;
+        if (route !== "/" && existsSync(join("public", route))) {
+          publicFiles.add(route);
+          continue;
+        }
+        bad.push(`${page}: ${url} -> ${route} is not a route in the build or a file in public/`);
       }
     }
   }
 
   assert.ok(checked.size > 15, `only ${checked.size} own-domain URLs found in the structured data`);
+  // The public/ allowance is earned by the files that use it, and only them.
+  assert.deepEqual(
+    [...publicFiles].sort(),
+    ["/video/alwayscited-tiers-720.mp4", "/video/alwayscited-tiers-poster.jpg"],
+    "the JSON-LD points at a different set of public/ files than the launch video's two - record the new one here with why",
+  );
 
   t.diagnostic(`${checked.size} distinct own-domain URLs in JSON-LD, ${bad.length} unresolved`);
   assert.deepEqual(bad, [], bad.join("\n"));
@@ -392,8 +408,9 @@ test("every image the head points at is a route the build actually serves", (t) 
   );
 
   /**
-   * There is no `public/` directory. Every image on this site is a generated
-   * route - `opengraph-image.tsx`, `icon.svg`, `favicon.ico` - so an og:image
+   * `public/` holds only the launch video and its poster (Q23, 26 Sep 2026),
+   * neither of which is a head image. Every head image on this site is a
+   * generated route - `opengraph-image.tsx`, `icon.svg`, `favicon.ico` - so an og:image
    * that goes nowhere is a route that stopped existing, not a file that got
    * deleted, and nothing else here would notice.
    *
