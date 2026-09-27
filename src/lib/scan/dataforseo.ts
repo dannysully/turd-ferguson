@@ -92,6 +92,11 @@ export async function readEngine(
  *
  * `request-shape.test.mts` refuses the endpoint by name. A removal rots back
  * in, so it is asserted rather than merely done.
+ *
+ * Both of those copy lines changed on 27 Sep 2026 (R42), when volume came
+ * back for a derived head keyword - `readKeywordVolumes` below. The FAQ now
+ * answers "Do you use search volume?" and the confirm footer promises the
+ * keyword line the result shows.
  */
 
 /**

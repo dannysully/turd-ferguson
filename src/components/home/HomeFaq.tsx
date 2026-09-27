@@ -4,7 +4,6 @@ import { word } from "./EngineDemo";
 import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
 import { ORG_REF, SITE_REF, ld } from "@/config/schema";
 import Link from "next/link";
-import FaqHashOpen from "./FaqHashOpen";
 
 /**
  * FAQ and the closing scan - HomeFaq.dc.html.
@@ -20,8 +19,7 @@ import FaqHashOpen from "./FaqHashOpen";
  * and break the label, and it would start a second independent scan.
  */
 
-/** `id` only where another page links to the answer itself. */
-export type Faq = { q: string; hint: string; a: string; id?: string };
+export type Faq = { q: string; hint: string; a: string };
 
 export const FAQS: Faq[] = [
   {
@@ -50,19 +48,14 @@ export const FAQS: Faq[] = [
     a: "The prices on the packages page are what an agency pays us, not what their client pays them. We have no view on what you charge and no way of finding out. If you are the brand rather than the agency, the same prices apply and there is nothing to mark up.",
   },
   {
-    q: "Why is there no search volume anywhere in this?",
-    // The confirm screen's "here is why" lands here.
-    id: "faq-search-volume",
-    hint: "Because it is zero on the questions that matter",
-    // "all fourteen ... those fourteen" was a typed question count, twice, in
-    // the one answer on this page that reports a real reading. It is not
-    // fixable by substituting QUESTIONS: this sentence describes a scan that
-    // ran in September and asked the number of questions it asked, so a live
-    // constant would restate a past reading with a future number, which is the
-    // worse of the two errors. The count is not what the answer turns on -
-    // every row reading zero is - so it comes out and the claim stops being
-    // able to drift at all.
-    a: "Search volume indexes keyword-shaped queries. What a buyer actually types into an engine is a sentence - eleven words, a budget, a constraint, a deadline - and those return nothing. On a real scan we ran in September, every question came back at zero volume, and those were the ones deciding who got recommended. A column that reads zero on every row is not a measure. So we track the questions nearest the decision and report whether you were named in the answer, which is the thing that changes what someone buys.",
+    q: "Do you use search volume?",
+    hint: "On a keyword, never on the question",
+    // Rewritten 27 Sep 2026 (Danny, R42): search volume returned at keyword
+    // level. The September reading stays because it is still true and is the
+    // reason the volume sits on a keyword rather than on the question. No
+    // question count in it, for the reason the old comment gave: a live
+    // constant would restate a past reading with a future number.
+    a: "Not on the questions. What a buyer types into an engine is a sentence - eleven words, a budget, a constraint, a deadline - and search volume indexes keyword-shaped queries, so those return nothing: on a real scan we ran in September, every question came back at zero volume. So the questions stay the sentences buyers ask, and each one also gets the short Google keyword nearest it - \"business cash flow finance providers\" rather than the whole question - with its monthly searches and where you rank for it. A keyword can carry real volume where the sentence could not. Whether you were named in the answer is still the figure that changes what someone buys; the keyword says how much search sits behind the question.",
   },
   {
     q: "Then how do you choose which questions to track?",
@@ -101,7 +94,6 @@ export default function HomeFaq() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ld(faqSchema) }} />
 
       <section id="faq" style={{ ...SHELL, marginTop: "44px" }}>
-        <FaqHashOpen />
         <div className="board-head" style={{ ...GRID12, marginBottom: "16px" }}>
           <h2 style={{ ...H2, gridColumn: "span 4" }}>Questions we get asked</h2>
           <p style={{ gridColumn: "span 8", margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
@@ -111,7 +103,7 @@ export default function HomeFaq() {
 
         <div style={{ ...CARD, overflow: "hidden" }}>
           {FAQS.map((f) => (
-            <details key={f.q} id={f.id} className="faq-row ac-row" style={{ borderBottom: `1px solid ${T.hair}`, scrollMarginTop: "24px" }}>
+            <details key={f.q} className="faq-row ac-row" style={{ borderBottom: `1px solid ${T.hair}`, scrollMarginTop: "24px" }}>
               <summary className="board-head faq-summary" style={{ ...GRID12, padding: "17px 26px", cursor: "pointer", lineHeight: 1.3 }}>
                 <span style={{ gridColumn: "span 5", fontSize: "15px", fontWeight: 600, color: T.ink }}>{f.q}</span>
                 <span style={{ gridColumn: "span 7", fontSize: "13.5px", color: T.soft }}>{f.hint}</span>

@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
 
 import { SCAN_LIMITS } from "@/config/contact";
 import { QUESTIONS } from "@/config/scan-shape";
@@ -379,7 +378,7 @@ export default function ConfirmScreen(p: {
     ", across " +
     keptClusters.size +
     (keptClusters.size === 1 ? " cluster" : " clusters") +
-    ". No search volume against them, deliberately - ";
+    ". Each also gets a Google keyword, its monthly searches and where you rank for it, in the report.";
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "26px" }}>
@@ -684,10 +683,6 @@ export default function ConfirmScreen(p: {
           <div style={{ padding: "12px 26px", display: "flex", alignItems: "baseline", gap: "14px", flexWrap: "wrap" }}>
             <span style={{ fontSize: "13px", color: T.soft }}>
               {footerText}
-              <Link href="/#faq-search-volume" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
-                here is why
-              </Link>
-              .
             </span>
             <div style={{ flexGrow: 1 }} />
             <button
