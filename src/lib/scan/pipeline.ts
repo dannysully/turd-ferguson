@@ -7,12 +7,13 @@ import {
   describeAnthropicError,
   extractBrands,
   generateQuestions,
+  keywordCandidates,
   siteFacts,
   QUESTION_COUNT,
 } from "./anthropic";
 import { brandKey, displayNamesFor, namesSubject, subjectKeys } from "./brand-name";
 import { scoreScanDifficulty } from "./difficulty";
-import { readEngine } from "./dataforseo";
+import { readEngine, readKeywordRank, readKeywordVolumes } from "./dataforseo";
 import { type Market } from "./domain";
 // What one engine found, and the order the reads are issued in so that engines
 // finish at different times rather than in lockstep. Both live outside this
@@ -28,6 +29,7 @@ import { sendRequestedReport } from "./report-mail";
 import { type RunStep, STEP } from "./run-steps";
 import { type Engine, isEngine, rankOf } from "./engines";
 import { classifySources } from "./sources";
+import { normaliseCandidate, pickKeyword } from "./target-keyword";
 
 /**
  * Whole-run ceiling. Past this the scan is marked failed rather than left
@@ -910,6 +912,105 @@ async function readAndStore(input: {
  * are deliberately not here: they are what the email buys, and they run in
  * runGatedScan over the very same questions so the two passes compare.
  */
+/**
+ * One Google head keyword per question, its monthly searches and the scan
+ * domain's rank for it - the search-volume reversal (Danny, 27 Sep 2026,
+ * docs/rules.md, R39-R41).
+ *
+ * Three steps: one batched model call for 3-5 candidates a question, one
+ * batched Google Ads volume task for every candidate that passes the rule in
+ * `target-keyword.ts`, then one organic SERP read per chosen keyword. Written
+ * into `target_keyword`, `search_volume` and `keyword_rank` on each row.
+ *
+ * Started alongside the engine reads and awaited after them, so it costs the
+ * scan little wall clock: the 20 Sep removal was for time, and running it
+ * serially inside STEP.sources would bring that cost straight back.
+ *
+ * **Never fatal**, which is exactly the kind of wrapper AGENTS.md says hides
+ * regressions - so every exit warns with the scan id and what was lost, and a
+ * scan whose rows carry no keyword is readable from the outside: the result
+ * page falls back to the question-level Google line. Billing goes on the
+ * shared accumulator as each request goes out, the rule `readOne` keeps.
+ */
+async function deriveKeywords(input: {
+  scanId: string;
+  domain: string;
+  category: string;
+  market: Market;
+  questions: StoredQuestion[];
+  spend: Spend;
+  remainingMs: () => number;
+}): Promise<void> {
+  const { scanId, domain, category, market, questions, spend, remainingMs } = input;
+  const db = supabaseAdmin();
+  const why = (err: unknown) => (err instanceof Error ? err.message : String(err));
+  try {
+    const billed = { calls: 0 };
+    let proposed;
+    try {
+      proposed = await keywordCandidates(
+        { category, market, questions: questions.map((q) => ({ idx: q.idx, question: q.question })) },
+        billed,
+      );
+    } finally {
+      spend.anthropicCalls += billed.calls;
+    }
+    const { supplierNoun, byIdx } = proposed;
+
+    const standing = new Set<string>();
+    for (const list of byIdx.values()) {
+      for (const c of list) {
+        const k = normaliseCandidate(c, category, supplierNoun);
+        if (k) standing.add(k);
+      }
+    }
+    if (!standing.size) {
+      console.warn(`[scan] no keyword candidate for ${scanId} passed the rule, so no question carries a keyword`);
+      return;
+    }
+
+    // A volume read that fails leaves every candidate "not measured", and
+    // pickKeyword then takes the shortest: a keyword with no volume beats no
+    // keyword, and search_volume stays null rather than a false zero.
+    let volumes = new Map<string, number | null>();
+    try {
+      spend.dfsCalls += 1;
+      const read = await readKeywordVolumes([...standing], market, remainingMs());
+      spend.dfsCost += read.cost;
+      volumes = read.volumes;
+    } catch (err) {
+      console.warn(`[scan] keyword volume read failed for ${scanId}: ${why(err)}`);
+    }
+    // pickKeyword takes numbers only, so the nulls drop at the join - never a zero.
+    const measured = new Map<string, number>();
+    for (const [k, v] of volumes) if (typeof v === "number") measured.set(k, v);
+
+    await Promise.all(
+      questions.map(async (q) => {
+        const keyword = pickKeyword(byIdx.get(q.idx) ?? [], category, supplierNoun, measured);
+        if (!keyword) return;
+        // Null is what a failed read shows too: "not in top 20" (Danny, 27 Sep).
+        let rank: number | null = null;
+        try {
+          spend.dfsCalls += 1;
+          const read = await readKeywordRank(keyword, domain, market, remainingMs());
+          spend.dfsCost += read.cost;
+          rank = read.rank ?? null;
+        } catch (err) {
+          console.warn(`[scan] keyword rank read failed for ${scanId} (${keyword}): ${why(err)}`);
+        }
+        const { error } = await db
+          .from("scan_questions")
+          .update({ target_keyword: keyword, search_volume: volumes.get(keyword) ?? null, keyword_rank: rank })
+          .eq("id", q.id);
+        if (error) console.warn(`[scan] could not store the keyword for question ${q.id} on ${scanId}: ${error.message}`);
+      }),
+    );
+  } catch (err) {
+    console.warn(`[scan] keyword step failed for ${scanId}, so no question carries a keyword: ${describeAnthropicError(err)}`);
+  }
+}
+
 export async function runScan(scanId: string): Promise<void> {
   const db = supabaseAdmin();
   const deadline = Date.now() + RUN_TIMEOUT_MS;
@@ -1051,6 +1152,14 @@ export async function runScan(scanId: string): Promise<void> {
       ordered = [...questionRows].sort((a, b) => a.idx - b.idx);
     }
 
+    // Started here, awaited after the reads: see deriveKeywords. It catches
+    // everything itself, so this promise never rejects. The topic is bound
+    // outside the closure for the narrowing reason given above.
+    const category = scan.topic;
+    const keywords = timed(timings, "keywords", () =>
+      deriveKeywords({ scanId, domain: scan.domain, category, market, questions: ordered, spend, remainingMs }),
+    );
+
     // --- Step 2: "Reading what the engines answered" ---
     // A lost step marker is not a lost scan - the run carries on and finishes.
     // What it costs is the progress screen, which sits on the previous step for
@@ -1117,35 +1226,20 @@ export async function runScan(scanId: string): Promise<void> {
     });
 
     /**
-     * The search volume step was here, and it came out on 20 September 2026 on
-     * Danny's instruction: one DataForSEO call for the whole question set, plus
-     * a write per question into `scan_questions.search_volume`.
+     * The keyword step joins back here (R39-R41, Danny, 27 Sep 2026).
      *
-     * It was removed for time rather than for money. It sat inside `STEP.sources`
-     * - the phase the progress bar holds at 85% - and it is a serial round trip
-     * to a third party plus one `update` per question, all of it between the
-     * engine reads finishing and the report being ready, for a number nothing on
-     * the free result leads with.
+     * History, because the column has two eras: the 20 Sep 2026 search volume
+     * step asked `keywords_search_volume` for the question text itself and was
+     * removed for time - a serial round trip inside the phase the progress bar
+     * holds at 85% - and because long-tail questions read zero. So
+     * `search_volume` is populated on scans before 20 Sep (question-text
+     * volume), null from then until this ship, and from here on carries the
+     * derived head keyword's Google Ads volume, beside `target_keyword`. A row
+     * with a `target_keyword` is the new meaning; one without is the old.
      *
-     * **The column stays.** Dropping it is destructive and is on the absolute
-     * list in AGENTS.md; it is also the honest thing to do, because rows written
-     * before today carry real measurements and a dropped column would turn those
-     * into nothing while a kept one lets a reader see they stopped. Nothing
-     * writes it from here on, so `search_volume` is null on every scan after
-     * this commit and populated on every scan before it.
-     *
-     * This used to go on to say `scan_teaser` "still sums it into
-     * `ai_search_volume`", and that stopped being true the same day:
-     * `20260920030000_teaser_first_cited.sql` is the live definition and drops
-     * the key and the join to `scan_questions` with it, because the function
-     * was summing nulls into something nothing renders. `ai_search_volume` is
-     * off the contract types too. Nothing reads the column now except rows
-     * written before 20 Sep, which is the whole reason it is kept.
-     *
-     * `request-shape.test.mts` holds the removal the way the engine-count sweep
-     * holds its own: a removal rots back in, so the assertion is that nothing in
-     * the pipeline calls this endpoint again, not merely that the lines are gone.
+     * Awaited before billing so its cost lands in this pass's dfs_cost.
      */
+    await keywords;
     checkDeadline();
 
     // What kind of site each source is - competitor, review site, somewhere an

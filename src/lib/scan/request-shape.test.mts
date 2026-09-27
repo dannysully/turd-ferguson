@@ -268,6 +268,10 @@ test("a cost that is not a positive finite number is zero", () => {
  * Both predate the removal, so no copy changed: the code was buying a number
  * the site already said it does not use.
  *
+ * Search volume came back on 27 September 2026 (Danny, R39), for a derived
+ * head keyword rather than the question text, through a different endpoint -
+ * the two tests after this one hold that. This endpoint stays refused.
+ *
  * **A removal rots back in, which is why this is a test and not a commit
  * message** - the shape the engine-count sweep already has. What is asserted is
  * that nothing in the shipped tree reaches this endpoint again, never that
@@ -293,19 +297,19 @@ test("nothing in the tree calls the search volume endpoint", () => {
   assert.deepEqual(
     callers,
     [],
-    "the search volume step is back. It came out for the time it costs inside STEP.sources, and the " +
-      "homepage FAQ and the confirm screen both publish that this product does not use search volume - " +
-      "so reinstating it is a copy change on two surfaces as well as a pipeline change",
+    "the question-text search volume step is back. Volume returned on 27 Sep 2026 for derived head " +
+      "keywords only, through keywordVolumeRequest - not this endpoint",
   );
 });
 
 /**
  * The narrower return (Danny, reversed 27 Sep 2026, R39): Google Ads volume
  * for the derived head keywords, one batched call a scan. The old endpoint
- * above stays refused by name. This one is held to the module that builds
- * its request. `dataforseo.ts`, the one place allowed to send it, joins this
- * list when R41's columns are applied and the call is wired, so a second
- * door onto the same bill is the defect this reports.
+ * above stays refused by name. This one's path is held to the module that
+ * builds its request, and the builder is called from exactly one sender,
+ * `readKeywordVolumes` in `dataforseo.ts` - wired 27 Sep 2026 once R41's
+ * columns were applied - so a second door onto the same bill is the defect
+ * this reports.
  *
  * Asserted as an exact list, which is its own floor: a sweep that stopped
  * matching the path would fail here, not pass a tree with the call in five
@@ -317,6 +321,20 @@ test("the keyword volume endpoint is built in one module and sent from at most o
     if (code(readFileSync(join(ROOT, file), "utf8")).includes("keywords_data/google_ads/search_volume")) files.push(file);
   }
   assert.deepEqual(files, ["src/lib/scan/dataforseo-request.ts"]);
+});
+
+test("the keyword volume and keyword rank reads are each sent from one door, called from one pass", () => {
+  const senders: Record<string, string[]> = { keywordVolumeRequest: [], keywordRankRequest: [], readKeywordVolumes: [], readKeywordRank: [] };
+  for (const file of sourceFiles(ROOT)) {
+    const src = code(readFileSync(join(ROOT, file), "utf8"));
+    for (const name of Object.keys(senders)) if (new RegExp("(?<![\\w.])(?<!function\\s+)" + name + "\\(").test(src)) senders[name].push(file);
+  }
+  assert.deepEqual(senders, {
+    keywordVolumeRequest: ["src/lib/scan/dataforseo.ts"],
+    keywordRankRequest: ["src/lib/scan/dataforseo.ts"],
+    readKeywordVolumes: ["src/lib/scan/pipeline.ts"],
+    readKeywordRank: ["src/lib/scan/pipeline.ts"],
+  });
 });
 
 test("keyword volume request (R39): one batched task, deduplicated in the form DataForSEO echoes", () => {
@@ -361,16 +379,28 @@ test("keyword volumes (R39): a capital cannot miss, and no number is null not ze
  * payload field rather than the column - `started_at` inside `gated_started_at`
  * for the fourth time in this repo. The leading `(?<![\w])` is the whole rule.
  */
-test("nothing writes scan_questions.search_volume", () => {
+/*
+ * Updated 27 Sep 2026 (Danny, reversed, R39): the column has one writer again,
+ * `deriveKeywords` in pipeline.ts, and it writes `target_keyword` in the same
+ * update - which is what keeps the two eras apart: a row with a keyword
+ * carries keyword volume, a pre-20-Sep row without one carries question-text
+ * volume. So the rule is now one writer, and that writer names the keyword.
+ * `unlock.ts` names the key too, as a reader carrying it to the client, which
+ * is why the sweep reads the object literal off .update/.insert/.upsert.
+ */
+test("one thing writes scan_questions.search_volume, and it writes target_keyword with it", () => {
   const writers: string[] = [];
   for (const file of sourceFiles(ROOT)) {
-    if (/(?<![\w])search_volume\s*:/.test(code(readFileSync(join(ROOT, file), "utf8")))) writers.push(file);
+    const src = code(readFileSync(join(ROOT, file), "utf8"));
+    for (const m of src.matchAll(/\.(?:update|insert|upsert)\(\s*\{[^}]*(?<![\w])search_volume\s*:[^}]*\}/g)) {
+      writers.push(file);
+      assert.match(m[0], /(?<![\w])target_keyword\s*:/, file + " writes search_volume without target_keyword");
+    }
   }
   assert.deepEqual(
     writers,
-    [],
-    "something writes search_volume again. The column is kept so pre-20-Sep-2026 rows stay readable as " +
-      "real measurements; a new writer makes the column mean two things at once",
+    ["src/lib/scan/pipeline.ts"],
+    "search_volume has a second writer. A row's volume means keyword volume only beside a target_keyword",
   );
 });
 

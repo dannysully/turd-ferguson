@@ -1,8 +1,16 @@
 import "server-only";
 
-import { budgetFor, firstTask, requestFor, taskCost } from "./dataforseo-request.ts";
+import {
+  budgetFor,
+  firstTask,
+  keywordRankRequest,
+  keywordVolumeRequest,
+  keywordVolumes,
+  requestFor,
+  taskCost,
+} from "./dataforseo-request.ts";
 import { type Market } from "./domain";
-import { type Engine, type EngineRead, PARSERS } from "./engines";
+import { type Engine, type EngineRead, PARSERS, parseOrganic, rankOf } from "./engines";
 
 /**
  * The HTTP half. Everything that can be decided without a credential or a
@@ -119,4 +127,35 @@ export async function readRankingFootprint(
   };
   const [uk, us] = await Promise.all([one(2826), one(2840)]);
   return { uk: uk.footprint, us: us.footprint, cost: uk.cost + us.cost };
+}
+
+/**
+ * Monthly Google searches for the derived head keywords - one task for the
+ * whole scan (R39, Danny, 27 Sep 2026). The request shape and the reader live
+ * in `dataforseo-request.ts`; this is the one door that sends it.
+ */
+export async function readKeywordVolumes(
+  keywords: readonly string[],
+  market: Market,
+  budgetMs?: number,
+): Promise<{ volumes: Map<string, number | null>; cost: number }> {
+  const { path, body, timeoutMs } = keywordVolumeRequest(keywords, market);
+  const task = firstTask(await post(path, body, budgetFor(timeoutMs, budgetMs)));
+  return { volumes: keywordVolumes(task), cost: taskCost(task) };
+}
+
+/**
+ * Where the scan's domain ranks in Google's top SERP_DEPTH for one chosen
+ * keyword (R40). Null outside the depth read, undefined when the SERP came
+ * back empty - `rankOf`'s contract, shared with the question-level read.
+ */
+export async function readKeywordRank(
+  keyword: string,
+  domain: string,
+  market: Market,
+  budgetMs?: number,
+): Promise<{ rank: number | null | undefined; cost: number }> {
+  const { path, body, timeoutMs } = keywordRankRequest(keyword, market);
+  const task = firstTask(await post(path, body, budgetFor(timeoutMs, budgetMs)));
+  return { rank: rankOf(parseOrganic(task.result?.[0]), domain), cost: taskCost(task) };
 }

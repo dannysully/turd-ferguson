@@ -73,6 +73,10 @@ export type UnlockPayload = {
     kind: string;
     /** The subject's Google organic position for this question. Null: not in the top twenty. */
     google_rank: number | null;
+    /** The derived Google head keyword, its monthly searches and the rank for it (R39-R41). Null before 27 Sep 2026. */
+    target_keyword: string | null;
+    search_volume: number | null;
+    keyword_rank: number | null;
     engines: Array<{
       engine: string;
       answered: boolean;
@@ -273,7 +277,7 @@ export async function buildUnlockPayload(scanId: string): Promise<UnlockPayload>
     ),
     db
       .from("scan_questions")
-      .select("id, idx, question, kind, google_rank")
+      .select("id, idx, question, kind, google_rank, target_keyword, search_volume, keyword_rank")
       .eq("scan_id", scanId)
       .order("idx", { ascending: true }),
     db
@@ -394,6 +398,9 @@ export async function buildUnlockPayload(scanId: string): Promise<UnlockPayload>
     question: q.question as string,
     kind: q.kind as string,
     google_rank: (q.google_rank ?? null) as number | null,
+    target_keyword: (q.target_keyword ?? null) as string | null,
+    search_volume: (q.search_volume ?? null) as number | null,
+    keyword_rank: (q.keyword_rank ?? null) as number | null,
     engines: answerRows
       .filter((a) => a.question_id === q.id)
       .map((a) => ({

@@ -122,7 +122,14 @@ type FullPayload = {
    * and the "Best Google position" tile on the unlocked report - had never once
    * shown a value.
    */
-  questions?: { idx: number; google_rank?: number | null; engines: EngineAnswer[] }[];
+  questions?: {
+    idx: number;
+    google_rank?: number | null;
+    target_keyword?: string | null;
+    search_volume?: number | null;
+    keyword_rank?: number | null;
+    engines: EngineAnswer[];
+  }[];
   /** The gated finding: pages feeding answers the brand is absent from. */
   opportunities?: ScanOpportunity[];
   gated_engines?: string[];
@@ -324,7 +331,14 @@ function toResult(t: Teaser, domain: string, full: FullPayload | null): RunScanR
     questions: (t.questions ?? []).map((q) => {
       const detail = full?.questions?.find((d) => d.idx === q.idx);
       const google_rank = "google_rank" in q ? (q.google_rank ?? null) : (detail?.google_rank ?? null);
-      return detail ? { ...q, google_rank, answers: detail.engines } : { ...q, google_rank };
+      // The keyword trio (R43) by the same rule: the teaser's key when the RPC
+      // carries it, else the unlock payload's, else absent - the old line.
+      const keyword = "target_keyword" in q
+        ? {}
+        : detail && "target_keyword" in detail
+          ? { target_keyword: detail.target_keyword, search_volume: detail.search_volume, keyword_rank: detail.keyword_rank }
+          : {};
+      return detail ? { ...q, ...keyword, google_rank, answers: detail.engines } : { ...q, ...keyword, google_rank };
     }),
     opportunities: full?.opportunities ?? undefined,
     gated: !full,
