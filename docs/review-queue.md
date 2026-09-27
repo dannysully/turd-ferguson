@@ -1070,3 +1070,193 @@ Items filed by the reviewer from live checks and from docs/danny.md. The builder
   result page's "Where to get placed" heading line at 1280 and 390 with
   fixture opportunities producing each of the three cases and confirm the
   right sentence renders for each.
+
+- [x] R49 -> 23fc2ff (live 27 Sep: busy shows only the stepping line, the static line returns after an error, 1280/390/reduced/js-off; /scan unchanged) Homepage scan field: the busy status line stacks on top of the
+  static "buyer questions" line instead of replacing it (Danny, docs/danny.md
+  - filed 2026-09-27, reported live against R32's crunch.co.uk scan,
+  `/scan/6839484caa0505c044ba3d43dc17a97b`). R32 (`9d8938c`) made
+  `DomainScreen`'s own status paragraph in `src/components/scan/screens.tsx`
+  "one line... shares the error's line" - that promise holds inside
+  `LiveScanChecker`/`DomainScreen` itself. What R32 did not check is the
+  homepage's *other* static line, a sibling outside that component:
+  `src/components/home/HomeHero.tsx` lines 57-59, `{word(QUESTIONS)} buyer
+  questions, {word(FREE_ENGINE_COUNT).toLowerCase()} engines, around two
+  minutes. No card, no email.` - unconditionally rendered right after the
+  `<LiveScanChecker dark />` div (lines 49-56), with no awareness of `busy`.
+  While checking, the visitor sees both: the stepping status line inside the
+  field's own form (`Checking <domain>` / `Working out your market` /
+  `Reading your site`, from `screens.tsx`'s `lineProps` paragraph) directly
+  under the field, and this static line still sitting below it - two lines
+  instead of the one R32 asked for. `/scan/HeroSection.tsx`'s light form has
+  no equivalent static line beside its field (checked - nothing renders after
+  its `LiveScanChecker` besides `Turnstile`), so this is `HomeHero.tsx` only.
+  Fix: `busy` is local state inside `LiveScanChecker.tsx` (line 27) and is not
+  exposed today. Add an optional `onBusyChange?: (busy: boolean) => void` prop
+  to `LiveScanChecker` and call it alongside every `setBusy` call in that file
+  (line 52 `setBusy(true)`; lines 74 and 86 `setBusy(false)`) so a parent can
+  track it. `HomeHero.tsx` itself must stay a server component - it calls
+  `scanReady()` (`src/lib/scan/readiness.ts`, marked `import "server-only"`)
+  directly, so it cannot gain `useState` or take the `"use client"` directive
+  itself. Extract the scan-field block (the `<div style={{ margin: "30px auto
+  0"... }}>` at lines 49-56) and the static line (lines 57-59) into one new
+  client component - e.g. `src/components/home/HeroScanArea.tsx`, `"use
+  client"` - that takes `ready: boolean` (`scanReady()`'s result, computed in
+  `HomeHero` and passed down as a plain prop) and the static line's text as
+  props, holds its own `const [busy, setBusy] = useState(false)`, renders
+  `ready ? <LiveScanChecker dark onBusyChange={setBusy} /> : (...the existing
+  RequestScanForm fallback markup...)`, and renders the static line only when
+  `!busy`. `HomeHero.tsx` then renders `<HeroScanArea ready={scanReady()}
+  questionsLine={...} />` in place of the two blocks it removes. Keep the
+  fallback (`RequestScanForm`) branch's markup byte-identical to what
+  `HomeHero.tsx` renders today - only where it lives moves. Reset to showing
+  the static line on both an error and a completed request, the same as
+  `busy` resets today (do not leave it hidden after a failed submit).
+  Verify: `npx tsc --noEmit`, `npm run check`; on a local harness (Q07's
+  approach - fake the `/api/scan/start` response, no live Turnstile token
+  needed) submit a domain and confirm only one line is visible under the
+  field while busy (the stepping text), and that the static "buyer questions"
+  line reappears the moment busy clears - both on success (before the
+  redirect) and after a forced error; shoot `/` at 1280 and 390 mid-submission
+  and once idle, `--reduced` included (the stepping text still steps, per
+  R32); confirm `/scan` (`HeroSection.tsx`) is visually unchanged, since it
+  has no static line to hide.
+
+- [ ] R50 Begin building `docs/pricing-spec-2026-09-27.md` (Danny, docs/danny.md
+  - filed 2026-09-27, line 52). The note itself just confirms one figure: the
+  extra tracking pack is "+$49 / £39 for 20 questions and 10 keywords" - that
+  is already the exact wording in the spec's section 1 table and Open decision
+  1, and grepping `src` for the old ambiguous figure finds nothing, so this
+  half of the note needs no code fix, only being carried through correctly
+  wherever the pack is built below. The real work is "re-read before
+  continuing": this is a brand-new, untracked 8-section spec (`git status`
+  shows it `??`) with no queue item pointed at it yet - neither
+  `review-queue.md` nor `queue.md` mentions `sector-prices.json`, Stripe, or
+  the alwaystracked dashboard before this line.
+  Follow the doc's own build order and rule exactly: section 1 is reference
+  only; build sections 2-8 in order, one push per section, each verified live
+  at 1280, 390, `--js-off` and `--reduced`. A section tagged `DANNY` needs him
+  and must not block the rest.
+  Two hard blockers, both `DANNY`-gated - log each to `docs/blocked.md` the
+  moment you reach it rather than working around it:
+  1. Sections 1-3 (and the price half of section 4) read
+     `src/config/sector-prices.json`, generated by
+     `node scripts/sector-costs.mjs price`. That script hard-requires
+     `FATGRID_API_KEY` from the environment (`scripts/sector-costs.mjs` line
+     20 - it exits if unset) - a credential, and AGENTS.md's absolute rule is
+     you must never handle, enter or store one. Danny has to run it himself
+     (the `fatgrid` skill is his route in) and hand you the resulting
+     `prices.json` - final prices only, per the script's own header comment,
+     no cost/margin/marketplace name - to place at
+     `src/config/sector-prices.json`. Do not build the pricing-tile logic
+     against invented numbers while this is missing.
+  2. Section 5 (checkout) needs live Stripe keys in Vercel env vars - the doc
+     marks this `DANNY` itself. Its own fallback - "until the keys exist, the
+     checkout button falls back to 'Book a call'" - is buildable today and
+     should ship regardless of whether the keys ever arrive this run.
+  What has no blocker and should go first:
+  - Section 6, the four CTAs everywhere a tier is sold (Loom, book a call, an
+    alwaystracked demo, the waitlist), the result page's toggle gaining the
+    third option, the waitlist copy exactly as given ("Your first month is
+    free when it launches, normally $129" / UK "£99", no launch date), waitlist
+    capture into a new `leads` row with `source: "waitlist"` (additive
+    migration), and the one new `/legal` line on the waitlist and launch
+    email.
+  - Section 8's copy corrections: alwayseverywhere's three-client-portfolio
+    framing replaced with coverage-then-answers everywhere it is drawn
+    (`ProcessSequence`'s fourth beat, the packages staircase, `/alwayseverywhere`,
+    the FAQ, comparison pages) except the launch video, which stays exactly as
+    is with its text link (Danny's own call to re-cut it, not this item's);
+    the three always-on lines and their supporting sentence on tier
+    pages/packages/FAQ only, never the homepage hero; "Includes Claude" with
+    the logo wherever the tiers are compared, stated as fact only, no claim
+    Claude is more important/used/accurate than the other engines; every
+    "20 questions, checked weekly" for alwaystracked becomes "20 questions and
+    10 keywords, checked daily"; the per-tier "more can be added" lines,
+    figures from `pricing.ts` only, never a literal.
+  - Section 4's Claude-logo half only (the price/selector half waits on the
+    blocker above): the Claude mark into `EngineLogo` as Anthropic's own SVG,
+    never recoloured; "Includes Claude" with logos on the alwaysmentioned and
+    alwayscited tiles, the packages staircase and the tier pages - four logos
+    on alwaystracked, five (Claude added) on the higher tiers.
+  Hold section 7 (the alwaystracked dashboard MVP - new tables, a daily cron,
+  `/track/[token]`) until sections 2-6 are done; it is the largest single
+  piece here and needs its own multi-push sequence the way R38-R48 broke down
+  the search-volume reversal - do not attempt it in one push. Before enabling
+  the cron, the doc itself says to log the measured cost of one real day
+  against the estimate in section 7's last line.
+  Verify per section: `npx tsc --noEmit`, `npm run check`, `npm run build`;
+  shoot the changed surface at 1280 and 390, `--js-off` and `--reduced`; for
+  the section 6/8 copy changes, grep across `src` for the wording being
+  replaced ("checked weekly", the portfolio framing, the old CTA set) to
+  confirm nothing stale survives. Log which section shipped, what changed and
+  what is still open, the same section-by-section way R38-R48 did for the
+  search-volume reversal.
+
+- [ ] R51 `src/config/sector-prices.json` confirmed in place - unblock R50's
+  blocker 1, build sections 1-4 (Danny, docs/danny.md - filed 2026-09-27, line
+  53). Read back today: the file exists, is well-formed JSON, and matches the
+  spec exactly - all 18 priced sectors plus `"other": { "label": "Other", "us":
+  "call", "uk": "call" }`, each priced sector carrying `label`, `us: {currency:
+  "USD", mentioned, cited}`, `uk: {currency: "GBP", mentioned, cited}`, every
+  numeric price ending in x95. The four outlier prices Open-decision 6 flags
+  (US/UK Manufacturing, US/UK Science) are present and visibly higher/oddly
+  ordered, as that decision describes - expected, not a data error, do not
+  "fix" them. Nothing in `src` imports this file yet (grepped
+  `sector-prices|sectorPrices`, zero hits) - this is genuinely new work, not a
+  wiring gap.
+  Do not re-derive the spec here - `docs/pricing-spec-2026-09-27.md` sections
+  1-4 are the build order R50 already points at; this item exists only to
+  confirm the blocker is gone and anchor where the code actually is today:
+  - `src/config/pricing.ts` lines 266-291 carry the exact shape to build,
+    written when the sector list was still missing: "per-sector prices are not
+    known and are not to be invented... bringing it back is a small job
+    against a populated list - one entry per sector, `{ id, label, prices:
+    { mentioned, cited } }` - plus a resolver that keeps a label saying more
+    than its number (\"from $99/mo\") rather than rebuilding the string from
+    `basePrice` and silently dropping the \"from\"." That resolver is section
+    3's "from" computation (lowest sellable price per tier/market across the
+    JSON) - `splitPriceLabel` (`src/config/price-label.ts`) already parses a
+    "from"-prefixed label correctly, so the resolver's job is producing that
+    string, not parsing it.
+  - **Stale price, found while reading `pricing.ts` for this item**: `TIERS[0]`
+    (the `tracked` entry, lines 86-103) still reads `basePrice: 99, priceLabel:
+    "from $99/mo"` - the pre-spec figure. `docs/pricing-spec-2026-09-27.md`
+    section 1's table is explicit: alwaystracked is "from $129 / £99 a month"
+    now (US leads, UK is the second figure). This is Danny's newer word (27
+    Sep, the spec) over the 26 Sep figure R24 built against, so it wins per
+    `docs/rules.md`'s own convention - fix `basePrice`/`priceLabel` to $129 as
+    part of this item rather than leaving the stale figure sitting under the
+    sector work. `alwaystracked` is not in `sector-prices.json` (it is the one
+    tier priced in `pricing.ts` directly, per the spec's section 3: "alwaystracked's
+    'from' is the configured $129 / £99, set in `src/config/pricing.ts`") -
+    so this is a literal-value fix, not a sector lookup.
+  - Tiles that need the sector price, not the flat one: `src/components/home/
+    Packages.tsx` (`TIERS.map` at line 118 for the staircase figures, and the
+    table header at line 156 via `priceNode`/`t.priceLabel`) and
+    `src/components/PackagePage.tsx` (lines 69, 141, 264, reading `tier.
+    priceLabel`/`tier.basePrice` the same way) both read `t.priceLabel`
+    straight off `pricing.ts` today - for `mentioned` and `cited` specifically,
+    that value has to become the computed "from" string once section 3's
+    resolver exists, not stay the flat `$995/mo` / `$2,495/mo` currently
+    hardcoded at `pricing.ts` lines 109 and 124. Section 4's sector-select +
+    quantity-stepper + live price is the bigger, separate half of this work
+    (new UI on the tile, not just a resolved string) - build the "from" half
+    (sections 1-3) first since it touches every price surface the spec lists
+    (tier tiles, packages staircase, four tier pages, homepage packages
+    section, four-tier story, FAQ, comparison pages, OG card), then the
+    selector (section 4) on the two tiles it names (`alwaysmentioned`,
+    `alwayscited`).
+  - `price-claims.test.mts`, `price-schema.test.mts`, `price-surfaces.test.mts`
+    and `price-label.test.mts` are the existing censuses that already hold
+    "from"/"$X/mo"-shaped claims in agreement across surfaces - extend them
+    for the sector-derived figures rather than adding a parallel check; do not
+    weaken the "no literal 'from' figure in a component" rule the spec's
+    section 3 states, add the test that holds it if none does yet.
+  Verify: `npx tsc --noEmit`, `npm run check`, `npm run build`; shoot the
+  packages staircase/table (`/`), a tier page's price block, and the FAQ/
+  comparison surfaces at 1280 and 390 before and after, confirming the
+  computed "from" figure for `alwaysmentioned`/`alwayscited` is the true
+  minimum across all 18 sectors for that tier and market (US first) and that
+  `alwaystracked` now reads $129/£99 everywhere it is quoted; grep `src` for
+  the old `$995`/`$2,495`/`$99` literals afterward and confirm none survive
+  outside a changelog/comment.
