@@ -12,9 +12,9 @@ import { D, HEADER_H, WASH, WASH_SIZE } from "./home/dark";
 /**
  * The topbar, from the boards.
  *
- * The board's nav, complete: Packages, Compare, White label, Blog. Compare
- * ships without its competitor columns - see that page for why - so it is
- * linked now. Packages still points at the homepage section.
+ * The board's nav: Packages, White label, How it works, Blog. Compare is
+ * footer only (Danny, 26 Sep 2026, R29) - the page stays, linked from the
+ * footer. Packages still points at the homepage section.
  *
  * On `/` only it sits on the hero's dark ground, as Main.dc.html draws it:
  * no hairline, links in D.muted, the lockup lifted with `.on-dark`. The wash
@@ -24,7 +24,6 @@ import { D, HEADER_H, WASH, WASH_SIZE } from "./home/dark";
 
 const navLinks = [
   { href: "/#packages", label: "Packages" },
-  { href: "/compare", label: "Compare" },
   { href: "/white-label", label: "White label" },
   { href: "/how-it-works", label: "How it works" },
   { href: "/blog", label: "Blog" },
