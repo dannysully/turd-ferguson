@@ -1,5 +1,6 @@
 import { FREE_ENGINE_COUNT } from "@/config/scan-shape";
 import { CARD, SHELL, T } from "@/config/tokens";
+import TierName from "../TierName";
 
 /**
  * "Two ways into an answer", from Main.dc.html (25 Sep 2026): join a page that
@@ -40,8 +41,8 @@ export default function TwoWays() {
           Two ways into an answer
         </h2>
         <p style={{ margin: 0, fontSize: "15px", lineHeight: 1.6, color: T.soft, maxWidth: "52ch" }}>
-          Both are placements on sites we do not own. Neither is content on your own site, because that is not where
-          the answers come from.
+          Both are placements on sites we do not own, the pages the answers are built from. The{" "}
+          <TierName tier="cited" /> plan adds on-site work on top of them.
         </p>
       </div>
 
