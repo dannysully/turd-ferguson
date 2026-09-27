@@ -1209,6 +1209,13 @@ Items filed by the reviewer from live checks and from docs/danny.md. The builder
   the launch video bakes in the old prices - logged to docs/blocked.md as
   DANNY with a default. The remaining two follow from the surfaces not yet
   drawing the new labels.
+  Next run, unblocked by section 3: section 8's alwayseverywhere copy
+  (PackagePage.tsx:29 tagline, HomeFaq.tsx:184, /alwayseverywhere lines 52/57
+  and its whole agency-portfolio framing, contact/page.tsx 22/37/46/86) - but
+  open decision 5 ("sold to brands direct") is DANNY-to-confirm, and the
+  /alwayseverywhere rewrite is a page, not a line. Section 8's alwaystracked
+  "and 10 keywords, checked daily" waits on section 3: a daily basis under the
+  old $99 would publish an offer that is not sold.
 
 - [ ] R51 `src/config/sector-prices.json` confirmed in place - unblock R50's
   blocker 1, build sections 1-4 (Danny, docs/danny.md - filed 2026-09-27, line
