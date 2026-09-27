@@ -209,6 +209,24 @@ function collectOrganic(items: OrganicItem[]): OrganicHit[] {
   return out;
 }
 
+/** The organic results off a plain SERP task, the keyword-rank read (R40). */
+export function parseOrganic(result: Record<string, unknown> | undefined | null): OrganicHit[] {
+  return collectOrganic(((result?.items as OrganicItem[] | undefined) ?? []));
+}
+
+/**
+ * Where the subject sits in Google's organic results: null outside the depth
+ * read, undefined when there were no results to read at all. Subdomains
+ * count as the subject. Moved here from pipeline.ts on 27 Sep 2026 so the
+ * question read and the keyword read (R40) rank with one function.
+ */
+export function rankOf(organic: OrganicHit[] | undefined, subject: string): number | null | undefined {
+  if (!organic?.length) return undefined;
+  const want = normalizeDomain(subject);
+  const hit = organic.find((o) => o.domain === want || o.domain.endsWith(`.${want}`));
+  return hit ? hit.rank : null;
+}
+
 export function parseGoogleAio(result: Record<string, unknown> | undefined | null): EngineRead {
   if (!result) return EMPTY;
 

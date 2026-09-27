@@ -6,7 +6,9 @@ import {
   knownEngines,
   parseChatGpt,
   parseGoogleAio,
+  parseOrganic,
   parsePerplexity,
+  rankOf,
   stripMarkdownLinks,
 } from "./engines.ts";
 
@@ -268,4 +270,21 @@ test("every engine the union knows survives the door", () => {
   // A floor derived from ENGINES rather than typed: a filter that quietly
   // stopped recognising one would otherwise look like a clean dedupe.
   assert.deepEqual(knownEngines([...ENGINES]), [...ENGINES]);
+});
+
+test("keyword rank (R40): the domain's organic position, subdomains included", () => {
+  const organic = parseOrganic({
+    items: [
+      { type: "paid", rank_group: 1, domain: "ads.example.com" },
+      { type: "organic", rank_group: 1, domain: "rival.co.uk", url: "https://rival.co.uk/" },
+      { type: "organic", rank_group: 2, domain: "www.subject.co.uk", url: "https://www.subject.co.uk/p" },
+    ],
+  });
+  assert.equal(organic.length, 2);
+  assert.equal(rankOf(organic, "subject.co.uk"), 2);
+  assert.equal(rankOf(organic, "blog.subject.co.uk"), null);
+  assert.equal(rankOf(organic, "absent.com"), null);
+  // No results at all is not a measurement of "not ranked".
+  assert.equal(rankOf(parseOrganic({ items: [] }), "subject.co.uk"), undefined);
+  assert.equal(rankOf(parseOrganic(null), "subject.co.uk"), undefined);
 });

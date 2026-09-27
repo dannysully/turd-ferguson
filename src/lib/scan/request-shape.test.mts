@@ -12,6 +12,7 @@ import {
   TASK_OK,
   budgetFor,
   firstTask,
+  keywordRankRequest,
   requestFor,
   taskCost,
   type Task,
@@ -322,4 +323,16 @@ test("nothing writes scan_questions.search_volume", () => {
     "something writes search_volume again. The column is kept so pre-20-Sep-2026 rows stay readable as " +
       "real measurements; a new writer makes the column mean two things at once",
   );
+});
+
+test("the keyword-rank read (R40) is the Google organic read at SERP_DEPTH, in market, without the Overview", () => {
+  for (const market of Object.keys(MARKETS) as Market[]) {
+    const req = keywordRankRequest("business cash flow finance providers", market);
+    assert.equal(req.path, requestFor("google_aio", QUESTION, market).path);
+    const [body] = req.body as Record<string, unknown>[];
+    assert.equal(body.keyword, "business cash flow finance providers");
+    assert.equal(body.depth, SERP_DEPTH);
+    assert.equal(body.location_code, MARKETS[market].location_code);
+    assert.equal(body.load_async_ai_overview, undefined);
+  }
 });

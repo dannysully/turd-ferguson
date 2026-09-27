@@ -13,7 +13,7 @@ import {
 import { brandKey, displayNamesFor, namesSubject, subjectKeys } from "./brand-name";
 import { scoreScanDifficulty } from "./difficulty";
 import { readEngine } from "./dataforseo";
-import { type Market, normalizeDomain } from "./domain";
+import { type Market } from "./domain";
 // What one engine found, and the order the reads are issued in so that engines
 // finish at different times rather than in lockstep. Both live outside this
 // file because this one imports `server-only` and so can never be executed by
@@ -26,7 +26,7 @@ import { sendRequestedReport } from "./report-mail";
 // The words this file writes into `scans.step`, so a typo here is a compile
 // error rather than a progress bar that freezes on the waiting screen.
 import { type RunStep, STEP } from "./run-steps";
-import { type Engine, isEngine, type OrganicHit } from "./engines";
+import { type Engine, isEngine, rankOf } from "./engines";
 import { classifySources } from "./sources";
 
 /**
@@ -117,14 +117,6 @@ type Answer = {
   error: string | null;
   cost: number;
 };
-
-/** Where the subject sits in Google's organic results, or null if outside the top twenty. */
-function rankOf(organic: OrganicHit[] | undefined, subject: string): number | null | undefined {
-  if (!organic?.length) return undefined;
-  const want = normalizeDomain(subject);
-  const hit = organic.find((o) => o.domain === want || o.domain.endsWith(`.${want}`));
-  return hit ? hit.rank : null;
-}
 
 
 type StoredQuestion = { id: string; idx: number; question: string };

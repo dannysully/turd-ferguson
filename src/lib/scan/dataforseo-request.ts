@@ -163,6 +163,31 @@ export function requestFor(engine: Engine, question: string, market: Market): En
 }
 
 /**
+ * One Google organic read for a derived head keyword (R40, Danny, 27 Sep 2026),
+ * to find where the scan's domain ranks for it. Separate from the google_aio
+ * read, which ranks the domain for the question text and stays as it is.
+ *
+ * Same endpoint and depth as that read, without the Overview: nothing here
+ * reads one, and asking for it only slows the task. Not wired to a caller
+ * until the R41 columns are applied - see target-keyword.ts.
+ */
+export function keywordRankRequest(keyword: string, market: Market): EngineRequest {
+  return {
+    path: "/v3/serp/google/organic/live/advanced",
+    timeoutMs: 60_000,
+    body: [
+      {
+        keyword,
+        location_code: MARKETS[market].location_code,
+        language_code: "en",
+        device: "desktop",
+        depth: SERP_DEPTH,
+      },
+    ],
+  };
+}
+
+/**
  * The shorter of what this engine needs and what the run has left, floored so a
  * budget that has already run out still makes one honest attempt rather than
  * aborting on a zero and recording an error nobody can read.
