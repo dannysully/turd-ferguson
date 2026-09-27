@@ -611,7 +611,7 @@ function HardOnes(p: { r: RunScanResponse }) {
       }}
     >
       <div style={{ flexGrow: 1, minWidth: "220px" }}>
-        <div style={{ fontSize: "18px", fontWeight: 700, color: T.surface }}>Want us to secure the hard ones?</div>
+        <div style={{ fontSize: "18px", fontWeight: 700, color: T.surface }}>Want us to secure these placements for you?</div>
         <p style={{ margin: "4px 0 0", fontSize: "14px", lineHeight: 1.55, color: D.muted }}>
           That is <TierName tier="mentioned" />: placements in the pages the engines cite, links included.
         </p>
