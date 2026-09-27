@@ -1041,7 +1041,7 @@ Items filed by the reviewer from live checks and from docs/danny.md. The builder
   separately: `/api/scan/<token>/full` (the unlock payload) already carried
   them, unchanged by this. Danny's word is verified live.
 
-- [ ] R48 Result page placement line: word the count's three cases
+- [x] R48 -> e1d523a (live 27 Sep: crunch.co.uk and the US scan read "It would be difficult for you to place these yourself.", the .co.uk inbox scan "You could place 3 of these yourself.", 1280 and 390; the "all" case only by test, no live scan has every row Easy) Result page placement line: word the count's three cases
   separately (Danny, docs/danny.md - filed 2026-09-27, line 50).
   `src/components/scan/ResultView.tsx` lines 583-587, `selfServeLine`:
   ```

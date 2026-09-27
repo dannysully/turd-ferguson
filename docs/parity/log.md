@@ -1135,3 +1135,10 @@ Every pure and model piece of R39/R40/R43 is now in the tree. What remains is th
 - Matches: `/scan/6839484c...` (crunch.co.uk, post-2c56710) rows read "online accounting firms - 90/mo - Google #1", "accountants with bookkeeping software - not in top 20" (null volume, clause dropped), "limited company accountants - 1,000/mo - Google #16"; its two keyword-less rows keep "Google #9" / "Not in Google top 20". Pre-R41 scan `/scan/57520fc7...` unchanged ("Not in Google top 20"). 390 stacks the line under the question inside the row card.
 - Still differs: at 1280 the Google column is narrow, so a long keyword line wraps to three lines - the row grows, layout holds. Under-10 formatting only covered by the result-figures tests; no live row under 10 yet.
 - Denominator: LIVE, two scans, 1280 and 390, JS on. Shots in docs/parity/R43-keyword-line.
+
+## R48 - result page placement line, three cases (27 Sep 2026)
+
+- Commit: e1d523a, live within 30s. Board: ScanResult.dc.html heading line (position unchanged, copy is Danny's).
+- Matches: none-easy reads "It would be difficult for you to place these yourself." (crunch.co.uk `/scan/6839484c...`, US `/scan/5e572d37...`); some-easy reads "You could place 3 of these yourself." (`/scan/57520fc7...`). Right end of the heading line at 1280, under the intro at 390. HardOnes and the secure card unchanged.
+- Still differs / not seen live: the "all of these" case - no live scan has every scored row Easy; covered by placement-difficulty.test.mts. Local fixture shots impossible (`/scan/[token]` 404s without a DB row).
+- Denominator: LIVE, three scans, 1280 and 390, JS on. Shots in docs/parity/R48-placement-line. Suite 868/868.
