@@ -1194,7 +1194,10 @@ Items filed by the reviewer from live checks and from docs/danny.md. The builder
 
   **Progress (27 Sep, builder):** section 2 shipped -> 0624366
   (`src/config/sector-pricing.ts`: SECTORS, quoteFor, fromPrice, fromLabel,
-  US first; `sector-pricing.test.mts`). Section 3 tried and reverted unpushed:
+  US first; `sector-pricing.test.mts`). Section 3 built, NOT pushed - blocked
+  on the launch video (docs/blocked.md, DANNY): saved as
+  `docs/r50-section3.patch` + `docs/r50-sector-pricing-source.ts` (872/873 on
+  a fresh build, only video.test.mts fails). First try, for the record:
   pointing `pricing.ts` at `fromLabel`/`fromPrice` trips 10 tests. Seven are
   censuses that regex-parse `pricing.ts` for literal `basePrice: \d+` /
   `priceLabel: "..."` (price-claims, price-surfaces, price-schema - Node cannot

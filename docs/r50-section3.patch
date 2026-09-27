@@ -1,0 +1,132 @@
+diff --git a/src/app/price-claims.test.mts b/src/app/price-claims.test.mts
+index a21765c..44bc22d 100644
+--- a/src/app/price-claims.test.mts
++++ b/src/app/price-claims.test.mts
+@@ -4,6 +4,7 @@ import { test } from "node:test";
+ 
+ import { headClaims, pageText, schemaClaims, sweptPages, type Page } from "./dynamic-render.mts";
+ import { isPriceLabel } from "../config/price-label.ts";
++import { inlineSectorPrices } from "../config/sector-pricing-source.ts";
+ import { TIER_PLAIN, type TierKey } from "../lib/tier-text.ts";
+ 
+ /**
+@@ -91,7 +92,7 @@ function parseTiers(source: string): ParsedTier[] {
+   }));
+ }
+ 
+-const source = readFileSync(PRICING, "utf8");
++const source = inlineSectorPrices(readFileSync(PRICING, "utf8"));
+ const TIERS = parseTiers(source);
+ const PRICED = TIERS.filter((t) => t.basePrice !== null);
+ const QUOTED = TIERS.filter((t) => t.basePrice === null);
+diff --git a/src/app/price-schema.test.mts b/src/app/price-schema.test.mts
+index a3d645f..a742598 100644
+--- a/src/app/price-schema.test.mts
++++ b/src/app/price-schema.test.mts
+@@ -4,6 +4,7 @@ import { join } from "node:path";
+ import { test } from "node:test";
+ 
+ import { isFloorLabel } from "../config/price-label.ts";
++import { inlineSectorPrices } from "../config/sector-pricing-source.ts";
+ import { serviceSchema } from "../config/service-schema.ts";
+ import { code, sourceFiles } from "../lib/source-read.mts";
+ import { TIER_PLAIN } from "../lib/tier-text.ts";
+@@ -180,7 +181,7 @@ function pageFor(href: string): string {
+   return href.replace(/^\//, "") + ".html";
+ }
+ 
+-const source = read(PRICING);
++const source = inlineSectorPrices(read(PRICING));
+ const TIERS = quotedTiers(source);
+ const PAGES = new Map(sweptPages().map((p) => [p.page, p.html]));
+ 
+diff --git a/src/app/price-surfaces.test.mts b/src/app/price-surfaces.test.mts
+index 2dd8e8d..895a69a 100644
+--- a/src/app/price-surfaces.test.mts
++++ b/src/app/price-surfaces.test.mts
+@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
+ import { readFileSync } from "node:fs";
+ import { test } from "node:test";
+ 
++import { inlineSectorPrices } from "../config/sector-pricing-source.ts";
+ import { bodyOf, pageText as text, sweptPages, type Page } from "./dynamic-render.mts";
+ 
+ /**
+@@ -76,7 +77,7 @@ function routeOf(page: string): string {
+   return path === "index" ? "/" : "/" + path;
+ }
+ 
+-const source = readFileSync(PRICING, "utf8");
++const source = inlineSectorPrices(readFileSync(PRICING, "utf8"));
+ const TIERS = quotedTiers(source);
+ const pages: Page[] = sweptPages();
+ const byRoute = new Map(pages.map((p) => [routeOf(p.page), p]));
+diff --git a/src/config/pricing.ts b/src/config/pricing.ts
+index 1ca7f4e..d799938 100644
+--- a/src/config/pricing.ts
++++ b/src/config/pricing.ts
+@@ -21,6 +21,8 @@ import { TIER_PLAIN, type TierKey } from "@/components/TierName";
+ // The site's one list joiner. A second copy of "a, b and c" written here is
+ // the two-copies-of-one-function species this repo has already paid for once.
+ import { listOf } from "@/config/scan-shape";
++// The sector tiers' "from" is computed, never typed (pricing spec section 3).
++import { fromLabel, fromPrice } from "@/config/sector-pricing";
+ 
+ /** Single destination for every CTA until real signup and booking flows exist. */
+ export const CONTACT_URL = "/contact";
+@@ -87,8 +89,10 @@ export const TIERS: Tier[] = [
+     id: "tracked",
+     key: "tracked",
+     plainName: TIER_PLAIN.tracked,
+-    basePrice: 99,
+-    priceLabel: "from $99/mo",
++    // Pricing spec section 1 (27 Sep 2026): from $129, UK £99. The one tier
++    // priced here rather than in sector-prices.json.
++    basePrice: 129,
++    priceLabel: "from $129/mo",
+     priceBasis: `${TRACKED_QUESTIONS} questions, checked weekly. More questions or a tighter cadence moves the price.`,
+     positioning: "Know what your coverage did",
+     href: "/alwaystracked",
+@@ -105,8 +109,8 @@ export const TIERS: Tier[] = [
+     id: "mentioned",
+     key: "mentioned",
+     plainName: TIER_PLAIN.mentioned,
+-    basePrice: 995,
+-    priceLabel: "$995/mo",
++    basePrice: fromPrice("mentioned", "us"),
++    priceLabel: fromLabel("mentioned"),
+     positioning: "Get named when AI recommends",
+     href: "/alwaysmentioned",
+     includes: [
+@@ -120,8 +124,8 @@ export const TIERS: Tier[] = [
+     id: "cited",
+     key: "cited",
+     plainName: TIER_PLAIN.cited,
+-    basePrice: 2495,
+-    priceLabel: "$2,495/mo",
++    basePrice: fromPrice("cited", "us"),
++    priceLabel: fromLabel("cited"),
+     positioning: "Get cited, and rank for it",
+     href: "/alwayscited",
+     includes: [
+diff --git a/src/config/video.test.mts b/src/config/video.test.mts
+index 039b23f..2187dd1 100644
+--- a/src/config/video.test.mts
++++ b/src/config/video.test.mts
+@@ -3,6 +3,7 @@ import { existsSync, readFileSync, statSync } from "node:fs";
+ import { join } from "node:path";
+ import { test } from "node:test";
+ 
++import { inlineSectorPrices } from "./sector-pricing-source.ts";
+ import { LAUNCH_VIDEO, LAUNCH_VIDEO_SUMMARY } from "./video.ts";
+ import { PRERENDER_DIR, sweptPages } from "../app/dynamic-render.mts";
+ 
+@@ -36,7 +37,7 @@ function ldNodes(html: string): Record<string, unknown>[] {
+ const PUBLIC = "public";
+ 
+ function priceLabels(): string[] {
+-  const source = readFileSync("src/config/pricing.ts", "utf8");
++  const source = inlineSectorPrices(readFileSync("src/config/pricing.ts", "utf8"));
+   return [...source.matchAll(/priceLabel:\s*"([^"]+)"/g)].map((m) => m[1]!);
+ }
+ 
