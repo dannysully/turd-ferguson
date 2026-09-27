@@ -22,7 +22,12 @@ import { type MarketReason, marketReasonLine } from "@/lib/scan/market-pick";
  * the pipeline asks what it finds rather than writing its own.
  */
 
-export type PreviewQuestion = { question: string; kind: string; cluster: string };
+/**
+ * `own` marks a row the visitor added. It used to be read off `kind ===
+ * "custom"`, which stops being true the moment they pick an intent for it -
+ * and an own row is the one a cluster chip must never drop.
+ */
+export type PreviewQuestion = { question: string; kind: string; cluster: string; own?: boolean };
 
 /** Our own question kinds, sentence case. The board column is illustrative. */
 const INTENT: Record<string, string> = {
@@ -112,6 +117,23 @@ const rowInput: React.CSSProperties = {
   lineHeight: 1.45,
   fieldSizing: "content",
 } as React.CSSProperties;
+
+/** The intents a visitor can give their own question. */
+const PICKABLE = ["category", "positioning", "sector", "outcome", "comparison"];
+
+/** Cluster and intent on an own row: the cell's size, with a box round it. */
+const rowSelect: React.CSSProperties = {
+  width: "100%",
+  boxSizing: "border-box",
+  fontFamily: "inherit",
+  fontSize: "12.5px",
+  color: T.ink,
+  background: T.surface,
+  border: "1px solid " + T.line,
+  borderRadius: "8px",
+  padding: "3px 6px",
+  margin: "-4px 0",
+};
 
 const quietBtn: React.CSSProperties = {
   fontFamily: "inherit",
@@ -273,7 +295,7 @@ export default function ConfirmScreen(p: {
    * Their questions are theirs. The chip is a way of dropping a batch we
    * guessed at, so it applies to the rows it guessed and leaves the rest.
    */
-  const isOwn = (q: PreviewQuestion) => q.kind === "custom";
+  const isOwn = (q: PreviewQuestion) => q.own === true;
   const kept = questions.filter((q) => (isOwn(q) || !dropped.has(q.cluster)) && q.question.trim().length >= 4);
   const keptClusters = new Set(kept.map((q) => q.cluster));
   /**
@@ -324,13 +346,22 @@ export default function ConfirmScreen(p: {
     setQuestions((prev) => prev.map((q, i) => (i === index ? { ...q, question: text } : q)));
   }
 
+  /** Cluster and intent are the visitor's to set, but only on a row they added. */
+  function setCluster(index: number, cluster: string) {
+    setQuestions((prev) => prev.map((q, i) => (i === index ? { ...q, cluster } : q)));
+  }
+
+  function setIntent(index: number, kind: string) {
+    setQuestions((prev) => prev.map((q, i) => (i === index ? { ...q, kind } : q)));
+  }
+
   function remove(index: number) {
     setQuestions((prev) => prev.filter((_, i) => i !== index));
   }
 
   function add() {
     focusLast.current = true;
-    setQuestions((prev) => [...prev, { question: "", kind: "custom", cluster: topic.trim() }]);
+    setQuestions((prev) => [...prev, { question: "", kind: "custom", cluster: topic.trim(), own: true }]);
   }
 
   const primaryLabel = p.running
@@ -352,8 +383,13 @@ export default function ConfirmScreen(p: {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "26px" }}>
-      <div className="confirm-top">
-        <div>
+      <div className="confirm-top confirm-12">
+        {/* One measure for the whole left column (Danny, 27 Sep 2026). The
+            paragraphs each carried their own 62ch, and a ch is the width of
+            the element's own font, so the 13px line wrapped about 45px short
+            of the 14.5px one and the h1 ran on to the full seven columns -
+            three wrap points. The 62ch is read at 14.5px, here, once. */}
+        <div style={{ fontSize: "14.5px", maxWidth: "62ch" }}>
           <div style={MICRO}>{p.domain}</div>
           <h1
             style={{
@@ -367,12 +403,12 @@ export default function ConfirmScreen(p: {
           >
             This is what we read off the site. Correct it before we run.
           </h1>
-          <p style={{ margin: "12px 0 0", fontSize: "14.5px", lineHeight: 1.65, color: T.soft, maxWidth: "62ch" }}>
+          <p style={{ margin: "12px 0 0", lineHeight: 1.65, color: T.soft }}>
             The questions come from what the site says it sells. If the category is wrong, everything after it is
             wrong too - so it is worth ten seconds now.
           </p>
           {p.positioning ? (
-            <p style={{ margin: "12px 0 0", fontSize: "13px", lineHeight: 1.6, color: T.soft, maxWidth: "62ch" }}>
+            <p style={{ margin: "12px 0 0", fontSize: "13px", lineHeight: 1.6, color: T.soft }}>
               From the site: {p.positioning}
             </p>
           ) : null}
@@ -484,7 +520,7 @@ export default function ConfirmScreen(p: {
 
       {clusters.length > 0 ? (
         <section>
-          <div className="board-head confirm-head" style={{ marginBottom: "14px" }}>
+          <div className="board-head confirm-head confirm-75" style={{ marginBottom: "14px" }}>
             <h2 style={{ margin: 0, fontSize: "19px", fontWeight: 700, letterSpacing: "-0.022em", color: T.ink }}>
               Which clusters matter to you
             </h2>
@@ -533,7 +569,7 @@ export default function ConfirmScreen(p: {
       ) : null}
 
       <section>
-        <div className="board-head confirm-head" style={{ marginBottom: "14px" }}>
+        <div className="board-head confirm-head confirm-75" style={{ marginBottom: "14px" }}>
           <h2 style={{ margin: 0, fontSize: "19px", fontWeight: 700, letterSpacing: "-0.022em", color: T.ink }}>
             Your buying questions
           </h2>
@@ -595,12 +631,49 @@ export default function ConfirmScreen(p: {
                     style={rowInput}
                   />
                 </div>
-                <div style={{ fontSize: "12.5px", color: T.soft }}>{q.cluster}</div>
-                <div style={MICRO}>{INTENT[q.kind] ?? INTENT.custom}</div>
+                {isOwn(q) ? (
+                  <div>
+                    <select
+                      value={q.cluster}
+                      onChange={(e) => setCluster(i, e.target.value)}
+                      aria-label={"Cluster for question " + (i + 1)}
+                      style={rowSelect}
+                    >
+                      {[...new Set([...clusters, topic.trim(), q.cluster].filter(Boolean))].map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <div style={{ fontSize: "12.5px", color: T.soft }}>{q.cluster}</div>
+                )}
+                {isOwn(q) ? (
+                  <div>
+                    <select
+                      value={q.kind}
+                      onChange={(e) => setIntent(i, e.target.value)}
+                      aria-label={"Intent for question " + (i + 1)}
+                      style={rowSelect}
+                    >
+                      {/* "Yours" is the unset state, not a pick: it shows until
+                          something else is chosen, then leaves the list. */}
+                      {q.kind === "custom" ? <option value="custom">{INTENT.custom}</option> : null}
+                      {PICKABLE.map((k) => (
+                        <option key={k} value={k}>
+                          {INTENT[k]}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <div style={MICRO}>{INTENT[q.kind] ?? INTENT.custom}</div>
+                )}
                 {/* Flex, not text-align: an inline button sits on the div's own
                     16px line and made this the tallest cell in the row. */}
                 <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: "3px" }}>
-                  <button type="button" onClick={() => remove(i)} aria-label={removeLabel} style={quietBtn}>
+                  <button type="button" onClick={() => remove(i)} aria-label={removeLabel} className="q-remove" style={quietBtn}>
                     Remove
                   </button>
                 </div>
@@ -611,7 +684,7 @@ export default function ConfirmScreen(p: {
           <div style={{ padding: "12px 26px", display: "flex", alignItems: "baseline", gap: "14px", flexWrap: "wrap" }}>
             <span style={{ fontSize: "13px", color: T.soft }}>
               {footerText}
-              <Link href="/#faq" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
+              <Link href="/#faq-search-volume" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
                 here is why
               </Link>
               .

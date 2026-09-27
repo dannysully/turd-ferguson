@@ -420,6 +420,8 @@ const CSS_COLOURS: Record<string, string> = {
   ".tier-name__accent": "var(--brand-purple) #7c3aed - 5.28 on the page ground, 5.70 on white, 5.09 on the wash",
   ".on-dark .tier-name__accent": "#a78bfa, which is the dark-ground spelling of the same mark - 6.94 on ink",
   ".faq-row[open] .faq-summary span:first-child": "var(--accent) #7c3aed, the same value as the tier accent",
+  ".q-remove:hover,.q-remove:focus-visible":
+    "var(--bad-fg) #b3372f, T.badFg - 5.99:1 on the question card's white surface. Hover and keyboard focus on the confirm screen's Remove only (R34, 27 Sep 2026)",
   ".tier-quiet .tier-name,.tier-quiet .tier-name__accent":
     "var(--soft), so it is the token blocked.md 9 moved and clears AA on every ground the site draws since it was answered",
   ".proc-schema":

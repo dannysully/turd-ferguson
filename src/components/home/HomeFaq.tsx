@@ -4,6 +4,7 @@ import { word } from "./EngineDemo";
 import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
 import { ORG_REF, SITE_REF, ld } from "@/config/schema";
 import Link from "next/link";
+import FaqHashOpen from "./FaqHashOpen";
 
 /**
  * FAQ and the closing scan - HomeFaq.dc.html.
@@ -19,7 +20,8 @@ import Link from "next/link";
  * and break the label, and it would start a second independent scan.
  */
 
-export type Faq = { q: string; hint: string; a: string };
+/** `id` only where another page links to the answer itself. */
+export type Faq = { q: string; hint: string; a: string; id?: string };
 
 export const FAQS: Faq[] = [
   {
@@ -49,6 +51,8 @@ export const FAQS: Faq[] = [
   },
   {
     q: "Why is there no search volume anywhere in this?",
+    // The confirm screen's "here is why" lands here.
+    id: "faq-search-volume",
     hint: "Because it is zero on the questions that matter",
     // "all fourteen ... those fourteen" was a typed question count, twice, in
     // the one answer on this page that reports a real reading. It is not
@@ -97,6 +101,7 @@ export default function HomeFaq() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ld(faqSchema) }} />
 
       <section id="faq" style={{ ...SHELL, marginTop: "44px" }}>
+        <FaqHashOpen />
         <div className="board-head" style={{ ...GRID12, marginBottom: "16px" }}>
           <h2 style={{ ...H2, gridColumn: "span 4" }}>Questions we get asked</h2>
           <p style={{ gridColumn: "span 8", margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
@@ -106,7 +111,7 @@ export default function HomeFaq() {
 
         <div style={{ ...CARD, overflow: "hidden" }}>
           {FAQS.map((f) => (
-            <details key={f.q} className="faq-row ac-row" style={{ borderBottom: `1px solid ${T.hair}` }}>
+            <details key={f.q} id={f.id} className="faq-row ac-row" style={{ borderBottom: `1px solid ${T.hair}`, scrollMarginTop: "24px" }}>
               <summary className="board-head faq-summary" style={{ ...GRID12, padding: "17px 26px", cursor: "pointer", lineHeight: 1.3 }}>
                 <span style={{ gridColumn: "span 5", fontSize: "15px", fontWeight: 600, color: T.ink }}>{f.q}</span>
                 <span style={{ gridColumn: "span 7", fontSize: "13.5px", color: T.soft }}>{f.hint}</span>
