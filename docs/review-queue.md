@@ -945,7 +945,7 @@ Items filed by the reviewer from live checks and from docs/danny.md. The builder
   not-found branch; confirm the blocked.md DANNY line is moved to Settled
   with this item's commit.
 
-- [ ] R46 Mobile hero line break, and engine names to logos in three spots
+- [x] R46 -> 33c7d33 Mobile hero line break, and engine names to logos in three spots
   (Danny, docs/danny.md - filed 2026-09-27, line 48). Two unrelated fixes in
   one note - do both in one push, they touch different files, but it is one
   queue item.

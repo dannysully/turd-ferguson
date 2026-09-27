@@ -21,7 +21,7 @@ const jobs = [
 for (const [u, sel, w] of jobs) {
   const ctx = await b.newContext({ viewport: { width: w, height: 844 }, reducedMotion: "reduce", javaScriptEnabled: !jsOff });
   const p = await ctx.newPage();
-  await p.goto(base + u, { waitUntil: "networkidle" });
+  await p.goto(base + u, { waitUntil: "load" });
   const el = p.locator(sel).first();
   try {
     await el.scrollIntoViewIfNeeded();
