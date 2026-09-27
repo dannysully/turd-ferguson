@@ -1,5 +1,6 @@
 import TierEngines from "@/components/TierEngines";
 import TierName, { TierText, type TierKey } from "@/components/TierName";
+import { ALWAYS_ON, ALWAYS_ON_SUPPORT } from "@/config/always-on";
 import { CONTACT_URL, TIERS, TRACKED_QUESTIONS, contactUrlFor, type Tier } from "@/config/pricing";
 import { splitPriceLabel } from "@/config/price-label";
 import { ld } from "@/config/schema";
@@ -232,6 +233,11 @@ export default function PackagePage({
         ) : null}
       </div>
 
+      <div className="ac-row" style={{ ...CARD, padding: "20px 24px", background: T.wash }}>
+        <p style={{ margin: 0, fontSize: "17px", fontWeight: 700, letterSpacing: "-0.02em", color: T.ink }}>{ALWAYS_ON.tierPage}</p>
+        <p style={{ margin: "4px 0 0", fontSize: "14px", lineHeight: 1.6, color: T.soft, maxWidth: "70ch" }}>{ALWAYS_ON_SUPPORT}</p>
+      </div>
+
       <div>
         <div className="board-head confirm-head" style={{ marginBottom: "14px" }}>
           <h2 className="ac-row" style={{ margin: 0, fontSize: "19px", fontWeight: 700, letterSpacing: "-0.022em", color: T.ink }}>
@@ -264,6 +270,7 @@ export default function PackagePage({
                   <TierName tier={t.key} qualifier={t.qualifier} />
                 </div>
                 <div style={{ fontSize: "13px", color: T.soft, marginTop: "4px" }}>{t.priceLabel}</div>
+                <TierEngines tier={t.key} size={14} colour={T.soft} style={{ marginTop: "8px" }} />
                 <div style={{ fontSize: "13px", color: T.soft, marginTop: "8px", lineHeight: 1.55 }}>
                   {here ? "You are here. " : ""}
                   <TierText>{GLOSS[t.key]}</TierText>

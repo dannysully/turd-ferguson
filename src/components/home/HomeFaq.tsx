@@ -1,3 +1,4 @@
+import { ALWAYS_ON, ALWAYS_ON_SUPPORT } from "@/config/always-on";
 import { WAITLIST_LIMITS } from "@/config/contact";
 import { FREE_ENGINE_COUNT, QUESTIONS } from "@/config/scan-shape";
 import { word } from "./EngineDemo";
@@ -39,8 +40,12 @@ export const FAQS: Faq[] = [
   },
   {
     q: "What happens when a placement gets old?",
-    hint: "It decays, and that is the honest answer",
-    a: "Citation rates drift down as articles age and newer pages replace them in the engines' source sets. That is why the programme is a replacement cycle rather than a one-off campaign, and why the charts we show you have dips in them.",
+    // Rewritten 27 Sep 2026 (pricing spec section 8): the always-on line and
+    // its supporting sentence, word for word. The old answer asserted that
+    // citation rates drift as articles age; the spec rules out any claim
+    // about decay, so the answer is about the regularity of the work instead.
+    hint: ALWAYS_ON.faq,
+    a: `${ALWAYS_ON_SUPPORT} That is why the programme runs monthly rather than as a one-off campaign, and why the charts we show you have dips in them.`,
   },
   {
     q: "Can I resell this, and at what margin?",

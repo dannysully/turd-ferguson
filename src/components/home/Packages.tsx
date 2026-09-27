@@ -1,5 +1,6 @@
 import TierEngines from "@/components/TierEngines";
 import TierName, { type TierKey } from "@/components/TierName";
+import { ALWAYS_ON, ALWAYS_ON_SUPPORT } from "@/config/always-on";
 import { TIERS, contactUrlFor } from "@/config/pricing";
 import { splitPriceLabel } from "@/config/price-label";
 import { CARD, SHELL, T } from "@/config/tokens";
@@ -101,6 +102,10 @@ export default function Packages() {
               Monthly, white-labelled, no minimum term. The price is here because you should not have to sit through a
               call to find out.
             </p>
+          </div>
+          <div style={{ marginTop: "20px" }}>
+            <p style={{ margin: 0, fontSize: "17px", fontWeight: 700, letterSpacing: "-0.02em", color: T.surface }}>{ALWAYS_ON.packages}</p>
+            <p style={{ margin: "4px 0 0", fontSize: "14px", lineHeight: 1.6, color: D.muted, maxWidth: "64ch" }}>{ALWAYS_ON_SUPPORT}</p>
           </div>
 
           {/* In the order pricing.ts lists them, which is ascending intensity. */}
