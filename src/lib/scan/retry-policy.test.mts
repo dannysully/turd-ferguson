@@ -72,7 +72,10 @@ test("rule 1: the walk finds the model calls it is written about", () => {
   const files = modelCallFiles();
   assert.deepEqual(files, ["src/lib/scan/anthropic.ts"], "the set of files that call a model has changed");
   const calls = modelCalls(src(files[0]!));
-  assert.equal(calls.length, 5, "anthropic.ts makes five model calls; a sixth needs a decision, not a default");
+  // Six since 27 Sep 2026: `keywordCandidates`, the decision being Danny's
+  // search-volume reversal (R38/R39, docs/rules.md) - one batched call a scan
+  // for candidate Google head keywords. A seventh needs its own decision.
+  assert.equal(calls.length, 6, "anthropic.ts makes six model calls; a seventh needs a decision, not a default");
   assert.deepEqual(
     [...new Set(calls.map((c) => c.method))],
     ["parse"],

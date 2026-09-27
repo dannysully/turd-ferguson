@@ -17,8 +17,9 @@ const MODEL = "claude-opus-5";
  * effort is the right setting: it keeps the five model calls in this file
  * inside the scan's budget without trading away accuracy.
  *
- * Five, not three - `readBrand`, `generateQuestions`, `extractBrands`,
- * `classifyBrands` and `classifySourceDomains`. The count said three while the
+ * Six, not three - `readBrand`, `generateQuestions`, `keywordCandidates`
+ * (27 Sep 2026, R39), `extractBrands`, `classifyBrands` and
+ * `classifySourceDomains`. The count said three while the
  * file had carried five for some time, which is the drifted-count species: the
  * number is not the point, the point is that "every call here is low effort"
  * was a census carried in prose with nothing executing it.
@@ -361,6 +362,67 @@ export async function generateQuestions(input: {
     })),
     calls: billed.calls,
   };
+}
+
+// ---------------------------------------------------------- keyword candidates
+
+/** How many candidates the model offers per question (R39: "3-5"). */
+const CANDIDATES_MIN = 3;
+const CANDIDATES_MAX = 5;
+
+const KeywordCandidates = z.object({
+  supplier_noun: z.string().describe("The one plural noun a buyer uses for suppliers in this category, e.g. 'providers', 'agencies', 'lenders'"),
+  questions: z.array(
+    z.object({
+      idx: z.number().int(),
+      candidates: z.array(z.string()).describe(`${CANDIDATES_MIN} to ${CANDIDATES_MAX} Google head keywords for this question, lower case`),
+    }),
+  ),
+});
+
+/**
+ * Candidate Google head keywords for every question, in one call (R39, Danny,
+ * 27 Sep 2026). The model proposes; `target-keyword.ts` decides which stand
+ * and the volume read picks among them, so nothing here is trusted as the
+ * keyword. Not called until the R41 columns are applied.
+ *
+ * One call for the whole set, the shape `generateQuestions` has, with a
+ * ceiling that scales with the number of questions rather than a flat one -
+ * the truncated-JSON defect AGENTS.md records.
+ */
+export async function keywordCandidates(
+  input: { category: string; market: Market; questions: { idx: number; question: string }[] },
+  billed: { calls: number } = { calls: 0 },
+): Promise<{ supplierNoun: string; byIdx: Map<number, string[]> }> {
+  const marketName = input.market === "UK" ? "the United Kingdom" : "the United States";
+  const res = await withRetry(() => anthropic(billed).messages.parse({
+    model: MODEL,
+    max_tokens: Math.min(8000, 400 + input.questions.length * 150),
+    output_config: { effort: EFFORT, format: zodOutputFormat(KeywordCandidates) },
+    system: [
+      `Each question below is one a buyer in ${marketName} asks an AI engine when choosing a supplier.`,
+      `For each, propose ${CANDIDATES_MIN} to ${CANDIDATES_MAX} Google head keywords: the short phrase the same buyer would type`,
+      "into Google. Drop 'best', 'top', 'who offers', 'which', the year and the country word.",
+      "Every keyword keeps a supplier noun - providers, companies, lenders, software, agencies.",
+      "The bare category alone is never a keyword. Lower case, no punctuation.",
+      "Also give the one plural supplier noun a buyer uses for this category.",
+    ].join("\n"),
+    messages: [
+      {
+        role: "user",
+        content: [
+          `Category: ${input.category}`,
+          ...input.questions.map((q) => `${q.idx}: ${q.question}`),
+        ].join("\n"),
+      },
+    ],
+  }));
+  const out = res.parsed_output;
+  if (!out) throw new Error("could not read keyword candidates");
+  const asked = new Set(input.questions.map((q) => q.idx));
+  const byIdx = new Map<number, string[]>();
+  for (const q of out.questions) if (asked.has(q.idx)) byIdx.set(q.idx, q.candidates.slice(0, CANDIDATES_MAX));
+  return { supplierNoun: out.supplier_noun.trim().toLowerCase(), byIdx };
 }
 
 // ----------------------------------------------------------- brand extraction
