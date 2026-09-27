@@ -30,9 +30,15 @@ const quiet: React.CSSProperties = { background: "none", border: "none", color: 
 
 const ro = (readOnly?: boolean) => (readOnly ? { readOnly: true, tabIndex: -1, "aria-readonly": true as const } : {});
 
+/* The busy button's glyph: a ring with a gap, turned by .btn-spin under
+   data-motion. inline-block so the rotation applies (R32, 27 Sep 2026). */
+const Spinner = () => <span className="btn-spin" aria-hidden="true" />;
+
 /* ── 1. Domain ── */
 export function DomainScreen(p: {
   value: string; onChange?: (v: string) => void; onSubmit?: (e: React.FormEvent) => void;
+  /** While busy, what the check is doing now. Shares the error's line. */
+  status?: string;
   error?: string; busy?: boolean; readOnly?: boolean; id?: string;
   /** Server action for the no-JS path. With JS, onSubmit prevents default and handles it. */
   action?: (formData: FormData) => void | Promise<void>;
@@ -40,6 +46,17 @@ export function DomainScreen(p: {
   dark?: boolean;
 }) {
   const id = p.id ?? "scan-domain";
+  /* One line under the field for both states (R32): the step while busy, the
+     reason on failure, nothing when idle. It is always rendered so a screen
+     reader has the live region before the first step lands; role=alert only
+     when it carries an error, for the reason given on the light form below. */
+  const line = p.error || p.status || "";
+  const lineProps = {
+    id: `${id}-err`,
+    role: p.error ? "alert" : "status",
+    style: { fontSize: "0.8125rem", marginTop: line ? "0.5rem" : 0, marginBottom: 0 },
+  } as const;
+  const lock = { ...ro(p.readOnly || p.busy) };
   if (p.dark) {
     return (
       <form action={p.action} onSubmit={p.onSubmit ?? ((e) => e.preventDefault())} noValidate>
@@ -48,13 +65,13 @@ export function DomainScreen(p: {
           <input id={id} name="domain" inputMode="url" autoComplete="url" placeholder="yourdomain.com"
             maxLength={WAITLIST_LIMITS.domain}
             value={p.value} onChange={(e) => p.onChange?.(e.target.value)}
-            style={{ flex: "1 1 auto", minWidth: 0, fontFamily: "inherit", fontSize: "16px", background: "transparent", border: 0, color: T.surface, padding: "0 14px", outline: "none", minHeight: "44px" }}
-            aria-invalid={Boolean(p.error)} aria-describedby={p.error ? `${id}-err` : undefined} {...ro(p.readOnly)} />
-          <button type="submit" className="btn-primary" style={{ fontFamily: "inherit", background: T.accent, color: T.surface, border: 0, fontSize: "15px", fontWeight: 600, padding: "0 22px", borderRadius: "10px", cursor: "pointer", minHeight: "44px", flex: "none" }} disabled={p.busy || p.readOnly} tabIndex={p.readOnly ? -1 : undefined}>
-            {p.busy ? "Checking" : "Run a free scan"}
+            style={{ flex: "1 1 auto", minWidth: 0, fontFamily: "inherit", fontSize: "16px", background: "transparent", border: 0, color: T.surface, padding: "0 14px", outline: "none", minHeight: "44px", opacity: p.busy ? 0.75 : 1 }}
+            aria-invalid={Boolean(p.error)} aria-describedby={line ? `${id}-err` : undefined} {...lock} />
+          <button type="submit" className="btn-primary" data-busy={p.busy ? "1" : undefined} style={{ fontFamily: "inherit", background: T.accent, color: T.surface, border: 0, fontSize: "15px", fontWeight: 600, padding: "0 22px", borderRadius: "10px", cursor: "pointer", minHeight: "44px", flex: "none" }} disabled={p.busy || p.readOnly} tabIndex={p.readOnly ? -1 : undefined}>
+            {p.busy ? <><Spinner />Checking</> : "Run a free scan"}
           </button>
         </div>
-        {p.error && <p id={`${id}-err`} role="alert" style={{ fontSize: "0.8125rem", color: D.missFg, marginTop: "0.5rem", textAlign: "left" }}>{p.error}</p>}
+        <p {...lineProps} style={{ ...lineProps.style, color: p.error ? D.missFg : D.muted, textAlign: "left" }}>{line}</p>
       </form>
     );
   }
@@ -69,10 +86,10 @@ export function DomainScreen(p: {
             stops it at the field. */}
         <input id={id} name="domain" inputMode="url" autoComplete="url" placeholder="example.com"
           maxLength={WAITLIST_LIMITS.domain}
-          value={p.value} onChange={(e) => p.onChange?.(e.target.value)} style={{ ...field, flex: "1 1 220px" }}
-          aria-invalid={Boolean(p.error)} aria-describedby={p.error ? `${id}-err` : undefined} {...ro(p.readOnly)} />
-        <button type="submit" className="btn-primary" style={btn} disabled={p.busy || p.readOnly} tabIndex={p.readOnly ? -1 : undefined}>
-          {p.busy ? "Checking" : "Check"}
+          value={p.value} onChange={(e) => p.onChange?.(e.target.value)} style={{ ...field, flex: "1 1 220px", opacity: p.busy ? 0.75 : 1 }}
+          aria-invalid={Boolean(p.error)} aria-describedby={line ? `${id}-err` : undefined} {...lock} />
+        <button type="submit" className="btn-primary" data-busy={p.busy ? "1" : undefined} style={btn} disabled={p.busy || p.readOnly} tabIndex={p.readOnly ? -1 : undefined}>
+          {p.busy ? <><Spinner />Checking</> : "Check"}
         </button>
       </div>
       {/* role=alert, and aria-describedby is not a substitute for it. The
@@ -81,7 +98,7 @@ export function DomainScreen(p: {
           sentence explaining why appeared on screen and was announced to
           nobody. This is the domain field in the hero - the first control on
           the site and the most-refused one on it. */}
-      {p.error && <p id={`${id}-err`} role="alert" style={{ fontSize: "0.8125rem", color: T.badFg, marginTop: "0.5rem" }}>{p.error}</p>}
+      <p {...lineProps} style={{ ...lineProps.style, color: p.error ? T.badFg : T.soft }}>{line}</p>
     </form>
   );
 }

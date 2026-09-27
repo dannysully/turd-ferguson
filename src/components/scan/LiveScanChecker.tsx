@@ -1,9 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { track } from "@/lib/analytics";
+import { normalizeDomain } from "@/lib/scan/domain";
 
 import { DomainScreen } from "./screens";
 import Turnstile from "./Turnstile";
@@ -25,11 +26,33 @@ export default function LiveScanChecker({ initialDomain = "", dark = false }: { 
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [step, setStep] = useState(0);
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  /**
+   * What the start route is doing while the button says Checking, in its own
+   * order (R32, 27 Sep 2026): the domain and the ceilings, then the market,
+   * then the site read that names the brand. It holds on the last rather than
+   * looping. Danny's third step was "Writing your questions", but nothing in
+   * /api/scan/start writes them - they are written after the confirm step, by
+   * /questions - so the third says what this call actually does.
+   */
+  const shown = normalizeDomain(domain);
+  const steps = [`Checking ${shown}`, "Working out your market", "Reading your site"];
+
+  function stopSteps() {
+    timers.current.forEach(clearTimeout);
+    timers.current = [];
+  }
+  useEffect(() => stopSteps, []);
 
   async function onDomain(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setBusy(true);
+    setStep(0);
+    stopSteps();
+    timers.current = [setTimeout(() => setStep(1), 1500), setTimeout(() => setStep(2), 3500)];
     track("scan_started", { domain });
 
     try {
@@ -46,6 +69,7 @@ export default function LiveScanChecker({ initialDomain = "", dark = false }: { 
       const data = await res.json();
 
       if (!res.ok) {
+        stopSteps();
         setError(data.message ?? "Something went wrong. Please try again.");
         setBusy(false);
         return;
@@ -53,9 +77,11 @@ export default function LiveScanChecker({ initialDomain = "", dark = false }: { 
 
       // Left busy on purpose: the navigation is the next thing that happens,
       // and a field that goes live again for half a second invites a second
-      // submission of the same domain.
+      // submission of the same domain. The steps stop where they are.
+      stopSteps();
       router.push("/scan/" + data.token);
     } catch {
+      stopSteps();
       setError("We could not reach the checker. Please try again.");
       setBusy(false);
     }
@@ -64,10 +90,11 @@ export default function LiveScanChecker({ initialDomain = "", dark = false }: { 
   return (
     <div>
       <DomainScreen
-        value={domain}
+        value={busy ? shown : domain}
         onChange={setDomain}
         onSubmit={onDomain}
         error={error}
+        status={busy ? steps[step] : ""}
         busy={busy}
         dark={dark}
       />

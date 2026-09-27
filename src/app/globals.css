@@ -127,6 +127,19 @@ details summary::-webkit-details-marker {
   transform: translateY(-1px);
   text-decoration: none;
 }
+/* The domain button while a check runs (R32, 27 Sep 2026): a ring before
+   "Checking" and the button breathing on a 1.6s cycle. Opacity rather than
+   the glow's own rgba, which would be a second copy of an off-palette colour.
+   Both only move under data-motion; the ring sits still otherwise. */
+.btn-spin { display: inline-block; width: 0.9em; height: 0.9em; margin-right: 8px; vertical-align: -0.12em; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; }
+@keyframes btnSpin { to { transform: rotate(360deg); } }
+@keyframes btnPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.78; } }
+html[data-motion="on"] .btn-spin { animation: btnSpin 0.8s linear infinite; }
+html[data-motion="on"] .btn-primary[data-busy="1"] { animation: btnPulse 1.6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  html[data-motion="on"] .btn-spin,
+  html[data-motion="on"] .btn-primary[data-busy="1"] { animation: none; }
+}
 
 /* ── Rebuilt homepage boards ─────────────────────────────────────── */
 
