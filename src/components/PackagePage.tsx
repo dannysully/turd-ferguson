@@ -1,3 +1,4 @@
+import TierEngines from "@/components/TierEngines";
 import TierName, { TierText, type TierKey } from "@/components/TierName";
 import { CONTACT_URL, TIERS, TRACKED_QUESTIONS, contactUrlFor, type Tier } from "@/config/pricing";
 import { splitPriceLabel } from "@/config/price-label";
@@ -125,6 +126,7 @@ export default function PackagePage({
           <p style={{ margin: "8px 0 16px", fontSize: "13.5px", lineHeight: 1.6, color: T.soft }}>
             {tier.priceBasis ?? "Monthly, no minimum term, white-labelled. What you pay us, not what you charge on."}
           </p>
+          <TierEngines tier={tier.key} size={16} colour={T.soft} style={{ margin: "-4px 0 16px" }} />
           <a
             href={tier.key === "tracked" ? contactUrlFor("tracked") : CONTACT_URL}
             className="btn-primary"

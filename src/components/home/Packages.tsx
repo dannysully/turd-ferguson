@@ -1,3 +1,4 @@
+import TierEngines from "@/components/TierEngines";
 import TierName, { type TierKey } from "@/components/TierName";
 import { TIERS, contactUrlFor } from "@/config/pricing";
 import { splitPriceLabel } from "@/config/price-label";
@@ -121,6 +122,7 @@ export default function Packages() {
                   <TierName tier={t.key} />
                 </span>
                 <span style={{ display: "block", fontSize: "14px", color: D.muted, marginTop: "4px" }}>{t.priceLabel}</span>
+                <TierEngines tier={t.key} size={14} colour={D.muted} style={{ marginTop: "8px" }} />
               </li>
             ))}
             </ol>
@@ -158,6 +160,7 @@ export default function Packages() {
                     <div style={{ fontSize: "12px", lineHeight: 1.45, color: T.soft, marginTop: "4px", minHeight: "32px" }}>
                       {t.priceBasis ?? t.positioning}
                     </div>
+                    <TierEngines tier={t.key} size={14} colour={T.soft} style={{ marginTop: "10px", minHeight: "18px" }} />
                     <a
                       href={CTA[t.key].href ?? t.href}
                       className={t.emphasis ? "pkg-btn pkg-btn--dark" : "pkg-btn"}

@@ -21,6 +21,7 @@ import { TIER_PLAIN, type TierKey } from "@/components/TierName";
 // The site's one list joiner. A second copy of "a, b and c" written here is
 // the two-copies-of-one-function species this repo has already paid for once.
 import { listOf } from "@/config/scan-shape";
+import type { Engine } from "@/lib/scan/engines";
 
 /** Single destination for every CTA until real signup and booking flows exist. */
 export const CONTACT_URL = "/contact";
@@ -50,6 +51,20 @@ export function contactUrlFor(tier: TierKey): string {
  * and the sentence that qualifies it cannot come apart.
  */
 export const TRACKED_QUESTIONS = 20;
+
+/**
+ * Which engines each tier reads (pricing spec, Danny, 27 Sep 2026, sections 1
+ * and 4). alwaystracked reads the four the free scan reads; every higher tier
+ * adds Claude as a fifth on the plan's own prompts. The +$49 tracking pack
+ * stays at four on every tier (open decision 4), so this is the plan, not the
+ * pack. One list, read by every surface that draws the logos, so a tile cannot
+ * show five where the tier page shows four.
+ */
+export const TRACKING_ENGINES: readonly Engine[] = ["google_aio", "chatgpt", "gemini", "perplexity"];
+export const PLAN_ENGINES: readonly Engine[] = [...TRACKING_ENGINES, "claude"];
+export function enginesFor(tier: TierKey): readonly Engine[] {
+  return tier === "tracked" ? TRACKING_ENGINES : PLAN_ENGINES;
+}
 
 export type Tier = {
   id: string;
