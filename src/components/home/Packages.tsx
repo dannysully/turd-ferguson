@@ -129,6 +129,12 @@ export default function Packages() {
       </div>
 
       <div style={{ ...SHELL, paddingTop: "48px" }}>
+        {/* Below 860px the table scrolls sideways and read as one tier of
+            four (Danny, 26 Sep 2026, R28). The label says so; the right-edge
+            fade in globals.css says so again and clears at the end. */}
+        <p className="pkg-cue" style={{ margin: "0 0 10px", fontSize: "12.5px", fontWeight: 600, color: T.soft }}>
+          Swipe for all four tiers <span aria-hidden="true">→</span>
+        </p>
         <div className="pkg-scroll" style={{ ...CARD, overflow: "hidden" }}>
           <table className="pkg-table">
             <caption className="sr-only">What each tier adds</caption>

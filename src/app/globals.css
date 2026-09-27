@@ -247,13 +247,31 @@ html[data-motion="on"] .stair-step { animation: stair-step 10s infinite both; an
 .pkg-btn { white-space: nowrap; }
 .pkg-btn:hover { border-color: var(--accent) !important; }
 .pkg-foot { display: flex; justify-content: space-between; gap: 8px 24px; flex-wrap: wrap; }
+.pkg-cue { display: none; }
+/* The scroll cue, 26 Sep 2026 (R28): the right edge fades while there is more
+   table to the right. Where scroll-driven animation exists the fade runs out
+   as the reader reaches the end; elsewhere it simply stays. */
+@property --pkg-fade { syntax: "<length>"; inherits: false; initial-value: 56px; }
+@keyframes pkgFade { from { --pkg-fade: 56px; } 92% { --pkg-fade: 56px; } to { --pkg-fade: 0px; } }
 @media (max-width: 860px) {
+  .pkg-cue { display: block; }
   .pkg-scroll { overflow-x: auto !important; }
+  .pkg-scroll {
+    -webkit-mask-image: linear-gradient(to right, var(--ink) calc(100% - var(--pkg-fade)), transparent);
+    mask-image: linear-gradient(to right, var(--ink) calc(100% - var(--pkg-fade)), transparent);
+  }
+  @supports (animation-timeline: scroll()) {
+    .pkg-scroll { animation: pkgFade linear both; animation-timeline: scroll(self inline); }
+  }
   /* 820 not 680, 25 Sep: "Go for position #1" is 112px of text and the tier
      columns held 89, so it broke over two lines. The table already scrolls
      sideways here; this gives each button about 120px. */
   .pkg-table { min-width: 820px; }
   .pkg-col-what { width: 24%; }
+}
+/* Under reduced motion the fade holds still rather than tracking the scroll. */
+@media (prefers-reduced-motion: reduce) {
+  .pkg-scroll { animation: none; }
 }
 
 /* FAQ disclosure. The marker is removed because the hint column already says
