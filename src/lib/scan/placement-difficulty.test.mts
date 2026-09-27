@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { NOT_LISTED_BASIS, bandOf, currentBasis, scoreDifficulty, selfServeCount } from "./placement-difficulty.ts";
+import { NOT_LISTED_BASIS, bandOf, currentBasis, scoreDifficulty, selfServeCount, selfServeSentence } from "./placement-difficulty.ts";
 
 test("bands", () => {
   assert.equal(bandOf(0), "Easy");
@@ -82,4 +82,11 @@ test("self-serve count is the easy ones of the scored ones", () => {
     easy: 1,
     scored: 3,
   });
+});
+
+test("self-serve sentence words none and all, counts the rest (R48)", () => {
+  assert.equal(selfServeSentence({ easy: 0, scored: 4 }), "It would be difficult for you to place these yourself.");
+  assert.equal(selfServeSentence({ easy: 4, scored: 4 }), "You could place all of these yourself.");
+  assert.equal(selfServeSentence({ easy: 1, scored: 4 }), "You could place 1 of these yourself.");
+  assert.equal(selfServeSentence({ easy: 0, scored: 0 }), null);
 });

@@ -100,3 +100,15 @@ export function selfServeCount(rows: readonly { difficulty?: number | null }[]):
   const scored = rows.filter((r) => typeof r.difficulty === "number");
   return { easy: scored.filter((r) => bandOf(r.difficulty as number) === "Easy").length, scored: scored.length };
 }
+
+/**
+ * The sentence for that count. None and all read as words, not "0 of" or
+ * "5 of 5" (Danny, 27 Sep, R48). Null when nothing was scored - an unscored
+ * list says nothing rather than zero.
+ */
+export function selfServeSentence({ easy, scored }: { easy: number; scored: number }): string | null {
+  if (!scored) return null;
+  if (easy === 0) return "It would be difficult for you to place these yourself.";
+  if (easy === scored) return "You could place all of these yourself.";
+  return "You could place " + easy + " of these yourself.";
+}

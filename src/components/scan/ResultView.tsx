@@ -26,7 +26,7 @@ import {
 import { btn, field, label } from "./screens";
 import WalkthroughForm from "./WalkthroughForm";
 import { type Inline, parseAnswer } from "./answer-markdown";
-import { type Band, bandOf, selfServeCount } from "@/lib/scan/placement-difficulty";
+import { type Band, bandOf, selfServeCount, selfServeSentence } from "@/lib/scan/placement-difficulty";
 
 /**
  * The result, free and unlocked, from Flow2Free.dc.html and Flow3Report.dc.html.
@@ -581,9 +581,7 @@ function DifficultyBar(p: { score: number | null }) {
  * at the right end of the section's heading line.
  */
 function selfServeLine(r: RunScanResponse): string | null {
-  const { easy, scored } = selfServeCount(r.opportunities ?? []);
-  if (!scored) return null;
-  return "You could place " + easy + " of these yourself.";
+  return selfServeSentence(selfServeCount(r.opportunities ?? []));
 }
 
 /**

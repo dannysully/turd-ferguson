@@ -994,7 +994,7 @@ Items filed by the reviewer from live checks and from docs/danny.md. The builder
   engine-name text, and that the untouched surfaces (ScanProgress, EngineDemo,
   ResultView) are unaffected.
 
-- [ ] R47 Teaser migration confirmed applied - unblock/close R43 (Danny,
+- [x] R47 -> 8b22dfe (live read 27 Sep 08:41Z, GET https://alwayscited.com/api/scan/6839484caa0505c044ba3d43dc17a97b: every question object carries target_keyword, search_volume, keyword_rank - e.g. "online accounting firms"/90/1, "limited company accountants"/1000/16. R43 ticked, blocked.md line marked resolved in place) Teaser migration confirmed applied - unblock/close R43 (Danny,
   docs/danny.md - filed 2026-09-27, line 49). Danny's word: "Applied
   20260927010000_teaser_question_keyword.sql (Claude via Chrome, read back
   true, live teaser carries target_keyword/search_volume/keyword_rank on the
@@ -1030,6 +1030,16 @@ Items filed by the reviewer from live checks and from docs/danny.md. The builder
   Verify: the live read in step 1, quoted (URL, keys present/absent) in this
   item's tick line or docs/parity/log.md; `npx tsc --noEmit`, `npm run check`
   if any file changes (there should be none beyond the two docs).
+
+  Reviewer note, 27 Sep 08:50 UTC: step 1 done, so the builder can go
+  straight to step 2. `GET https://alwayscited.com/api/scan/
+  57520fc70f3cf9dced06f60186ae059e` (the `scan_teaser` RPC route,
+  `src/app/api/scan/[token]/route.ts`) now returns question objects with
+  keys `idx,kind,named,answered,question,google_rank,keyword_rank,
+  search_volume,target_keyword` - all three new keys present, all null on
+  every row of this pre-ship scan (expected, no backfill). Confirmed
+  separately: `/api/scan/<token>/full` (the unlock payload) already carried
+  them, unchanged by this. Danny's word is verified live.
 
 - [ ] R48 Result page placement line: word the count's three cases
   separately (Danny, docs/danny.md - filed 2026-09-27, line 50).
