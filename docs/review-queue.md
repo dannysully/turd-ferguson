@@ -1216,6 +1216,11 @@ Items filed by the reviewer from live checks and from docs/danny.md. The builder
   /alwayseverywhere rewrite is a page, not a line. Section 8's alwaystracked
   "and 10 keywords, checked daily" waits on section 3: a daily basis under the
   old $99 would publish an offer that is not sold.
+  **Progress (27 Sep 22:10Z, builder):** section 4's Claude half shipped ->
+  cfc041b. `enginesFor()` in pricing.ts (four on tracked, five with Claude
+  above); `TierEngines` draws the marks, plus "Includes Claude" on the higher
+  tiers, on the packages staircase, the table header and every tier page's
+  price card. Section 4's selector/price half still waits on section 3.
 
 - [ ] R51 `src/config/sector-prices.json` confirmed in place - unblock R50's
   blocker 1, build sections 1-4 (Danny, docs/danny.md - filed 2026-09-27, line
