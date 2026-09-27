@@ -20,11 +20,24 @@ import Turnstile from "./Turnstile";
  *
  * A cached complete scan goes to the same place. The token is the scan.
  */
-export default function LiveScanChecker({ initialDomain = "", dark = false }: { initialDomain?: string; dark?: boolean }) {
+export default function LiveScanChecker({
+  initialDomain = "",
+  dark = false,
+  onBusyChange,
+}: {
+  initialDomain?: string;
+  dark?: boolean;
+  /** Told every time busy flips, so a parent can hide its own lines (R49). */
+  onBusyChange?: (busy: boolean) => void;
+}) {
   const router = useRouter();
   const [domain, setDomain] = useState(initialDomain);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusyState] = useState(false);
+  function setBusy(next: boolean) {
+    setBusyState(next);
+    onBusyChange?.(next);
+  }
   const [error, setError] = useState("");
   const [step, setStep] = useState(0);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);

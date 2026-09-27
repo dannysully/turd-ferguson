@@ -2,11 +2,9 @@ import { FREE_ENGINE_COUNT, QUESTIONS } from "@/config/scan-shape";
 import { T } from "@/config/tokens";
 import { scanReady } from "@/lib/scan/readiness";
 
-import LiveScanChecker from "@/components/scan/LiveScanChecker";
-import RequestScanForm from "@/components/scan/RequestScanForm";
-
 import { D, HEADER_H, WASH, WASH_SIZE } from "./dark";
 import EngineDemo, { word } from "./EngineDemo";
+import HeroScanArea from "./HeroScanArea";
 
 /**
  * The homepage hero, from Main.dc.html (25 Sep 2026): dark, centred, the
@@ -44,20 +42,10 @@ export default function HomeHero() {
           We find the pages the answers are built from, then get you named inside them.
         </p>
 
-        <div style={{ margin: "30px auto 0", maxWidth: "520px" }}>
-          {scanReady() ? (
-            <LiveScanChecker dark />
-          ) : (
-            // The fallback form is drawn for a light ground, so it gets one.
-            <div style={{ background: T.surface, borderRadius: "14px", padding: "16px", textAlign: "left", color: T.ink }}>
-              <RequestScanForm />
-            </div>
-          )}
-        </div>
-        <p style={{ margin: "12px 0 0", fontSize: "13px", color: D.quiet }}>
-          {word(QUESTIONS)} buyer questions, {word(FREE_ENGINE_COUNT).toLowerCase()} engines, around two minutes. No card,
-          no email.
-        </p>
+        <HeroScanArea
+          ready={scanReady()}
+          questionsLine={`${word(QUESTIONS)} buyer questions, ${word(FREE_ENGINE_COUNT).toLowerCase()} engines, around two minutes. No card, no email.`}
+        />
 
         <EngineDemo />
       </div>

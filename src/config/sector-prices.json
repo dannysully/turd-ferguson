@@ -1,0 +1,241 @@
+{
+  "business": {
+    "label": "Business, marketing and legal",
+    "us": {
+      "currency": "USD",
+      "mentioned": 1595,
+      "cited": 3595
+    },
+    "uk": {
+      "currency": "GBP",
+      "mentioned": 1295,
+      "cited": 2795
+    }
+  },
+  "technology": {
+    "label": "Technology and software",
+    "us": {
+      "currency": "USD",
+      "mentioned": 1595,
+      "cited": 3595
+    },
+    "uk": {
+      "currency": "GBP",
+      "mentioned": 1195,
+      "cited": 2795
+    }
+  },
+  "finance": {
+    "label": "Finance",
+    "us": {
+      "currency": "USD",
+      "mentioned": 1595,
+      "cited": 3695
+    },
+    "uk": {
+      "currency": "GBP",
+      "mentioned": 1295,
+      "cited": 2895
+    }
+  },
+  "health": {
+    "label": "Health and medicine",
+    "us": {
+      "currency": "USD",
+      "mentioned": 1495,
+      "cited": 3495
+    },
+    "uk": {
+      "currency": "GBP",
+      "mentioned": 1295,
+      "cited": 2895
+    }
+  },
+  "careers": {
+    "label": "Careers and HR",
+    "us": {
+      "currency": "USD",
+      "mentioned": 1595,
+      "cited": 3595
+    },
+    "uk": {
+      "currency": "GBP",
+      "mentioned": 1595,
+      "cited": 3195
+    }
+  },
+  "education": {
+    "label": "Education",
+    "us": {
+      "currency": "USD",
+      "mentioned": 1395,
+      "cited": 3495
+    },
+    "uk": {
+      "currency": "GBP",
+      "mentioned": 1295,
+      "cited": 2795
+    }
+  },
+  "property": {
+    "label": "Property and construction",
+    "us": {
+      "currency": "USD",
+      "mentioned": 1695,
+      "cited": 3795
+    },
+    "uk": {
+      "currency": "GBP",
+      "mentioned": 1195,
+      "cited": 2695
+    }
+  },
+  "manufacturing": {
+    "label": "Manufacturing and industrial",
+    "us": {
+      "currency": "USD",
+      "mentioned": 6895,
+      "cited": 8895
+    },
+    "uk": {
+      "currency": "GBP",
+      "mentioned": 2995,
+      "cited": 4595
+    }
+  },
+  "automotive": {
+    "label": "Automotive and transport",
+    "us": {
+      "currency": "USD",
+      "mentioned": 1995,
+      "cited": 4095
+    },
+    "uk": {
+      "currency": "GBP",
+      "mentioned": 1695,
+      "cited": 3295
+    }
+  },
+  "retail": {
+    "label": "Retail, ecommerce and fashion",
+    "us": {
+      "currency": "USD",
+      "mentioned": 1895,
+      "cited": 3995
+    },
+    "uk": {
+      "currency": "GBP",
+      "mentioned": 1195,
+      "cited": 2695
+    }
+  },
+  "travel": {
+    "label": "Travel",
+    "us": {
+      "currency": "USD",
+      "mentioned": 1695,
+      "cited": 3795
+    },
+    "uk": {
+      "currency": "GBP",
+      "mentioned": 1295,
+      "cited": 2795
+    }
+  },
+  "food": {
+    "label": "Food and drink",
+    "us": {
+      "currency": "USD",
+      "mentioned": 1695,
+      "cited": 3695
+    },
+    "uk": {
+      "currency": "GBP",
+      "mentioned": 1195,
+      "cited": 2695
+    }
+  },
+  "home": {
+    "label": "Home, family and children",
+    "us": {
+      "currency": "USD",
+      "mentioned": 1395,
+      "cited": 3495
+    },
+    "uk": {
+      "currency": "GBP",
+      "mentioned": 995,
+      "cited": 2495
+    }
+  },
+  "entertainment": {
+    "label": "Entertainment, arts and culture",
+    "us": {
+      "currency": "USD",
+      "mentioned": 1795,
+      "cited": 3895
+    },
+    "uk": {
+      "currency": "GBP",
+      "mentioned": 1495,
+      "cited": 2995
+    }
+  },
+  "sports": {
+    "label": "Sports, games and leisure",
+    "us": {
+      "currency": "USD",
+      "mentioned": 1895,
+      "cited": 3895
+    },
+    "uk": {
+      "currency": "GBP",
+      "mentioned": 1495,
+      "cited": 3095
+    }
+  },
+  "sustainability": {
+    "label": "Sustainability and environment",
+    "us": {
+      "currency": "USD",
+      "mentioned": 1495,
+      "cited": 3595
+    },
+    "uk": {
+      "currency": "GBP",
+      "mentioned": 1295,
+      "cited": 2795
+    }
+  },
+  "animals": {
+    "label": "Animals and pets",
+    "us": {
+      "currency": "USD",
+      "mentioned": 1995,
+      "cited": 3995
+    },
+    "uk": {
+      "currency": "GBP",
+      "mentioned": 1395,
+      "cited": 2895
+    }
+  },
+  "science": {
+    "label": "Science",
+    "us": {
+      "currency": "USD",
+      "mentioned": 1395,
+      "cited": 3395
+    },
+    "uk": {
+      "currency": "GBP",
+      "mentioned": 3495,
+      "cited": 5095
+    }
+  },
+  "other": {
+    "label": "Other",
+    "us": "call",
+    "uk": "call"
+  }
+}
