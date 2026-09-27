@@ -358,6 +358,17 @@ html[data-motion="on"] .stair-step { animation: stair-step 10s infinite both; an
   }
 }
 
+/* The two-line hero headline runs on as one line on a phone (Danny, 27 Sep,
+   R46): the break goes, and "We close it." never splits mid-phrase. */
+.hero-close {
+  white-space: nowrap;
+}
+@media (max-width: 640px) {
+  .hero-break {
+    display: none;
+  }
+}
+
 /* ── The one beat ────────────────────────────────────────────────
 
    The brief allows the page one piece of motion, and the test is whether

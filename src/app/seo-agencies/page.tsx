@@ -3,6 +3,7 @@ import { WAITLIST_LIMITS } from "@/config/contact";
 import { OG_IMAGE } from "@/config/og";
 import Link from "next/link";
 
+import EngineLogo from "@/components/EngineLogo";
 import { D } from "@/components/home/dark";
 import { TIERS, TRACKED_QUESTIONS } from "@/config/pricing";
 import { CARD, SHELL, T } from "@/config/tokens";
@@ -185,8 +186,12 @@ export default function SeoAgenciesPage() {
           </div>
 
           <div style={{ background: D.ground, borderRadius: "18px", padding: "20px 22px", color: T.surface, minHeight: "304px", boxSizing: "border-box" }}>
-            <div style={{ fontSize: "12px", color: D.muted }}>
-              <span style={{ color: T.surface, fontWeight: 600 }}>ChatGPT</span> · best invoicing software for freelancers
+            <div style={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "12px", color: D.muted }}>
+              {/* The logo carries the engine; the word is dropped (Danny, 27 Sep, R46). */}
+              <span style={{ color: T.surface, display: "flex" }}>
+                <EngineLogo engine="chatgpt" size={14} title="ChatGPT" />
+              </span>
+              best invoicing software for freelancers
             </div>
             <div aria-hidden="true" style={{ height: "6px", background: D.bar, borderRadius: "3px", marginTop: "16px", width: "90%" }} />
             <div aria-hidden="true" style={{ height: "6px", background: D.bar, borderRadius: "3px", marginTop: "6px", width: "70%" }} />

@@ -2,12 +2,14 @@ import type { Metadata } from "next";
 import { OG_IMAGE } from "@/config/og";
 import Link from "next/link";
 
+import EngineLogo from "@/components/EngineLogo";
 import TierName from "@/components/TierName";
 import { D, WASH_PR } from "@/components/home/dark";
 import { TIERS } from "@/config/pricing";
 import { FREE_ANSWERS } from "@/config/scan-shape";
 import { CARD, SHELL, T } from "@/config/tokens";
 import { MAX_COVERAGE_URLS } from "@/lib/coverage/csv";
+import { ENGINE_SPECS, type Engine } from "@/lib/scan/engines";
 
 export const metadata: Metadata = {
   title: "For PR agencies",
@@ -43,10 +45,10 @@ const PIECES: { outlet: string; title: string; live: boolean }[] = [
   { outlet: "Vertical blog", title: "Why Tallyroo rebuilt onboarding", live: true },
 ];
 
-const ANSWERS: { engine: string; q: string }[] = [
-  { engine: "ChatGPT · brand question", q: "what does tallyroo do" },
-  { engine: "Gemini · category question", q: "best invoicing software for freelancers" },
-  { engine: "Perplexity · objection question", q: "is tallyroo easy to set up" },
+const ANSWERS: { engine: Engine; kind: string; q: string }[] = [
+  { engine: "chatgpt", kind: "brand question", q: "what does tallyroo do" },
+  { engine: "gemini", kind: "category question", q: "best invoicing software for freelancers" },
+  { engine: "perplexity", kind: "objection question", q: "is tallyroo easy to set up" },
 ];
 
 /**
@@ -159,7 +161,11 @@ export default function PrAgenciesPage() {
               {ANSWERS.map((a) => (
                 <div key={a.q} style={{ background: T.surface, color: T.ink, borderRadius: "14px", padding: "14px 16px", minHeight: "82px", boxSizing: "border-box" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
-                    <span style={{ fontSize: "11px", color: T.soft }}>{a.engine}</span>
+                    {/* The logo carries the engine; the word is dropped (Danny, 27 Sep, R46). */}
+                    <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", color: T.soft }}>
+                      <EngineLogo engine={a.engine} size={14} title={ENGINE_SPECS[a.engine].label} />
+                      {a.kind}
+                    </span>
                     <span style={{ fontSize: "11px", fontWeight: 600, color: T.accentHover, background: T.wash, borderRadius: "999px", padding: "2px 9px", whiteSpace: "nowrap" }}>
                       Client named
                     </span>

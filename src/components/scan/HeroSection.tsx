@@ -70,8 +70,8 @@ export default function HeroSection({
           }}
         >
           <span style={{ color: T.ink }}>Every AI tool shows you the gap.</span>
-          <br />
-          <span style={{ color: T.accent }}>We close it.</span>
+          <br className="hero-break" />{" "}
+          <span className="hero-close" style={{ color: T.accent }}>We close it.</span>
         </h1>
 
         {/* The two boards write this line differently - the phone one is

@@ -240,8 +240,9 @@ function BeatTracked() {
         <div className="proc-qrow" style={{ paddingBottom: "7px", borderBottom: hair }}>
           <span style={MICRO}>Question</span>
           {FREE_ENGINES.map((e) => (
-            <span key={e} style={{ ...MICRO, textAlign: "center", fontSize: "10.5px" }}>
-              {ENGINE_SPECS[e].label}
+            <span key={e} title={ENGINE_SPECS[e].label} style={{ display: "flex", justifyContent: "center" }}>
+              <EngineLogo engine={e} size={14} />
+              <span className="sr-only">{ENGINE_SPECS[e].label}</span>
             </span>
           ))}
         </div>
