@@ -1127,3 +1127,11 @@ Every pure and model piece of R39/R40/R43 is now in the tree. What remains is th
 - Untouched by the diff: ScanProgress, EngineDemo, ResultView.
 - Still differs: the `/seo-agencies` Google card still reads "Google · ..." - not in R46's list, left alone.
 - Denominator: local and LIVE, 1280 and 390, JS on and `--js-off` (settled), homepage hero also `--reduced`. Clips in docs/parity/R46-spots and R46-live, hero comparisons in R46-hero-* and R46-live-hero-*.
+
+## R43 - result page Google column: keyword, volume, rank (27 Sep 2026, 08:41Z)
+
+- Commit: no new code; display 9bdd513, data 2c56710, teaser migration 20260927010000 (applied by Danny's Chrome). Checked on production ec87486.
+- Board: none for this line (Danny's copy, docs/danny.md).
+- Matches: `/scan/6839484c...` (crunch.co.uk, post-2c56710) rows read "online accounting firms - 90/mo - Google #1", "accountants with bookkeeping software - not in top 20" (null volume, clause dropped), "limited company accountants - 1,000/mo - Google #16"; its two keyword-less rows keep "Google #9" / "Not in Google top 20". Pre-R41 scan `/scan/57520fc7...` unchanged ("Not in Google top 20"). 390 stacks the line under the question inside the row card.
+- Still differs: at 1280 the Google column is narrow, so a long keyword line wraps to three lines - the row grows, layout holds. Under-10 formatting only covered by the result-figures tests; no live row under 10 yet.
+- Denominator: LIVE, two scans, 1280 and 390, JS on. Shots in docs/parity/R43-keyword-line.

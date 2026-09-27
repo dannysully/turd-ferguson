@@ -860,7 +860,7 @@ Items filed by the reviewer from live checks and from docs/danny.md. The builder
   to `/#faq-search-volume`) or are dead code to remove in the same push -
   don't leave them stranded.
 
-- [ ] R43 Result page: question-by-question Google column shows keyword,
+- [x] R43 -> 9bdd513 + 2c56710 (no new code; teaser migration 20260927010000 applied per danny.md 27 Sep. Live 27 Sep 08:41Z on /scan/6839484c... (crunch.co.uk): "online accounting firms - 90/mo - Google #1", "accountants with bookkeeping software - not in top 20" (null volume drops the clause), "limited company accountants - 1,000/mo - Google #16", keyword-less rows keep "Google #9" / "Not in Google top 20"; pre-R41 scan 57520fc7... unchanged. 1280 and 390, stacks under the question at 390. Under-10 covered by result-figures tests, no live row under 10 yet) Result page: question-by-question Google column shows keyword,
   volume and rank (Danny, docs/danny.md - filed 2026-09-27, part of the R38
   reversal - depends on R41's columns existing on the row being rendered).
   `src/components/scan/ResultView.tsx` lines 201 and 258 currently render
@@ -993,3 +993,70 @@ Items filed by the reviewer from live checks and from docs/danny.md. The builder
   confirming each of the three sites now shows a logo with no adjacent
   engine-name text, and that the untouched surfaces (ScanProgress, EngineDemo,
   ResultView) are unaffected.
+
+- [ ] R47 Teaser migration confirmed applied - unblock/close R43 (Danny,
+  docs/danny.md - filed 2026-09-27, line 49). Danny's word: "Applied
+  20260927010000_teaser_question_keyword.sql (Claude via Chrome, read back
+  true, live teaser carries target_keyword/search_volume/keyword_rank on the
+  crunch.co.uk scan)." This is the exact migration `docs/blocked.md`'s open
+  DANNY line (near the end of the file, `supabase/migrations/
+  20260927010000_teaser_question_keyword.sql`) has been waiting on since 27
+  Sep 06:52 - four run notes under it each read the live teaser as still
+  missing the three keys. R43 itself (`src/components/scan/ResultView.tsx`,
+  `googleLine` in `src/lib/scan/result-figures.ts`) is already built per its
+  own builder notes (9bdd513, 392c318, 2c56710) - this item is the
+  verification-and-close step, not new display code.
+  1. Read the live teaser back yourself before touching anything: `GET
+     /api/scan/57520fc70f3cf9dced06f60186ae059e/full` (the standing .co.uk
+     inbox URL) or, if reachable, the crunch.co.uk scan Danny named, via
+     `node`+`fetch`, and confirm the question objects now carry
+     `target_keyword`, `search_volume` and `keyword_rank` keys (not just the
+     six from before: `idx`, `kind`, `named`, `answered`, `question`,
+     `google_rank`). If the standing .co.uk scan predates R39-41 and so has
+     nulls, that is expected (no backfill) - the keys existing at all is what
+     this checks, not their values.
+  2. If confirmed: move the `docs/blocked.md` DANNY line for
+     `20260927010000_teaser_question_keyword.sql` to Settled, with today's
+     date, "Danny, 27 Sep" and this item's commit, in the same push. Tick R43
+     in this file too, pointing at this item's commit, since its only
+     remaining blocker was this migration and the display code is already
+     shipped.
+  3. If NOT confirmed (the keys are still the old six): do not close
+     anything. Log exactly what was read, the same way the four prior run
+     notes under the blocked.md line did, and leave R43 and the blocked.md
+     line open - Danny's note may describe a different scan/environment than
+     what this session can reach, and a live read that disagrees with his
+     word is itself something to report, not to override.
+  Verify: the live read in step 1, quoted (URL, keys present/absent) in this
+  item's tick line or docs/parity/log.md; `npx tsc --noEmit`, `npm run check`
+  if any file changes (there should be none beyond the two docs).
+
+- [ ] R48 Result page placement line: word the count's three cases
+  separately (Danny, docs/danny.md - filed 2026-09-27, line 50).
+  `src/components/scan/ResultView.tsx` lines 583-587, `selfServeLine`:
+  ```
+  function selfServeLine(r: RunScanResponse): string | null {
+    const { easy, scored } = selfServeCount(r.opportunities ?? []);
+    if (!scored) return null;
+    return "You could place " + easy + " of these yourself.";
+  }
+  ```
+  Change the return so three cases read differently, in this order:
+  `easy === 0` -> `"It would be difficult for you to place these yourself."`;
+  `easy === scored` -> `"You could place all of these yourself."`; otherwise
+  keep the existing `"You could place " + easy + " of these yourself."`. Do
+  not touch `!scored` (still `null`, still nothing drawn). `HardOnes` (line
+  596) and the "Want us to secure..." card below it are explicitly to stay as
+  they are - Danny's note says so - so leave that function and everything it
+  renders untouched; only `selfServeLine`'s return changes.
+  There is no dedicated test for this string today (grepped
+  `selfServeLine|of these yourself` across `src` - only the function itself
+  and its doc comment in `placement-difficulty.ts` line 98, no fixture test).
+  Add one alongside the existing `placement-difficulty.test.mts` or as a new
+  case in whichever result-copy test renders `ResultView`/`selfServeLine`
+  against a fixture, covering all three bands: `easy: 0, scored: N` (N>0),
+  `easy: N, scored: N`, and `easy: k, scored: N` (0<k<N).
+  Verify: `npx tsc --noEmit`, `npm run check`; the new test cases; shoot the
+  result page's "Where to get placed" heading line at 1280 and 390 with
+  fixture opportunities producing each of the three cases and confirm the
+  right sentence renders for each.
