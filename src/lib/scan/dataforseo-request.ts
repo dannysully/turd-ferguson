@@ -247,3 +247,46 @@ export function taskCost(task: Task): number {
  * ours - so any question carrying a capital looked up nothing and stored a null
  * volume, which is indistinguishable from a question that genuinely has none.
  */
+
+/**
+ * Search volume came back on 27 September 2026 (Danny, R38/R39), narrower:
+ * Google Ads volume for the derived head keywords, never the question text,
+ * in one batched call per scan. `request-shape.test.mts` holds this path to
+ * this file and the old AI-keyword endpoint to nowhere.
+ *
+ * Not wired to a caller until the R41 columns are applied.
+ */
+export const KEYWORD_VOLUME_PATH = "/v3/keywords_data/google_ads/search_volume/live";
+
+/** The endpoint's own per-task keyword ceiling. */
+export const KEYWORD_VOLUME_MAX = 1000;
+
+/** Lowercased and trimmed: the form DataForSEO echoes a keyword back in. */
+export function keywordForm(k: string): string {
+  return k.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+export function keywordVolumeRequest(keywords: readonly string[], market: Market): EngineRequest {
+  const unique = [...new Set(keywords.map(keywordForm).filter(Boolean))];
+  if (unique.length > KEYWORD_VOLUME_MAX) throw new Error(`${unique.length} keywords is over the ${KEYWORD_VOLUME_MAX} one task takes`);
+  return {
+    path: KEYWORD_VOLUME_PATH,
+    timeoutMs: 60_000,
+    body: [{ keywords: unique, location_code: MARKETS[market].location_code, language_code: "en" }],
+  };
+}
+
+/**
+ * Keyword -> monthly searches, keyed and read in `keywordForm` on both sides
+ * so a capital cannot miss (the defect recorded above). A keyword the task
+ * returned without a number maps to null, which is "not measured", not zero.
+ */
+export function keywordVolumes(task: Task): Map<string, number | null> {
+  const out = new Map<string, number | null>();
+  for (const row of task.result ?? []) {
+    if (typeof row.keyword !== "string") continue;
+    const v = row.search_volume;
+    out.set(keywordForm(row.keyword), typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : null);
+  }
+  return out;
+}

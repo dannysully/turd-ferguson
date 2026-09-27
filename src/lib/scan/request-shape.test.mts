@@ -11,8 +11,12 @@ import {
   SERP_DEPTH,
   TASK_OK,
   budgetFor,
+  KEYWORD_VOLUME_PATH,
   firstTask,
+  keywordForm,
   keywordRankRequest,
+  keywordVolumeRequest,
+  keywordVolumes,
   requestFor,
   taskCost,
   type Task,
@@ -293,6 +297,51 @@ test("nothing in the tree calls the search volume endpoint", () => {
       "homepage FAQ and the confirm screen both publish that this product does not use search volume - " +
       "so reinstating it is a copy change on two surfaces as well as a pipeline change",
   );
+});
+
+/**
+ * The narrower return (Danny, reversed 27 Sep 2026, R39): Google Ads volume
+ * for the derived head keywords, one batched call a scan. The old endpoint
+ * above stays refused by name. This one is held to the module that builds
+ * its request. `dataforseo.ts`, the one place allowed to send it, joins this
+ * list when R41's columns are applied and the call is wired, so a second
+ * door onto the same bill is the defect this reports.
+ *
+ * Asserted as an exact list, which is its own floor: a sweep that stopped
+ * matching the path would fail here, not pass a tree with the call in five
+ * places.
+ */
+test("the keyword volume endpoint is built in one module and sent from at most one", () => {
+  const files: string[] = [];
+  for (const file of sourceFiles(ROOT)) {
+    if (code(readFileSync(join(ROOT, file), "utf8")).includes("keywords_data/google_ads/search_volume")) files.push(file);
+  }
+  assert.deepEqual(files, ["src/lib/scan/dataforseo-request.ts"]);
+});
+
+test("keyword volume request (R39): one batched task, deduplicated in the form DataForSEO echoes", () => {
+  const req = keywordVolumeRequest(["SEO Agencies", "seo agencies ", "invoice finance lenders"], "UK");
+  assert.equal(req.path, KEYWORD_VOLUME_PATH);
+  assert.equal((req.body as unknown[]).length, 1);
+  const [body] = req.body as Record<string, unknown>[];
+  assert.deepEqual(body.keywords, ["seo agencies", "invoice finance lenders"]);
+  assert.equal(body.location_code, MARKETS.UK.location_code);
+  assert.throws(() => keywordVolumeRequest(Array.from({ length: 1001 }, (_, i) => "k" + i), "US"));
+});
+
+test("keyword volumes (R39): a capital cannot miss, and no number is null not zero", () => {
+  const v = keywordVolumes({
+    status_code: TASK_OK,
+    result: [
+      { keyword: "seo agencies", search_volume: 2400 },
+      { keyword: "invoice finance lenders", search_volume: null },
+      { keyword: "odd", search_volume: -1 },
+    ],
+  });
+  assert.equal(v.get(keywordForm("SEO Agencies")), 2400);
+  assert.equal(v.get("invoice finance lenders"), null);
+  assert.equal(v.get("odd"), null);
+  assert.equal(v.has("never asked"), false);
 });
 
 /**
