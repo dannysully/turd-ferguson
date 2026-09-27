@@ -9,6 +9,7 @@ import {
   SOV_ROWS,
   engineLabel,
   fmtDate,
+  googleLine,
   headline,
   isOwnDomain,
   isSubject,
@@ -462,4 +463,28 @@ test("the brand that tops its own leaderboard is recognised as the subject", () 
 test("the plan cards and their labels share one ceiling", () => {
   assert.ok(PLAN_ORDER.length > 0);
   assert.deepEqual(PLAN_ORDER.filter((l) => !l), [], "a plan label is blank, so a card renders 'undefined - join'");
+});
+
+test("googleLine: a question without a derived keyword reads as it always has (R43)", () => {
+  assert.equal(googleLine({ google_rank: 4 }), "Google #4");
+  assert.equal(googleLine({ google_rank: null }), "Not in Google top 20");
+  assert.equal(googleLine({ google_rank: 4, target_keyword: "  " }), "Google #4");
+});
+
+test("googleLine: a derived keyword reads keyword - volume/mo - rank (R43)", () => {
+  const kw = "business cash flow finance providers";
+  assert.equal(
+    googleLine({ google_rank: 3, target_keyword: kw, search_volume: 480, keyword_rank: null }),
+    kw + " - 480/mo - not in top 20",
+  );
+  assert.equal(googleLine({ google_rank: null, target_keyword: kw, search_volume: 12100, keyword_rank: 7 }), kw + " - 12,100/mo - Google #7");
+  // No volume read: the clause drops rather than claiming zero.
+  assert.equal(googleLine({ google_rank: null, target_keyword: kw, search_volume: null, keyword_rank: 2 }), kw + " - Google #2");
+});
+
+test("googleLine: a single-digit volume is never printed as a measurement (R43)", () => {
+  for (const v of [0, 3, 7, 9]) {
+    assert.equal(googleLine({ google_rank: null, target_keyword: "seo agencies", search_volume: v, keyword_rank: null }), "seo agencies - under 10/mo - not in top 20");
+  }
+  assert.equal(googleLine({ google_rank: null, target_keyword: "seo agencies", search_volume: 10, keyword_rank: null }), "seo agencies - 10/mo - not in top 20");
 });

@@ -10,13 +10,13 @@ import { track } from "@/lib/analytics";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CARD, MICRO, T } from "@/config/tokens";
 import type { EngineAnswer, RunScanResponse, SourceEntry } from "@/lib/scan";
-import { SERP_DEPTH } from "@/lib/scan/dataforseo-request";
 import { ENGINE_SPECS, isEngine } from "@/lib/scan/engines";
 import {
   PLAN_ORDER,
   SOV_ROWS,
   engineLabel,
   fmtDate,
+  googleLine,
   isSubject,
   leaderboardCaption,
   placementCopy,
@@ -197,8 +197,10 @@ function QuestionTable(p: { r: RunScanResponse; onOpen: (idx: number) => void })
             >
               <span style={{ fontSize: "15px", fontWeight: 600, color: T.ink }}>{q.question}</span>
               <EngineMarks answers={answers} />
-              <span style={{ fontSize: "13px", color: T.soft, whiteSpace: "nowrap" }}>
-                {typeof q.google_rank === "number" ? "Google #" + q.google_rank : "Not in Google top " + SERP_DEPTH}
+              {/* A derived keyword line is too long for one 170px line, so it
+                  wraps; the bare rank never does. */}
+              <span style={{ fontSize: "13px", color: T.soft, whiteSpace: q.target_keyword ? "normal" : "nowrap", lineHeight: 1.35 }}>
+                {googleLine(q)}
               </span>
               <span style={{ justifySelf: "start" }}>
                 <span style={{ ...(hit ? ROW_NAMED : QUIET), fontSize: "12px", padding: "4px 10px" }}>{hit ? "Named " + label : label[0].toUpperCase() + label.slice(1)}</span>
@@ -255,7 +257,7 @@ function AnswerDrawer(p: {
   if (!q) return null;
   const brand = p.r.brand.name;
   const answers = q.answers ?? [];
-  const rank = typeof q.google_rank === "number" ? "Google #" + q.google_rank : "Not in Google top " + SERP_DEPTH;
+  const rank = googleLine(q);
   const step = (d: number) => {
     const next = qs[at + d];
     if (next) p.onMove(next.idx);

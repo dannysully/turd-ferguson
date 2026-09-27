@@ -16,7 +16,7 @@
  * that retypes the logic beside the component - is how this repo got four
  * blind tripwires, so it is not an alternative.
  *
- * No JSX and no imports beyond two pure modules, so `node --test` loads it.
+ * No JSX and no imports beyond pure modules, so `node --test` loads it.
  * Relative and extensionful for the same reason as `scan-shape.ts`.
  *
  * Nothing here is server-only and nothing here is commercially sensitive: it
@@ -24,6 +24,7 @@
  */
 
 import { count } from "../../lib/plural.ts";
+import { SERP_DEPTH } from "../../lib/scan/dataforseo-request.ts";
 import { ENGINE_SPECS, isEngine } from "../../lib/scan/engines.ts";
 import type {
   EngineAnswer,
@@ -390,4 +391,30 @@ export function resultFigures(
       ? !(r.opportunities && r.opportunities.length)
       : Boolean(opts.noPlacements),
   };
+}
+
+/**
+ * The Google fact on a question row and in the answer drawer's header.
+ *
+ * A question carrying a derived keyword (R39/R41, Danny, 27 Sep 2026) reads
+ * "<keyword> - <volume>/mo - <rank>"; one without reads as it always has,
+ * off the rank for the question text itself. No backfill, so both shapes
+ * live side by side on the site for good.
+ *
+ * A volume under 10 reads "under 10/mo". DataForSEO's Google Ads volume is
+ * banded at the low end, so a single-digit figure is not a measurement and is
+ * not printed as one. A null volume - the read not taken, or failed - drops
+ * the middle clause rather than claiming zero.
+ */
+export function googleLine(
+  q: Pick<ScanQuestion, "google_rank" | "target_keyword" | "search_volume" | "keyword_rank">,
+): string {
+  const kw = q.target_keyword?.trim();
+  if (!kw) return typeof q.google_rank === "number" ? "Google #" + q.google_rank : "Not in Google top " + SERP_DEPTH;
+  const parts = [kw];
+  if (typeof q.search_volume === "number") {
+    parts.push(q.search_volume < 10 ? "under 10/mo" : q.search_volume.toLocaleString("en-GB") + "/mo");
+  }
+  parts.push(typeof q.keyword_rank === "number" ? "Google #" + q.keyword_rank : "not in top " + SERP_DEPTH);
+  return parts.join(" - ");
 }

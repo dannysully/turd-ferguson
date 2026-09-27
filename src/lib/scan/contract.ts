@@ -129,6 +129,15 @@ export type ScanQuestion = {
    */
   google_rank: number | null;
   /**
+   * The derived Google head keyword for this question (R39/R41, Danny, 27 Sep
+   * 2026), its monthly searches and the scan domain's organic position for
+   * it. Absent on every scan before those shipped - no backfill - and the
+   * result screen falls back to `google_rank` wherever `target_keyword` is.
+   */
+  target_keyword?: string | null;
+  search_volume?: number | null;
+  keyword_rank?: number | null;
+  /**
    * What each engine actually said, present only once the scan is unlocked.
    * The tallies above are free; the words are what the email buys.
    */
