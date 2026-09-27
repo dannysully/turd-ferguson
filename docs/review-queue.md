@@ -1192,6 +1192,21 @@ Items filed by the reviewer from live checks and from docs/danny.md. The builder
   what is still open, the same section-by-section way R38-R48 did for the
   search-volume reversal.
 
+  **Progress (27 Sep, builder):** section 2 shipped -> 0624366
+  (`src/config/sector-pricing.ts`: SECTORS, quoteFor, fromPrice, fromLabel,
+  US first; `sector-pricing.test.mts`). Section 3 tried and reverted unpushed:
+  pointing `pricing.ts` at `fromLabel`/`fromPrice` trips 10 tests. Seven are
+  censuses that regex-parse `pricing.ts` for literal `basePrice: \d+` /
+  `priceLabel: "..."` (price-claims, price-surfaces, price-schema - Node cannot
+  import pricing.ts because of its `@/` imports). Next run: either give those
+  parsers a resolver that evaluates `fromLabel("x")`/`fromPrice("x","us")`
+  from sector-prices.json, or move the tier table to an alias-free module the
+  tests can import - the second is cleaner. Computed US minimums: mentioned
+  $1,395 (UK £995), cited $3,395 (UK £2,495). The eighth is video.test.mts:
+  the launch video bakes in the old prices - logged to docs/blocked.md as
+  DANNY with a default. The remaining two follow from the surfaces not yet
+  drawing the new labels.
+
 - [ ] R51 `src/config/sector-prices.json` confirmed in place - unblock R50's
   blocker 1, build sections 1-4 (Danny, docs/danny.md - filed 2026-09-27, line
   53). Read back today: the file exists, is well-formed JSON, and matches the
