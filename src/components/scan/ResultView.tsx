@@ -684,7 +684,7 @@ function PlacementTable(p: { r: RunScanResponse; rows: RunScanResponse["opportun
           <span style={{ color: T.soft }}>{o.cited_by ? o.cited_by + " of " + engines + " engines" : ""}</span>
           <span style={{ color: T.ink }}>
             {o.absent_answers}
-            <span className="res-mob"> answers you miss</span>
+            <span className="res-mob">{o.absent_answers === 1 ? " answer you miss" : " answers you miss"}</span>
           </span>
           <DifficultyBar score={o.difficulty ?? null} />
         </div>
