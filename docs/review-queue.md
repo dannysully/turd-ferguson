@@ -1221,6 +1221,15 @@ Items filed by the reviewer from live checks and from docs/danny.md. The builder
   above); `TierEngines` draws the marks, plus "Includes Claude" on the higher
   tiers, on the packages staircase, the table header and every tier page's
   price card. Section 4's selector/price half still waits on section 3.
+  **Progress (27 Sep 22:40Z, builder):** section 8's alwayseverywhere
+  repositioning shipped -> 03bab62, on open decision 5's default (sold to
+  brands direct, not white-labelled; the spec's defaults are in force until
+  Danny says otherwise). /alwayseverywhere, beat 4, packages table and foot,
+  pricing.ts, contact. Left in section 8: alwaystracked "10 keywords, checked
+  daily" and the add-on lines (wait on section 3). Section 6: Loom URL and demo
+  target (DANNY), waitlist waits on section 3. Everything left in R50 and R51
+  now waits on the video decision in blocked.md, or on section 7, which the
+  item holds until 2-6 are done.
 
 - [ ] R51 `src/config/sector-prices.json` confirmed in place - unblock R50's
   blocker 1, build sections 1-4 (Danny, docs/danny.md - filed 2026-09-27, line
