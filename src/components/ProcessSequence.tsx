@@ -662,7 +662,10 @@ export default function ProcessSequence(p: { heading?: string; standfirst?: stri
                       textAlign: "center",
                     }}
                   >
-                    <p className="proc-line" style={{ margin: 0, fontSize: "18px", fontWeight: 600, letterSpacing: "-0.02em", color: T.ink }}>
+                    {/* No entrance of its own: the question is the whole card
+                        until the tier lands, so it is readable from the first
+                        frame rather than an empty wash box (R27, 26 Sep 2026). */}
+                    <p style={{ margin: 0, fontSize: "18px", fontWeight: 600, letterSpacing: "-0.02em", color: T.ink }}>
                       {bridge.ask}
                     </p>
                     <p className="proc-bridge-to" style={{ margin: "8px 0 0", fontSize: "22px", fontWeight: 700, letterSpacing: "-0.028em" }}>

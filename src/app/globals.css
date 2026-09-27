@@ -1017,7 +1017,12 @@ html[data-motion="on"] .seq-rise { animation: seqRise 1s cubic-bezier(.2,.7,.3,1
    depending on the beat, and "Packages" jumped 310px on every advance. */
 html[data-motion="on"] .proc-beats { gap: 0; }
 html[data-motion="on"] .proc-beat { grid-area: 1 / 1; visibility: hidden; }
-html[data-motion="on"] .proc-beat[data-on="1"] { visibility: visible; animation: seqIn .45s ease-out both; }
+/* No fade on the card itself, and the first lines land fast: with the card
+   fading .45s and its lines held .6s then fading .6s, every beat and bridge
+   opened on about 1.1s with nothing readable in it - 14 empty frames in two
+   cycles, watched at 1280 and 390 with docs/parity/watch-proc.mjs, 26 Sep
+   2026 (R27). The tier label is readable on the first frame now. */
+html[data-motion="on"] .proc-beat[data-on="1"] { visibility: visible; }
 html[data-motion="on"] .proc-rail { display: flex; gap: 6px; margin-bottom: 14px; }
 /* Four lockups do not fit 390px side by side; the rail scrolls inside itself
    rather than pushing the page sideways - 25 Sep 2026, seen live at 390. */
@@ -1033,11 +1038,11 @@ html[data-motion="on"] .proc-rail { display: flex; gap: 6px; margin-bottom: 14px
    --proc-at, which SerpPanel sets to the step they belong to. */
 @keyframes procFill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 html[data-motion="on"] .proc .seq-step { animation: seqIn .6s ease-out both; animation-delay: calc(var(--proc-first, 0s) + var(--ac-i, 0) * var(--proc-step, .1s)); }
-html[data-motion="on"] .proc .proc-line { animation: seqIn .6s ease-out .6s both; }
+html[data-motion="on"] .proc .proc-line { animation: seqIn .35s ease-out .1s both; }
 html[data-motion="on"] .proc .seq-rise { animation-delay: calc(var(--proc-at, 0s) + .3s); }
 html[data-motion="on"] .proc .seq-climb { animation-delay: calc(var(--proc-at, 0s) + .9s); }
 html[data-motion="on"] .proc .proc-bridge { align-self: center; }
-html[data-motion="on"] .proc .proc-bridge-to { animation: seqIn .6s ease-out 1.4s both; }
+html[data-motion="on"] .proc .proc-bridge-to { animation: seqIn .45s ease-out .6s both; }
 html[data-motion="on"] .proc-fill { transform-origin: left center; animation: procFill var(--proc-fill, 16s) linear both; }
 
 /* Nothing is hidden at rest with motion off: every beat renders in full and
