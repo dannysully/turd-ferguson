@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { OG_IMAGE } from "@/config/og";
 
-import { CONTACT_EMAIL } from "@/config/contact";
+import { COMPANY_LINE, CONTACT_EMAIL } from "@/config/contact";
 import { CARD, GRID12, MICRO, SHELL, T } from "@/config/tokens";
 
 export const metadata: Metadata = {
@@ -42,8 +42,9 @@ export const metadata: Metadata = {
  * different promises and the page was only keeping the first.
  *
  * Where a clause needs a fact nobody has given me, it is left out rather than
- * guessed: an invented company number is worse than an absent one. The page
- * carries no drafting markers (Q22, 26 Sep 2026); every open gap is in
+ * guessed. The company number and registered office are Danny's (26 Sep 2026,
+ * R31, COMPANY_LINE); the ICO number is still open. The page carries no
+ * drafting markers (Q22, 26 Sep 2026); every open gap is in
  * docs/blocked.md instead.
  */
 
@@ -217,7 +218,7 @@ export default function LegalPage() {
             What we collect, and what we do with it
           </h1>
           <p className="ac-row" style={{ margin: "10px 0 0", fontSize: "13px", color: T.soft, lineHeight: 1.7 }}>
-            Nomada Digital Ltd, York
+            {COMPANY_LINE}
           </p>
 
           <div style={{ ...CARD, marginTop: "26px", overflow: "hidden" }}>

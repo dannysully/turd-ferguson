@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import BrandMark from "./BrandMark";
 import TierName from "./TierName";
-import { CONTACT_EMAIL } from "@/config/contact";
+import { COMPANY_LINE, CONTACT_EMAIL } from "@/config/contact";
 import { GRID12, MICRO, T } from "@/config/tokens";
 
 /**
@@ -136,7 +136,7 @@ export default function Footer() {
             color: T.soft,
           }}
         >
-          <span>&copy; {new Date().getFullYear()} Nomada Digital Ltd</span>
+          <span>&copy; {new Date().getFullYear()} {COMPANY_LINE}</span>
           {/* The board's bottom bar has Privacy and Terms. Privacy exists now;
               terms of service are not drafted, so that link waits rather than
               pointing at a page with no terms on it. */}

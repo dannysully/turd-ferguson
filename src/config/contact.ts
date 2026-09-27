@@ -164,3 +164,11 @@ export const SCAN_LIMITS = {
   email: 254,
   topicVariant: { min: 2, max: 80 },
 };
+
+/**
+ * Who runs the site, in the words Danny gave on 26 Sep 2026 (R31) - the
+ * footer and /legal both print this. The ICO number is not here: it is still
+ * unconfirmed (docs/blocked.md item 1).
+ */
+export const COMPANY_LINE =
+  "Nomada Digital Ltd, company number 12869202, registered office 11 Heworth Hall Drive, York, YO31 1AG";
