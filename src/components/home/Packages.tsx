@@ -59,8 +59,10 @@ const ROWS: { what: string; cells: Record<TierKey, Cell> }[] = [
   { what: "Placements chosen to move the Google position too", cells: { tracked: 0, mentioned: 0, cited: 1, everywhere: 1 } },
   { what: "Link insertions and schema work", cells: { tracked: 0, mentioned: 0, cited: 1, everywhere: 1 } },
   { what: "Rank tracking on the money keywords", cells: { tracked: 0, mentioned: 0, cited: 1, everywhere: 1 } },
-  { what: "Many clients, priced on volume not seats", cells: { tracked: 0, mentioned: 0, cited: 0, everywhere: 1 } },
-  { what: "Your dashboards and your branding", cells: { tracked: 1, mentioned: 1, cited: 1, everywhere: 1 } },
+  // Pricing spec 27 Sep, section 8: the top tier is brand PR, sold to brands
+  // direct rather than white-labelled (open decision 5's default).
+  { what: "Brand PR for earned media", cells: { tracked: 0, mentioned: 0, cited: 0, everywhere: 1 } },
+  { what: "Your dashboards and your branding", cells: { tracked: 1, mentioned: 1, cited: 1, everywhere: 0 } },
 ];
 
 const HI = T.wash;
@@ -99,7 +101,7 @@ export default function Packages() {
               Packages
             </h2>
             <p style={{ margin: 0, fontSize: "15px", lineHeight: 1.6, color: D.muted, maxWidth: "56ch" }}>
-              Monthly, white-labelled, no minimum term. The price is here because you should not have to sit through a
+              Monthly, no minimum term. The price is here because you should not have to sit through a
               call to find out.
             </p>
           </div>
@@ -224,7 +226,8 @@ export default function Packages() {
         {/* id="white-label" marks the end of the priced grid for price-surfaces.test.mts. */}
         <div id="white-label" className="pkg-foot" style={{ marginTop: "18px", fontSize: "13.5px", lineHeight: 1.6, color: T.soft }}>
           <span>
-            Every tier is white-label.{" "}
+            <TierName tier="tracked" /> to <TierName tier="cited" /> are white-label;{" "}
+            <TierName tier="everywhere" /> is sold to brands direct.{" "}
             <a href="/white-label" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
               How the line sits
             </a>

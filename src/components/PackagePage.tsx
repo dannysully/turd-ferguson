@@ -28,7 +28,7 @@ const GLOSS: Record<string, string> = {
   tracked: `${TRACKED_QUESTIONS} questions weekly. The map - you do the placing`,
   mentioned: "We do the placing",
   cited: "Citations and rankings pushed together",
-  everywhere: "All of it, across a portfolio",
+  everywhere: "All of it, plus brand PR",
 };
 
 /**
@@ -141,7 +141,8 @@ export default function PackagePage({
               textDecoration: "none",
             }}
           >
-            {tier.basePrice === null ? "Book a partner call" : "Start a client"}
+            {/* The call tier is sold to brands direct (pricing spec, section 8), so not a "partner" call. */}
+            {tier.basePrice === null ? "Book a call" : "Start a client"}
           </a>
           <Link
             href="/#scan"

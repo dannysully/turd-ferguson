@@ -124,9 +124,10 @@ const BEATS: Beat[] = [
   },
   {
     tier: "everywhere",
-    headline: "Every client, every engine.",
-    line: "A portfolio of clients under one agreement. Priced on volume, not per seat, on your dashboards and your branding.",
-    alt: "A portfolio of three placeholder clients under one agreement, with how many engines name each.",
+    // Pricing spec 27 Sep, section 8: brand PR and earned media, not a portfolio.
+    headline: "Earned media, then the answers.",
+    line: "Brand PR on top of everything else: coverage in the publications buyers read, tracked into the answers it reaches.",
+    alt: `Three pieces of coverage for ${SUBJECT} in made-up publications, and the answers that name it with one as a source.`,
   },
 ];
 
@@ -134,7 +135,7 @@ const BEATS: Beat[] = [
 const BRIDGES: Partial<Record<TierKey, { ask: string; to: TierKey }>> = {
   tracked: { ask: "Found the gaps. Want to be in them?", to: "mentioned" },
   mentioned: { ask: "Want the Google listing to move too?", to: "cited" },
-  cited: { ask: "Doing this for more than one client?", to: "everywhere" },
+  cited: { ask: "Want coverage you cannot buy?", to: "everywhere" },
 };
 
 const tierOf = (key: TierKey) => TIERS.find((t) => t.key === key);
@@ -405,54 +406,66 @@ function BeatCited() {
   );
 }
 
-/* -- Tier 4: the portfolio --------------------------------------- */
+/* -- Tier 4: coverage, then the answers ----------------------------
+ * Pricing spec 27 Sep, section 8: the beat was a three-client portfolio. It is
+ * now the PR agencies fan-out in this panel's language - coverage landing
+ * across publications, then which answers read each piece. One piece reaches
+ * no engine, as on /pr-agencies: coverage is not promised to reach anything.
+ */
 
-const PORTFOLIO: { name: string; named: number }[] = [
-  { name: "[Client A]", named: 4 },
-  { name: "[Client B]", named: 3 },
-  { name: "[Client C]", named: 4 },
+const COVERAGE: { outlet: string; title: string; readBy: number }[] = [
+  { outlet: "Trade title", title: `${SUBJECT} adds multi-currency invoicing`, readBy: 3 },
+  { outlet: "National", title: "The startups fixing freelancer pay", readBy: 2 },
+  { outlet: "Regional press", title: "Leeds firm announces 40 roles", readBy: 0 },
 ];
 
 function BeatEverywhere() {
+  const reached = COVERAGE.filter((c) => c.readBy > 0).length;
   return (
     <div style={PANEL}>
       <div {...seqStep(0, { paddingBottom: "12px", borderBottom: hair })}>
-        <div style={{ fontSize: "13.5px", fontWeight: 700 }}>Your clients, one agreement</div>
+        <div style={{ fontSize: "13.5px", fontWeight: 700 }}>Coverage for {SUBJECT}</div>
         <div style={{ fontSize: "11.5px", color: T.soft, marginTop: "2px" }}>
-          Engines naming each client, out of {FREE_ENGINE_COUNT}
+          Engines citing each piece, out of {FREE_ENGINE_COUNT}
         </div>
       </div>
 
-      {PORTFOLIO.map((c, n) => (
+      {COVERAGE.map((c, n) => (
         <div
-          key={c.name}
+          key={c.title}
           {...seqStep(1 + n, {
             display: "flex",
             alignItems: "center",
             gap: "10px",
-            padding: "11px 0",
-            borderBottom: n === PORTFOLIO.length - 1 ? undefined : hair,
+            padding: "10px 0",
+            borderBottom: n === COVERAGE.length - 1 ? undefined : hair,
             flexWrap: "wrap",
+            opacity: c.readBy ? 1 : 0.6,
           })}
         >
-          <span style={{ fontSize: "12.5px", fontWeight: 600, width: "86px", flexShrink: 0 }}>{c.name}</span>
-          <span style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-            {FREE_ENGINES.map((e, i) => (
-              <span key={e} style={{ opacity: i < c.named ? 1 : 0.25, display: "flex" }}>
-                <EngineLogo engine={e} size={14} title={ENGINE_SPECS[e].label} />
-              </span>
-            ))}
+          <span style={{ minWidth: 0, flex: "1 1 180px" }}>
+            <span style={{ display: "block", fontSize: "11px", color: T.soft }}>{c.outlet}</span>
+            <span style={{ display: "block", fontSize: "12.5px", fontWeight: 600, marginTop: "2px" }}>{c.title}</span>
           </span>
-          <span style={{ flexGrow: 1 }} />
-          <span style={{ fontSize: "12.5px", fontWeight: 700 }}>
-            {c.named} of {FREE_ENGINE_COUNT}
-          </span>
+          {c.readBy ? (
+            <span style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+              {FREE_ENGINES.map((e, i) => (
+                <span key={e} style={{ opacity: i < c.readBy ? 1 : 0.25, display: "flex" }}>
+                  <EngineLogo engine={e} size={14} title={ENGINE_SPECS[e].label} />
+                </span>
+              ))}
+            </span>
+          ) : (
+            <span style={{ fontSize: "11.5px", fontWeight: 600, color: T.soft }}>Read by no engine</span>
+          )}
         </div>
       ))}
 
       <div {...seqStep(4, { marginTop: "12px", paddingTop: "10px", borderTop: hair, display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" })}>
-        <span style={pill(T.wash, T.accent)}>3 clients, 8 markets</span>
-        <span style={{ fontSize: "12px", color: T.soft }}>one agreement, your branding</span>
+        <span style={pill(T.wash, T.accent)}>
+          {reached} of {COVERAGE.length} pieces in the answers
+        </span>
+        <span style={{ fontSize: "12px", color: T.soft }}>matched URL for URL</span>
       </div>
     </div>
   );

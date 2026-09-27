@@ -19,7 +19,7 @@ import { ORG_REF, SITE_REF, ld } from "@/config/schema";
 export const metadata: Metadata = {
   title: "Contact",
   description:
-    "Most questions are answered by running a free scan. Portfolio pricing, corrections and everything else, here.",
+    "Most questions are answered by running a free scan. Enterprise scoping, corrections and everything else, here.",
   alternates: { canonical: "https://alwayscited.com/contact" },
   openGraph: {
     images: OG_IMAGE,
@@ -34,7 +34,7 @@ const contactSchema = {
   "@type": "ContactPage",
   name: "Contact alwayscited",
   description:
-    "Most questions are answered by running a free scan. Portfolio pricing, corrections and everything else, here.",
+    "Most questions are answered by running a free scan. Enterprise scoping, corrections and everything else, here.",
   url: "https://alwayscited.com/contact",
   isPartOf: SITE_REF,
   publisher: ORG_REF,
@@ -43,8 +43,8 @@ const contactSchema = {
 
 const ROUTES = [
   {
-    label: "A portfolio rather than one client",
-    body: "The top tier is priced on volume. Tell us roughly how many clients and which sectors and we will come back with a number rather than a discovery call.",
+    label: "Brand PR on top of the placements",
+    body: "The top tier is scoped on a call. Tell us the brand, the market and what coverage you already have, and we will say what we would do first.",
   },
   {
     label: "Something is wrong on this site",
@@ -83,7 +83,7 @@ export default function ContactPage() {
               Most questions are answered by running a scan.
             </h1>
             <p className="ac-row" style={{ margin: "14px 0 0", fontSize: "15px", lineHeight: 1.7, color: T.soft, maxWidth: "56ch" }}>
-              It is free, takes a few minutes and needs no call. If you have a portfolio to move, or a question the
+              It is free, takes a few minutes and needs no call. If you want brand PR on top, or have a question the
               FAQ does not cover, this form reaches the people doing the work rather than a sales desk.
             </p>
 

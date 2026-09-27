@@ -5,10 +5,17 @@ import { TIERS } from "@/config/pricing";
 
 const tier = TIERS.find((t) => t.id === "everywhere")!;
 
+/**
+ * Pricing spec 27 Sep 2026, section 8: alwayseverywhere is brand PR and earned
+ * media on top of the alwayscited plan, not a portfolio of clients. Sold to
+ * brands direct rather than white-labelled (open decision 5's default, Danny to
+ * confirm). The spec's claims rules hold here harder than anywhere: no
+ * guarantee of mentions, citations or coverage on this tier, and no price.
+ */
 export const metadata: Metadata = {
-  title: "alwayseverywhere | Multi-market AI visibility",
+  title: "alwayseverywhere | Brand PR and earned media for AI visibility",
   description:
-    "Multi-market, multi-brand AI citation placements with a dedicated strategist, white-labelled for agencies running this across a client base.",
+    "Everything in the alwayscited plan, plus brand PR for earned media, run by our senior team and tracked into the AI answers. Sold to brands direct.",
   openGraph: { url: "https://alwayscited.com/alwayseverywhere", images: OG_IMAGE },
   alternates: { canonical: "https://alwayscited.com/alwayseverywhere" },
 };
@@ -17,48 +24,35 @@ export default function Page() {
   return (
     <PackagePage
       tier={tier}
-      headline="Every market,"
-      headlineAccent="every brand."
-      standfirst="For agencies running this across a client base rather than a single account. Several markets, several brands, and a strategist who knows all of them, still entirely under your brand."
+      headline="Earned media,"
+      headlineAccent="then the answers."
+      standfirst="For brands that want coverage as well as placements. Everything in the alwayscited plan, plus brand PR for earned media, run by our senior team and tracked into the answers the same way as every placement."
       included={[
-        "Everything in alwayscited, across multiple topics",
-        "Multiple markets, with the question set built per market",
-        "Multiple brands under one agreement",
-        "A dedicated strategist who knows your client base",
-        "Reporting consolidated for you, and split per client for them",
-        "White-label on every surface your client sees, across every brand",
+        "Everything in alwayscited",
+        "Brand PR for earned media, run by our senior team",
+        "Each piece of coverage matched against the sources behind the answers",
+        "The same locked question set as the rest of the plan",
+        "Sold to your brand direct, under our name",
       ]}
       notIncluded={{
-        text: "A published price is the one thing this tier does not come with. The number of brands, the number of markets, and how hard the answer box is to win in each all change what the work costs, so we quote it rather than post a figure we would have to renegotiate. A partner call covers how many clients you are thinking about, which markets, and what you already have running - and we say what we would do first, and roughly what it costs, before you commit to anything.",
+        text: "A published price, and any guarantee of coverage. What earned media costs depends on the brand, the market and what you already have running, so we quote it on a call rather than post a figure. No one can promise that a journalist writes about you, so we do not: we say what we would pitch, where, and how we will report what lands.",
       }}
-      /**
-       * These are deliverables now. The three that were here - why there is no
-       * price, we never contact your client, what a partner call covers - were
-       * the sales process, rendered under a heading that reads "What lands each
-       * month" and a line that reads "Stated as deliverables rather than
-       * adjectives, so you can hold us to it". This was the only one of the four
-       * package pages whose deliverables table contained no deliverables; the
-       * pricing rationale and the partner call moved to the trailing paragraph,
-       * which is where a caveat belongs. Every line below is a restatement of
-       * something already in `included` or in the partner agreement - nothing
-       * here is a new claim, and nothing here is about what an engine does.
-       */
       sections={[
         {
-          heading: "A question set per market, not one translated",
-          body: "Buyers phrase the same purchase differently in each market, so each market gets its own set of questions built for it rather than a translation of the first one. The sets are locked once agreed, so a change in the reading is a change in the answers and not a change in what we asked.",
+          heading: "Coverage, then the answers",
+          body: "The placements in the alwayscited plan are paid. Earned media is the part you cannot buy: coverage in the publications your buyers already read. We pitch it, then read which pieces the engines pick up, so coverage is judged by whether it reaches the answer rather than by a clippings count.",
         },
         {
-          heading: "One strategist who holds the whole portfolio",
-          body: "The same person across every brand and every market on the agreement, so the pattern that shows up on one account is applied to the next one without you having to carry it between two contacts.",
+          heading: "Tracked the same way as everything else",
+          body: "Each piece of coverage is matched URL for URL against the sources behind the answers, on the same locked questions as the rest of the plan. A change in the reading is a change in the answers, not a change in what we asked.",
         },
         {
-          heading: "Reporting that splits two ways",
-          body: "One consolidated view of the portfolio for you, and a separate report per client for them, from the same readings. Both carry your logo and neither carries ours.",
+          heading: "Sold to brands direct",
+          body: "This tier is not white-labelled. Agencies that run PR sell it to their own clients, and we would rather work alongside them than compete, so it is sold to the brand under our name.",
         },
         {
-          heading: "We never contact your client",
-          body: "No calls, no emails, no name on the report, at any tier. That is in the partner agreement rather than just on a page, and it does not change because the account got bigger.",
+          heading: "Scoped on a call",
+          body: "The call covers the brand, the market and what coverage you already have. We say what we would do first, and roughly what it costs, before you commit to anything.",
         },
       ]}
     />
