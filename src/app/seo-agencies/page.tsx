@@ -235,6 +235,12 @@ export default function SeoAgenciesPage() {
               is questions checked weekly, not new questions every week. */}
           {tracked ? ` - ${tracked.priceLabel} for tracking alone, at ${TRACKED_BASIS}.` : "."}
         </p>
+        <p style={{ margin: "8px 0 0", fontSize: "14px", color: T.soft, lineHeight: 1.6 }}>
+          Selling it under your own name?{" "}
+          <Link href="/white-label" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
+            How the white-label arrangement works
+          </Link>
+        </p>
       </section>
     </main>
   );

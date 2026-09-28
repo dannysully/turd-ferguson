@@ -260,6 +260,12 @@ export default function PrAgenciesPage() {
             Check your coverage
           </Link>
         </div>
+        <p style={{ margin: "20px 0 0", fontSize: "14px", color: T.soft, lineHeight: 1.6 }}>
+          Selling it under your own name?{" "}
+          <Link href="/white-label" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
+            How the white-label arrangement works
+          </Link>
+        </p>
       </div>
     </main>
   );

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 import BrandMark from "./BrandMark";
+import NavDropdown, { type NavItem } from "./NavDropdown";
 import TierName from "./TierName";
 import { T } from "@/config/tokens";
 import { D, HEADER_H, WASH, WASH_SIZE } from "./home/dark";
@@ -16,17 +17,26 @@ import { D, HEADER_H, WASH, WASH_SIZE } from "./home/dark";
  * footer only (Danny, 26 Sep 2026, R29) - the page stays, linked from the
  * footer. Packages still points at the homepage section.
  *
+ * "White label" became "For agencies", a dropdown of the two agency pages
+ * (Danny, 28 Sep 2026, R63). /white-label stays live, linked from the footer
+ * and from both agency pages. On mobile the two sit indented under a plain
+ * "For agencies" label rather than behind a hover.
+ *
  * On `/` only it sits on the hero's dark ground, as Main.dc.html draws it:
  * no hairline, links in D.muted, the lockup lifted with `.on-dark`. The wash
  * is painted here as well as on the hero, sized to the same box, so the two
  * read as one surface. Every other route keeps the light bar.
  */
 
+const packagesLink = { href: "/#packages", label: "Packages" };
 const navLinks = [
-  { href: "/#packages", label: "Packages" },
-  { href: "/white-label", label: "White label" },
   { href: "/how-it-works", label: "How it works" },
   { href: "/blog", label: "Blog" },
+];
+const AGENCIES = "For agencies";
+const agencyLinks: NavItem[] = [
+  { key: "seo", href: "/seo-agencies", label: "SEO agencies" },
+  { key: "pr", href: "/pr-agencies", label: "PR agencies" },
 ];
 
 const linkStyle: React.CSSProperties = {
@@ -82,6 +92,10 @@ export default function Header() {
         <div style={{ flexGrow: 1 }} />
 
         <nav className="nav-links" style={{ display: "flex", alignItems: "center", gap: "20px" }} aria-label="Main navigation">
+          <Link href={packagesLink.href} style={links}>
+            {packagesLink.label}
+          </Link>
+          <NavDropdown label={AGENCIES} items={agencyLinks} style={links} />
           {navLinks.map((link) => (
             <Link key={link.href} href={link.href} style={links}>
               {link.label}
@@ -119,6 +133,23 @@ export default function Header() {
       {open && (
         <nav style={{ background: T.surface, borderTop: `1px solid ${T.line}`, padding: "1rem 1.5rem 1.5rem" }} aria-label="Mobile navigation">
           <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "1rem" }}>
+            <li>
+              <Link href={packagesLink.href} style={linkStyle} onClick={() => setOpen(false)}>
+                {packagesLink.label}
+              </Link>
+            </li>
+            <li>
+              <span style={{ ...linkStyle, color: T.ink }}>{AGENCIES}</span>
+              <ul style={{ listStyle: "none", padding: "0 0 0 16px", margin: "12px 0 0", display: "flex", flexDirection: "column", gap: "12px" }}>
+                {agencyLinks.map((link) => (
+                  <li key={link.key}>
+                    <Link href={link.href} style={linkStyle} onClick={() => setOpen(false)}>
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </li>
             {navLinks.map((link) => (
               <li key={link.href}>
                 <Link href={link.href} style={linkStyle} onClick={() => setOpen(false)}>

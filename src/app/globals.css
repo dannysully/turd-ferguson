@@ -69,6 +69,21 @@ details summary::-webkit-details-marker {
   display: none;
 }
 
+/* NavDropdown: React owns open state once hydrated; before that, or with JS
+   off, hover and focus-within open it. */
+.nav-dd-panel {
+  display: none;
+}
+.nav-dd[data-open] .nav-dd-panel,
+.nav-dd:not([data-js]):hover .nav-dd-panel,
+.nav-dd:not([data-js]):focus-within .nav-dd-panel {
+  display: block;
+}
+.nav-dd-link:hover,
+.nav-dd-link:focus-visible {
+  background: var(--wash);
+}
+
 /* Hide desktop nav on mobile */
 @media (max-width: 767px) {
   .nav-links {

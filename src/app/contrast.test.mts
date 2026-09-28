@@ -465,6 +465,9 @@ const CSS_GROUNDS: Record<string, string> = {
   ".run-mail-btn": "#0f1115, the board's dark button; its own white text is the only thing on it (Q08, 25 Sep 2026)",
   ".res-qbtn": "transparent - it takes the ground of the row it wraps, which is what the inline walk already measures",
   ".res-qbtn:hover:not(:disabled)": "var(--bg) on hover only. A hover state is not a resting ground, and the text on it is the row's own",
+  // 28 Sep 2026 (R63): the topbar dropdown's item highlight. #0f1115 ink on
+  // #f4f0fe wash is well over 4.5:1, and the card under it is T.surface.
+  ".nav-dd-link:hover,.nav-dd-link:focus-visible": "var(--wash) on hover/focus only, under the item's own T.ink text; the resting ground is the white card",
   ".proc-schema": "var(--bg), the page ground, inside the white product panel on the cited tier - a code block, and the only place on the site that sets one",
   // 25 Sep 2026 (Q10): ScanResult.dc.html's switch - a chip track with the
   // chosen half raised in white. Was a surface card per option, wash when on.
