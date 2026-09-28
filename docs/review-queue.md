@@ -1486,7 +1486,7 @@ Items filed by the reviewer from live checks and from docs/danny.md. The builder
   email to Danny's inbox the same way "video"/"demo" already do; shoot the
   result page's WalkthroughForm at 1280 and 390 with "call" selected.
 
-- [ ] R55 Section 4 price tiles: sector select, quantity stepper, one
+- [x] R55 Section 4 price tiles: sector select, quantity stepper, one
   page-level US/UK toggle (Danny, docs/danny.md - filed 2026-09-27, line 56 -
   pricing-spec section 4). At review time (28 Sep 2026) the working tree
   already carries an uncommitted, unpushed start on exactly this -
@@ -1526,6 +1526,14 @@ Items filed by the reviewer from live checks and from docs/danny.md. The builder
   page at once, defaults to US on load, and that picking "Other" or stepping
   to 11 shows "Book a call"; confirm `alwaystracked` and `alwayseverywhere`
   tiles are unchanged (no selector).
+  **Ticked (28 Sep 08:12Z, builder) -> 41b552f (390 fixes 56c1afe,
+  869b7c4):** every point above shipped in R50 section 4 - select (19),
+  1-10 stepper, live quoteFor price on the mentioned/cited tiles of the
+  homepage and every tier page, one US-default toggle per page, "from" when
+  no sector, Book a call for Other and 11+, JS off shows "from" + CTA only;
+  24 live readings matched sector-prices.json (parity log, 41b552f entry).
+  tracked/everywhere tiles carry no selector. The "Done" note below is
+  R52's, filed under this item by mistake; left in place, not moved.
   **Done (28 Sep 07:25Z, builder) -> 5444fdd, one deliberate deviation:**
   `video.ts` and `video.test.mts` were kept, not deleted. The test was
   rewritten: while `shownPrices` differ from pricing.ts it asserts the video is
