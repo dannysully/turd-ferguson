@@ -131,6 +131,12 @@ export type Tier = {
   href: string;
   includes: string[];
   cta: { label: string; href: string };
+  /**
+   * The tier's buying verb, on the packages table's button and the tier
+   * page's primary CTA - one set, here only (Danny, 28 Sep 2026, R79). Not
+   * `cta.label`, which is the secondary "See what is included" link.
+   */
+  action: string;
   emphasis?: boolean;
 };
 
@@ -160,6 +166,7 @@ export const TIERS: Tier[] = [
       "White-label reports",
     ],
     cta: { label: "See what is included", href: "/alwaystracked" },
+    action: "Start tracking",
   },
   {
     id: "mentioned",
@@ -175,6 +182,7 @@ export const TIERS: Tier[] = [
       `Everything in ${TIER_PLAIN.tracked}`,
     ],
     cta: { label: "See what is included", href: "/alwaysmentioned" },
+    action: "Get recommended",
   },
   {
     id: "cited",
@@ -190,6 +198,7 @@ export const TIERS: Tier[] = [
       `Everything in ${TIER_PLAIN.mentioned}`,
     ],
     cta: { label: "See what is included", href: "/alwayscited" },
+    action: "Get cited",
     emphasis: true,
   },
   {
@@ -209,6 +218,7 @@ export const TIERS: Tier[] = [
       "Run by our senior team",
     ],
     cta: { label: "See what is included", href: "/alwayseverywhere" },
+    action: "Be everywhere",
   },
 ];
 

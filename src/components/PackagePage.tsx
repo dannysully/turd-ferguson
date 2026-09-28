@@ -181,12 +181,13 @@ export default function PackagePage({
               when they price as a call (R69). */}
           {tier.key === "mentioned" || tier.key === "cited" ? (
             <SelectionCta tier={tier.key} href={CONTACT_URL} className="btn-primary" style={CTA_STYLE}>
-              Start a client
+              {tier.action}
             </SelectionCta>
           ) : (
             <a href={tier.key === "tracked" ? contactUrlFor("tracked") : CONTACT_URL} className="btn-primary" style={CTA_STYLE}>
-              {/* The call tier is sold to brands direct (pricing spec, section 8), so not a "partner" call. */}
-              {tier.basePrice === null ? "Book a call" : "Start a client"}
+              {/* The tier's own verb from pricing.ts (R79). alwayseverywhere's
+                  still goes to /contact as a call - only the label moved. */}
+              {tier.action}
             </a>
           )}
           <Link

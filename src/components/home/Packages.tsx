@@ -54,11 +54,10 @@ const ctaStyle = (emphasis?: boolean): React.CSSProperties => ({
     : { background: T.surface, color: T.ink, border: `1px solid ${T.line}` }),
 });
 
-const CTA: Record<TierKey, { label: string; href?: string }> = {
-  tracked: { label: "Start tracking", href: contactUrlFor("tracked") },
-  mentioned: { label: "Get placed" },
-  cited: { label: "Go for position #1" },
-  everywhere: { label: "Talk to us", href: "/contact" },
+// Labels are each tier's `action` in pricing.ts (R79); only the targets live here.
+const CTA_HREF: Partial<Record<TierKey, string>> = {
+  tracked: contactUrlFor("tracked"),
+  everywhere: "/contact",
 };
 
 /** 1 = included, 0 = not, a string = the cell's text. One entry per tier, in TIERS order. */
@@ -251,12 +250,12 @@ export default function Packages({ full = false }: { full?: boolean }) {
                     <TierEngines tier={t.key} size={14} colour={T.soft} style={{ marginTop: "auto", paddingTop: "10px", minHeight: "18px" }} />
                     {/* The sector tiles' CTA carries their picks to the tier page (R69). */}
                     {t.key === "mentioned" || t.key === "cited" ? (
-                      <SelectionCta tier={t.key} href={CTA[t.key].href ?? t.href} className="pkg-btn" style={ctaStyle(t.emphasis)}>
-                        {CTA[t.key].label}
+                      <SelectionCta tier={t.key} href={CTA_HREF[t.key] ?? t.href} className="pkg-btn" style={ctaStyle(t.emphasis)}>
+                        {t.action}
                       </SelectionCta>
                     ) : (
-                      <a href={CTA[t.key].href ?? t.href} className="pkg-btn" style={ctaStyle(t.emphasis)}>
-                        {CTA[t.key].label}
+                      <a href={CTA_HREF[t.key] ?? t.href} className="pkg-btn" style={ctaStyle(t.emphasis)}>
+                        {t.action}
                       </a>
                     )}
                     </div>
