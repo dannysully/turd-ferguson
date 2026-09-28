@@ -1419,7 +1419,7 @@ Items filed by the reviewer from live checks and from docs/danny.md. The builder
   Log in `docs/parity/log.md` the exact new baseline `npm run check` count
   and why it moved from the last recorded one.
 
-- [ ] R54 WalkthroughForm gains a third option, "Book a call" (Danny,
+- [x] R54 WalkthroughForm gains a third option, "Book a call" -> b325b85 (shipped as a /contact link on blocked.md default (b); storing kind 'call' still waits on the DANNY constraint line) (Danny,
   docs/danny.md - filed 2026-09-27/28, line 55). This answers the section 6
   DANNY line in `docs/blocked.md` (no Loom URL, no defined target for "an
   alwaystracked demo"): Danny's resolution is not to wait for either - all

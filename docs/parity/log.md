@@ -1200,3 +1200,10 @@ Spec: pricing-spec section 8, on open decision 5's default (sold to brands direc
 - LIVE: /alwayscited 1280 full, 390 full `--reduced`, 1280 `--js-off` (card, copy, Book a call link; no form) - read. scrollX 0 at 390. `/api/walkthrough` refuses a made-up `from` (bad_from) before touching the DB. Local: /alwaysmentioned 1280 and 390; route refuses bad from / kind "call" / bad email.
 - Not in the denominator: a stored row and the alert - a real submission emails Danny and there is no local DB; the first real ask is the check. Waitlist (leads table) still open.
 - Suite 875 / 874 pass / 1 skip.
+
+## R54 (walkthrough form, third option) - b325b85 (28 Sep 2026, 08:25Z)
+- Spec: Danny, danny.md line 55. Board ScanResult.dc.html's switch (two options; the third is ours, same track).
+- Built: WalkthroughForm's switch carries Loom walkthrough / Demo with Danny / Book a call on every surface it draws (tier pages, /scan/[token], /coverage-check/[token]). "Book a call" swaps the email field and submit for a primary link to /contact - blocked.md default (b): walkthrough_requests.kind still allows only video/demo, and widening the check is a drop-and-recreate, outside the additive authorisation. Routes and walkthrough-mail.ts unchanged (they still refuse "call", correctly). `.wt-toggle` is three columns; labels wrap at 390.
+- LIVE: /alwaystracked card at 1280 (call selected) and 390 `--reduced` (video and call), 390 `--js-off` (no switch, the card's own Book a call link) - read. Three options, call link /contact, no email field under call, scrollWidth = viewport at both widths.
+- Not in the denominator: /scan/[token] and /coverage-check (same component, not shot); a stored 'call' row (none is written by design).
+- Suite 875 / 874 pass / 1 skip (after `npm run capture`).
