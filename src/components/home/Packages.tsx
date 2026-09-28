@@ -1,6 +1,6 @@
 import { MarketPrice, MarketToggle, PackLine, SectorPrice, SelectionCta } from "@/components/SectorPrice";
 import TierEngines from "@/components/TierEngines";
-import TierName, { type TierKey } from "@/components/TierName";
+import TierName, { TierText, type TierKey } from "@/components/TierName";
 import { ALWAYS_ON, ALWAYS_ON_SUPPORT } from "@/config/always-on";
 import { TIERS, contactUrlFor } from "@/config/pricing";
 import { CARD, SHELL, T } from "@/config/tokens";
@@ -67,7 +67,7 @@ const ROWS: { what: string; cells: Record<TierKey, Cell> }[] = [
   { what: "Buyer questions across the AI engines and Google keywords, checked daily", cells: { tracked: 1, mentioned: 1, cited: 1, everywhere: 1 } },
   { what: "Every source behind every answer", cells: { tracked: 1, mentioned: 1, cited: 1, everywhere: 1 } },
   { what: "Placement opportunities, scored for difficulty", cells: { tracked: 1, mentioned: 1, cited: 1, everywhere: 1 } },
-  { what: "Who runs the outreach", cells: { tracked: "You", mentioned: "Us", cited: "Us", everywhere: "Us" } },
+  { what: "Who secures the placements", cells: { tracked: "You", mentioned: "Us", cited: "Us", everywhere: "Us" } },
   { what: "Placements in cited pages, links included", cells: { tracked: 0, mentioned: 1, cited: 1, everywhere: 1 } },
   { what: "Citation reporting on every placement", cells: { tracked: 0, mentioned: 1, cited: 1, everywhere: 1 } },
   { what: "Placements chosen to move the Google position too", cells: { tracked: 0, mentioned: 0, cited: 1, everywhere: 1 } },
@@ -99,7 +99,8 @@ const PILL: React.CSSProperties = {
 
 /** The basis or positioning line, directly under the price in every column. */
 function Basis({ text }: { text: string }) {
-  return <div style={{ fontSize: "12px", lineHeight: 1.45, color: T.soft, marginTop: "4px", minHeight: "35px" }}>{text}</div>;
+  // TierText: alwayseverywhere's basis names the alwayscited plan (R72).
+  return <div style={{ fontSize: "12px", lineHeight: 1.45, color: T.soft, marginTop: "4px", minHeight: "35px" }}><TierText>{text}</TierText></div>;
 }
 
 function CellMark({ v }: { v: Cell }) {
@@ -206,8 +207,18 @@ export default function Packages({ full = false }: { full?: boolean }) {
             </colgroup>
             <thead>
               <tr>
-                {/* The table's visible heading, top-aligned with the tier names (R57). */}
-                <td style={{ padding: "20px 24px", fontSize: "20px", fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.25, color: T.ink, verticalAlign: "top" }}>What each tier adds</td>
+                {/* The table's visible heading, built like a tier cell so it
+                    shares the tier names' line: the pill's row, the name at
+                    their size, then a soft line where the price sits (R57, R70). */}
+                <td style={{ padding: "20px 24px", verticalAlign: "top" }}>
+                  <div style={{ display: "flex", flexDirection: "column" }}>
+                    <span aria-hidden="true" style={{ height: PILL.height, marginBottom: PILL.marginBottom }} />
+                    <div style={{ fontSize: "16px", fontWeight: 700, letterSpacing: "-0.02em", color: T.ink }}>What each tier adds</div>
+                    <div style={{ display: "flex", alignItems: "flex-end", minHeight: "29px", marginTop: PRICE.marginTop, fontSize: "14px", lineHeight: 1.45, color: T.soft }}>
+                      Pick a sector to see your price
+                    </div>
+                  </div>
+                </td>
                 {TIERS.map((t) => (
                   // height: 1px lets the inner column fill the row, so the engine
                   // marks and the CTA share one bottom line in all four (R56).

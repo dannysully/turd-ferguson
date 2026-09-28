@@ -144,7 +144,7 @@ export default function PackagePage({
             </div>
           )}
           <p style={{ margin: "8px 0 16px", fontSize: "13.5px", lineHeight: 1.6, color: T.soft }}>
-            {tier.priceBasis ?? "Monthly, no minimum term, white-labelled. What you pay us, not what you charge on."}
+            <TierText>{tier.priceBasis ?? "Monthly, no minimum term, white-labelled. What you pay us, not what you charge on."}</TierText>
             {tier.key === "everywhere" ? null : (
               <span style={{ display: "block", marginTop: "4px" }}>
                 <PackLine />

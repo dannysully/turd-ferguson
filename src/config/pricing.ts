@@ -196,10 +196,10 @@ export const TIERS: Tier[] = [
     plainName: TIER_PLAIN.everywhere,
     basePrice: null,
     priceLabel: "Book a call",
-    priceBasis: "Scoped on a call. Monthly, sold to brands direct rather than white-labelled.",
-    // Pricing spec 27 Sep, section 8: brand PR and earned media, sold to
-    // brands direct (open decision 5's default) - no longer a portfolio.
-    positioning: "Earned media, then the answers",
+    // Danny, 28 Sep 2026 (danny.md 73, R72): brand PR on top of the
+    // alwayscited plan, sold to brands direct - no longer a portfolio.
+    priceBasis: `Where brand PR comes in. Earned coverage in the press and trade media your buyers read, on top of everything in ${TIER_PLAIN.cited}, so you lead the whole conversation, not just search and AI answers. Scoped on a call, sold to brands direct.`,
+    positioning: "Be the name everywhere buyers look",
     href: "/alwayseverywhere",
     includes: [
       `Everything in ${TIER_PLAIN.cited}`,

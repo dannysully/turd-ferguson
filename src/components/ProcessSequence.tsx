@@ -3,7 +3,7 @@
 import { Fragment, useEffect, useState } from "react";
 
 import EngineLogo from "@/components/EngineLogo";
-import TierName, { type TierKey } from "@/components/TierName";
+import TierName, { TierText, type TierKey } from "@/components/TierName";
 import { TIERS, TRACKED_QUESTIONS } from "@/config/pricing";
 import { FREE_ENGINE_COUNT } from "@/config/scan-shape";
 import { CARD, MICRO, SHELL, T } from "@/config/tokens";
@@ -652,7 +652,7 @@ export default function ProcessSequence(p: { heading?: string; standfirst?: stri
                   ) : null}
                   {bTier?.priceBasis ? (
                     <p className="proc-line" style={{ margin: "4px 0 0", fontSize: "12.5px", color: T.soft, lineHeight: 1.55, maxWidth: "36ch" }}>
-                      {bTier.priceBasis}
+                      <TierText>{bTier.priceBasis}</TierText>
                     </p>
                   ) : null}
                   {/* The panel is a drawing of placeholder brands, so each tier
