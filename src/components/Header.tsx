@@ -32,7 +32,7 @@ import { D, HEADER_H, WASH, WASH_SIZE } from "./home/dark";
  * read as one surface. Every other route keeps the light bar.
  */
 
-const COMPARE_HREF = "/#packages";
+const COMPARE_HREF = "/packages";
 const packageLinks: NavItem[] = [
   ...TIERS.map((t) => ({
     key: t.key,

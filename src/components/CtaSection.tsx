@@ -62,7 +62,7 @@ export default function CtaSection() {
             Run a free scan
           </Link>
           <Link
-            href="/#packages"
+            href="/packages"
             style={{
               fontSize: "15px",
               fontWeight: 600,

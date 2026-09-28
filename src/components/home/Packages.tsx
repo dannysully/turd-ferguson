@@ -23,6 +23,11 @@ import { D, PACKAGES_WASH } from "./dark";
  * tinted column (Danny, 28 Sep, R58) - never "Most popular", there is no sales
  * data behind it.
  *
+ * Split across two routes (Danny, 28 Sep 2026, R65): the homepage draws the
+ * band only, with a "Compare all packages" link under it; `/packages` draws
+ * the band, the full table and the foot (`full`), with the band's heading as
+ * the page's h1. `id="packages"` stays on both so old `/#packages` anchors land.
+ *
  * The staircase draws itself on the board's 10s loop under
  * html[data-motion="on"]; with no script or reduced motion it is drawn, with
  * every step in place.
@@ -95,9 +100,12 @@ function CellMark({ v }: { v: Cell }) {
   return <span>{v}</span>;
 }
 
-export default function Packages() {
+export const PACKAGES_HREF = "/packages";
+
+export default function Packages({ full = false }: { full?: boolean }) {
+  const Heading = full ? "h1" : "h2";
   return (
-    <section id="packages" style={{ marginTop: "72px", scrollMarginTop: "5rem" }}>
+    <section id="packages" style={{ marginTop: full ? 0 : "72px", scrollMarginTop: "5rem" }}>
       <div
         className="on-dark"
         style={{
@@ -108,9 +116,9 @@ export default function Packages() {
       >
         <div style={SHELL}>
           <div className="ways-head">
-            <h2 style={{ margin: 0, fontSize: "clamp(26px, 3.4vw, 34px)", fontWeight: 700, letterSpacing: "-0.03em", color: T.surface, flexShrink: 0 }}>
-              Packages
-            </h2>
+            <Heading style={{ margin: 0, fontSize: "clamp(26px, 3.4vw, 34px)", fontWeight: 700, letterSpacing: "-0.03em", color: T.surface, flexShrink: 0 }}>
+              {full ? "Packages and pricing" : "Packages"}
+            </Heading>
             <p style={{ margin: 0, fontSize: "15px", lineHeight: 1.6, color: D.muted, maxWidth: "56ch" }}>
               Monthly, no minimum term. The price is here because you should not have to sit through a
               call to find out.
@@ -150,10 +158,19 @@ export default function Packages() {
             ))}
             </ol>
           </div>
+          {full ? null : (
+            // id="packages-compare" marks the end of the homepage band for price-surfaces.test.mts.
+            <p id="packages-compare" style={{ margin: "32px 0 0", fontSize: "15px" }}>
+              <a href={PACKAGES_HREF} style={{ fontWeight: 600, textDecoration: "none", color: T.surface }}>
+                Compare all packages <span aria-hidden="true">→</span>
+              </a>
+            </p>
+          )}
         </div>
       </div>
 
-      <div style={{ ...SHELL, paddingTop: "48px" }}>
+      {full ? (
+      <div style={{ ...SHELL, paddingTop: "48px", paddingBottom: "72px" }}>
         {/* Below 860px the table scrolls sideways and read as one tier of
             four (Danny, 26 Sep 2026, R28). The label says so; the right-edge
             fade in globals.css says so again and clears at the end. */}
@@ -278,6 +295,7 @@ export default function Packages() {
           </span>
         </div>
       </div>
+      ) : null}
     </section>
   );
 }

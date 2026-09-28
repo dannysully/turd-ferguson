@@ -228,7 +228,7 @@ export default function SeoAgenciesPage() {
           ))}
         </div>
         <p style={{ margin: "20px 0 0", fontSize: "14px", color: T.soft, lineHeight: 1.6 }}>
-          <Link href="/#packages" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
+          <Link href="/packages" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
             See all packages
           </Link>
           {/* "a week" said something the other three surfaces did not: the basis

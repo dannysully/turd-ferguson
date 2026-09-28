@@ -34,7 +34,7 @@ const ROUTES = [
       "Give it a domain and it reports which answers already name that brand, and which name somebody else. No call and no card.",
   },
   {
-    href: "/#packages",
+    href: "/packages",
     label: "What each tier costs",
     // Was "Four tiers, every price published on the page." Three of the four
     // carry a figure; the fourth is a call. Both counts are derived now, so

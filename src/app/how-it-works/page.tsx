@@ -277,7 +277,7 @@ export default function HowItWorksPage() {
             ))}
           </ol>
           <p style={{ margin: "20px 0 0", fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
-            <Link href="/#packages" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
+            <Link href="/packages" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
               See all packages
             </Link>
             {tracked

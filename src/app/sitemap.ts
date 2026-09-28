@@ -67,6 +67,7 @@ type Entry = [path: string, lastModified: string, changeFrequency: MetadataRoute
  */
 const ENTRIES: Entry[] = [
   ["", "2026-09-20", "weekly", 1.0],
+  ["/packages", "2026-09-28", "monthly", 0.9],
   ["/alwaystracked", "2026-09-20", "monthly", 0.9],
   ["/alwaysmentioned", "2026-09-20", "monthly", 0.9],
   ["/alwayscited", "2026-09-20", "monthly", 0.9],

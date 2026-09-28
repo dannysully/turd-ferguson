@@ -91,7 +91,7 @@ export default function PackagePage({
         <div>
           <Link
             className="ac-row"
-            href="/#packages"
+            href="/packages"
             style={{ display: "block", fontSize: "13px", fontWeight: 600, textDecoration: "none", color: T.accent }}
           >
             All packages

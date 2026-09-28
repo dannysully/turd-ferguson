@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { metadata as home } from "@/app/page";
+import { metadata as packages } from "@/app/packages/page";
 import { metadata as tracked } from "@/app/alwaystracked/page";
 import { metadata as mentioned } from "@/app/alwaysmentioned/page";
 import { metadata as cited } from "@/app/alwayscited/page";
@@ -42,6 +43,7 @@ export const SECTIONS: { heading: string; pages: LlmsPage[] }[] = [
   {
     heading: "Packages",
     pages: [
+      { path: "/packages", meta: packages },
       { path: "/alwaystracked", meta: tracked },
       { path: "/alwaysmentioned", meta: mentioned },
       { path: "/alwayscited", meta: cited },

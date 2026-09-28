@@ -57,13 +57,23 @@ function quotedTiers(source: string): Quoted[] {
  * the tier journey prints a basis-like line of its own - so a whole-page match
  * passes while the grid itself has stopped printing anything.
  */
-function packagesGrid(html: string): string {
+function packagesGrid(html: string, end = 'id="white-label"'): string {
   const body = bodyOf(html);
   const from = body.indexOf('id="packages"');
-  const to = body.indexOf('id="white-label"', from);
-  assert.ok(from !== -1 && to > from, "the packages section is not on the homepage under the ids this reads");
+  const to = body.indexOf(end, from);
+  assert.ok(from !== -1 && to > from, "the packages section is not on the page under the ids this reads (" + end + ")");
   return text(body.slice(from, to));
 }
+
+/**
+ * Where the full grid lives. 28 Sep 2026 (R65): the table, the basis and the
+ * foot moved off the homepage onto /packages; the homepage keeps the
+ * staircase band, which still prints every tier's price, and ends at the
+ * "Compare all packages" link (`id="packages-compare"`). Both are held below -
+ * the grid's checks moved with the grid, none were dropped.
+ */
+const GRID_ROUTE = "/packages";
+const HOME_BAND_END = 'id="packages-compare"';
 
 /**
  * `sweptPages` names a prerendered page by its file and a captured one by its
@@ -94,19 +104,22 @@ test("the parse reads every tier the file declares, so it cannot go blind", () =
 test("the pages this checks against were actually built", () => {
   assert.ok(pages.length > 15, "no build to read - run `npm run build` then `npm run capture`");
   assert.ok(byRoute.has("/"), "the homepage is not in the swept set, so every assertion below is vacuous");
+  assert.ok(byRoute.has(GRID_ROUTE), GRID_ROUTE + " is not in the swept set, so the grid assertions below are vacuous");
   for (const t of TIERS) {
     assert.ok(byRoute.has(t.href), t.id + " points at " + t.href + ", which is not a page that was built");
   }
 });
 
-test("every tier's price reaches the homepage packages grid", () => {
-  const home = packagesGrid(byRoute.get("/")!.html);
-  const missing = TIERS.filter((t) => !home.includes(t.priceLabel));
-  assert.deepEqual(
-    missing.map((t) => t.id + " (" + t.priceLabel + ")"),
-    [],
-    "a tier in pricing.ts does not reach the homepage - the grid quotes a shorter list than the product sells",
-  );
+test("every tier's price reaches the homepage band and the /packages grid", () => {
+  for (const [route, end] of [["/", HOME_BAND_END], [GRID_ROUTE, 'id="white-label"']] as const) {
+    const grid = packagesGrid(byRoute.get(route)!.html, end);
+    const missing = TIERS.filter((t) => !grid.includes(t.priceLabel));
+    assert.deepEqual(
+      missing.map((t) => t.id + " (" + t.priceLabel + ")"),
+      [],
+      "a tier in pricing.ts does not reach " + route + " - the packages section quotes a shorter list than the product sells",
+    );
+  }
 });
 
 test("every tier's price reaches its own package page, in full", () => {
@@ -167,9 +180,9 @@ test("the basis travels with the price it qualifies, on every surface that print
       assert.ok(decl, `${what} interpolates ${name}, which pricing.ts does not declare as a number`);
       return decl![1]!;
     });
-  const grid = packagesGrid(byRoute.get("/")!.html);
+  const grid = packagesGrid(byRoute.get(GRID_ROUTE)!.html);
   const resolvedBasis = resolve(basis!, "priceBasis");
-  assert.ok(grid.includes(resolvedBasis), "the homepage packages grid quotes a floor price without its basis: " + resolvedBasis);
+  assert.ok(grid.includes(resolvedBasis), "the /packages grid quotes a floor price without its basis: " + resolvedBasis);
 
   // What moves the price. Until 28 Sep 2026 (R61) that was the basis's second
   // sentence, "+$49 / £39 a month" in both currencies whatever the market
@@ -179,6 +192,6 @@ test("the basis travels with the price it qualifies, on every surface that print
   const usPack = /TRACKING_PACK_PRICE = \{ us: (\d+),/.exec(source)?.[1];
   assert.ok(packTpl && usPack, "no TRACKING_PACK_LINE / TRACKING_PACK_PRICE in " + PRICING + " - if the pack went, remove this half");
   const pack = resolve(packTpl!, "TRACKING_PACK_LINE").replace("{price}", "+$" + usPack);
-  assert.ok(grid.includes(pack), "the homepage packages grid quotes a floor price without saying what moves it: " + pack);
+  assert.ok(grid.includes(pack), "the /packages grid quotes a floor price without saying what moves it: " + pack);
   assert.ok(!/\$\d+\s*\/\s*£\d+/.test(grid), "the packages grid prints a price in both currencies at once, whatever the toggle says (R61)");
 });

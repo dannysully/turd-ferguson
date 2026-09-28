@@ -178,7 +178,7 @@ export default function WhiteLabelPage() {
         </div>
 
         <p style={{ margin: "22px 0 0", fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
-          <Link href="/#packages" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
+          <Link href="/packages" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
             See what it costs
           </Link>{" "}
           - or run a scan on a client first.
