@@ -249,6 +249,22 @@ test("the chrome cut still finds chrome, so the disclosure rule is not reading w
   assert.equal(cut.length, withChrome.length, "the chrome cut removed nothing from a page that has chrome");
 });
 
+test("alwaystracked's US figure is written once in meaning, twice in text, and the two agree", () => {
+  /**
+   * Since 28 Sep 2026 the tiles' market toggle draws alwaystracked's "from"
+   * out of TRACKED_PRICE, and every server-rendered surface draws the tier's
+   * basePrice and priceLabel. Both are literals in pricing.ts because this
+   * file reads it as text. So the three are held equal here: a toggle that
+   * said $139 over a card that said $129 is two copies of one fact.
+   */
+  const declared = /export const TRACKED_PRICE = \{ us: (\d+), uk: (\d+) \}/.exec(source);
+  assert.ok(declared, "pricing.ts no longer declares TRACKED_PRICE in the shape this reads");
+  const tracked = TIERS.find((t) => t.id === "tracked");
+  assert.ok(tracked, "no tracked tier parsed");
+  assert.equal(tracked.basePrice, Number(declared[1]), "tracked basePrice and TRACKED_PRICE.us disagree");
+  assert.equal(tracked.priceLabel, `from $${declared[1]}/mo`, "tracked priceLabel and TRACKED_PRICE.us disagree");
+});
+
 test("the two readers of 'has a price' agree with each other", () => {
   /**
    * `basePrice === null` is what `priceProse` and `PackagePage`'s

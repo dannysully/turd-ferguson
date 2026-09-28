@@ -1,3 +1,4 @@
+import { MarketPrice, MarketToggle, SectorPrice } from "@/components/SectorPrice";
 import TierEngines from "@/components/TierEngines";
 import TierName, { TierText, type TierKey } from "@/components/TierName";
 import { ALWAYS_ON, ALWAYS_ON_SUPPORT } from "@/config/always-on";
@@ -21,6 +22,7 @@ export type PackageSection = { heading: string; body: string };
 
 /** The board's "/mo per client" treatment: a qualifier beside the figure, small and soft. */
 const PRICE_UNIT: React.CSSProperties = { fontSize: "15px", fontWeight: 600, color: T.soft, letterSpacing: 0 };
+const PRICE_BIG: React.CSSProperties = { fontSize: "36px", fontWeight: 700, letterSpacing: "-0.035em", lineHeight: 1.1 };
 
 const GLOSS: Record<string, string> = {
   // The count comes from pricing.ts. It was typed here, which made this the
@@ -119,11 +121,18 @@ export default function PackagePage({
           {/* The board sets the qualifiers small and soft beside the figure.
               Split by the site's one price-label reader, which returns a label
               it cannot parse whole, at figure size. */}
-          <div style={{ fontSize: "36px", fontWeight: 700, letterSpacing: "-0.035em", lineHeight: 1.1 }}>
-            {price.prefix ? <span style={PRICE_UNIT}>{price.prefix}</span> : null}
-            {price.figure}
-            {price.suffix ? <span style={PRICE_UNIT}>{price.suffix}</span> : null}
-          </div>
+          {/* The page's one market toggle, US first (pricing spec section 4;
+              Danny, 27 Sep). The sector tiers get a select and a stepper. */}
+          {tier.basePrice !== null ? <MarketToggle style={{ marginBottom: "14px", color: T.soft }} /> : null}
+          {tier.key === "mentioned" || tier.key === "cited" ? (
+            <SectorPrice tier={tier.key} fallback={tier.priceLabel} per={PRICE_UNIT} priceStyle={PRICE_BIG} />
+          ) : (
+            <div style={PRICE_BIG}>
+              {price.prefix ? <span style={PRICE_UNIT}>{price.prefix}</span> : null}
+              {price.figure}
+              {price.suffix ? <span style={PRICE_UNIT}>{price.suffix}</span> : null}
+            </div>
+          )}
           <p style={{ margin: "8px 0 16px", fontSize: "13.5px", lineHeight: 1.6, color: T.soft }}>
             {tier.priceBasis ?? "Monthly, no minimum term, white-labelled. What you pay us, not what you charge on."}
           </p>
@@ -270,7 +279,9 @@ export default function PackagePage({
                 <div style={{ fontSize: "14.5px", fontWeight: 700, letterSpacing: "-0.022em", color: T.ink }}>
                   <TierName tier={t.key} qualifier={t.qualifier} />
                 </div>
-                <div style={{ fontSize: "13px", color: T.soft, marginTop: "4px" }}>{t.priceLabel}</div>
+                <div style={{ fontSize: "13px", color: T.soft, marginTop: "4px" }}>
+                  <MarketPrice tier={t.key} fallback={t.priceLabel} />
+                </div>
                 <TierEngines tier={t.key} size={14} colour={T.soft} style={{ marginTop: "8px" }} />
                 <div style={{ fontSize: "13px", color: T.soft, marginTop: "8px", lineHeight: 1.55 }}>
                   {here ? "You are here. " : ""}

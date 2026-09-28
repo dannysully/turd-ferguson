@@ -32,6 +32,12 @@ test("a floor keeps its from, which is the bug this exists for", () => {
   assert.ok(p.prefix, "the floor rendered as a flat price");
 });
 
+test("a UK floor splits the same way as a US one", () => {
+  // The tiles' market toggle (pricing spec section 4, 28 Sep 2026).
+  assert.equal(isPriceLabel("from £995/mo"), true);
+  assert.deepEqual(splitPriceLabel("from £995/mo"), { prefix: "from ", figure: "£995", suffix: "/mo" });
+});
+
 test("a flat price has no prefix to lose", () => {
   assert.deepEqual(splitPriceLabel("$995/mo"), { prefix: "", figure: "$995", suffix: "/mo" });
   assert.deepEqual(splitPriceLabel("$2,495/mo"), { prefix: "", figure: "$2,495", suffix: "/mo" });

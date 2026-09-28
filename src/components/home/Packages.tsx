@@ -1,8 +1,8 @@
+import { MarketPrice, MarketToggle, SectorPrice } from "@/components/SectorPrice";
 import TierEngines from "@/components/TierEngines";
 import TierName, { type TierKey } from "@/components/TierName";
 import { ALWAYS_ON, ALWAYS_ON_SUPPORT } from "@/config/always-on";
 import { TIERS, contactUrlFor } from "@/config/pricing";
-import { splitPriceLabel } from "@/config/price-label";
 import { CARD, SHELL, T } from "@/config/tokens";
 
 import { D, PACKAGES_WASH } from "./dark";
@@ -25,17 +25,6 @@ import { D, PACKAGES_WASH } from "./dark";
  * html[data-motion="on"]; with no script or reduced motion it is drawn, with
  * every step in place.
  */
-
-function priceNode(label: string, per: React.CSSProperties): React.ReactNode {
-  const { prefix, figure, suffix } = splitPriceLabel(label);
-  return (
-    <>
-      {prefix ? <span style={per}>{prefix} </span> : null}
-      {figure}
-      {suffix ? <span style={per}>{suffix}</span> : null}
-    </>
-  );
-}
 
 /** The board's button labels. The everywhere tier's goes to a call, not a page;
  *  the tracked tier's to /contact with the tier carried, as it is set up by
@@ -66,6 +55,8 @@ const ROWS: { what: string; cells: Record<TierKey, Cell> }[] = [
 ];
 
 const HI = T.wash;
+const PRICE: React.CSSProperties = { fontSize: "24px", fontWeight: 700, letterSpacing: "-0.03em", marginTop: "8px", color: T.ink, lineHeight: 1.2 };
+const PER: React.CSSProperties = { fontSize: "13px", color: T.soft, fontWeight: 600, letterSpacing: 0 };
 const colBg = (emphasis?: boolean) => (emphasis ? HI : "transparent");
 
 function CellMark({ v }: { v: Cell }) {
@@ -109,6 +100,9 @@ export default function Packages() {
             <p style={{ margin: 0, fontSize: "17px", fontWeight: 700, letterSpacing: "-0.02em", color: T.surface }}>{ALWAYS_ON.packages}</p>
             <p style={{ margin: "4px 0 0", fontSize: "14px", lineHeight: 1.6, color: D.muted, maxWidth: "64ch" }}>{ALWAYS_ON_SUPPORT}</p>
           </div>
+          {/* One market toggle for the section, US first (pricing spec
+              section 4; Danny, 27 Sep). Drawn only once script runs. */}
+          <MarketToggle tone="dark" style={{ marginTop: "20px", color: D.muted }} />
 
           {/* In the order pricing.ts lists them, which is ascending intensity. */}
           <div className="stair" style={{ marginTop: "40px" }}>
@@ -128,7 +122,9 @@ export default function Packages() {
                 <span style={{ display: "block", fontSize: "clamp(20px, 2.1vw, 26px)", fontWeight: 700, letterSpacing: "-0.025em" }}>
                   <TierName tier={t.key} />
                 </span>
-                <span style={{ display: "block", fontSize: "14px", color: D.muted, marginTop: "4px" }}>{t.priceLabel}</span>
+                <span style={{ display: "block", fontSize: "14px", color: D.muted, marginTop: "4px" }}>
+                  <MarketPrice tier={t.key} fallback={t.priceLabel} />
+                </span>
                 <TierEngines tier={t.key} size={14} colour={D.muted} style={{ marginTop: "8px" }} />
               </li>
             ))}
@@ -161,9 +157,13 @@ export default function Packages() {
                     <div style={{ fontSize: "16px", fontWeight: 700, letterSpacing: "-0.02em", color: T.ink }}>
                       <TierName tier={t.key} />
                     </div>
-                    <div style={{ fontSize: "24px", fontWeight: 700, letterSpacing: "-0.03em", marginTop: "8px", color: T.ink, lineHeight: 1.2 }}>
-                      {priceNode(t.priceLabel, { fontSize: "13px", color: T.soft, fontWeight: 600, letterSpacing: 0 })}
-                    </div>
+                    {t.key === "mentioned" || t.key === "cited" ? (
+                      <SectorPrice tier={t.key} fallback={t.priceLabel} compact per={PER} priceStyle={PRICE} />
+                    ) : (
+                      <div style={PRICE}>
+                        <MarketPrice tier={t.key} fallback={t.priceLabel} per={PER} />
+                      </div>
+                    )}
                     <div style={{ fontSize: "12px", lineHeight: 1.45, color: T.soft, marginTop: "4px", minHeight: "32px" }}>
                       {t.priceBasis ?? t.positioning}
                     </div>

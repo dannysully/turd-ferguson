@@ -41,7 +41,9 @@ const SUFFIXES = ["/mo", "/month"];
  * "2 seats included" is not a price and must not be set in 36px type.
  */
 export function isPriceLabel(label: string): boolean {
-  return label.includes("$");
+  // Or a pound sign, since 28 Sep 2026: the US/UK toggle on the price tiles
+  // (pricing spec section 4) draws UK labels through this reader too.
+  return label.includes("$") || label.includes("£");
 }
 
 /**

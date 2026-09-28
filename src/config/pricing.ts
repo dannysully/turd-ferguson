@@ -62,6 +62,14 @@ export const TRACKED_QUESTIONS = 20;
  */
 export const TRACKED_KEYWORDS = 10;
 
+/**
+ * alwaystracked's "from" in each market (pricing spec sections 1 and 3): $129,
+ * UK £99. The one tier priced here rather than in sector-prices.json. The
+ * tier's basePrice below is the US half, written as a literal because the
+ * price censuses read it as one; price-claims holds the two equal.
+ */
+export const TRACKED_PRICE = { us: 129, uk: 99 } as const;
+
 /** What the tracking price covers, as every surface says it (spec section 8). */
 export const TRACKED_BASIS = `${TRACKED_QUESTIONS} questions and ${TRACKED_KEYWORDS} keywords, checked daily`;
 
