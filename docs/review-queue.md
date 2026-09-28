@@ -1257,6 +1257,16 @@ Items filed by the reviewer from live checks and from docs/danny.md. The builder
   **Open defect, first thing next run (28 Sep 07:48Z):** the homepage scrolls
   sideways at 390 (scrollWidth 708, scrollX 318), traced to `.pkg-scroll`;
   not yet known if section 4 caused it. See docs/parity/log.md, 56c1afe entry.
+  **Progress (28 Sep 08:10Z, builder):** the 390 sideways scroll fixed ->
+  869b7c4 (`.pkg-scroll` was unpositioned, so the table's absolute sr-only
+  spans escaped its clip; scrollX 0 live). Section 6's tier-page ask shipped
+  -> e6e9254: "See it first" card on every tier page, Loom / demo stored in
+  walkthrough_requests with no scan via `/api/walkthrough`, "Book a call" a
+  link (blocked.md default (b) for the kind constraint). Waitlist: migration
+  written (20260928000000_leads_waitlist.sql), apply is DANNY in blocked.md;
+  the form ships once the table is read back. Left: result page's third
+  toggle option (waits on the same waitlist), section 5 (Stripe, DANNY),
+  section 7 (held until 2-6 are done).
 
 - [x] R51 `src/config/sector-prices.json` confirmed in place -> 5444fdd, 41b552f - unblock R50's
   blocker 1, build sections 1-4 (Danny, docs/danny.md - filed 2026-09-27, line
