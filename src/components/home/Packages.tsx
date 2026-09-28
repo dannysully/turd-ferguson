@@ -59,6 +59,11 @@ const PRICE: React.CSSProperties = { fontSize: "24px", fontWeight: 700, letterSp
 const PER: React.CSSProperties = { fontSize: "13px", color: T.soft, fontWeight: 600, letterSpacing: 0 };
 const colBg = (emphasis?: boolean) => (emphasis ? HI : "transparent");
 
+/** The basis or positioning line, directly under the price in every column. */
+function Basis({ text }: { text: string }) {
+  return <div style={{ fontSize: "12px", lineHeight: 1.45, color: T.soft, marginTop: "4px", minHeight: "35px" }}>{text}</div>;
+}
+
 function CellMark({ v }: { v: Cell }) {
   if (v === 1) {
     return (
@@ -153,21 +158,24 @@ export default function Packages() {
               <tr>
                 <td style={{ padding: "20px 24px", fontSize: "13px", color: T.soft, verticalAlign: "bottom" }}>What each tier adds</td>
                 {TIERS.map((t) => (
-                  <th key={t.id} scope="col" style={{ padding: "20px 18px", borderLeft: `1px solid ${T.line}`, background: colBg(t.emphasis), textAlign: "left", fontWeight: 400, verticalAlign: "top" }}>
+                  // height: 1px lets the inner column fill the row, so the engine
+                  // marks and the CTA share one bottom line in all four (R56).
+                  <th key={t.id} scope="col" style={{ height: "1px", padding: "20px 18px", borderLeft: `1px solid ${T.line}`, background: colBg(t.emphasis), textAlign: "left", fontWeight: 400, verticalAlign: "top" }}>
+                    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
                     <div style={{ fontSize: "16px", fontWeight: 700, letterSpacing: "-0.02em", color: T.ink }}>
                       <TierName tier={t.key} />
                     </div>
                     {t.key === "mentioned" || t.key === "cited" ? (
-                      <SectorPrice tier={t.key} fallback={t.priceLabel} compact per={PER} priceStyle={PRICE} />
+                      <SectorPrice tier={t.key} fallback={t.priceLabel} compact per={PER} priceStyle={PRICE} basis={<Basis text={t.priceBasis ?? t.positioning} />} />
                     ) : (
-                      <div style={PRICE}>
-                        <MarketPrice tier={t.key} fallback={t.priceLabel} per={PER} />
-                      </div>
+                      <>
+                        <div style={PRICE}>
+                          <MarketPrice tier={t.key} fallback={t.priceLabel} per={PER} />
+                        </div>
+                        <Basis text={t.priceBasis ?? t.positioning} />
+                      </>
                     )}
-                    <div style={{ fontSize: "12px", lineHeight: 1.45, color: T.soft, marginTop: "4px", minHeight: "32px" }}>
-                      {t.priceBasis ?? t.positioning}
-                    </div>
-                    <TierEngines tier={t.key} size={14} colour={T.soft} style={{ marginTop: "10px", minHeight: "18px" }} />
+                    <TierEngines tier={t.key} size={14} colour={T.soft} style={{ marginTop: "auto", paddingTop: "10px", minHeight: "18px" }} />
                     <a
                       href={CTA[t.key].href ?? t.href}
                       className={t.emphasis ? "pkg-btn pkg-btn--dark" : "pkg-btn"}
@@ -189,6 +197,7 @@ export default function Packages() {
                     >
                       {CTA[t.key].label}
                     </a>
+                    </div>
                   </th>
                 ))}
               </tr>

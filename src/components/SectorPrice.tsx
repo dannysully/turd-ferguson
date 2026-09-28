@@ -128,12 +128,16 @@ export function SectorPrice({
   per,
   priceStyle,
   compact = false,
+  basis,
 }: {
   tier: SectorTier;
   fallback: string;
   per: React.CSSProperties;
   priceStyle: React.CSSProperties;
   compact?: boolean;
+  /** Drawn between the price and the controls, so the basis line sits
+   *  directly under the price in every column (Danny, 28 Sep, R56). */
+  basis?: React.ReactNode;
 }) {
   const m = useMarket();
   const mounted = useMounted();
@@ -156,7 +160,7 @@ export function SectorPrice({
     background: "transparent",
     border: "1px solid " + T.line,
     borderRadius: "8px",
-    minHeight: "32px",
+    minHeight: compact ? "36px" : "32px",
   };
 
   return (
@@ -164,14 +168,28 @@ export function SectorPrice({
       <div style={priceStyle} aria-live="polite">
         <Parts label={label} per={per} />
       </div>
+      {basis}
       {mounted ? (
         // Wraps rather than widens: at 390 the select and the stepper on one row
-        // pushed the card 29px past the viewport (28 Sep 2026).
+        // pushed the card 29px past the viewport (28 Sep 2026). In compact's
+        // column a `1 1 150px` basis is read as a height, which drew the select
+        // as a tall box (R56), so compact sizes both controls explicitly.
         <div style={{ display: "flex", flexDirection: compact ? "column" : "row", flexWrap: "wrap", gap: "6px", marginTop: "10px", minWidth: 0 }}>
           <label htmlFor={id} className="sr-only">
             Sector
           </label>
-          <select id={id} value={sector} onChange={(e) => setSector(e.target.value)} style={{ ...control, flex: "1 1 150px", minWidth: 0, maxWidth: "100%", padding: "0 8px" }}>
+          <select
+            id={id}
+            value={sector}
+            onChange={(e) => setSector(e.target.value)}
+            style={{
+              ...control,
+              ...(compact ? { flex: "0 0 auto", height: "36px", width: "100%" } : { flex: "1 1 150px" }),
+              minWidth: 0,
+              maxWidth: "100%",
+              padding: "0 8px",
+            }}
+          >
             <option value="">Pick your sector</option>
             {SECTORS.map((s) => (
               <option key={s.id} value={s.id}>
@@ -179,7 +197,7 @@ export function SectorPrice({
               </option>
             ))}
           </select>
-          <div role="group" aria-label="Keyword clusters" style={{ display: "inline-flex", alignItems: "center", gap: "2px", flexShrink: 0 }}>
+          <div role="group" aria-label="Keyword clusters" style={{ display: "inline-flex", alignItems: "center", gap: "2px", ...(compact ? { flex: "0 0 auto", height: "36px" } : { flexShrink: 0 }) }}>
             <button type="button" aria-label="One fewer cluster" disabled={qty <= 1} onClick={() => setQty((q) => Math.max(1, q - 1))} style={{ ...control, width: "32px", cursor: "pointer" }}>
               −
             </button>
