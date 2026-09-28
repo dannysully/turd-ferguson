@@ -6,7 +6,6 @@ import { useState } from "react";
 
 import BrandMark from "./BrandMark";
 import NavDropdown, { type NavItem } from "./NavDropdown";
-import { MarketPrice } from "./SectorPrice";
 import TierName from "./TierName";
 import { TIERS } from "@/config/pricing";
 import { T } from "@/config/tokens";
@@ -22,9 +21,11 @@ import { D, HEADER_H, WASH, WASH_SIZE } from "./home/dark";
  * "White label" became "For agencies", a dropdown of the two agency pages
  * (Danny, 28 Sep 2026, R63). /white-label stays live, linked from the footer
  * and from both agency pages. Packages is the same dropdown: the four tiers,
- * each with its from-price in the page's market (MarketPrice - never typed
- * here), then "Compare all packages" (R64). On mobile each group's links sit
+ * then "Compare all packages" (R64). On mobile each group's links sit
  * indented under a plain label rather than behind a hover.
+ *
+ * The Packages list is tier names only, and "Compare all packages" is ink at
+ * normal weight, not accent (Danny, 28 Sep 2026, R74).
  *
  * On `/` only it sits on the hero's dark ground, as Main.dc.html draws it:
  * no hairline, links in D.muted, the lockup lifted with `.on-dark`. The wash
@@ -38,17 +39,12 @@ const packageLinks: NavItem[] = [
     key: t.key,
     href: t.href,
     label: (
-      <span style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "16px" }}>
-        <span style={{ fontWeight: 600 }}>
-          <TierName tier={t.key} />
-        </span>
-        <span style={{ fontSize: "12.5px", color: T.soft, whiteSpace: "nowrap" }}>
-          <MarketPrice tier={t.key} fallback={t.priceLabel} />
-        </span>
+      <span style={{ fontWeight: 600 }}>
+        <TierName tier={t.key} />
       </span>
     ),
   })),
-  { key: "compare", href: COMPARE_HREF, label: <span style={{ color: T.accent, fontWeight: 600 }}>Compare all packages</span> },
+  { key: "compare", href: COMPARE_HREF, label: <span style={{ color: T.ink, fontWeight: 500 }}>Compare all packages</span> },
 ];
 const navLinks = [
   { href: "/how-it-works", label: "How it works" },

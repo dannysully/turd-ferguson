@@ -1,6 +1,6 @@
 {
   "business": {
-    "label": "Business, marketing and legal",
+    "label": "Business and professional services",
     "us": {
       "currency": "USD",
       "mentioned": 1595,
@@ -8,8 +8,34 @@
     },
     "uk": {
       "currency": "GBP",
+      "mentioned": 1195,
+      "cited": 2695
+    }
+  },
+  "marketing": {
+    "label": "Marketing and advertising",
+    "us": {
+      "currency": "USD",
+      "mentioned": 1395,
+      "cited": 3495
+    },
+    "uk": {
+      "currency": "GBP",
       "mentioned": 1295,
       "cited": 2795
+    }
+  },
+  "legal": {
+    "label": "Legal",
+    "us": {
+      "currency": "USD",
+      "mentioned": 1395,
+      "cited": 3395
+    },
+    "uk": {
+      "currency": "GBP",
+      "mentioned": 1095,
+      "cited": 2595
     }
   },
   "technology": {
@@ -17,7 +43,7 @@
     "us": {
       "currency": "USD",
       "mentioned": 1595,
-      "cited": 3595
+      "cited": 3695
     },
     "uk": {
       "currency": "GBP",
@@ -48,7 +74,7 @@
     "uk": {
       "currency": "GBP",
       "mentioned": 1295,
-      "cited": 2895
+      "cited": 2795
     }
   },
   "careers": {
@@ -69,7 +95,7 @@
     "us": {
       "currency": "USD",
       "mentioned": 1395,
-      "cited": 3495
+      "cited": 3395
     },
     "uk": {
       "currency": "GBP",
@@ -82,7 +108,7 @@
     "us": {
       "currency": "USD",
       "mentioned": 1695,
-      "cited": 3795
+      "cited": 3695
     },
     "uk": {
       "currency": "GBP",
@@ -107,7 +133,7 @@
     "label": "Automotive and transport",
     "us": {
       "currency": "USD",
-      "mentioned": 1995,
+      "mentioned": 2095,
       "cited": 4095
     },
     "uk": {
@@ -121,7 +147,7 @@
     "us": {
       "currency": "USD",
       "mentioned": 1895,
-      "cited": 3995
+      "cited": 3895
     },
     "uk": {
       "currency": "GBP",
@@ -211,7 +237,7 @@
     "label": "Animals and pets",
     "us": {
       "currency": "USD",
-      "mentioned": 1995,
+      "mentioned": 1895,
       "cited": 3995
     },
     "uk": {
@@ -229,8 +255,8 @@
     },
     "uk": {
       "currency": "GBP",
-      "mentioned": 3495,
-      "cited": 5095
+      "mentioned": 1995,
+      "cited": 3595
     }
   },
   "other": {

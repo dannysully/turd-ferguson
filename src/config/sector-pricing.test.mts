@@ -8,9 +8,11 @@ import { fromLabel, fromPrice, MARKETS, MAX_CLUSTERS, quoteFor, SECTORS } from "
 
 const raw = JSON.parse(readFileSync(new URL("./sector-prices.json", import.meta.url), "utf8"));
 
-test("the file carries 18 priced sectors and other, which is a call", () => {
-  assert.equal(SECTORS.length, 19);
-  assert.equal(SECTORS.filter((s) => s.prices).length, 18);
+// 21 sectors, not 19: "Business, marketing and legal" split into business,
+// marketing and legal when Danny regenerated the file (28 Sep 2026, R80).
+test("the file carries 20 priced sectors and other, which is a call", () => {
+  assert.equal(SECTORS.length, 21);
+  assert.equal(SECTORS.filter((s) => s.prices).length, 20);
   const other = SECTORS.find((s) => s.id === "other");
   assert.ok(other && other.prices === null && other.label === "Other");
 });
@@ -27,7 +29,7 @@ test("every priced figure is whole, positive and ends in 95; currencies match ma
       n++;
     }
   }
-  assert.equal(n, 72);
+  assert.equal(n, 80);
 });
 
 test("US leads: the first market is us, in the module and in every entry of the file", () => {
