@@ -4,7 +4,6 @@ import WalkthroughForm from "@/components/scan/WalkthroughForm";
 import TierName, { TierText, type TierKey } from "@/components/TierName";
 import { ALWAYS_ON, ALWAYS_ON_SUPPORT } from "@/config/always-on";
 import { CONTACT_URL, TIERS, TRACKED_BASIS, contactUrlFor, type Tier } from "@/config/pricing";
-import { splitPriceLabel } from "@/config/price-label";
 import { ld } from "@/config/schema";
 import { serviceSchema } from "@/config/service-schema";
 import { CARD, MICRO, SHELL, T } from "@/config/tokens";
@@ -80,7 +79,6 @@ export default function PackagePage({
   /** A tier's own beat, directly under the header. Only /alwaystracked has one (R25). */
   beat?: React.ReactNode;
 }) {
-  const price = splitPriceLabel(tier.priceLabel);
   return (
     <section style={{ ...SHELL, paddingTop: "40px", display: "flex", flexDirection: "column", gap: "28px" }}>
       <script
@@ -137,10 +135,11 @@ export default function PackagePage({
           {tier.key === "mentioned" || tier.key === "cited" ? (
             <SectorPrice tier={tier.key} fallback={tier.priceLabel} per={PRICE_UNIT} priceStyle={PRICE_BIG} syncUrl />
           ) : (
-            <div style={PRICE_BIG}>
-              {price.prefix ? <span style={PRICE_UNIT}>{price.prefix}</span> : null}
-              {price.figure}
-              {price.suffix ? <span style={PRICE_UNIT}>{price.suffix}</span> : null}
+            // Through MarketPrice, so alwaystracked follows the toggle too: a
+            // static priceLabel here stayed on $129 when UK was picked (Danny,
+            // 28 Sep 2026, R77).
+            <div style={PRICE_BIG} aria-live="polite">
+              <MarketPrice tier={tier.key} fallback={tier.priceLabel} per={PRICE_UNIT} />
             </div>
           )}
           <p style={{ margin: "8px 0 16px", fontSize: "13.5px", lineHeight: 1.6, color: T.soft }}>
