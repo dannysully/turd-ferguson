@@ -32,8 +32,18 @@ export const H2 = ({ id, children }: { id?: string; children: React.ReactNode })
   </h2>
 );
 
+const BODY: React.CSSProperties = { fontSize: "16px", lineHeight: 1.75, color: "#3f4451" };
+
 export const P = ({ children }: { children: React.ReactNode }) => (
-  <p style={{ margin: "10px 0 0", fontSize: "16px", lineHeight: 1.75, color: "#3f4451" }}>{children}</p>
+  <p style={{ margin: "10px 0 0", ...BODY }}>{children}</p>
+);
+
+/** Lists in the body, set like P so the body colour is written once. */
+export const UL = ({ children }: { children: React.ReactNode }) => (
+  <ul style={{ margin: "10px 0 0", paddingLeft: "20px", ...BODY }}>{children}</ul>
+);
+export const OL = ({ children }: { children: React.ReactNode }) => (
+  <ol style={{ margin: "10px 0 0", paddingLeft: "22px", ...BODY }}>{children}</ol>
 );
 
 export const Quote = ({ children }: { children: React.ReactNode }) => (

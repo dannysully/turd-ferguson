@@ -77,6 +77,7 @@ const ENTRIES: Entry[] = [
   ["/case-studies", "2026-09-19", "monthly", 0.8],
   ["/case-studies/vibe-retail", "2026-09-20", "monthly", 0.8],
   ["/blog", "2026-09-19", "weekly", 0.7],
+  ["/blog/best-ai-seo-agencies", "2026-09-28", "monthly", 0.6],
   ["/blog/how-llms-pick-which-brands-to-recommend", "2026-09-20", "monthly", 0.6],
   ["/blog/aeo-vs-seo-whats-actually-different", "2026-09-20", "monthly", 0.6],
   ["/blog/why-most-aeo-audits-are-a-waste-of-money", "2026-09-20", "monthly", 0.6],

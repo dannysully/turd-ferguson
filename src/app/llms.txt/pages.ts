@@ -14,6 +14,7 @@ import { metadata as blog } from "@/app/blog/page";
 import { metadata as postLlms } from "@/app/blog/how-llms-pick-which-brands-to-recommend/page";
 import { metadata as postAeoSeo } from "@/app/blog/aeo-vs-seo-whats-actually-different/page";
 import { metadata as postAudits } from "@/app/blog/why-most-aeo-audits-are-a-waste-of-money/page";
+import { metadata as postAgencies } from "@/app/blog/best-ai-seo-agencies/page";
 import { metadata as compare } from "@/app/compare/page";
 import { metadata as whiteLabel } from "@/app/white-label/page";
 import { metadata as seoAgencies } from "@/app/seo-agencies/page";
@@ -65,6 +66,7 @@ export const SECTIONS: { heading: string; pages: LlmsPage[] }[] = [
       { path: "/case-studies", meta: caseStudies },
       { path: "/case-studies/vibe-retail", meta: vibeRetail },
       { path: "/blog", meta: blog },
+      { path: "/blog/best-ai-seo-agencies", meta: postAgencies },
       { path: "/blog/how-llms-pick-which-brands-to-recommend", meta: postLlms },
       { path: "/blog/aeo-vs-seo-whats-actually-different", meta: postAeoSeo },
       { path: "/blog/why-most-aeo-audits-are-a-waste-of-money", meta: postAudits },

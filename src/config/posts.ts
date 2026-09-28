@@ -29,6 +29,15 @@ export type Post = {
 
 const REGISTERED: Post[] = [
   {
+    slug: "best-ai-seo-agencies",
+    title: "Best AI SEO agencies - top US agencies ranked",
+    blurb:
+      "Who to hire to get your brand named in ChatGPT, Gemini, Perplexity and Google's AI Overviews, ranked on what you can check before you sign.",
+    kind: "Findings",
+    date: "2026-09-28",
+    readMinutes: 6,
+  },
+  {
     slug: "how-llms-pick-which-brands-to-recommend",
     title: "How LLMs pick which brands to recommend",
     blurb:
