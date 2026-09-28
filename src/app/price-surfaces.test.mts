@@ -159,20 +159,26 @@ test("the basis travels with the price it qualifies, on every surface that print
    */
   const basis = /priceBasis:\s*`([^`]*)`/.exec(source)?.[1];
   assert.ok(basis, "no priceBasis in " + PRICING + " - if it was removed, remove this check with it");
-  // Since 28 Sep 2026 the second clause carries counts (`${TRACKED_QUESTIONS}`),
-  // so each `${NAME}` is resolved against the number pricing.ts declares for
-  // it. An unresolved one fails, rather than matching a string no page draws.
-  const resolved = basis!.replace(/\$\{(\w+)\}/g, (_, name: string) => {
-    const decl = new RegExp(`export const ${name} = (\\d+);`).exec(source);
-    assert.ok(decl, `priceBasis interpolates ${name}, which pricing.ts does not declare as a number`);
-    return decl![1]!;
-  });
-  const clause = resolved.split(/\.(?=\s)/)[1]?.trim();
-  assert.ok(clause && clause.length > 20, "the basis no longer has a second clause to match on: " + basis);
-
+  // Each `${NAME}` is resolved against the number pricing.ts declares for it.
+  // An unresolved one fails, rather than matching a string no page draws.
+  const resolve = (tpl: string, what: string) =>
+    tpl.replace(/\$\{(\w+)\}/g, (_, name: string) => {
+      const decl = new RegExp(`export const ${name} = (\\d+);`).exec(source);
+      assert.ok(decl, `${what} interpolates ${name}, which pricing.ts does not declare as a number`);
+      return decl![1]!;
+    });
   const grid = packagesGrid(byRoute.get("/")!.html);
-  assert.ok(
-    grid.includes(clause!),
-    "the homepage packages grid quotes a floor price without saying what moves it: " + clause,
-  );
+  const resolvedBasis = resolve(basis!, "priceBasis");
+  assert.ok(grid.includes(resolvedBasis), "the homepage packages grid quotes a floor price without its basis: " + resolvedBasis);
+
+  // What moves the price. Until 28 Sep 2026 (R61) that was the basis's second
+  // sentence, "+$49 / £39 a month" in both currencies whatever the market
+  // toggle said. It is its own line now, TRACKING_PACK_LINE with the market's
+  // figure in `{price}`; the server draws the US one. Parsed, not retyped.
+  const packTpl = /TRACKING_PACK_LINE = `([^`]*)`/.exec(source)?.[1];
+  const usPack = /TRACKING_PACK_PRICE = \{ us: (\d+),/.exec(source)?.[1];
+  assert.ok(packTpl && usPack, "no TRACKING_PACK_LINE / TRACKING_PACK_PRICE in " + PRICING + " - if the pack went, remove this half");
+  const pack = resolve(packTpl!, "TRACKING_PACK_LINE").replace("{price}", "+$" + usPack);
+  assert.ok(grid.includes(pack), "the homepage packages grid quotes a floor price without saying what moves it: " + pack);
+  assert.ok(!/\$\d+\s*\/\s*£\d+/.test(grid), "the packages grid prints a price in both currencies at once, whatever the toggle says (R61)");
 });

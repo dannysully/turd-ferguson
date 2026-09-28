@@ -1,4 +1,4 @@
-import { MarketPrice, MarketToggle, SectorPrice } from "@/components/SectorPrice";
+import { MarketPrice, MarketToggle, PackLine, SectorPrice } from "@/components/SectorPrice";
 import TierEngines from "@/components/TierEngines";
 import TierName, { type TierKey } from "@/components/TierName";
 import { ALWAYS_ON, ALWAYS_ON_SUPPORT } from "@/config/always-on";
@@ -195,6 +195,11 @@ export default function Packages() {
                           <MarketPrice tier={t.key} fallback={t.priceLabel} per={PER} />
                         </div>
                         <Basis text={t.priceBasis ?? t.positioning} />
+                        {t.key === "tracked" ? (
+                          <div style={{ fontSize: "12px", lineHeight: 1.45, color: T.soft, marginTop: "4px" }}>
+                            <PackLine />
+                          </div>
+                        ) : null}
                       </>
                     )}
                     <TierEngines tier={t.key} size={14} colour={T.soft} style={{ marginTop: "auto", paddingTop: "10px", minHeight: "18px" }} />

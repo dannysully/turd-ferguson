@@ -132,7 +132,7 @@ function firstClause(s: string): string {
  */
 const priceAnswer = [
   publishedPricesClause(),
-  tracked ? "Tracking is " + tracked.priceLabel + "." + (tracked.priceBasis ? " " + tracked.priceBasis : "") : "",
+  tracked ? "Tracking is " + tracked.priceLabel + "." + (tracked.priceBasis ? " " + tracked.priceBasis.replace(/\.?$/, ".") : "") : "",
   mentioned ? "Placements start at " + mentioned.priceLabel + " under " + TIER_PLAIN.mentioned + "." : "",
   cited
     ? "The " + TIER_PLAIN.cited + " plan, which adds the on-site work and the link insertions, is " + cited.priceLabel + "."

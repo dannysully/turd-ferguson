@@ -1,9 +1,9 @@
-import { MarketPrice, MarketToggle, SectorPrice } from "@/components/SectorPrice";
+import { MarketPrice, MarketToggle, PackLine, SectorPrice } from "@/components/SectorPrice";
 import TierEngines from "@/components/TierEngines";
 import WalkthroughForm from "@/components/scan/WalkthroughForm";
 import TierName, { TierText, type TierKey } from "@/components/TierName";
 import { ALWAYS_ON, ALWAYS_ON_SUPPORT } from "@/config/always-on";
-import { CONTACT_URL, EXTRA_TRACKING_LINE, TIERS, TRACKED_BASIS, contactUrlFor, type Tier } from "@/config/pricing";
+import { CONTACT_URL, TIERS, TRACKED_BASIS, contactUrlFor, type Tier } from "@/config/pricing";
 import { splitPriceLabel } from "@/config/price-label";
 import { ld } from "@/config/schema";
 import { serviceSchema } from "@/config/service-schema";
@@ -136,7 +136,11 @@ export default function PackagePage({
           )}
           <p style={{ margin: "8px 0 16px", fontSize: "13.5px", lineHeight: 1.6, color: T.soft }}>
             {tier.priceBasis ?? "Monthly, no minimum term, white-labelled. What you pay us, not what you charge on."}
-            {tier.key === "mentioned" || tier.key === "cited" ? " " + EXTRA_TRACKING_LINE : null}
+            {tier.key === "everywhere" ? null : (
+              <span style={{ display: "block", marginTop: "4px" }}>
+                <PackLine />
+              </span>
+            )}
           </p>
           <TierEngines tier={tier.key} size={16} colour={T.soft} style={{ margin: "-4px 0 16px" }} />
           <a

@@ -5,7 +5,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import type { TierKey } from "@/components/TierName";
 import { D } from "@/components/home/dark";
 import { splitPriceLabel } from "@/config/price-label";
-import { TIERS, TRACKED_PRICE } from "@/config/pricing";
+import { TIERS, TRACKED_PRICE, TRACKING_PACK_PRICE, trackingPackLine } from "@/config/pricing";
 import {
   DEFAULT_MARKET,
   MARKETS,
@@ -116,6 +116,14 @@ export function MarketPrice({ tier, fallback, per }: { tier: TierKey; fallback: 
   const mounted = useMounted();
   const label = mounted ? tierFromLabel(tier, m) : fallback;
   return per ? <Parts label={label} per={per} /> : <>{label}</>;
+}
+
+/** The extra tracking pack in the page's market, one currency at a time (R61). */
+export function PackLine() {
+  const m = useMarket();
+  const mounted = useMounted();
+  const at = mounted ? m : DEFAULT_MARKET;
+  return <>{trackingPackLine(formatPrice(TRACKING_PACK_PRICE[at], at))}</>;
 }
 
 /**

@@ -76,15 +76,20 @@ export const TRACKED_BASIS = `${TRACKED_QUESTIONS} questions and ${TRACKED_KEYWO
 /**
  * The extra tracking pack, on any tier (spec section 1): +$49 / £39 a month
  * for another TRACKED_QUESTIONS questions and TRACKED_KEYWORDS keywords.
- */
-/**
- * The same pack, as the higher tiers say it (spec section 8). Only the second
+ *
+ * One currency at a time (Danny, 28 Sep 2026, danny.md line 62, R61): the line
+ * used to print "+$49 / £39" whatever the page's market toggle said. `{price}`
+ * is filled with the active market's figure by `PackLine` in SectorPrice.tsx;
+ * the server, and a visitor with no script, read the US one, as they do every
+ * other price on the page. For the higher tiers this is only the second
  * sentence of the spec's line: its first, "Add keyword clusters: up to 10 at
  * checkout", describes a checkout that does not exist until section 5 does.
  */
-export const EXTRA_TRACKING_LINE = `Extra tracking: +$49 / £39 a month for ${TRACKED_QUESTIONS} questions and ${TRACKED_KEYWORDS} keywords.`;
-
-export const TRACKING_PACK_LINE = `Need more? Add ${TRACKED_QUESTIONS} questions and ${TRACKED_KEYWORDS} keywords for +$49 / £39 a month.`;
+export const TRACKING_PACK_PRICE = { us: 49, uk: 39 } as const;
+export const TRACKING_PACK_LINE = `Extra tracking pack: {price}/mo for ${TRACKED_QUESTIONS} more questions and ${TRACKED_KEYWORDS} more keywords.`;
+export function trackingPackLine(price: string): string {
+  return TRACKING_PACK_LINE.replace("{price}", "+" + price);
+}
 
 /**
  * Which engines each tier reads (pricing spec, Danny, 27 Sep 2026, sections 1
@@ -140,9 +145,9 @@ export const TIERS: Tier[] = [
     // priced here rather than in sector-prices.json.
     basePrice: 129,
     priceLabel: "from $129/mo",
-    // Spec section 8: the daily basis, and the add-on line in place of "More
-    // questions or a tighter cadence moves the price".
-    priceBasis: `${TRACKED_QUESTIONS} questions and ${TRACKED_KEYWORDS} keywords, checked daily. Need more? Add ${TRACKED_QUESTIONS} questions and ${TRACKED_KEYWORDS} keywords for +$49 / £39 a month.`,
+    // Spec section 8: the daily basis. The add-on is its own line, in the
+    // page's market (TRACKING_PACK_LINE, R61).
+    priceBasis: `${TRACKED_QUESTIONS} questions and ${TRACKED_KEYWORDS} keywords, checked daily`,
     positioning: "Know what your coverage did",
     href: "/alwaystracked",
     includes: [
