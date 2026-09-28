@@ -1,5 +1,6 @@
 import { MarketPrice, MarketToggle, SectorPrice } from "@/components/SectorPrice";
 import TierEngines from "@/components/TierEngines";
+import WalkthroughForm from "@/components/scan/WalkthroughForm";
 import TierName, { TierText, type TierKey } from "@/components/TierName";
 import { ALWAYS_ON, ALWAYS_ON_SUPPORT } from "@/config/always-on";
 import { CONTACT_URL, EXTRA_TRACKING_LINE, TIERS, TRACKED_BASIS, contactUrlFor, type Tier } from "@/config/pricing";
@@ -247,6 +248,24 @@ export default function PackagePage({
       <div className="ac-row" style={{ ...CARD, padding: "20px 24px", background: T.wash }}>
         <p style={{ margin: 0, fontSize: "17px", fontWeight: 700, letterSpacing: "-0.02em", color: T.ink }}>{ALWAYS_ON.tierPage}</p>
         <p style={{ margin: "4px 0 0", fontSize: "14px", lineHeight: 1.6, color: T.soft, maxWidth: "70ch" }}>{ALWAYS_ON_SUPPORT}</p>
+      </div>
+
+      {/* See it first, 28 Sep 2026 (pricing spec section 6; Danny, danny.md
+          line 55): no Loom URL or demo link yet, so each is an ask stored in
+          walkthrough_requests with no scan. Book a call stays a plain link -
+          walkthrough_requests.kind allows only video and demo (blocked.md). */}
+      <div className="ac-row see-first" style={{ ...CARD, padding: "24px" }}>
+        <div>
+          <h2 style={{ margin: 0, fontSize: "19px", fontWeight: 700, letterSpacing: "-0.022em", color: T.ink }}>See it first</h2>
+          <p style={{ margin: "8px 0 0", fontSize: "14px", lineHeight: 1.6, color: T.soft, maxWidth: "46ch" }}>
+            A Loom of the <TierName tier="tracked" /> platform, or a demo with Danny. Rather talk it through?{" "}
+            <a href={CONTACT_URL} style={{ fontWeight: 600, color: T.ink, textDecoration: "underline", textUnderlineOffset: "2px" }}>
+              Book a call
+            </a>
+            .
+          </p>
+        </div>
+        <WalkthroughForm from={tier.href} />
       </div>
 
       <div>

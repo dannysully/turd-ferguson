@@ -183,6 +183,20 @@ const EXEMPT: Record<string, { why: string; evidence: RegExp; where: string }> =
     evidence: /const PER_IP_PER_DAY = \d+/,
     where: "src/app/api/scan/[token]/walkthrough/route.ts",
   },
+  /**
+   * 28 September 2026 (pricing spec section 6). The same ask from a tier page,
+   * with no scan. Same single spend - one Resend message to our own inbox -
+   * but the unique index cannot dedupe a null scan_id, so the route looks up
+   * a same-address, same-kind ask from the last day itself before alerting.
+   */
+  walkthrough: {
+    why:
+      "Sends one internal alert per new (email, kind) ask with no scan in a rolling day, to our own " +
+      "inbox, and starts no scan. Bounded by the repeat lookup - a same-day repeat inserts nothing " +
+      "and sends nothing - and by PER_IP_PER_DAY requests from one hashed address.",
+    evidence: /const PER_IP_PER_DAY = \d+/,
+    where: "src/app/api/walkthrough/route.ts",
+  },
 };
 
 /**
@@ -438,8 +452,13 @@ test("the kill switch is read in one place, so its reach is exactly the guarded 
      * existing. The open question shrinks with them, and the biggest single
      * spender on the whole list - the gated pass behind `completeUnlock` -
      * is the one that went.
+     *
+     * Five on 28 Sep 2026: `walkthrough`, the tier pages' ask with no scan -
+     * one Resend message to our own inbox, like its scan-keyed sibling above.
+     * `scans_enabled` stops new scans; this starts none, so the switch has
+     * nothing to refuse here and the decision is not moved.
      */
-    4,
+    5,
     "the number of spending doors the kill switch does not reach has changed - see docs/blocked.md",
   );
 });

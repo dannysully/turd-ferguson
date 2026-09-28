@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { SCAN_LIMITS } from "@/config/contact";
 import { T } from "@/config/tokens";
@@ -30,8 +30,18 @@ import { btn, field, label } from "./screens";
  *
  * What this must keep straight: alwaystracked reports, it does not place. The
  * placements are alwaysmentioned, which is a service.
+ *
+ * The third surface, 28 September 2026 (pricing spec section 6, Danny,
+ * danny.md line 55): every tier page, where there is no scan. Pass `from` (the
+ * tier page's path) instead of `token` and it posts to `/api/walkthrough`,
+ * which stores the ask with no scan. Without JS that version renders nothing -
+ * the page's own "Book a call" link stands in, since a form that cannot post
+ * would only lose the address.
  */
-export default function WalkthroughForm(p: { token: string }) {
+export default function WalkthroughForm(p: { token: string } | { from: string }) {
+  const token = "token" in p ? p.token : null;
+  const [mounted, setMounted] = useState(token !== null);
+  useEffect(() => setMounted(true), []);
   const [kind, setKind] = useState<"video" | "demo">("video");
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
@@ -45,11 +55,19 @@ export default function WalkthroughForm(p: { token: string }) {
     try {
       const headers = new Headers();
       headers.set("content-type", "application/json");
-      const res = await fetch("/api/scan/" + p.token + "/walkthrough", {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ email, kind }),
-      });
+      // Two literal calls, not one with a computed path: route-callers reads
+      // each fetch's own first argument to join it to the route that answers.
+      const res = token
+        ? await fetch("/api/scan/" + token + "/walkthrough", {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ email, kind }),
+          })
+        : await fetch("/api/walkthrough", {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ email, kind, from: "from" in p ? p.from : "" }),
+          });
       const data = await res.json();
       if (!res.ok && res.status !== 429) {
         setErr(data.message ?? "That did not go through. Please try again.");
@@ -64,6 +82,8 @@ export default function WalkthroughForm(p: { token: string }) {
     }
   }
 
+  if (!mounted) return null;
+
   if (done) {
     return (
       <p aria-live="polite" style={{ margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.ink }}>
@@ -75,7 +95,11 @@ export default function WalkthroughForm(p: { token: string }) {
   // ScanResult.dc.html's switch: two short labels on a grey track, and the
   // chosen one's note under it rather than inside each half.
   const options: { key: "video" | "demo"; title: string; note: string }[] = [
-    { key: "video", title: "Loom walkthrough", note: "A Loom of the platform, recorded against this report." },
+    {
+      key: "video",
+      title: "Loom walkthrough",
+      note: token ? "A Loom of the platform, recorded against this report." : "A Loom of the platform, recorded for you.",
+    },
     { key: "demo", title: "Demo with Danny", note: "Danny takes you through it on a call." },
   ];
   const chosen = options.find((o) => o.key === kind) ?? options[0];

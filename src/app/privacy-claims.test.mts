@@ -135,6 +135,9 @@ test("every door that takes a caller's address is in this file's denominator", (
       // limits the alert it sends Danny. The address goes to `hashIp` only.
       "src/app/api/scan/[token]/walkthrough/route.ts",
       "src/app/api/scan/start/route.ts",
+      // The sixth, 28 September 2026: the tier pages' walkthrough ask, with
+      // no scan. Same limit as the fifth; the address goes to `hashIp` only.
+      "src/app/api/walkthrough/route.ts",
     ],
     "a door reads the caller's raw IP address that this file did not know about. Add it here once A2 passes for it - do not exempt it.",
   );

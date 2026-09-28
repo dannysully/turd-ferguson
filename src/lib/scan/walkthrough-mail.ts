@@ -10,16 +10,18 @@ import { siteUrl } from "@/lib/scan/verify-email";
  * goes to our own inbox, never to the visitor. Plain text on purpose: it is a
  * task, and the one thing in it that matters is the report link.
  *
+ * Two callers since 28 September 2026: the result page (a scan, so `scan` is
+ * set and the report link is the point) and the tier pages (no scan, so
+ * `from` says which page asked).
+ *
  * Returns false rather than throwing. The request is already stored, so a
  * failed alert is recoverable from `walkthrough_requests.notified_at is null`.
  */
 export async function sendWalkthroughAlert(input: {
   kind: "video" | "demo";
   email: string;
-  domain: string;
-  brand: string | null;
-  topic: string | null;
-  token: string;
+  scan: { domain: string; brand: string | null; topic: string | null; token: string } | null;
+  from?: string;
 }): Promise<boolean> {
   const key = process.env.RESEND_API_KEY;
   if (!key) {
@@ -27,16 +29,23 @@ export async function sendWalkthroughAlert(input: {
     return false;
   }
   const what = input.kind === "video" ? "Loom walkthrough" : "demo call";
-  const report = `${siteUrl()}/scan/${input.token}`;
+  const scan = input.scan;
+  const context = scan
+    ? [
+        `Scanned: ${scan.domain}${scan.brand ? " (" + scan.brand + ")" : ""}`,
+        `Category: ${scan.topic ?? "not confirmed"}`,
+        `Their report: ${siteUrl()}/scan/${scan.token}`,
+      ]
+    : [`Asked from: ${siteUrl()}${input.from ?? ""}`, "No scan yet."];
   const text = [
     `${input.email} asked for a ${what} of alwaystracked.`,
     "",
-    `Scanned: ${input.domain}${input.brand ? " (" + input.brand + ")" : ""}`,
-    `Category: ${input.topic ?? "not confirmed"}`,
-    `Their report: ${report}`,
+    ...context,
     "",
     input.kind === "video"
-      ? "Record the walkthrough against their report and reply to them with the link."
+      ? scan
+        ? "Record the walkthrough against their report and reply to them with the link."
+        : "Record a walkthrough of the platform and reply to them with the link."
       : "Reply to them to find a time.",
   ].join("\n");
   try {
@@ -46,7 +55,7 @@ export async function sendWalkthroughAlert(input: {
       // does. Never an address a caller supplied - theirs is the reply-to.
       to: process.env.CONTACT_EMAIL_DESTINATION ?? CONTACT_EMAIL,
       replyTo: input.email,
-      subject: headerSafe(`Walkthrough request: ${what} for ${input.domain}`),
+      subject: headerSafe(`Walkthrough request: ${what} for ${scan ? scan.domain : input.email}`),
       text,
     });
     if (error) {

@@ -1,7 +1,7 @@
 import { SCAN_LIMITS } from "@/config/contact";
+import { TIERS } from "@/config/pricing";
 import { isPlausibleEmail, normalizeEmail } from "@/lib/email-address";
 import { clientIp, hashIp } from "@/lib/scan/ip";
-import { markClaimed } from "@/lib/scan/unlock";
 import { sendWalkthroughAlert } from "@/lib/scan/walkthrough-mail";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
@@ -12,19 +12,21 @@ export const dynamic = "force-dynamic";
 const PER_IP_PER_DAY = 5;
 
 /**
- * A request for a walkthrough of alwaystracked - a Loom video or a demo call.
+ * The walkthrough ask from a tier page, where there is no scan - 28 September
+ * 2026, pricing spec section 6 (Danny, danny.md line 55: "reuse
+ * WalkthroughForm... stored in walkthrough_requests and emailed to Danny as
+ * today").
  *
- * The result page's only call to action since 24 September 2026, when the
- * email gate came off. What it does: stores the request, stamps the scan as
- * claimed (transcripts are kept indefinitely since 24 September, so the stamp
- * now marks a scan somebody asked about rather than saving its answers from a
- * purge), and emails Danny. It sends nothing to the
- * visitor - Danny replies himself, which is the point of asking for him.
+ * The sibling of `/api/scan/[token]/walkthrough`, with `scan_id` left null
+ * (the column is nullable, `on delete set null`). Two things differ because
+ * of that null. The unique `(scan_id, email, kind)` index does not dedupe -
+ * nulls are distinct - so a same-address, same-kind ask in the last day is
+ * looked up here and answered yes without a second alert. And `from` is held
+ * to the four tier pages' own paths, so the alert never carries a string a
+ * caller made up.
  */
-export async function POST(req: Request, ctx: { params: Promise<{ token: string }> }) {
-  const { token } = await ctx.params;
-
-  let body: { email?: string; kind?: string };
+export async function POST(req: Request) {
+  let body: { email?: string; kind?: string; from?: string };
   try {
     body = await req.json();
   } catch {
@@ -34,23 +36,15 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
   const kind = body.kind === "demo" ? "demo" : body.kind === "video" ? "video" : null;
   if (!kind) return Response.json({ error: "bad_kind", message: "Pick a video or a demo." }, { status: 400 });
 
+  const from = TIERS.find((t) => t.href === body.from)?.href;
+  if (!from) return Response.json({ error: "bad_from" }, { status: 400 });
+
   const email = normalizeEmail(body.email ?? "");
   if (email.length > SCAN_LIMITS.email || !isPlausibleEmail(email)) {
     return Response.json({ error: "bad_email", message: "That email does not look right." }, { status: 400 });
   }
 
   const db = supabaseAdmin();
-  const { data: scan, error: readErr } = await db
-    .from("scans")
-    .select("id, domain, brand_name, topic, unlocked_at")
-    .eq("public_token", token)
-    .maybeSingle();
-  if (readErr) {
-    console.warn("[walkthrough] could not read the scan: " + readErr.message);
-    return Response.json({ error: "read_failed", message: "We could not reach the checker. Please try again." }, { status: 502 });
-  }
-  if (!scan) return Response.json({ error: "not_found" }, { status: 404 });
-
   const ipHash = hashIp(clientIp(req));
   const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
   const { count, error: countErr } = await db
@@ -69,10 +63,31 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
     );
   }
 
-  // Same scan, same address, same kind: already asked. Say yes, alert nobody.
+  const done = {
+    ok: true,
+    message:
+      kind === "video"
+        ? "Thanks. Danny will record a walkthrough and send it to " + email + "."
+        : "Thanks. Danny will email " + email + " to find a time.",
+  };
+
+  // Same address, same kind, no scan, in the last day: already asked. Say yes, alert nobody.
+  const { count: repeat, error: repeatErr } = await db
+    .from("walkthrough_requests")
+    .select("id", { count: "exact", head: true })
+    .is("scan_id", null)
+    .eq("email", email)
+    .eq("kind", kind)
+    .gte("created_at", since);
+  if (repeatErr) {
+    console.warn("[walkthrough] could not check for a repeat: " + repeatErr.message);
+    return Response.json({ error: "read_failed", message: "We could not reach the checker. Please try again." }, { status: 502 });
+  }
+  if ((repeat ?? 0) > 0) return Response.json(done);
+
   const { data: inserted, error: insertErr } = await db
     .from("walkthrough_requests")
-    .upsert({ scan_id: scan.id, email, kind, ip_hash: ipHash }, { onConflict: "scan_id,email,kind", ignoreDuplicates: true })
+    .insert({ scan_id: null, email, kind, ip_hash: ipHash })
     .select("id");
   if (insertErr) {
     console.error("[walkthrough] could not store the request: " + insertErr.message);
@@ -80,20 +95,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
   }
   const fresh = inserted?.[0]?.id as string | undefined;
 
-  // Claimed, so the purge keeps the transcripts. Never fatal: the request is stored.
-  if (!scan.unlocked_at) await markClaimed(scan.id as string);
-
   if (fresh) {
-    const sent = await sendWalkthroughAlert({
-      kind,
-      email,
-      scan: {
-        domain: scan.domain as string,
-        brand: (scan.brand_name as string | null) ?? null,
-        topic: (scan.topic as string | null) ?? null,
-        token,
-      },
-    });
+    const sent = await sendWalkthroughAlert({ kind, email, scan: null, from });
     if (sent) {
       const { error: notedErr } = await db
         .from("walkthrough_requests")
@@ -103,11 +106,5 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
     }
   }
 
-  return Response.json({
-    ok: true,
-    message:
-      kind === "video"
-        ? "Thanks. Danny will record a walkthrough and send it to " + email + "."
-        : "Thanks. Danny will email " + email + " to find a time.",
-  });
+  return Response.json(done);
 }

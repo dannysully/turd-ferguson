@@ -97,10 +97,21 @@ const files = sourceFiles(SRC).map((f) => ({
  * `reach` is who can open the door, which is the whole distinction this file
  * turns on: a door behind a scan row has already been counted by the ceilings,
  * and a door on the open web has not been counted by anything.
+ *
+ * The third value, 28 September 2026: a door on the open web that IS counted,
+ * per hashed caller address, in its own route. The walkthrough ask from a
+ * tier page (no scan, so not behind the ceilings) is the first; it is not
+ * "anonymous" in this file's sense, because blocked.md's open question - no
+ * per-caller identity - is answered for it by `clientIp` + `hashIp`.
  */
 const SENDERS: Record<
   string,
-  { reach: "anonymous" | "behind the ceilings"; bound: string; evidence: RegExp; where: string }
+  {
+    reach: "anonymous" | "behind the ceilings" | "open, limited per caller";
+    bound: string;
+    evidence: RegExp;
+    where: string;
+  }
 > = {
   "src/lib/scan/verify-email.ts": {
     reach: "behind the ceilings",
@@ -124,15 +135,21 @@ const SENDERS: Record<
     evidence: /\.is\("report_email_sent_at", null\)/,
     where: "src/lib/scan/report-mail.ts",
   },
+  /**
+   * "behind the ceilings" until 28 September 2026, when the tier pages got the
+   * same ask with no scan (/api/walkthrough, pricing spec section 6). Anyone
+   * can open that door, so the reach moved; the bound is the same shape in
+   * both routes, and `where` names the scanless one because it is the looser.
+   */
   "src/lib/scan/walkthrough-mail.ts": {
-    reach: "behind the ceilings",
+    reach: "open, limited per caller",
     bound:
-      "Needs a scan token, which exists only for a scan that passed checkCeilings at " +
-      "/api/scan/start. Mails only our own contact destination, never the caller. How often is bounded in " +
-      "its one route: a unique (scan, email, kind) upsert that sends nothing on a repeat, " +
-      "and PER_IP_PER_DAY requests from one hashed address.",
+      "Mails only our own contact destination, never the caller. Two routes: the result page's " +
+      "needs a scan token and dedupes on a unique (scan, email, kind) upsert; the tier pages' takes " +
+      "no scan and dedupes on a same-day (email, kind) lookup. Both cap PER_IP_PER_DAY requests " +
+      "from one hashed address.",
     evidence: /const PER_IP_PER_DAY = \d+/,
-    where: "src/app/api/scan/[token]/walkthrough/route.ts",
+    where: "src/app/api/walkthrough/route.ts",
   },
   "src/app/contact/actions.ts": {
     reach: "anonymous",
