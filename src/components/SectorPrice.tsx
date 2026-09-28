@@ -165,11 +165,13 @@ export function SectorPrice({
         <Parts label={label} per={per} />
       </div>
       {mounted ? (
-        <div style={{ display: "flex", flexDirection: compact ? "column" : "row", gap: "6px", marginTop: "10px" }}>
+        // Wraps rather than widens: at 390 the select and the stepper on one row
+        // pushed the card 29px past the viewport (28 Sep 2026).
+        <div style={{ display: "flex", flexDirection: compact ? "column" : "row", flexWrap: "wrap", gap: "6px", marginTop: "10px", minWidth: 0 }}>
           <label htmlFor={id} className="sr-only">
             Sector
           </label>
-          <select id={id} value={sector} onChange={(e) => setSector(e.target.value)} style={{ ...control, flexGrow: 1, minWidth: 0, padding: "0 8px" }}>
+          <select id={id} value={sector} onChange={(e) => setSector(e.target.value)} style={{ ...control, flex: "1 1 150px", minWidth: 0, maxWidth: "100%", padding: "0 8px" }}>
             <option value="">Pick your sector</option>
             {SECTORS.map((s) => (
               <option key={s.id} value={s.id}>
