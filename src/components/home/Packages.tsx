@@ -156,7 +156,8 @@ export default function Packages() {
             </colgroup>
             <thead>
               <tr>
-                <td style={{ padding: "20px 24px", fontSize: "13px", color: T.soft, verticalAlign: "bottom" }}>What each tier adds</td>
+                {/* The table's visible heading, top-aligned with the tier names (R57). */}
+                <td style={{ padding: "20px 24px", fontSize: "20px", fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.25, color: T.ink, verticalAlign: "top" }}>What each tier adds</td>
                 {TIERS.map((t) => (
                   // height: 1px lets the inner column fill the row, so the engine
                   // marks and the CTA share one bottom line in all four (R56).
