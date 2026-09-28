@@ -1164,3 +1164,16 @@ Spec: pricing-spec section 8, on open decision 5's default (sold to brands direc
 - Now matches: /how-it-works against the board in every section except the video frame (now a deliberate difference in the inbox).
 - Still differs: the board's "20 questions a week" basis line reads "checked weekly" - section 8's daily wording is the next push.
 - Denominator: /how-it-works local 1280 full; live 1280, 390, --js-off, --reduced, full page. Suite 872 pass, 1 skip (the video-on-page test, skipped while the video is stale), 0 fail.
+
+## R50 section 8 (alwaystracked basis) - 6cf64aa (28 Sep 2026)
+- "20 questions and 10 keywords, checked daily" from TRACKED_BASIS on every surface that typed a weekly basis; the tier's priceBasis carries the spec's add-on line ("Need more? Add 20 questions and 10 keywords for +$49 / £39 a month."). Built HTML: no "checked weekly", "questions a week" or "questions weekly" left; the only "every week" is the always-on line about AI answers, which is not the basis.
+- Deliberately not built: the higher tiers' "Add keyword clusters: up to 10 at checkout" line - there is no checkout (section 5 is DANNY for Stripe), so "at checkout" would describe a flow that does not exist. Ships with section 5.
+- Suite 873 / 872 pass / 1 skip.
+
+## R50 section 4 (price tiles) - 41b552f - Packages.dc.html (28 Sep 2026)
+- Sector select (19 from sector-prices.json), 1-10 stepper and live price on the alwaysmentioned and alwayscited tiles, homepage table and every tier page; one US/UK toggle per page, US default; staircase and "Where it sits" labels follow the market.
+- Driven locally by docs/parity/r50-s4-probe.mjs at 1280 and 390 on / and /alwaysmentioned: idle "from $1,395/mo"; Finance x1 $1,595; x3 $4,785; UK x3 £3,885 (1,295 x 3); 11+ Book a call; Other Book a call. All match sector-prices.json.
+- JS off: server HTML is unchanged from section 3 ("from" + CTA, no controls).
+- Differs from the board: the board has no toggle or selectors (the spec is newer than the board).
+- Suite 875 / 874 pass / 1 skip (two new tests: UK label split, TRACKED_PRICE agreement).
+- Live (41b552f, 28 Sep 07:40Z): r50-s4-probe against production gives the same 24 readings as local (1280 and 390, / and /alwaysmentioned). --js-off on / and --reduced on /alwayscited shot; production HTML carries no select, stepper or toggle (0 hits), so JS off reads the "from" and the CTA.

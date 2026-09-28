@@ -1235,6 +1235,13 @@ Items filed by the reviewer from live checks and from docs/danny.md. The builder
   alwaystracked "20 questions and 10 keywords, checked daily" plus the add-on lines;
   section 6 per danny.md 55 (WalkthroughForm with three options); section 4 selector
   per danny.md 56.
+  **Progress (28 Sep 07:40Z, builder):** section 8's alwaystracked basis
+  shipped -> 6cf64aa; section 4's selector and toggle shipped -> 41b552f,
+  both verified live. Left: the higher tiers' "up to 10 at checkout" line
+  (waits on section 5, there is no checkout); section 6 (danny.md 55) - the
+  third stored option is blocked on a check constraint (blocked.md, DANNY,
+  with a no-DDL default), the waitlist needs its additive `leads.source`
+  migration; section 5 (Stripe, DANNY); section 7 (held).
 
 - [ ] R51 `src/config/sector-prices.json` confirmed in place - unblock R50's
   blocker 1, build sections 1-4 (Danny, docs/danny.md - filed 2026-09-27, line
@@ -1377,6 +1384,114 @@ Items filed by the reviewer from live checks and from docs/danny.md. The builder
   page's price block confirming the new computed "from" figures render.
   Log in `docs/parity/log.md` the exact new baseline `npm run check` count
   and why it moved from the last recorded one.
+
+- [ ] R54 WalkthroughForm gains a third option, "Book a call" (Danny,
+  docs/danny.md - filed 2026-09-27/28, line 55). This answers the section 6
+  DANNY line in `docs/blocked.md` (no Loom URL, no defined target for "an
+  alwaystracked demo"): Danny's resolution is not to wait for either - all
+  three become one form, the same shape as the two that already exist.
+  `src/components/scan/WalkthroughForm.tsx` (re-read for current line numbers
+  first):
+  1. `kind` state (`useState<"video" | "demo">`) becomes
+     `useState<"video" | "demo" | "call">`.
+  2. The `options` array (two entries, `video`/`demo`) gains a third:
+     `{ key: "call", title: "Book a call", note: "..." }` - word the note to
+     match the other two's register (re-read them, they explain what happens
+     next, not just restate the title).
+  3. The submit button's label ternary (`kind === "video" ? "Send me the
+     walkthrough" : "Request a demo"`) needs a third branch for `"call"`
+     (e.g. "Request a call").
+  `src/app/api/scan/[token]/walkthrough/route.ts`:
+  4. The kind-validation line (`body.kind === "demo" ? "demo" : body.kind ===
+     "video" ? "video" : null`) accepts `"call"` as a third value; the
+     rejection message ("Pick a video or a demo.") should mention it too.
+  5. The response `message` ternary at the end needs a third branch for
+     `"call"`, e.g. "Thanks. Danny will email {email} to find a time for a
+     call."
+  `src/lib/scan/walkthrough-mail.ts`:
+  6. `sendWalkthroughAlert`'s `kind: "video" | "demo"` parameter type becomes
+     `"video" | "demo" | "call"`.
+  7. The `what` derivation (`input.kind === "video" ? "Loom walkthrough" :
+     "demo call"`) needs a third case.
+  8. The email body's closing instruction to Danny (`"Record the walkthrough
+     against their report..." : "Reply to them to find a time."`) needs a
+     third case - decide whether "demo" and "call" tell Danny to do the same
+     thing (both are just him booking time) or something distinct enough to
+     warrant different wording; do not leave "call" falling through to
+     whichever ternary branch happens to catch it.
+  Storage: `walkthrough_requests.kind`
+  (`supabase/migrations/20260924000000_site_facts_and_walkthroughs.sql` line
+  28) is `text not null check (kind in ('video', 'demo'))` - a `'call'` value
+  violates this today and every such insert will fail silently into a 502
+  (per the route's existing error handling). Add one additive migration that
+  widens the check - read the constraint's real name back first (`\d
+  walkthrough_requests` or `information_schema.check_constraints`, do not
+  guess it), then `alter table walkthrough_requests drop constraint
+  <real name>, add constraint <same or new name> check (kind in ('video',
+  'demo', 'call'))`. This is a drop-and-recreate of a constraint, not a bare
+  addition, so it sits slightly outside Danny's 19 Sep additive list read
+  literally - but it only widens a rule every existing row already satisfies
+  (no row can violate the broader set), which is the same category he did
+  approve ("add a constraint existing rows already satisfy"), just phrased as
+  a widen rather than a fresh add. If that reasoning doesn't feel solid once
+  the real constraint is in hand, log it to `docs/blocked.md` as a DANNY line
+  and hold the writer code rather than assume - the same discipline R41 used.
+  Apply the migration and read the widened constraint back before shipping
+  the route change that writes `'call'`.
+  No other call site needs a change - `src/app/coverage-check/[token]/
+  page.tsx` renders `<WalkthroughForm />` with no hardcoded option list, so it
+  picks up the third option automatically.
+  Out of scope: the waitlist (the fourth CTA in pricing-spec section 6).
+  Danny's note says it "stays its own option as specced" - build it
+  separately, as its own capture-into-`leads` flow, not as a fourth
+  `WalkthroughForm` kind.
+  Verify: `npx tsc --noEmit`, `npm run check`; confirm all three options
+  render and the third submits successfully and stores a `kind = 'call'` row
+  without violating the constraint - prefer a local harness or a disposable
+  test scan token over a live submission, since every kind here sends a real
+  email to Danny's inbox the same way "video"/"demo" already do; shoot the
+  result page's WalkthroughForm at 1280 and 390 with "call" selected.
+
+- [ ] R55 Section 4 price tiles: sector select, quantity stepper, one
+  page-level US/UK toggle (Danny, docs/danny.md - filed 2026-09-27, line 56 -
+  pricing-spec section 4). At review time (28 Sep 2026) the working tree
+  already carries an uncommitted, unpushed start on exactly this -
+  `src/components/SectorPrice.tsx` (its own doc comment cites this same
+  danny.md line), exporting `MarketToggle`, `MarketPrice` and `SectorPrice`,
+  with `src/components/home/Packages.tsx` already calling them in three
+  places. **Re-read both files' current state before writing anything new** -
+  this may already be finished, or further along, by the time this item is
+  picked up; verify what exists against the list below and this note rather
+  than assuming a blank slate or duplicating the component.
+  What the spec and Danny's note require, if not already built:
+  1. On the `alwaysmentioned` and `alwayscited` tiles only (not
+     `alwaystracked`, not `alwayseverywhere`) - the packages staircase
+     (`Packages.tsx`) and each tier's own page (`PackagePage.tsx`) - a sector
+     `<select>` (the 19 entries from `sector-prices.json` via `SECTORS`,
+     "Other" included) and a 1-10 quantity stepper, with the price
+     recomputed live via `quoteFor`.
+  2. No sector picked: show the tier's "from" price (`fromLabel`).
+  3. "Other" picked, or quantity past 10: "Book a call", not a number.
+  4. One `MarketToggle` per page (not per tile), US first and default
+     (`DEFAULT_MARKET`), setting every tile's currency on that page at once.
+  5. JS off: the tile shows only the "from" price and the tier's existing
+     call-to-action button - no select, no stepper (progressive enhancement,
+     gated on mount).
+  6. A keyword field belongs at checkout ("sits with the sector at checkout,
+     not on the tile") - out of scope for this item, do not add one to the
+     tile.
+  7. "Includes Claude" plus engine logos (already shipped, `cfc041b`) stays as
+     it is - this item is the price/selector half only, the half section 4's
+     earlier commit explicitly left open.
+  Verify: `npx tsc --noEmit`, `npm run check`, `npm run build`; shoot the
+  packages staircase and a tier page's price block at 1280 and 390,
+  `--js-off` (confirms only the "from" price and CTA, no controls) and with a
+  sector picked (confirms the price recomputes and matches `quoteFor`'s
+  output for that sector/market/quantity, hand-checked against one entry in
+  `sector-prices.json`); confirm the market toggle changes every tile on the
+  page at once, defaults to US on load, and that picking "Other" or stepping
+  to 11 shows "Book a call"; confirm `alwaystracked` and `alwayseverywhere`
+  tiles are unchanged (no selector).
   **Done (28 Sep 07:25Z, builder) -> 5444fdd, one deliberate deviation:**
   `video.ts` and `video.test.mts` were kept, not deleted. The test was
   rewritten: while `shownPrices` differ from pricing.ts it asserts the video is
