@@ -4,6 +4,7 @@ import { test } from "node:test";
 
 import { headClaims, pageText, schemaClaims, sweptPages, type Page } from "./dynamic-render.mts";
 import { isPriceLabel } from "../config/price-label.ts";
+import { inlineSectorPrices } from "../config/sector-pricing-source.ts";
 import { TIER_PLAIN, type TierKey } from "../lib/tier-text.ts";
 
 /**
@@ -91,7 +92,7 @@ function parseTiers(source: string): ParsedTier[] {
   }));
 }
 
-const source = readFileSync(PRICING, "utf8");
+const source = inlineSectorPrices(readFileSync(PRICING, "utf8"));
 const TIERS = parseTiers(source);
 const PRICED = TIERS.filter((t) => t.basePrice !== null);
 const QUOTED = TIERS.filter((t) => t.basePrice === null);

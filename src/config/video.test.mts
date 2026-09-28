@@ -3,6 +3,7 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 
+import { inlineSectorPrices } from "./sector-pricing-source.ts";
 import { LAUNCH_VIDEO, LAUNCH_VIDEO_SUMMARY } from "./video.ts";
 import { PRERENDER_DIR, sweptPages } from "../app/dynamic-render.mts";
 
@@ -36,19 +37,41 @@ function ldNodes(html: string): Record<string, unknown>[] {
 const PUBLIC = "public";
 
 function priceLabels(): string[] {
-  const source = readFileSync("src/config/pricing.ts", "utf8");
+  const source = inlineSectorPrices(readFileSync("src/config/pricing.ts", "utf8"));
   return [...source.matchAll(/priceLabel:\s*"([^"]+)"/g)].map((m) => m[1]!);
 }
 
-test("the video still shows the prices the site charges", () => {
+/** True while the prices painted into the file are the prices the site quotes. */
+function videoIsCurrent(): boolean {
   const site = priceLabels();
   assert.equal(site.length, 4, `read ${site.length} price labels out of pricing.ts - the parse, not the site, changed`);
-  assert.deepEqual(
-    [...LAUNCH_VIDEO.shownPrices],
-    site,
-    "pricing.ts no longer matches the prices painted into the launch video. The video is stale: re-render it, or take " +
-      "it off /how-it-works. Do not edit shownPrices to match - it records what the file shows, not what the site says.",
-  );
+  return JSON.stringify([...LAUNCH_VIDEO.shownPrices]) === JSON.stringify(site);
+}
+
+/**
+ * Since 28 Sep 2026 the video is stale: it paints $99 / $995 / $2,495 and the
+ * pricing spec moved every one of them. Danny's call (docs/danny.md line 54)
+ * was to take it off /how-it-works and drop the homepage link until it is
+ * re-cut, not to edit shownPrices. This holds that: a video whose prices are
+ * not the site's is on no page, in no JSON-LD, and linked from nowhere. When
+ * a re-cut lands with the new prices, videoIsCurrent() turns true and the last
+ * test below holds the page to carrying it again.
+ */
+test("a video that shows prices the site no longer charges is on no page", (t) => {
+  if (videoIsCurrent()) return;
+  if (!existsSync(PRERENDER_DIR)) {
+    t.skip("no build to read - run `npm run build` then `npm run capture`");
+    return;
+  }
+  const pages = sweptPages();
+  assert.ok(pages.length > 20, `only ${pages.length} swept pages - the sweep, not the site, changed`);
+  const hits: string[] = [];
+  for (const { page, html } of pages) {
+    if (html.includes(LAUNCH_VIDEO.src)) hits.push(`${page}: embeds or points at ${LAUNCH_VIDEO.src}`);
+    if (ldNodes(html).some((n) => n["@type"] === "VideoObject")) hits.push(`${page}: carries a VideoObject`);
+    if (html.includes("how-it-works#video")) hits.push(`${page}: links to /how-it-works#video`);
+  }
+  assert.deepEqual(hits, [], "the launch video shows old prices and is back on the site:\n" + hits.join("\n"));
 });
 
 test("the files the page points at exist, and are the video the record describes", () => {
@@ -87,6 +110,10 @@ test("the text summary says the video's prices, one tier a line", () => {
 });
 
 test("/how-it-works carries the video, its summary and one VideoObject that agrees with the record", (t) => {
+  if (!videoIsCurrent()) {
+    t.skip("the video is stale and off the site - the test above holds that");
+    return;
+  }
   if (!existsSync(PRERENDER_DIR)) {
     t.skip("no build to read - run `npm run build` then `npm run capture`");
     return;

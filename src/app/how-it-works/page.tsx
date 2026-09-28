@@ -9,17 +9,16 @@ import { word } from "@/components/home/EngineDemo";
 import { FREE_ENGINE_COUNT, QUESTIONS } from "@/config/scan-shape";
 import { TIERS, TRACKED_QUESTIONS } from "@/config/pricing";
 import { CARD, GRID12, MICRO, SHELL, T } from "@/config/tokens";
-import { ORG_REF, SITE_URL, ld } from "@/config/schema";
-import { LAUNCH_VIDEO, LAUNCH_VIDEO_SUMMARY } from "@/config/video";
+import { ORG_REF, ld } from "@/config/schema";
 
 /**
  * How it works - the mechanism page, built to HowItWorks.dc.html (R18,
  * 26 Sep 2026). Until then it had no board and was judged against the built
  * pages; the board arrived after Q24 and is the newer word.
  *
- * Order, as the board draws it: the hero beside a scan box, the launch video
- * (the page's one beat, Q23 - kept as the real `<video>`, its poster standing
- * in for the board's placeholder frame), a static three-step diagram of why
+ * Order, as the board draws it: the hero beside a scan box, (the board's video
+ * frame is not drawn - the launch video is off the site until it is re-cut
+ * with the pricing spec's prices, Danny, 28 Sep 2026), a static three-step diagram of why
  * engines cite what they cite, one placement / two jobs, the three pieces of
  * work, and the dark closing scan.
  *
@@ -56,23 +55,6 @@ const articleSchema = ld({
     "How alwayscited gets brands named inside AI answers: placement on the third-party pages an engine already reads for a category, plus the on-site work that backs it up.",
   url: "https://alwayscited.com/how-it-works",
   author: ORG_REF,
-  publisher: ORG_REF,
-});
-
-/** The launch video, from the one record in config/video.ts; video.test.mts
- *  holds this node against it and against the file. */
-const videoSchema = ld({
-  "@context": "https://schema.org",
-  "@type": "VideoObject",
-  name: LAUNCH_VIDEO.name,
-  description: LAUNCH_VIDEO.description,
-  thumbnailUrl: SITE_URL + LAUNCH_VIDEO.poster,
-  contentUrl: SITE_URL + LAUNCH_VIDEO.src,
-  uploadDate: LAUNCH_VIDEO.uploadDate,
-  duration: LAUNCH_VIDEO.duration,
-  width: LAUNCH_VIDEO.width,
-  height: LAUNCH_VIDEO.height,
-  inLanguage: "en",
   publisher: ORG_REF,
 });
 
@@ -125,7 +107,6 @@ export default function HowItWorksPage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: articleSchema }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: videoSchema }} />
 
       <main style={{ ...SHELL, paddingTop: "64px", paddingBottom: "64px" }}>
         <div className="guide-top">
@@ -191,49 +172,6 @@ export default function HowItWorksPage() {
             </form>
           </div>
         </div>
-
-        {/* The page's one beat (Q23, 26 Sep 2026): the launch video. No
-            autoplay and preload="none" - it is 3.4MB and most visitors read
-            instead. The summary is visually hidden so a crawler and a screen
-            reader get the argument the video makes without playing it. */}
-        <section id="video" style={{ scrollMarginTop: "2rem", marginTop: "72px" }}>
-          <div className="board-head" style={{ display: "flex", alignItems: "baseline", gap: "40px" }}>
-            <h2 style={{ ...H2_BIG, flexShrink: 0 }}>The 60-second version</h2>
-            <p style={LEDE}>
-              One buyer question, the brands the engines name instead, and the four tiers that get a brand into the
-              answer.
-            </p>
-          </div>
-          <video
-            controls
-            playsInline
-            preload="none"
-            poster={LAUNCH_VIDEO.poster}
-            width={LAUNCH_VIDEO.width}
-            height={LAUNCH_VIDEO.height}
-            aria-describedby="video-summary"
-            style={{
-              display: "block",
-              width: "100%",
-              height: "auto",
-              aspectRatio: "16 / 9",
-              marginTop: "24px",
-              borderRadius: "18px",
-              background: D.ground,
-              boxShadow: LIFT,
-            }}
-          >
-            <source src={LAUNCH_VIDEO.src} type="video/mp4" />
-          </video>
-          <div id="video-summary" className="sr-only">
-            <p>What the video shows:</p>
-            <ul>
-              {LAUNCH_VIDEO_SUMMARY.map((line) => (
-                <li key={line}>{line}</li>
-              ))}
-            </ul>
-          </div>
-        </section>
 
         <section>
           <Head

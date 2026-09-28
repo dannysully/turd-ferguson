@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { test } from "node:test";
 
 import { isFloorLabel } from "../config/price-label.ts";
+import { inlineSectorPrices } from "../config/sector-pricing-source.ts";
 import { serviceSchema } from "../config/service-schema.ts";
 import { code, sourceFiles } from "../lib/source-read.mts";
 import { TIER_PLAIN } from "../lib/tier-text.ts";
@@ -180,7 +181,7 @@ function pageFor(href: string): string {
   return href.replace(/^\//, "") + ".html";
 }
 
-const source = read(PRICING);
+const source = inlineSectorPrices(read(PRICING));
 const TIERS = quotedTiers(source);
 const PAGES = new Map(sweptPages().map((p) => [p.page, p.html]));
 

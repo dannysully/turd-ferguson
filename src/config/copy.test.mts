@@ -436,6 +436,8 @@ const PRICE_EXEMPT: Record<string, PriceExemption> = {
     // derived: re-deriving them from pricing.ts would make the record agree
     // with the site while the video said something else. video.test.mts holds
     // them equal to pricing.ts, which is what makes a price change fail loudly.
+    // Since 28 Sep 2026 they no longer match, so video.test.mts holds the video
+    // off every page instead, until a re-cut.
     why: "what the rendered launch video paints, held against pricing.ts by video.test.mts",
     only: ["$99", "$995", "$2,495"],
   },

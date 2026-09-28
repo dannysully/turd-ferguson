@@ -21,6 +21,8 @@ import { TIER_PLAIN, type TierKey } from "@/components/TierName";
 // The site's one list joiner. A second copy of "a, b and c" written here is
 // the two-copies-of-one-function species this repo has already paid for once.
 import { listOf } from "@/config/scan-shape";
+// The sector tiers' "from" is computed, never typed (pricing spec section 3).
+import { fromLabel, fromPrice } from "@/config/sector-pricing";
 import type { Engine } from "@/lib/scan/engines";
 
 /** Single destination for every CTA until real signup and booking flows exist. */
@@ -102,8 +104,10 @@ export const TIERS: Tier[] = [
     id: "tracked",
     key: "tracked",
     plainName: TIER_PLAIN.tracked,
-    basePrice: 99,
-    priceLabel: "from $99/mo",
+    // Pricing spec section 1 (27 Sep 2026): from $129, UK £99. The one tier
+    // priced here rather than in sector-prices.json.
+    basePrice: 129,
+    priceLabel: "from $129/mo",
     priceBasis: `${TRACKED_QUESTIONS} questions, checked weekly. More questions or a tighter cadence moves the price.`,
     positioning: "Know what your coverage did",
     href: "/alwaystracked",
@@ -120,8 +124,8 @@ export const TIERS: Tier[] = [
     id: "mentioned",
     key: "mentioned",
     plainName: TIER_PLAIN.mentioned,
-    basePrice: 995,
-    priceLabel: "$995/mo",
+    basePrice: fromPrice("mentioned", "us"),
+    priceLabel: fromLabel("mentioned"),
     positioning: "Get named when AI recommends",
     href: "/alwaysmentioned",
     includes: [
@@ -135,8 +139,8 @@ export const TIERS: Tier[] = [
     id: "cited",
     key: "cited",
     plainName: TIER_PLAIN.cited,
-    basePrice: 2495,
-    priceLabel: "$2,495/mo",
+    basePrice: fromPrice("cited", "us"),
+    priceLabel: fromLabel("cited"),
     positioning: "Get cited, and rank for it",
     href: "/alwayscited",
     includes: [

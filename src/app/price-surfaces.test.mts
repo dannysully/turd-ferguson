@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
+import { inlineSectorPrices } from "../config/sector-pricing-source.ts";
 import { bodyOf, pageText as text, sweptPages, type Page } from "./dynamic-render.mts";
 
 /**
@@ -76,7 +77,7 @@ function routeOf(page: string): string {
   return path === "index" ? "/" : "/" + path;
 }
 
-const source = readFileSync(PRICING, "utf8");
+const source = inlineSectorPrices(readFileSync(PRICING, "utf8"));
 const TIERS = quotedTiers(source);
 const pages: Page[] = sweptPages();
 const byRoute = new Map(pages.map((p) => [routeOf(p.page), p]));
