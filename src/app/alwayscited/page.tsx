@@ -37,18 +37,22 @@ export default function Page() {
       }}
       sections={[
         {
+          figure: "Both routes",
           heading: "Two routes, worked at once",
           body: "Coverage the engines read can win a citation with no link in it. Links that move rankings can shift a Google position. Both put your client in the pool the engines extract from, and this is the package that does both rather than picking one.",
         },
         {
+          figure: "Insertions",
           heading: "Link insertions, not link building",
           body: "We place contextual links inside articles that already exist, already rank for their own terms, and already get read. Agreed with the publisher, agreed with you, and always inside content about your client's category.",
         },
         {
+          figure: "Schema",
           heading: "Schema so the answer is extractable",
           body: "A model has to be able to parse what your client's page says before it can quote it. We mark up the pages the placements point at, so the claim on the page and the claim in the coverage line up.",
         },
         {
+          figure: "Compounds",
           heading: "What compounds",
           body: "The engines start citing your client, and once cited in a trusted source brands tend to be cited again across engines. The host article's own ranking carries the linked page. And readers arriving from a category roundup are already choosing a provider.",
         },

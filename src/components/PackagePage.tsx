@@ -1,9 +1,10 @@
 import { MarketPrice, MarketToggle, PackLine, SectorPrice, SelectionCta } from "@/components/SectorPrice";
+import DeliverableTiles, { type Tile } from "@/components/DeliverableTiles";
 import TierEngines from "@/components/TierEngines";
 import WalkthroughForm from "@/components/scan/WalkthroughForm";
 import TierName, { TierText, type TierKey } from "@/components/TierName";
 import { ALWAYS_ON, ALWAYS_ON_SUPPORT } from "@/config/always-on";
-import { CONTACT_URL, TIERS, TRACKED_BASIS, contactUrlFor, type Tier } from "@/config/pricing";
+import { CONTACT_URL, TIERS, TRACKED_BASIS, TRACKED_KEYWORDS, TRACKED_QUESTIONS, contactUrlFor, enginesFor, type Tier } from "@/config/pricing";
 import { ld } from "@/config/schema";
 import { serviceSchema } from "@/config/service-schema";
 import { CARD, MICRO, SHELL, T } from "@/config/tokens";
@@ -18,7 +19,32 @@ import Link from "next/link";
  * ladder at the bottom says plainly that each tier contains the one below it.
  */
 
-export type PackageSection = { heading: string; body: string };
+/** `figure` is the tile's short noun; `heading` becomes its one-line label (R78). */
+export type PackageSection = { figure: string; heading: string; body: string };
+
+/**
+ * The tiles every tier carries first - each includes the tracking - then one
+ * per section. Every number is read from pricing.ts or engines.ts; the engine
+ * tile draws the tier's own marks, four on alwaystracked and five above it.
+ */
+function tilesFor(tier: Tier, sections: PackageSection[]): Tile[] {
+  const engines = enginesFor(tier.key).length;
+  return [
+    { key: "questions", figure: String(TRACKED_QUESTIONS), label: "questions checked daily" },
+    { key: "keywords", figure: String(TRACKED_KEYWORDS), label: "keywords ranked" },
+    {
+      key: "engines",
+      figure: (
+        <span style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          {engines}
+          <TierEngines tier={tier.key} size={18} colour={T.soft} />
+        </span>
+      ),
+      label: engines > 4 ? "engines, Claude included" : "engines",
+    },
+    ...sections.map((x) => ({ key: x.heading, figure: x.figure, label: x.heading, detail: x.body })),
+  ];
+}
 
 /** The board's "/mo per client" treatment: a qualifier beside the figure, small and soft. */
 const PRICE_UNIT: React.CSSProperties = { fontSize: "15px", fontWeight: 600, color: T.soft, letterSpacing: 0 };
@@ -196,41 +222,7 @@ export default function PackagePage({
           </p>
         </div>
 
-        <div style={{ ...CARD, overflow: "hidden" }}>
-          {/* Through TierText like every other prose prop on this component.
-              `sections` was the one that was not, which is the only reason it
-              is worth a comment: standfirst, `included` and `notIncluded.text`
-              all went through it and these two did not, so a tier name written
-              into a deliverable would have shipped as an uncoloured word with
-              nothing to catch it. No section body names a tier today - this
-              closes the gap rather than fixing a live defect. TierText is a
-              no-op on a string with no tier name in it. */}
-          {sections.map((s) => (
-            <div key={s.heading} className="deliverable ac-row" style={{ borderBottom: "1px solid " + T.hair }}>
-              <div style={{ fontSize: "14.5px", fontWeight: 600 }}>
-                <TierText>{s.heading}</TierText>
-              </div>
-              <div style={{ fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
-                <TierText>{s.body}</TierText>
-              </div>
-            </div>
-          ))}
-          <div className="deliverable ac-row">
-            <div style={{ fontSize: "14.5px", fontWeight: 600 }}>Also included</div>
-            <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: "7px" }}>
-              {included.map((item) => (
-                <li key={item} style={{ display: "flex", alignItems: "flex-start", gap: "9px" }}>
-                  <svg width="12" height="9" viewBox="0 0 12 9" fill="none" aria-hidden="true" style={{ marginTop: "6px", flexShrink: 0 }}>
-                    <path d="M1 4.5l3.5 3.5L11 1" stroke={T.accent} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  <span style={{ fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
-                    <TierText>{item}</TierText>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
+        <DeliverableTiles tiles={tilesFor(tier, sections)} included={included} />
 
         {notIncluded ? (
           <p style={{ margin: "14px 0 0", fontSize: "14px", lineHeight: 1.65, color: T.soft }}>

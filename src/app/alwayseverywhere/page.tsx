@@ -39,18 +39,22 @@ export default function Page() {
       }}
       sections={[
         {
+          figure: "Earned media",
           heading: "Coverage, then the answers",
           body: "The placements in the alwayscited plan are paid. Earned media is the part you cannot buy: coverage in the publications your buyers already read. We pitch it, then read which pieces the engines pick up, so coverage is judged by whether it reaches the answer rather than by a clippings count.",
         },
         {
+          figure: "Tracked",
           heading: "Tracked the same way as everything else",
           body: "Each piece of coverage is matched URL for URL against the sources behind the answers, on the same locked questions as the rest of the plan. A change in the reading is a change in the answers, not a change in what we asked.",
         },
         {
+          figure: "Direct",
           heading: "Sold to brands direct",
           body: "This tier is not white-labelled. Agencies that run PR sell it to their own clients, and we would rather work alongside them than compete, so it is sold to the brand under our name.",
         },
         {
+          figure: "On a call",
           heading: "Scoped on a call",
           body: "The call covers the brand, the market and what coverage you already have. We say what we would do first, and roughly what it costs, before you commit to anything.",
         },

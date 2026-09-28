@@ -37,18 +37,22 @@ export default function Page() {
       }}
       sections={[
         {
+          figure: "Screened",
           heading: "Every placement passes the same three-part screen",
           body: "Already cited by the engines for the topic, so we place where the answers are actually drawn from rather than on a domain-authority list. Real organic traffic, verified rather than claimed. And contextual to the topic, so the mention reads as part of the page to a person and to a model.",
         },
         {
+          figure: "Replaced",
           heading: "A placement that fails the screen is replaced",
           body: "Not counted. You are buying placements that passed, not attempts. If a publication drops out or the piece never runs, it does not come off your three.",
         },
         {
+          figure: "Mentions",
           heading: "A mention can win the citation without a link",
           body: "Across our own coverage, the citations came from pieces with no link in them. Coverage and links do different jobs, and this package is aimed at the first one. The tracker reports which happened.",
         },
         {
+          figure: "Per topic",
           heading: "Priced per topic",
           body: "You name the topic, we build the question set buyers actually ask around it - the longer-tail questions people use when they are choosing a provider. One topic per plan, so the work stays focused enough to move.",
         },
