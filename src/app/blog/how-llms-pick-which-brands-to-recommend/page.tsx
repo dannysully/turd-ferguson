@@ -116,7 +116,11 @@ export default function Post() {
       <P>
         This is why &ldquo;create great content and wait&rdquo; doesn&apos;t work as an AI search strategy.
         Creating great on-site content is necessary but not sufficient. The citation comes from
-        the third-party source, not from your own site. You need to be on the list first.
+        the third-party source, not from your own site. You need to be on the list first. A{" "}
+        <Link href="/llm-visibility-checker" style={{ color: T.accent, fontWeight: 600 }}>
+          free AI visibility check
+        </Link>{" "}
+        shows which lists the engines are reading for your category.
       </P>
 
       <H2 id="the-closing-point">The closing point.</H2>

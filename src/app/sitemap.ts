@@ -86,6 +86,7 @@ const ENTRIES: Entry[] = [
   ["/seo-agencies", "2026-09-19", "monthly", 0.8],
   ["/pr-agencies", "2026-09-19", "monthly", 0.8],
   ["/coverage-check", "2026-09-20", "monthly", 0.7],
+  ["/llm-visibility-checker", "2026-09-28", "monthly", 0.8],
   ["/legal", "2026-09-19", "yearly", 0.3],
   ["/about", "2026-09-19", "yearly", 0.5],
   ["/contact", "2026-09-20", "yearly", 0.5],

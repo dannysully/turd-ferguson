@@ -125,7 +125,8 @@ export default function HowItWorksPage() {
             <div style={{ fontSize: "14px", fontWeight: 700, color: T.ink }}>Start with the evidence</div>
             <div style={{ fontSize: "13px", lineHeight: 1.5, color: T.soft, marginTop: "4px" }}>
               A free scan records every page behind the answers in your category, so the target list is something you
-              can read.
+              can read.{" "}
+              <Link href="/llm-visibility-checker" style={{ color: T.accent, fontWeight: 600, textDecoration: "none" }}>Check your AI visibility</Link> first.
             </div>
             <form action="/scan" method="get" style={{ display: "flex", gap: "8px", marginTop: "14px" }}>
               <label htmlFor="hiw-domain" className="sr-only">

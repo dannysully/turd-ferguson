@@ -23,10 +23,18 @@ import { GRID12, MICRO, T } from "@/config/tokens";
 
 const PRODUCT: [string, string][] = [
   ["Free scan", "/#scan"],
-  ["Coverage checker", "/coverage-check"],
   ["Packages", "/packages"],
   ["White label", "/white-label"],
   ["Compare", "/compare"],
+];
+
+/**
+ * Free tools (R68, danny.md line 69, 28 Sep 2026): a fourth column. The
+ * brand block spans 4 and each column 2, so four columns fill the 12 exactly.
+ */
+const FREE_TOOLS: [string, string][] = [
+  ["LLM visibility checker", "/llm-visibility-checker"],
+  ["Coverage checker", "/coverage-check"],
 ];
 
 /** The board's "For" column, which now has pages behind it. */
@@ -94,6 +102,16 @@ export default function Footer() {
 
         <Column title="Product">
           {PRODUCT.map(([label, href]) => (
+            <li key={label}>
+              <Link href={href} style={link}>
+                {label}
+              </Link>
+            </li>
+          ))}
+        </Column>
+
+        <Column title="Free tools">
+          {FREE_TOOLS.map(([label, href]) => (
             <li key={label}>
               <Link href={href} style={link}>
                 {label}

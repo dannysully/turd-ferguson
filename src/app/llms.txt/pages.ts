@@ -20,6 +20,7 @@ import { metadata as whiteLabel } from "@/app/white-label/page";
 import { metadata as seoAgencies } from "@/app/seo-agencies/page";
 import { metadata as prAgencies } from "@/app/pr-agencies/page";
 import { metadata as coverageCheck } from "@/app/coverage-check/page";
+import { metadata as llmChecker } from "@/app/llm-visibility-checker/page";
 import { metadata as legal } from "@/app/legal/page";
 import { metadata as about } from "@/app/about/page";
 import { metadata as contact } from "@/app/contact/page";
@@ -74,7 +75,10 @@ export const SECTIONS: { heading: string; pages: LlmsPage[] }[] = [
   },
   {
     heading: "Tools",
-    pages: [{ path: "/coverage-check", meta: coverageCheck }],
+    pages: [
+      { path: "/llm-visibility-checker", meta: llmChecker },
+      { path: "/coverage-check", meta: coverageCheck },
+    ],
   },
   {
     heading: "Company",

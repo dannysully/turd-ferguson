@@ -407,7 +407,9 @@ export default function WhatIsAEOPage() {
               <h2 style={H2_LONG}>Can it be engineered on purpose?</h2>
               <p style={{ ...PROSE, marginTop: "16px" }}>
                 Yes, and the mechanism is specific enough to write down. Identify the pages an engine already reads for
-                a category - which is what the free scan does - then secure placements on them, with the
+                a category - which is what the free scan does (the{" "}
+                <Link href="/llm-visibility-checker" style={{ color: T.accent, fontWeight: 600, textDecoration: "none" }}>LLM visibility checker</Link> runs it on your
+                domain) - then secure placements on them, with the
                 brand where the ranked list gets quoted from. Then structure your own pages so a reader arriving from
                 the answer finds the same story.
               </p>
