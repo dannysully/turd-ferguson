@@ -1,7 +1,7 @@
 import TierEngines from "@/components/TierEngines";
 import TierName, { TierText, type TierKey } from "@/components/TierName";
 import { ALWAYS_ON, ALWAYS_ON_SUPPORT } from "@/config/always-on";
-import { CONTACT_URL, TIERS, TRACKED_QUESTIONS, contactUrlFor, type Tier } from "@/config/pricing";
+import { CONTACT_URL, TIERS, TRACKED_BASIS, contactUrlFor, type Tier } from "@/config/pricing";
 import { splitPriceLabel } from "@/config/price-label";
 import { ld } from "@/config/schema";
 import { serviceSchema } from "@/config/service-schema";
@@ -25,7 +25,7 @@ const PRICE_UNIT: React.CSSProperties = { fontSize: "15px", fontWeight: 600, col
 const GLOSS: Record<string, string> = {
   // The count comes from pricing.ts. It was typed here, which made this the
   // third of four surfaces carrying its own copy of what $99 buys.
-  tracked: `${TRACKED_QUESTIONS} questions weekly. The map - you do the placing`,
+  tracked: `${TRACKED_BASIS}. The map - you do the placing`,
   mentioned: "We do the placing",
   cited: "Citations and rankings pushed together",
   everywhere: "All of it, plus brand PR",

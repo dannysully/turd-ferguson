@@ -1,6 +1,6 @@
 import EngineLogo from "@/components/EngineLogo";
 import TierName from "@/components/TierName";
-import { TRACKED_QUESTIONS } from "@/config/pricing";
+import { TRACKED_KEYWORDS, TRACKED_QUESTIONS } from "@/config/pricing";
 import { FREE_ENGINE_COUNT } from "@/config/scan-shape";
 import { CARD, MICRO, T } from "@/config/tokens";
 import { FREE_ENGINES } from "@/lib/scan/engines";
@@ -127,10 +127,10 @@ export default function TrackedBeat() {
           What <TierName tier="tracked" /> sends you
         </div>
         <h2 style={{ margin: "10px 0 0", fontSize: "28px", fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.15, color: T.ink }}>
-          {TRACKED_QUESTIONS} questions a week. One line tells you what moved.
+          {TRACKED_QUESTIONS} questions and {TRACKED_KEYWORDS} keywords, every day. One line tells you what moved.
         </h2>
         <p style={{ margin: "14px 0 0", fontSize: "15px", lineHeight: 1.6, color: T.soft }}>
-          The same questions, re-asked every week, reported question by question: which engines named the brand, the
+          The same questions, re-asked every day, reported question by question: which engines named the brand, the
           Google position beside it, and the pages the engines cited.
         </p>
         <div style={{ marginTop: "22px", display: "flex", flexDirection: "column", gap: "12px" }}>

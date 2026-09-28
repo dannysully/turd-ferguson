@@ -7,7 +7,7 @@ import DarkClosing from "@/components/DarkClosing";
 import { D, LIFT } from "@/components/home/dark";
 import { word } from "@/components/home/EngineDemo";
 import { FREE_ENGINE_COUNT, QUESTIONS } from "@/config/scan-shape";
-import { TIERS, TRACKED_QUESTIONS } from "@/config/pricing";
+import { TIERS, TRACKED_BASIS } from "@/config/pricing";
 import { CARD, GRID12, MICRO, SHELL, T } from "@/config/tokens";
 import { ORG_REF, ld } from "@/config/schema";
 
@@ -281,7 +281,7 @@ export default function HowItWorksPage() {
               See all packages
             </Link>
             {tracked
-              ? ` - ${tracked.priceLabel} for tracking alone, at ${TRACKED_QUESTIONS} questions checked weekly. What each includes is on its own page, not behind a call.`
+              ? ` - ${tracked.priceLabel} for tracking alone, at ${TRACKED_BASIS}. What each includes is on its own page, not behind a call.`
               : "."}
           </p>
         </section>

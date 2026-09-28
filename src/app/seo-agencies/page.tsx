@@ -5,7 +5,7 @@ import Link from "next/link";
 
 import EngineLogo from "@/components/EngineLogo";
 import { D } from "@/components/home/dark";
-import { TIERS, TRACKED_QUESTIONS } from "@/config/pricing";
+import { TIERS, TRACKED_BASIS } from "@/config/pricing";
 import { CARD, SHELL, T } from "@/config/tokens";
 
 export const metadata: Metadata = {
@@ -233,7 +233,7 @@ export default function SeoAgenciesPage() {
           </Link>
           {/* "a week" said something the other three surfaces did not: the basis
               is questions checked weekly, not new questions every week. */}
-          {tracked ? ` - ${tracked.priceLabel} for tracking alone, at ${TRACKED_QUESTIONS} questions checked weekly.` : "."}
+          {tracked ? ` - ${tracked.priceLabel} for tracking alone, at ${TRACKED_BASIS}.` : "."}
         </p>
       </section>
     </main>

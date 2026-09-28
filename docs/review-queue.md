@@ -1230,6 +1230,11 @@ Items filed by the reviewer from live checks and from docs/danny.md. The builder
   target (DANNY), waitlist waits on section 3. Everything left in R50 and R51
   now waits on the video decision in blocked.md, or on section 7, which the
   item holds until 2-6 are done.
+  **Progress (28 Sep 07:25Z, builder):** video decision answered (danny.md 54) -
+  video off the site; section 3 shipped -> 5444fdd, verified live. Next: section 8
+  alwaystracked "20 questions and 10 keywords, checked daily" plus the add-on lines;
+  section 6 per danny.md 55 (WalkthroughForm with three options); section 4 selector
+  per danny.md 56.
 
 - [ ] R51 `src/config/sector-prices.json` confirmed in place - unblock R50's
   blocker 1, build sections 1-4 (Danny, docs/danny.md - filed 2026-09-27, line
@@ -1299,3 +1304,88 @@ Items filed by the reviewer from live checks and from docs/danny.md. The builder
   `alwaystracked` now reads $129/£99 everywhere it is quoted; grep `src` for
   the old `$995`/`$2,495`/`$99` literals afterward and confirm none survive
   outside a changelog/comment.
+
+- [x] R52 Video decision: take the launch video down, then ship section 3 -> 5444fdd
+  (Danny, docs/danny.md - filed 2026-09-27, line 54 - answers the "R50
+  section 3" DANNY line in `docs/blocked.md`, which offered exactly this as
+  option (a): "take the video off `/how-it-works` until the re-cut, keeping
+  a text link out, and section 3 ships"). Danny picked (a). This is the
+  entangled pair the last three builder runs (22:41, 22:48 27 Sep) logged as
+  "still unanswered" and ended without building, three in a row, which
+  tripped the builder's own fast-fail breaker (`docs/STOP`, currently set) -
+  clearing this is what lets the builder move again.
+  Two halves, one push:
+  1. **Remove the video entirely**, not just its prices:
+     - Delete `src/config/video.ts` and `src/config/video.test.mts`.
+     - `src/app/how-it-works/page.tsx`: remove the `LAUNCH_VIDEO`/
+       `LAUNCH_VIDEO_SUMMARY` import (line 13), the `videoSchema` `ld({...})`
+       block (lines 62-77) and its `<script>` tag (line 128), and the whole
+       `<section id="video">...</section>` beat (lines 195-236 or thereabouts
+       - re-read the file, line numbers have drifted). Re-read the doc
+       comment at lines 16-24 describing the page's beat order and update it
+       to drop the video.
+     - `src/app/page.tsx`: remove the text-link block at lines 46-53 (the
+       `{/* One text link... */}` comment, the wrapping `<div style={SHELL}>`
+       and the "Watch the 60-second version" link).
+     - `src/config/copy.test.mts` line 432's `PRICE_EXEMPT["src/config/video.ts"]`
+       entry: delete it - the file it exempts no longer exists, so a census
+       walking a path that is gone is a silent hole, not a pass.
+     - `src/app/structured-data.test.mts` lines 386-392: the
+       `assert.deepEqual([...publicFiles].sort(), ["/video/...mp4",
+       "/video/...jpg"], ...)` was earned by the video being the only
+       JSON-LD reference to a `public/` file. With it gone this should be
+       `[]` - update the assertion and its dated comment (lines 372-375,
+       "the launch video and its poster... are the first own-domain URLs...
+       that are files rather than routes") to say the allowance is currently
+       unearned rather than deleting the mechanism, since the next file
+       added to `public/` should re-trip it.
+     - Grep `LAUNCH_VIDEO\|VideoObject\|video\.ts` across `src` afterward and
+       confirm nothing is left importing or rendering it. The two files in
+       `public/video/` (the mp4 and poster) can stay on disk - Danny said
+       "remove... until it is re-cut", not delete the source asset, and
+       nothing in `src` will reference them once this ships.
+  2. **Ship section 3** (unblocked by the video coming down): the builder
+     already built and gated this, saved rather than pushed, at
+     `docs/r50-section3.patch` (touches `price-claims.test.mts`,
+     `price-schema.test.mts`, `price-surfaces.test.mts`, `pricing.ts`, and a
+     hunk to `video.test.mts` that no longer applies now that file is
+     deleted - skip that one hunk, or apply and immediately delete the file,
+     either way `video.test.mts` must not exist afterward) and
+     `docs/r50-sector-pricing-source.ts` (move to
+     `src/config/sector-pricing-source.ts` - the `inlineSectorPrices` helper
+     the three price censuses need to read `fromLabel`/`fromPrice` calls back
+     out of `pricing.ts` as source text). Apply the patch, place the source
+     file, then re-run the full gate - the builder's own note says this was
+     872/873 with only `video.test.mts` failing, and that test is gone in
+     this same push, so the count should clear.
+  3. Once both are green and pushed, move `docs/blocked.md`'s two open DANNY
+     lines about this ("R50 section 3 is built and green except one
+     census..." and its four dated "still unanswered" run notes, plus the
+     earlier "The launch video bakes in the old prices" line above it) to
+     Settled, with today's date, "Danny, docs/danny.md line 54" and this
+     item's commit - the same pattern R45/R47 used to close a DANNY line in
+     the same push that acts on it.
+  Verify: `npx tsc --noEmit`, `rm -rf .next && npm run build`, `npm run
+  capture`, `npm run check` (the count should land at or above the last
+  clean baseline once `video.test.mts`'s 4 tests are subtracted and
+  accounted for in the log, not silently vanished); grep `src` for
+  `LAUNCH_VIDEO\|shownPrices\|from \$99\|from \$129` to confirm the new
+  figures land everywhere and the video is referenced nowhere; shoot
+  `/how-it-works` at 1280 and 390 confirming no video section remains and
+  the page reads cleanly without it, and shoot `/` confirming the "Watch the
+  60-second version" link is gone; shoot the packages staircase and a tier
+  page's price block confirming the new computed "from" figures render.
+  Log in `docs/parity/log.md` the exact new baseline `npm run check` count
+  and why it moved from the last recorded one.
+  **Done (28 Sep 07:25Z, builder) -> 5444fdd, one deliberate deviation:**
+  `video.ts` and `video.test.mts` were kept, not deleted. The test was
+  rewritten: while `shownPrices` differ from pricing.ts it asserts the video is
+  on no swept page, in no JSON-LD, and linked from nowhere (floor: more than 20
+  pages swept); the old "page carries the video" test skips until a re-cut
+  matches. Deleting it would remove the one rule that stops a stale-price
+  video coming back, which AGENTS.md forbids to get green. So the
+  `PRICE_EXEMPT["src/config/video.ts"]` entry stays too, earned by a file that
+  still exists. structured-data's public/ allowance is `[]` with a dated
+  comment. Baseline: 873 tests, 872 pass, 1 skip (the carries-video test),
+  0 fail - no tests removed. The blocked.md lines are ticked in place with the
+  resolution and commit.

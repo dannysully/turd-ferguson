@@ -107,7 +107,7 @@ const BEATS: Beat[] = [
   {
     tier: "tracked",
     headline: "See every placement opportunity.",
-    line: `Buyer questions put to ${FREE_ENGINE_COUNT} AI engines every week, with every source behind every answer.`,
+    line: `Buyer questions put to ${FREE_ENGINE_COUNT} AI engines every day, with every source behind every answer.`,
     alt: `A tracking dashboard for ${SUBJECT}: ${TRACKED_QUESTIONS} questions across ${FREE_ENGINE_COUNT} engines, ${NAMED_COUNT} of ${WEEKLY_ANSWERS} answers naming it, and the brands named instead.`,
   },
   {

@@ -50,7 +50,7 @@ const CTA: Record<TierKey, { label: string; href?: string }> = {
 /** 1 = included, 0 = not, a string = the cell's text. One entry per tier, in TIERS order. */
 type Cell = 0 | 1 | string;
 const ROWS: { what: string; cells: Record<TierKey, Cell> }[] = [
-  { what: "Buyer questions across the AI engines, every week", cells: { tracked: 1, mentioned: 1, cited: 1, everywhere: 1 } },
+  { what: "Buyer questions across the AI engines and Google keywords, checked daily", cells: { tracked: 1, mentioned: 1, cited: 1, everywhere: 1 } },
   { what: "Every source behind every answer", cells: { tracked: 1, mentioned: 1, cited: 1, everywhere: 1 } },
   { what: "Placement opportunities, scored for difficulty", cells: { tracked: 1, mentioned: 1, cited: 1, everywhere: 1 } },
   { what: "Who runs the outreach", cells: { tracked: "You", mentioned: "Us", cited: "Us", everywhere: "Us" } },

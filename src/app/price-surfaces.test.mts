@@ -159,7 +159,15 @@ test("the basis travels with the price it qualifies, on every surface that print
    */
   const basis = /priceBasis:\s*`([^`]*)`/.exec(source)?.[1];
   assert.ok(basis, "no priceBasis in " + PRICING + " - if it was removed, remove this check with it");
-  const clause = basis!.split(".")[1]?.trim();
+  // Since 28 Sep 2026 the second clause carries counts (`${TRACKED_QUESTIONS}`),
+  // so each `${NAME}` is resolved against the number pricing.ts declares for
+  // it. An unresolved one fails, rather than matching a string no page draws.
+  const resolved = basis!.replace(/\$\{(\w+)\}/g, (_, name: string) => {
+    const decl = new RegExp(`export const ${name} = (\\d+);`).exec(source);
+    assert.ok(decl, `priceBasis interpolates ${name}, which pricing.ts does not declare as a number`);
+    return decl![1]!;
+  });
+  const clause = resolved.split(/\.(?=\s)/)[1]?.trim();
   assert.ok(clause && clause.length > 20, "the basis no longer has a second clause to match on: " + basis);
 
   const grid = packagesGrid(byRoute.get("/")!.html);

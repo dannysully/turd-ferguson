@@ -55,6 +55,23 @@ export function contactUrlFor(tier: TierKey): string {
 export const TRACKED_QUESTIONS = 20;
 
 /**
+ * The Google keywords the tracking base price covers, beside the questions
+ * (pricing spec section 1, 27 Sep 2026: "20 questions across four engines and
+ * 10 Google keywords, checked daily"). Declared for the reason TRACKED_QUESTIONS
+ * is: it is half of what the price buys.
+ */
+export const TRACKED_KEYWORDS = 10;
+
+/** What the tracking price covers, as every surface says it (spec section 8). */
+export const TRACKED_BASIS = `${TRACKED_QUESTIONS} questions and ${TRACKED_KEYWORDS} keywords, checked daily`;
+
+/**
+ * The extra tracking pack, on any tier (spec section 1): +$49 / £39 a month
+ * for another TRACKED_QUESTIONS questions and TRACKED_KEYWORDS keywords.
+ */
+export const TRACKING_PACK_LINE = `Need more? Add ${TRACKED_QUESTIONS} questions and ${TRACKED_KEYWORDS} keywords for +$49 / £39 a month.`;
+
+/**
  * Which engines each tier reads (pricing spec, Danny, 27 Sep 2026, sections 1
  * and 4). alwaystracked reads the four the free scan reads; every higher tier
  * adds Claude as a fifth on the plan's own prompts. The +$49 tracking pack
@@ -108,7 +125,9 @@ export const TIERS: Tier[] = [
     // priced here rather than in sector-prices.json.
     basePrice: 129,
     priceLabel: "from $129/mo",
-    priceBasis: `${TRACKED_QUESTIONS} questions, checked weekly. More questions or a tighter cadence moves the price.`,
+    // Spec section 8: the daily basis, and the add-on line in place of "More
+    // questions or a tighter cadence moves the price".
+    priceBasis: `${TRACKED_QUESTIONS} questions and ${TRACKED_KEYWORDS} keywords, checked daily. Need more? Add ${TRACKED_QUESTIONS} questions and ${TRACKED_KEYWORDS} keywords for +$49 / £39 a month.`,
     positioning: "Know what your coverage did",
     href: "/alwaystracked",
     includes: [

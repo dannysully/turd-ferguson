@@ -3,7 +3,7 @@
 import EngineLogo from "@/components/EngineLogo";
 import TierName from "@/components/TierName";
 import { D, TRACKED_WASH } from "@/components/home/dark";
-import { TIERS, TRACKED_QUESTIONS } from "@/config/pricing";
+import { TIERS, TRACKED_BASIS } from "@/config/pricing";
 import { count } from "@/lib/plural";
 import { SCAN_LIMITS } from "@/config/contact";
 import { track } from "@/lib/analytics";
@@ -754,10 +754,10 @@ function TrackedSection(p: { token: string }) {
           <TierName tier="tracked" />
         </div>
         <h2 style={{ margin: "10px 0 0", fontSize: "38px", fontWeight: 700, letterSpacing: "-0.035em", lineHeight: 1.08, color: T.surface }} className="res-tracked-h">
-          This was one reading. See it every week.
+          This was one reading. See it every day.
         </h2>
         <div className="res-tiles">
-          {tile("Weekly, not once", TRACKED_QUESTIONS + " questions, checked every week.")}
+          {tile("Daily, not once", TRACKED_BASIS + ".")}
           {tile("Your own questions", "The ones your buyers actually ask, not ours.")}
           {tile("Adjacent openings", "Pages not cited yet, of the kind these engines reach for.")}
           {tile(
@@ -769,7 +769,7 @@ function TrackedSection(p: { token: string }) {
         </div>
         {tracked ? (
           <div style={{ fontSize: "13px", color: D.muted, marginTop: "18px" }}>
-            {tracked.priceLabel[0].toUpperCase() + tracked.priceLabel.slice(1) + ", " + TRACKED_QUESTIONS + " questions checked weekly."}
+            {tracked.priceLabel[0].toUpperCase() + tracked.priceLabel.slice(1) + ", " + TRACKED_BASIS + "."}
           </div>
         ) : null}
       </div>
