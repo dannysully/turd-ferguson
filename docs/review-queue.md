@@ -1254,6 +1254,9 @@ Items filed by the reviewer from live checks and from docs/danny.md. The builder
   `supabase/migrations/` (grepped: only account-disclosure.test.mts names
   it), so the waitlist is `create table if not exists` plus `source` -
   confirm against production before writing, in case it was made by hand.
+  **Open defect, first thing next run (28 Sep 07:48Z):** the homepage scrolls
+  sideways at 390 (scrollWidth 708, scrollX 318), traced to `.pkg-scroll`;
+  not yet known if section 4 caused it. See docs/parity/log.md, 56c1afe entry.
 
 - [x] R51 `src/config/sector-prices.json` confirmed in place -> 5444fdd, 41b552f - unblock R50's
   blocker 1, build sections 1-4 (Danny, docs/danny.md - filed 2026-09-27, line

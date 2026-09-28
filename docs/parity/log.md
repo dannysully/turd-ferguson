@@ -1177,3 +1177,11 @@ Spec: pricing-spec section 8, on open decision 5's default (sold to brands direc
 - Differs from the board: the board has no toggle or selectors (the spec is newer than the board).
 - Suite 875 / 874 pass / 1 skip (two new tests: UK label split, TRACKED_PRICE agreement).
 - Live (41b552f, 28 Sep 07:40Z): r50-s4-probe against production gives the same 24 readings as local (1280 and 390, / and /alwaysmentioned). --js-off on / and --reduced on /alwayscited shot; production HTML carries no select, stepper or toggle (0 hits), so JS off reads the "from" and the CTA.
+
+## R50 section 8 (extra tracking line) - c5f5559 (28 Sep 2026)
+- "Extra tracking: +$49 / £39 a month for 20 questions and 10 keywords." after the basis on the /alwaysmentioned and /alwayscited price cards (EXTRA_TRACKING_LINE, pricing.ts). The spec line's first sentence ("up to 10 at checkout") held for section 5.
+- Suite 875 / 874 pass / 1 skip.
+
+## R50 section 4 fix - 56c1afe (28 Sep 2026)
+- Found on the live 390 check of c5f5559: /alwaysmentioned and /alwayscited scrolled 29px sideways (documentElement.scrollWidth 419), caused by the tile's select + stepper row not wrapping. Fixed with flex-wrap; measured locally after: 390 on /alwaystracked, /alwaysmentioned, /alwayscited, /alwayseverywhere (docs/parity/r50-s4-width.mjs).
+- OPEN, not classified: the homepage at 390 has scrollWidth 708 and window.scrollX reaches 318, locally and live. Removing `.pkg-scroll` in the page brings it to 0; every element past the viewport sits inside `.pkg-scroll` (overflow-x auto below 860px), and none is unclipped (docs/parity/wide-els.mjs). Not yet known whether it predates section 4 - the test with only the selects removed did not run correctly. Next run: `node docs/parity/scroll-x.mjs http://localhost:3000/ 390 "#sp-mentioned, #sp-cited"` and compare against a build of 6cf64aa.
