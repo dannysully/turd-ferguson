@@ -42,8 +42,9 @@ export const metadata: Metadata = {
  * different promises and the page was only keeping the first.
  *
  * Where a clause needs a fact nobody has given me, it is left out rather than
- * guessed. The company number and registered office are Danny's (26 Sep 2026,
- * R31, COMPANY_LINE); the ICO number is still open. The page carries no
+ * guessed. The company name and number are Danny's (26 Sep 2026, R31,
+ * COMPANY_LINE; the address came off on 28 Sep, R81); the ICO number is
+ * still open. The page carries no
  * drafting markers (Q22, 26 Sep 2026); every open gap is in
  * docs/blocked.md instead.
  */

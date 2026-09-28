@@ -183,8 +183,8 @@ export const SCAN_LIMITS = {
 
 /**
  * Who runs the site, in the words Danny gave on 26 Sep 2026 (R31) - the
- * footer and /legal both print this. The ICO number is not here: it is still
- * unconfirmed (docs/blocked.md item 1).
+ * footer and /legal both print this. Name and number only: the address is
+ * changing, so it is off every surface (Danny, 28 Sep 2026, R81). The ICO
+ * number is not here: it is still unconfirmed (docs/blocked.md item 1).
  */
-export const COMPANY_LINE =
-  "Nomada Digital Ltd, company number 12869202, registered office 11 Heworth Hall Drive, York, YO31 1AG";
+export const COMPANY_LINE = "Nomada Digital Ltd, company number 12869202";
