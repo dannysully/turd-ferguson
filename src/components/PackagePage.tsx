@@ -1,4 +1,4 @@
-import { MarketPrice, MarketToggle, PackLine, SectorPrice } from "@/components/SectorPrice";
+import { MarketPrice, MarketToggle, PackLine, SectorPrice, SelectionCta } from "@/components/SectorPrice";
 import TierEngines from "@/components/TierEngines";
 import WalkthroughForm from "@/components/scan/WalkthroughForm";
 import TierName, { TierText, type TierKey } from "@/components/TierName";
@@ -23,7 +23,16 @@ export type PackageSection = { heading: string; body: string };
 
 /** The board's "/mo per client" treatment: a qualifier beside the figure, small and soft. */
 const PRICE_UNIT: React.CSSProperties = { fontSize: "15px", fontWeight: 600, color: T.soft, letterSpacing: 0 };
-const PRICE_BIG: React.CSSProperties = { fontSize: "36px", fontWeight: 700, letterSpacing: "-0.035em", lineHeight: 1.1 };
+const CTA_STYLE: React.CSSProperties = {
+  display: "block",
+  textAlign: "center",
+  fontSize: "15px",
+  fontWeight: 600,
+  padding: "13px 20px",
+  borderRadius: "10px",
+  textDecoration: "none",
+};
+const PRICE_BIG: React.CSSProperties ={ fontSize: "36px", fontWeight: 700, letterSpacing: "-0.035em", lineHeight: 1.1 };
 
 const GLOSS: Record<string, string> = {
   // The count comes from pricing.ts. It was typed here, which made this the
@@ -126,7 +135,7 @@ export default function PackagePage({
               Danny, 27 Sep). The sector tiers get a select and a stepper. */}
           {tier.basePrice !== null ? <MarketToggle style={{ marginBottom: "14px", color: T.soft }} /> : null}
           {tier.key === "mentioned" || tier.key === "cited" ? (
-            <SectorPrice tier={tier.key} fallback={tier.priceLabel} per={PRICE_UNIT} priceStyle={PRICE_BIG} />
+            <SectorPrice tier={tier.key} fallback={tier.priceLabel} per={PRICE_UNIT} priceStyle={PRICE_BIG} syncUrl />
           ) : (
             <div style={PRICE_BIG}>
               {price.prefix ? <span style={PRICE_UNIT}>{price.prefix}</span> : null}
@@ -143,22 +152,18 @@ export default function PackagePage({
             )}
           </p>
           <TierEngines tier={tier.key} size={16} colour={T.soft} style={{ margin: "-4px 0 16px" }} />
-          <a
-            href={tier.key === "tracked" ? contactUrlFor("tracked") : CONTACT_URL}
-            className="btn-primary"
-            style={{
-              display: "block",
-              textAlign: "center",
-              fontSize: "15px",
-              fontWeight: 600,
-              padding: "13px 20px",
-              borderRadius: "10px",
-              textDecoration: "none",
-            }}
-          >
-            {/* The call tier is sold to brands direct (pricing spec, section 8), so not a "partner" call. */}
-            {tier.basePrice === null ? "Book a call" : "Start a client"}
-          </a>
+          {/* The sector tiers' CTA carries the picks to /contact, with the tier
+              when they price as a call (R69). */}
+          {tier.key === "mentioned" || tier.key === "cited" ? (
+            <SelectionCta tier={tier.key} href={CONTACT_URL} className="btn-primary" style={CTA_STYLE}>
+              Start a client
+            </SelectionCta>
+          ) : (
+            <a href={tier.key === "tracked" ? contactUrlFor("tracked") : CONTACT_URL} className="btn-primary" style={CTA_STYLE}>
+              {/* The call tier is sold to brands direct (pricing spec, section 8), so not a "partner" call. */}
+              {tier.basePrice === null ? "Book a call" : "Start a client"}
+            </a>
+          )}
           <Link
             href="/#scan"
             style={{

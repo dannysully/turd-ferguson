@@ -5,7 +5,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import type { TierKey } from "@/components/TierName";
 import { D } from "@/components/home/dark";
 import { splitPriceLabel } from "@/config/price-label";
-import { TIERS, TRACKED_PRICE, TRACKING_PACK_PRICE, trackingPackLine } from "@/config/pricing";
+import { TIERS, TRACKED_PRICE, TRACKING_PACK_PRICE, contactUrlFor, trackingPackLine } from "@/config/pricing";
 import {
   DEFAULT_MARKET,
   MARKETS,
@@ -17,6 +17,7 @@ import {
   type Market,
   type SectorTier,
 } from "@/config/sector-pricing";
+import { SELECTION_DEFAULT, isCall, parseSelection, withSelection, type Selection } from "@/config/sector-selection";
 import { T } from "@/config/tokens";
 
 /**
@@ -49,6 +50,24 @@ function subscribe(l: () => void) {
 function useMarket(): Market {
   return useSyncExternalStore(subscribe, () => market, () => DEFAULT_MARKET);
 }
+/**
+ * Each sector tile's picks, per tier, in the same kind of store as the market
+ * (R69): the CTA under a tile is a separate island and has to read what the
+ * tile's select and stepper set.
+ */
+type Pick = { sector: string; qty: number };
+const picks: Record<SectorTier, Pick> = { mentioned: { sector: "", qty: 1 }, cited: { sector: "", qty: 1 } };
+function setPick(tier: SectorTier, next: Pick) {
+  picks[tier] = next;
+  listeners.forEach((l) => l());
+}
+function usePick(tier: SectorTier): Pick {
+  return useSyncExternalStore(subscribe, () => picks[tier], () => picks[tier]);
+}
+function selectionOf(tier: SectorTier, m: Market): Selection {
+  return { ...picks[tier], market: m };
+}
+
 function useMounted(): boolean {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -137,6 +156,7 @@ export function SectorPrice({
   priceStyle,
   compact = false,
   basis,
+  syncUrl = false,
 }: {
   tier: SectorTier;
   fallback: string;
@@ -146,11 +166,28 @@ export function SectorPrice({
   /** Drawn between the price and the controls, so the basis line sits
    *  directly under the price in every column (Danny, 28 Sep, R56). */
   basis?: React.ReactNode;
+  /** The tier page: start from the URL's picks and keep the URL in step with
+   *  them (R69). Off on the packages table, where two tiles share one URL. */
+  syncUrl?: boolean;
 }) {
   const m = useMarket();
   const mounted = useMounted();
-  const [sector, setSector] = useState("");
-  const [qty, setQty] = useState(1);
+  const { sector, qty } = usePick(tier);
+  const setSector = (v: string) => setPick(tier, { ...picks[tier], sector: v });
+  const setQty = (f: (q: number) => number) => setPick(tier, { ...picks[tier], qty: f(picks[tier].qty) });
+
+  useEffect(() => {
+    if (!syncUrl) return;
+    const sel = parseSelection(new URLSearchParams(window.location.search));
+    setPick(tier, { sector: sel.sector, qty: sel.qty });
+    if (sel.market !== market) setMarket(sel.market);
+  }, [syncUrl, tier]);
+
+  useEffect(() => {
+    if (!syncUrl || !mounted) return;
+    const url = withSelection(window.location.pathname, { sector, qty, market: m }) + window.location.hash;
+    if (url !== window.location.pathname + window.location.search + window.location.hash) window.history.replaceState(window.history.state, "", url);
+  }, [syncUrl, mounted, sector, qty, m]);
 
   let label = mounted ? fromLabel(tier, m) : fallback;
   if (mounted && sector) {
@@ -219,5 +256,36 @@ export function SectorPrice({
         </div>
       ) : null}
     </>
+  );
+}
+
+/**
+ * A sector tile's CTA, carrying its picks (R69). To the tier page with
+ * `?sector=&clusters=` when they are set; to /contact with the tier as well
+ * when they price as a call. Before mount - and with no script - it is the
+ * plain `href`, which is what every CTA was.
+ */
+export function SelectionCta({
+  tier,
+  href,
+  className,
+  style,
+  children,
+}: {
+  tier: SectorTier;
+  href: string;
+  className?: string;
+  style?: React.CSSProperties;
+  children: React.ReactNode;
+}) {
+  const m = useMarket();
+  usePick(tier);
+  const mounted = useMounted();
+  const sel = mounted ? selectionOf(tier, m) : SELECTION_DEFAULT;
+  const to = isCall(tier, sel) ? withSelection(contactUrlFor(tier), sel) : withSelection(href, sel);
+  return (
+    <a href={to} className={className} style={style}>
+      {children}
+    </a>
   );
 }

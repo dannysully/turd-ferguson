@@ -1,4 +1,4 @@
-import { MarketPrice, MarketToggle, PackLine, SectorPrice } from "@/components/SectorPrice";
+import { MarketPrice, MarketToggle, PackLine, SectorPrice, SelectionCta } from "@/components/SectorPrice";
 import TierEngines from "@/components/TierEngines";
 import TierName, { type TierKey } from "@/components/TierName";
 import { ALWAYS_ON, ALWAYS_ON_SUPPORT } from "@/config/always-on";
@@ -36,6 +36,24 @@ import { D, PACKAGES_WASH } from "./dark";
 /** The board's button labels. The everywhere tier's goes to a call, not a page;
  *  the tracked tier's to /contact with the tier carried, as it is set up by
  *  hand (Danny, 26 Sep 2026). */
+const ctaStyle = (emphasis?: boolean): React.CSSProperties => ({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  marginTop: "12px",
+  fontSize: "13.5px",
+  fontWeight: 600,
+  borderRadius: "9px",
+  textDecoration: "none",
+  minHeight: "40px",
+  boxSizing: "border-box",
+  // Flat accent, the header's "Free scan" exactly - not
+  // .btn-primary's gradient, and no black (R59).
+  ...(emphasis
+    ? { background: T.accent, color: "#ffffff" }
+    : { background: T.surface, color: T.ink, border: `1px solid ${T.line}` }),
+});
+
 const CTA: Record<TierKey, { label: string; href?: string }> = {
   tracked: { label: "Start tracking", href: contactUrlFor("tracked") },
   mentioned: { label: "Get placed" },
@@ -220,29 +238,16 @@ export default function Packages({ full = false }: { full?: boolean }) {
                       </>
                     )}
                     <TierEngines tier={t.key} size={14} colour={T.soft} style={{ marginTop: "auto", paddingTop: "10px", minHeight: "18px" }} />
-                    <a
-                      href={CTA[t.key].href ?? t.href}
-                      className="pkg-btn"
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        marginTop: "12px",
-                        fontSize: "13.5px",
-                        fontWeight: 600,
-                        borderRadius: "9px",
-                        textDecoration: "none",
-                        minHeight: "40px",
-                        boxSizing: "border-box",
-                        // Flat accent, the header's "Free scan" exactly - not
-                        // .btn-primary's gradient, and no black (R59).
-                        ...(t.emphasis
-                          ? { background: T.accent, color: "#ffffff" }
-                          : { background: T.surface, color: T.ink, border: `1px solid ${T.line}` }),
-                      }}
-                    >
-                      {CTA[t.key].label}
-                    </a>
+                    {/* The sector tiles' CTA carries their picks to the tier page (R69). */}
+                    {t.key === "mentioned" || t.key === "cited" ? (
+                      <SelectionCta tier={t.key} href={CTA[t.key].href ?? t.href} className="pkg-btn" style={ctaStyle(t.emphasis)}>
+                        {CTA[t.key].label}
+                      </SelectionCta>
+                    ) : (
+                      <a href={CTA[t.key].href ?? t.href} className="pkg-btn" style={ctaStyle(t.emphasis)}>
+                        {CTA[t.key].label}
+                      </a>
+                    )}
                     </div>
                   </th>
                 ))}
