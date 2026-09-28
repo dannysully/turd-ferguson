@@ -19,7 +19,9 @@ import { D, PACKAGES_WASH } from "./dark";
  * homepage cannot quote a number the package pages disagree with. Where the
  * board prints a basis pricing.ts does not hold, the tier's `positioning` from
  * the same file stands in rather than a line typed here. No "Most taken" badge
- * (removed 25 Sep); the emphasised tier is marked by its tinted column only.
+ * (removed 25 Sep). The emphasised tier carries a "Recommended" pill and no
+ * tinted column (Danny, 28 Sep, R58) - never "Most popular", there is no sales
+ * data behind it.
  *
  * The staircase draws itself on the board's 10s loop under
  * html[data-motion="on"]; with no script or reduced motion it is drawn, with
@@ -54,10 +56,23 @@ const ROWS: { what: string; cells: Record<TierKey, Cell> }[] = [
   { what: "Your dashboards and your branding", cells: { tracked: 1, mentioned: 1, cited: 1, everywhere: 0 } },
 ];
 
-const HI = T.wash;
 const PRICE: React.CSSProperties = { fontSize: "24px", fontWeight: 700, letterSpacing: "-0.03em", marginTop: "8px", color: T.ink, lineHeight: 1.2 };
 const PER: React.CSSProperties = { fontSize: "13px", color: T.soft, fontWeight: 600, letterSpacing: 0 };
-const colBg = (emphasis?: boolean) => (emphasis ? HI : "transparent");
+const PILL: React.CSSProperties = {
+  alignSelf: "flex-start",
+  display: "inline-flex",
+  alignItems: "center",
+  boxSizing: "border-box",
+  height: "22px",
+  marginBottom: "8px",
+  padding: "0 9px",
+  borderRadius: "999px",
+  background: T.wash,
+  color: T.accent,
+  fontSize: "11.5px",
+  fontWeight: 600,
+  lineHeight: 1.5,
+};
 
 /** The basis or positioning line, directly under the price in every column. */
 function Basis({ text }: { text: string }) {
@@ -161,8 +176,14 @@ export default function Packages() {
                 {TIERS.map((t) => (
                   // height: 1px lets the inner column fill the row, so the engine
                   // marks and the CTA share one bottom line in all four (R56).
-                  <th key={t.id} scope="col" style={{ height: "1px", padding: "20px 18px", borderLeft: `1px solid ${T.line}`, background: colBg(t.emphasis), textAlign: "left", fontWeight: 400, verticalAlign: "top" }}>
+                  <th key={t.id} scope="col" style={{ height: "1px", padding: "20px 18px", borderLeft: `1px solid ${T.line}`, textAlign: "left", fontWeight: 400, verticalAlign: "top" }}>
                     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+                    {/* Every column keeps the pill's row, so the names stay on one line (R56, R58). */}
+                    {t.emphasis ? (
+                      <span style={PILL}>Recommended</span>
+                    ) : (
+                      <span aria-hidden="true" style={{ height: PILL.height, marginBottom: PILL.marginBottom }} />
+                    )}
                     <div style={{ fontSize: "16px", fontWeight: 700, letterSpacing: "-0.02em", color: T.ink }}>
                       <TierName tier={t.key} />
                     </div>
@@ -216,7 +237,6 @@ export default function Packages() {
                         padding: "13px 18px",
                         borderLeft: `1px solid ${T.hair}`,
                         borderTop: `1px solid ${T.hair}`,
-                        background: colBg(t.emphasis),
                         fontSize: "13px",
                         fontWeight: 600,
                         color: T.soft,
