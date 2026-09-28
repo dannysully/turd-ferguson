@@ -98,9 +98,10 @@ export default function NavDropdown({
           border: "none",
           padding: 0,
           cursor: "pointer",
-          font: "inherit",
-          fontSize: style.fontSize,
-          fontWeight: style.fontWeight,
+          // Longhands, not `font: inherit` - the shorthand beside fontSize
+          // painted the trigger a size up from the links next to it.
+          fontFamily: "inherit",
+          lineHeight: "inherit",
           display: "inline-flex",
           alignItems: "center",
           gap: "5px",
