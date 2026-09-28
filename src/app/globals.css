@@ -264,6 +264,10 @@ html[data-motion="on"] .stair-step { animation: stair-step 10s infinite both; an
 .pkg-btn:hover { border-color: var(--accent) !important; }
 .pkg-foot { display: flex; justify-content: space-between; gap: 8px 24px; flex-wrap: wrap; }
 .pkg-cue { display: none; }
+/* 28 Sep 2026: the table's .sr-only spans (sector label, engine names) are
+   absolute; without a positioned scroller their containing block sat outside
+   it, so they escaped the clip and the homepage scrolled 318px sideways at 390. */
+.pkg-scroll { position: relative; }
 /* The scroll cue, 26 Sep 2026 (R28): the right edge fades while there is more
    table to the right. Where scroll-driven animation exists the fade runs out
    as the reader reaches the end; elsewhere it simply stays. */
