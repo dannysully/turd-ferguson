@@ -13,6 +13,7 @@
  * (Danny's note gives this range; it is the one the stepper can reach).
  */
 
+import { TIER_PLAIN, type TierKey } from "../lib/tier-text.ts";
 import { DEFAULT_MARKET, MARKETS, MAX_CLUSTERS, quoteFor, sectorById, type Market, type SectorTier } from "./sector-pricing.ts";
 
 export type Selection = { sector: string; qty: number; market: Market };
@@ -43,6 +44,29 @@ export function withSelection(href: string, sel: Selection): string {
   const s = q.toString();
   if (!s) return href;
   return href + (href.includes("?") ? "&" : "?") + s;
+}
+
+/** The tier a `?tier=` value names (its TIER_PLAIN word), or null. */
+export function tierFromPlain(value: string | null | undefined): TierKey | null {
+  return (Object.keys(TIER_PLAIN) as TierKey[]).find((k) => TIER_PLAIN[k] === value) ?? null;
+}
+
+/**
+ * The picks as one plain line - "Technology, 3 clusters, US market" - or null
+ * when nothing was picked. What /contact shows the visitor and what the
+ * enquiry email carries, so the two cannot say different things (R69's
+ * follow-up: the call CTA sent the picks and the form dropped them).
+ */
+export function picksLine(sel: Selection): string | null {
+  const parts: string[] = [];
+  const sector = sel.sector ? sectorById(sel.sector) : undefined;
+  if (sector) parts.push(sector.label);
+  if (sel.qty !== SELECTION_DEFAULT.qty) {
+    parts.push(sel.qty > MAX_CLUSTERS ? `more than ${MAX_CLUSTERS} clusters` : `${sel.qty} clusters`);
+  }
+  if (!parts.length && sel.market === SELECTION_DEFAULT.market) return null;
+  parts.push(`${sel.market.toUpperCase()} market`);
+  return parts.join(", ");
 }
 
 /** Whether the picks price as a call: Other, or past the stepper's top. */

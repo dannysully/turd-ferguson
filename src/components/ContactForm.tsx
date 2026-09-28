@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import Link from "next/link";
 
+import { CONTACT_FORM_ID } from "@/components/ContactTier";
 import { CONTACT_LIMITS } from "@/config/contact";
 import { submitContactForm, type ContactFormState } from "@/app/contact/actions";
 import { T } from "@/config/tokens";
@@ -92,7 +93,7 @@ export default function ContactForm() {
   }
 
   return (
-    <form action={formAction} noValidate>
+    <form id={CONTACT_FORM_ID} action={formAction} noValidate>
       <label htmlFor="c-name" style={labelStyle}>
         Name
       </label>

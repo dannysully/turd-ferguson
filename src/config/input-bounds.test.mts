@@ -155,6 +155,24 @@ const EXEMPT: Record<string, Exemption> = {
     ].join(" "),
     holds: [{ file: "app/contact/actions.ts", needs: "website.slice(0, LIMITS.website)" }],
   },
+  // The picks a tier's CTA carries to /contact (R69 follow-up, 28 Sep 2026).
+  // type=hidden: nobody can type in them, and maxLength does not apply to a
+  // hidden input. A hand-made post is what reaches the server, which clamps
+  // each to CONTACT_LIMITS and then validates it against the tier names and
+  // SECTORS before any of it goes into a message.
+  ...Object.fromEntries(
+    (["tier", "sector", "clusters", "market"] as const).map((f) => [
+      `c-${f}`,
+      {
+        why: [
+          `the contact form's hidden ${f} pick, set from a validated URL by ContactTier.`,
+          "type=hidden, which maxLength does not apply to and nobody types in. The",
+          `server clamps it to CONTACT_LIMITS.${f} and validates it before use.`,
+        ].join(" "),
+        holds: [{ file: "app/contact/actions.ts", needs: `formData.get("${f}")?.toString(), LIMITS.${f})` }],
+      },
+    ]),
+  ),
   "cc-coverage": {
     why: [
       "type=file, which maxLength does not apply to at all. It is bounded by bytes",

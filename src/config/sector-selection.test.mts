@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { MAX_CLUSTERS, SECTORS } from "./sector-pricing.ts";
-import { SELECTION_DEFAULT, isCall, parseSelection, withSelection } from "./sector-selection.ts";
+import { SELECTION_DEFAULT, isCall, parseSelection, picksLine, tierFromPlain, withSelection } from "./sector-selection.ts";
 
 const priced = SECTORS.find((s) => s.prices)!.id;
 
@@ -38,4 +38,31 @@ test("Other and 11+ price as a call; a priced pick does not", () => {
   assert.equal(isCall("cited", { sector: priced, qty: MAX_CLUSTERS + 1, market: "us" }), true);
   assert.equal(isCall("cited", { sector: priced, qty: 3, market: "uk" }), false);
   assert.equal(isCall("cited", SELECTION_DEFAULT), false);
+});
+
+// R69 follow-up (28 Sep 2026): /contact received the picks and the enquiry
+// dropped them. ContactTier and the contact action share picksLine.
+test("picksLine names the picks, and nothing when none were made", () => {
+  const label = SECTORS.find((s) => s.id === priced)!.label;
+  assert.equal(picksLine(SELECTION_DEFAULT), null);
+  assert.equal(picksLine({ sector: priced, qty: 3, market: "us" }), `${label}, 3 clusters, US market`);
+  assert.equal(picksLine({ sector: "", qty: 1, market: "uk" }), "UK market");
+  assert.equal(
+    picksLine({ sector: priced, qty: MAX_CLUSTERS + 1, market: "us" }),
+    `${label}, more than ${MAX_CLUSTERS} clusters, US market`,
+  );
+});
+
+test("a call CTA's link reads back to the same line /contact shows", () => {
+  const sel = { sector: priced, qty: 11, market: "uk" as const };
+  const params = new URL(withSelection("/contact?tier=alwayscited", sel), "https://alwayscited.com").searchParams;
+  assert.equal(tierFromPlain(params.get("tier")), "cited");
+  assert.equal(picksLine(parseSelection(params)), picksLine(sel));
+});
+
+test("a tier value that is not a tier name is dropped", () => {
+  assert.equal(tierFromPlain("AlwaysCited"), null);
+  assert.equal(tierFromPlain(""), null);
+  assert.equal(tierFromPlain(null), null);
+  assert.equal(tierFromPlain("alwaystracked"), "tracked");
 });

@@ -4,6 +4,8 @@ import { Resend } from "resend";
 
 import { CONTACT_EMAIL, CONTACT_LIMITS as LIMITS } from "@/config/contact";
 import { mailFrom } from "@/config/mail-from";
+import { parseSelection, picksLine, tierFromPlain } from "@/config/sector-selection";
+import { TIER_PLAIN } from "@/lib/tier-text";
 import { isPlausibleEmail } from "@/lib/email-address";
 import { headerSafe } from "@/lib/email-header";
 
@@ -69,6 +71,18 @@ export async function submitContactForm(
   const company = formData.get("company")?.toString().trim();
   const website = formData.get("website")?.toString().trim();
   const message = formData.get("message")?.toString().trim();
+
+  // The picks a tier's CTA carried here (R69), from hidden inputs. Clamped,
+  // then matched against the tier names and SECTORS; anything else is simply
+  // not mentioned - a post nobody typed is not worth an error.
+  const tier = tierFromPlain(clamp(formData.get("tier")?.toString(), LIMITS.tier));
+  const picked = new URLSearchParams({
+    sector: clamp(formData.get("sector")?.toString(), LIMITS.sector),
+    clusters: clamp(formData.get("clusters")?.toString(), LIMITS.clusters),
+    market: clamp(formData.get("market")?.toString(), LIMITS.market),
+  });
+  const picks = tier === "mentioned" || tier === "cited" ? picksLine(parseSelection(picked)) : null;
+  const about = tier ? TIER_PLAIN[tier] + (picks ? ` - ${picks}` : "") : null;
 
   // Built once, before the first refusal, so no branch below can be the one
   // that forgot. The honeypot is deliberately not in it: nothing renders that
@@ -177,11 +191,12 @@ export async function submitContactForm(
       from: mailFrom(),
       to: CONTACT_EMAIL_DESTINATION,
       replyTo: email,
-      subject: headerSafe(`Contact form: ${name}`),
+      subject: headerSafe(`Contact form: ${name}` + (tier ? ` (${TIER_PLAIN[tier]})` : "")),
       text: [
         `Name:    ${name}`,
         `Email:   ${email}`,
         `Company: ${company || "not given"}`,
+        ...(about ? [`About:   ${about}`] : []),
         // No Website line. That field is the honeypot and a filled one never
         // reaches here, so the line could only ever read "not given" - which
         // reads as an enquirer who declined to give one, on a form that has

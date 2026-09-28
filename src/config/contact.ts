@@ -27,7 +27,23 @@
  * promised every field was bounded while one was not. It was email last time,
  * for the same reason: the field nobody pictured as a field.
  */
-export const CONTACT_LIMITS = { name: 120, email: 254, company: 200, message: 5000, website: 200 };
+/**
+ * tier, sector, clusters and market are the picks a tier's CTA carries to
+ * /contact (R69), posted as hidden inputs. Nobody types them, so a long one
+ * is a hand-made post: bounded, then validated against the tier names and
+ * SECTORS, and dropped rather than refused if it does not match.
+ */
+export const CONTACT_LIMITS = {
+  name: 120,
+  email: 254,
+  company: 200,
+  message: 5000,
+  website: 200,
+  tier: 40,
+  sector: 60,
+  clusters: 4,
+  market: 4,
+};
 
 /**
  * The address the site publishes, which is not the address mail is delivered
