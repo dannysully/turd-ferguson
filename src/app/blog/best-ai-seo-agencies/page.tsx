@@ -175,8 +175,11 @@ export default function Post() {
 
         <H2 id="alwayscited">1. <TierName tier="cited" /> - best for being named in the answer, with the price on the page</H2>
         <P>
-          It is an AI visibility service, built and run by the senior team at Nomada Digital, a search agency in
-          York, in the UK.
+          It is an{" "}
+          <Link href="/" style={{ color: T.accent, fontWeight: 600 }}>
+            AI SEO agency
+          </Link>{" "}
+          service, built and run by the senior team at nomada digital, a search agency in York, in the UK.
         </P>
         <UL>
           <li>
@@ -234,8 +237,11 @@ export default function Post() {
         <P>If an agency cannot answer the first three before you sign, it is guessing.</P>
 
         <P>
-          The free scan shows whether the engines name you today, who they name instead, and which pages they
-          are reading.{" "}
+          The free{" "}
+          <Link href="/llm-visibility-checker" style={{ color: T.accent, fontWeight: 600 }}>
+            LLM visibility checker
+          </Link>{" "}
+          shows whether the engines name you today, who they name instead, and which pages they are reading.{" "}
           <Link href="/#scan" style={{ color: T.accent, fontWeight: 600 }}>
             Run it on your domain
           </Link>{" "}

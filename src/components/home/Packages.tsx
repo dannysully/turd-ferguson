@@ -298,14 +298,14 @@ export default function Packages({ full = false }: { full?: boolean }) {
           <span>
             <TierName tier="tracked" /> to <TierName tier="cited" /> are white-label;{" "}
             <TierName tier="everywhere" /> is sold to brands direct.{" "}
-            <a href="/white-label" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
+            <a href="/white-label" style={{ fontWeight: 600, textDecoration: "none", color: T.ink }}>
               How the line sits
             </a>
           </span>
           <span>
             <TierName tier="cited" /> is built and run by the senior team at{" "}
-            <a href="https://nomadadigital.co.uk" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
-              Nomada Digital
+            <a href="https://nomadadigital.co.uk" style={{ fontWeight: 600, textDecoration: "none", color: T.ink }}>
+              nomada digital
             </a>
             .
           </span>

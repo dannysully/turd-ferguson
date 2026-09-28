@@ -30,7 +30,7 @@ export type Post = {
 const REGISTERED: Post[] = [
   {
     slug: "best-ai-seo-agencies",
-    title: "Best AI SEO agencies - top US agencies ranked",
+    title: "Best AI SEO agencies - top US agencies ranked (2026)",
     blurb:
       "Who to hire to get your brand named in ChatGPT, Gemini, Perplexity and Google's AI Overviews, ranked on what you can check before you sign.",
     kind: "Findings",

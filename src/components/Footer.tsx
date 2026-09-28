@@ -93,8 +93,8 @@ export default function Footer() {
           </div>
           <p style={{ margin: "12px 0 0", fontSize: "13px", lineHeight: 1.65, color: T.soft, maxWidth: "34ch" }}>
             Built and run by the senior team at{" "}
-            <a href="https://nomadadigital.co.uk" target="_blank" rel="noopener noreferrer" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
-              Nomada Digital
+            <a href="https://nomadadigital.co.uk" target="_blank" rel="noopener noreferrer" style={{ fontWeight: 600, textDecoration: "none", color: T.ink }}>
+              nomada digital
             </a>
             . Be the brand AI recommends.
           </p>

@@ -89,7 +89,7 @@ const SECTIONS: Section[] = [
       <>
         The email address exists so we can send you the link back to your report, and so a scan can be reclaimed if
         nobody opens it. An address given to have the result emailed is used for that one message and creates no
-        account. An address given for a walkthrough or a demo is passed to Danny at Nomada Digital, who uses it to send
+        account. An address given for a walkthrough or a demo is passed to Danny at nomada digital, who uses it to send
         you the video or arrange the call. Our lawful basis is legitimate interest in responding to a request you made. We do not add you to a
         mailing list, because there is not one.
       </>
