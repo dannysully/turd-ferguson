@@ -40,10 +40,10 @@ export const P = ({ children }: { children: React.ReactNode }) => (
 
 /** Lists in the body, set like P so the body colour is written once. */
 export const UL = ({ children }: { children: React.ReactNode }) => (
-  <ul style={{ margin: "10px 0 0", paddingLeft: "20px", ...BODY }}>{children}</ul>
+  <ul style={{ margin: "10px 0 0", paddingLeft: "20px", listStyle: "disc", ...BODY }}>{children}</ul>
 );
 export const OL = ({ children }: { children: React.ReactNode }) => (
-  <ol style={{ margin: "10px 0 0", paddingLeft: "22px", ...BODY }}>{children}</ol>
+  <ol style={{ margin: "10px 0 0", paddingLeft: "22px", listStyle: "decimal", ...BODY }}>{children}</ol>
 );
 
 export const Quote = ({ children }: { children: React.ReactNode }) => (
