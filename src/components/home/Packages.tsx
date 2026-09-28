@@ -200,7 +200,7 @@ export default function Packages() {
                     <TierEngines tier={t.key} size={14} colour={T.soft} style={{ marginTop: "auto", paddingTop: "10px", minHeight: "18px" }} />
                     <a
                       href={CTA[t.key].href ?? t.href}
-                      className={t.emphasis ? "pkg-btn pkg-btn--dark" : "pkg-btn"}
+                      className="pkg-btn"
                       style={{
                         display: "flex",
                         alignItems: "center",
@@ -212,8 +212,10 @@ export default function Packages() {
                         textDecoration: "none",
                         minHeight: "40px",
                         boxSizing: "border-box",
+                        // Flat accent, the header's "Free scan" exactly - not
+                        // .btn-primary's gradient, and no black (R59).
                         ...(t.emphasis
-                          ? { background: T.ink, color: T.surface }
+                          ? { background: T.accent, color: "#ffffff" }
                           : { background: T.surface, color: T.ink, border: `1px solid ${T.line}` }),
                       }}
                     >
