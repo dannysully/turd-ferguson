@@ -1242,6 +1242,282 @@ Items filed by the reviewer from live checks and from docs/danny.md. The builder
   third stored option is blocked on a check constraint (blocked.md, DANNY,
   with a no-DDL default), the waitlist needs its additive `leads.source`
   migration; section 5 (Stripe, DANNY); section 7 (held).
+
+- [x] R56 -> b377d60 Packages table: fix the compact sector-select sizing and align the
+  four header cells (Danny, docs/danny.md - filed 2026-09-28, line 57).
+  Read at 41914aa: `src/components/SectorPrice.tsx` line 174, the `<select>`
+  inside compact mode reads `flex: "1 1 150px"` while its wrapper (line 170)
+  is `flexDirection: compact ? "column" : "row"` - in a column flex, a
+  `1 1 150px` basis is read as a *height* target, which is why the compact
+  select on the packages table's mentioned/cited tiles renders as a tall box
+  rather than a normal-height field. In compact mode change the select (and
+  the stepper beside it, same wrapper) to `flex: "0 0 auto"`, explicit
+  `height: 36px`, `width: 100%`.
+  Separately, `src/components/home/Packages.tsx`'s table header (`<th>`,
+  lines 156-192) stacks name / price / basis / controls / engine logos / CTA
+  per column with no shared baseline across the four `<th>` cells today -
+  align them so the same element (name, price, basis line, controls, engine
+  logos, CTA) sits on the same horizontal line in every column, and put every
+  CTA on one shared bottom baseline (the `<th>` becomes a column flex with
+  the CTA's `marginTop: "auto"`, the same pattern R56's sibling notes below
+  use). The basis/positioning line (line 167-169) must sit directly under the
+  price in every column, same order in all four - it already does structurally,
+  confirm it stays true once the flex column is added.
+  Verify: `npx tsc --noEmit`, `npm run check`, `npm run build`; shoot `/`
+  packages table and a tier page at 1280 and 390 with a sector picked on the
+  mentioned/cited tiles, confirm the select/stepper render at normal height
+  (not tall), and confirm all four columns' name/price/basis/CTA rows line up
+  horizontally with every CTA on one shared baseline.
+
+- [x] R57 -> ab54af0 Packages table: make "What each tier adds" the table's real
+  visible heading (Danny, docs/danny.md - filed 2026-09-28, line 58). Read at
+  41914aa: `src/components/home/Packages.tsx` line 145 already carries
+  `<caption className="sr-only">What each tier adds</caption>` (screen-reader
+  only), and line 154 separately renders the same words as a plain `<td>`,
+  `padding: "20px 24px", fontSize: "13px", color: T.soft, verticalAlign:
+  "bottom"` - small, soft-coloured and bottom-aligned in the first header
+  cell, not read as a heading. Keep the `sr-only` caption exactly as it is
+  (Danny's note says so). Restyle the visible `<td>` at line 154 to read as
+  the table's real heading: top-aligned in the cell (`verticalAlign: "top"`,
+  matching the `<th>` cells beside it at line 156), `fontSize: "20px"`,
+  `fontWeight: 700`, `color: T.ink` (drop `color: T.soft`).
+  Verify: `npx tsc --noEmit`, `npm run check`; shoot `/` packages table at
+  1280 and 390, confirm "What each tier adds" reads as a bold heading
+  top-aligned with the tier names beside it, and the `sr-only` caption is
+  still present in the built HTML (grep the built output for
+  `class="sr-only"` beside the same text).
+
+- [x] R58 -> 7a4c9d0 Packages table: remove the tinted alwayscited column, add a
+  "Recommended" pill instead (Danny, docs/danny.md - filed 2026-09-28, line
+  59). Read at 41914aa: `src/components/home/Packages.tsx` line 60,
+  `const colBg = (emphasis?: boolean) => (emphasis ? HI : "transparent")`
+  (`HI = T.wash`, line 57, `#f4f0fe` per `src/config/tokens.ts` line 44) -
+  applied at line 156 (the header `<th>` background) and line 209 (every body
+  `<td>` background) for whichever tier carries `emphasis: true`
+  (`src/config/pricing.ts` line 186 - that is the `cited` tier, confirmed).
+  Remove `colBg` and both call sites entirely - no tinted column anywhere in
+  the table, header or body. In its place, add a small pill reading
+  "Recommended" directly above the `cited` column's tier name (inside the
+  `<th>` at line 157-159, before the `<TierName tier={t.key} />` div),
+  rendered only when `t.emphasis` is true: accent-coloured text
+  (`T.accent`) on a `T.wash` background, `fontSize: "11.5px"`,
+  `fontWeight: 600`, full pill radius (e.g. `borderRadius: "999px"`,
+  small padding). Not "Most popular" - Danny is explicit there is no sales
+  data behind that word; "Recommended" is the only label to use.
+  Verify: `npx tsc --noEmit`, `npm run check`; grep `Packages.tsx` for
+  `colBg`/`HI` afterward and confirm both are gone; shoot `/` packages table
+  at 1280 and 390, confirm no column has a tinted background and the
+  alwayscited column alone carries the "Recommended" pill above its name.
+
+- [x] R59 -> ec4a034 Packages table CTAs: no black button - one shared outline style,
+  alwayscited filled purple (Danny, docs/danny.md - filed 2026-09-28, line
+  60). Read at 41914aa: `src/components/home/Packages.tsx` lines 171-191, the
+  per-column CTA `<a>` - today `t.emphasis ? { background: T.ink, color:
+  T.surface } : { background: T.surface, color: T.ink, border: "1px solid
+  ${T.line}" }` (lines 185-187), so the three non-emphasis tiles already
+  share one outline style (keep this exactly as it is) and only the
+  alwayscited (`emphasis: true`) button is black. Change the emphasis branch
+  to a flat filled purple with white text, matching the header's own "Free
+  scan" button exactly (`src/components/Header.tsx` lines 90-103:
+  `background: T.accent, color: "#ffffff"` - flat `#7C3AED`, not the
+  `.btn-primary` CSS class, which is a two-stop gradient and a different
+  pattern; do not reach for that class here, Danny asked for the flat header
+  colour). Drop the now-unused `pkg-btn--dark` class if nothing else uses it
+  (grep `pkg-btn--dark` across `src` first).
+  Verify: `npx tsc --noEmit`, `npm run check`; shoot `/` packages table at
+  1280 and 390, confirm the alwayscited CTA is flat `#7C3AED` with white
+  text (not black, not a gradient) and the other three CTAs are unchanged
+  (shared outline style).
+
+- [x] R60 -> 4091b78 TierEngines: drop the visible "Includes Claude" text everywhere it
+  renders, logos only (Danny, docs/danny.md - filed 2026-09-28, line 61).
+  Read at 41914aa: `src/components/TierEngines.tsx` line 44,
+  `<span style={{ fontSize: "12.5px", fontWeight: 600 }}>Includes Claude</span>`
+  - this is the only visible-text instance in the component (grep
+  `Includes Claude` across `src` first to confirm no second call site typed
+  it directly rather than through this component). Remove that `<span>`.
+  The component must keep an accessible name on the logo group that lists
+  every engine including Claude - read how the component already builds its
+  logo row's `aria-label`/`title` (the doc comment at lines 8-11 references
+  it) and confirm Claude is already named there once the visible span is
+  gone; if it is only named in the now-deleted visible text, add it to
+  the accessible name instead of dropping it silently.
+  Grep `src` for a test asserting the visible "Includes Claude" string
+  (`TierEngines.test.mts` or similar) and update it to assert the accessible
+  name instead, per Danny's own instruction to update any such test.
+  Verify: `npx tsc --noEmit`, `npm run check`; grep `Includes Claude` across
+  `src` afterward - it should exist only inside an `aria-label`/`sr-only`
+  node, never as visible text; shoot the packages staircase, packages table
+  and a tier page at 1280 and 390 confirming logos render with no adjacent
+  "Includes Claude" text.
+
+- [x] R61 -> 9c4f95a alwaystracked basis line: stop printing both currencies at once,
+  move the add-on to its own market-scoped line (Danny, docs/danny.md -
+  filed 2026-09-28, line 62). Read at 41914aa: `src/config/pricing.ts` line
+  74, `TRACKED_BASIS` already reads "20 questions and 10 keywords, checked
+  daily" (the shortened form Danny asks for is already in place) - but line
+  145, the `tracked` tier's `priceBasis`, appends
+  `" Need more? Add ${TRACKED_QUESTIONS} questions and ${TRACKED_KEYWORDS}
+  keywords for +$49 / £39 a month."` as one hard-coded string carrying both
+  currency symbols together, rendered as-is regardless of which market the
+  page's `MarketToggle` is set to - this is the "+$49 / £39 in both
+  currencies whatever the toggle says" bug. Split it: `priceBasis` (or
+  wherever `TRACKED_BASIS` is read on the tracked tier's card) stays exactly
+  "20 questions and 10 keywords, checked daily", and the add-on sentence
+  becomes a separate short line rendered beside/under it that reads the
+  active market and shows only that market's figure - e.g. "Extra pack
+  +$49/mo" in the US view, "+£39/mo" in the UK view. Read how
+  `EXTRA_TRACKING_LINE` (shipped for the mentioned/cited tiles per
+  `docs/parity/log.md`'s "R50 section 8 (extra tracking line)" entry,
+  commit `c5f5559`) already solves the identical problem for those two tiers
+  and reuse the same market-conditional pattern for the tracked tier's own
+  add-on line rather than inventing a second mechanism.
+  Verify: `npx tsc --noEmit`, `npm run check`; shoot `/alwaystracked`'s price
+  card and the packages staircase/table's tracked column at 1280 and 390 in
+  both the US and UK toggle position, confirming the add-on line shows only
+  one currency at a time and the basis line above it reads exactly "20
+  questions and 10 keywords, checked daily".
+
+- [x] R62 -> 5664267 Copy rule, site-wide: no "editorial" or "listicle(s)" in visible
+  copy (Danny, docs/danny.md - filed 2026-09-28, line 63). What we deliver is
+  "placements"; when describing third-party page formats say "best-of lists,
+  comparisons and round-ups". Two named fixes plus a full sweep:
+  1. `src/app/case-studies/vibe-retail/page.tsx` line 92 (re-read for the
+     current line number first): the label "Placements delivered" stays as a
+     label if it already reads that way, but the row's value text - re-check
+     what it currently says at this line - becomes "On retail and ecommerce
+     publications" per Danny's exact wording.
+  2. `src/components/home/Packages.tsx` line 46 (`ROWS`, "Editorial
+     placements in cited pages, links included") becomes "Placements in
+     cited pages, links included".
+  3. Full sweep: grep case-insensitively for "editorial" and "listicle" across
+     `src`. Read at 41914aa this returns roughly 51 "editorial" occurrences
+     across 23 files and 23 "listicle" occurrences across 10 files (Danny's
+     note cites 47/21 at the same commit - re-count live rather than trusting
+     either number, the exact count will have moved by the time this is
+     picked up). Exempt code comments (not visible copy) and
+     `src/lib/scan/source-kind-prompt.ts` (model input, not rendered) -
+     everything else that renders to HTML must be reworded using "placements"
+     / "best-of lists, comparisons and round-ups" as the replacement
+     vocabulary, sentence by sentence (do not machine-replace the word alone,
+     since "editorial placements" and "the editorial team" need different
+     fixes).
+  4. Add a census test failing on either word (case-insensitive) appearing in
+     rendered HTML across all routes, exempting only JSX/TS comments and the
+     one named model-input file - follow the existing pattern other
+     verbatim-copy censuses in this tree use (e.g. `copy.test.mts`) rather
+     than inventing a new sweep mechanism.
+  Verify: `npx tsc --noEmit`, `npm run check` (new census passes and holds a
+  floor); `npm run build`; re-grep "editorial"/"listicle" across `src` after
+  the sweep and confirm only comments and the one exempted file remain; shoot
+  `/case-studies/vibe-retail` and `/` packages table at 1280 and 390.
+
+- [ ] R63 Nav: replace "White label" with a "For agencies" dropdown (Danny,
+  docs/danny.md - filed 2026-09-28, line 64). Read at 41914aa:
+  `src/components/Header.tsx` line 27, `{ href: "/white-label", label:
+  "White label" }` in `navLinks` - replace this entry with a dropdown
+  trigger labelled "For agencies" containing two links: "SEO agencies"
+  (`/seo-agencies`) and "PR agencies" (`/pr-agencies`). Behaviour: opens on
+  hover, and on focus/click for keyboard and touch users; closes on `Esc` and
+  on pointer leave after roughly 150ms; the trigger carries `aria-expanded`
+  reflecting open state. `/white-label` itself stays live and linked - from
+  the footer (already true, `Footer.tsx`) and from both agency pages (check
+  `/seo-agencies` and `/pr-agencies` link to it today; add a link on whichever
+  does not). The mobile menu (`Header.tsx`'s `open` state, lines 51+) shows
+  "SEO agencies" and "PR agencies" as two indented links under "For
+  agencies" rather than a hover dropdown. Update the doc comment at lines
+  12-17 describing the board's nav to match the new structure.
+  Verify: `npx tsc --noEmit`, `npm run check`; shoot `/` header at 1280
+  (hover-opened dropdown) and 390 (mobile menu expanded) confirming both
+  agency links are present and `/white-label` no longer appears directly in
+  the topbar; keyboard-tab to the trigger and confirm it opens on focus and
+  closes on `Esc`.
+
+- [ ] R64 Nav: "Packages" becomes a hover dropdown of the four tiers (Danny,
+  docs/danny.md - filed 2026-09-28, line 65). Read at 41914aa:
+  `src/components/Header.tsx` line 26, `{ href: "/#packages", label:
+  "Packages" }` - replace with the same dropdown mechanism R63 builds (open
+  on hover, focus/click, close on Esc/150ms pointer-leave, `aria-expanded`):
+  the four tiers as `TierName` plus each tier's from-price in the page's
+  active market (reuse `MarketPrice`/`fromLabel` from `src/config/pricing.ts`
+  and `src/config/sector-pricing.ts`, the same source every other price
+  surface reads - do not hand-type a figure here), each linking to its own
+  tier page (`/alwaystracked`, `/alwaysmentioned`, `/alwayscited`,
+  `/alwayseverywhere`), then a final "Compare all packages" link to
+  `/packages` (built by R65 below - sequence this item after R65, or point
+  the link at `/#packages` until R65 ships and fix it in the same push as
+  R65 if the two land together). Build one shared dropdown component if R63
+  and this item end up structurally identical, rather than two copies of the
+  same open/close logic.
+  Verify: `npx tsc --noEmit`, `npm run check`; shoot `/` header at 1280 with
+  the Packages dropdown open, confirming all four tiers show name + live
+  from-price and the "Compare all packages" link is present; confirm at 390
+  the mobile menu lists the same four tier links.
+
+- [ ] R65 New route /packages: move the staircase, full table, white-label
+  line and Nomada foot off the homepage onto their own page (Danny,
+  docs/danny.md - filed 2026-09-28, line 66). No `/packages` route exists
+  today (checked `src/app/packages` - absent). Move
+  `src/components/home/Packages.tsx`'s content (or the component itself) to
+  a new `src/app/packages/page.tsx`: the staircase band, the full comparison
+  table, the "white-label" foot line and the Nomada Digital credit line all
+  move there. Title the page "Packages and pricing - alwayscited"
+  (`TIER_PLAIN`-safe, per the site's title conventions). The homepage keeps
+  only the staircase band (drop the full table/foot from `/`), with a
+  "Compare all packages" link added under it pointing at `/packages` - keep
+  `id="packages"` on the homepage's staircase section so existing `/#packages`
+  anchors still land somewhere sensible. Point every existing `/#packages`
+  link in `src` (grepped: roughly 9 today, re-count at the time this is
+  built) at `/packages` instead. Add `/packages` to the sitemap, to
+  `/llms.txt` (R21's registry, built off the route list plus each page's
+  `metadata.description` - this should pick it up automatically once the
+  route and its metadata exist, confirm rather than assume) and to whatever
+  route-registry censuses enumerate pages (`structured-data.test.mts`'s
+  swept-page count, `sitemap.test.mts` or equivalent). The `price-surfaces`
+  census (which currently reads the grid off `/`) must still pass with the
+  grid now on `/packages` - update its target route, do not weaken what it
+  checks.
+  Verify: `npx tsc --noEmit`, `npm run check`, `npm run build`; fetch
+  `/packages` on a local build and confirm it renders the full table/foot;
+  confirm `/` still shows the staircase only, with a working "Compare all
+  packages" link; grep `src` for `/#packages` afterward and confirm no stale
+  hits remain outside a redirect/anchor kept deliberately; shoot both pages
+  at 1280 and 390.
+
+- [ ] R66 New blog post: "best AI SEO agencies (US)" (Danny, docs/danny.md -
+  filed 2026-09-28, line 67). The draft exists at
+  `docs/drafts/best-ai-seo-agencies-us.md` (confirmed present). Register a
+  new entry in `src/config/posts.ts`'s `REGISTERED` array: slug
+  `best-ai-seo-agencies`, `kind: "Findings"` (Danny's instruction; note the
+  `PostKind` union at line 17 already includes `"Findings"`), title/blurb/date
+  drawn from the draft's own content - read the draft in full before writing
+  the registry entry rather than inventing a title. Build the post page the
+  same way the three existing posts are built (follow whichever
+  `src/app/blog/<slug>/page.tsx` pattern the existing three use -
+  `postMetadata`/`blogPostingSchema` from `posts.ts`, the shared post
+  layout), with `ItemList` structured data for the listed agencies (the
+  existing posts' structured-data patterns are the reference; read
+  `structured-data.test.mts` for what an `ItemList` node needs to pass its
+  census). Any alwayscited number quoted in the post (price, tier name,
+  question/engine counts) must be read from `src/config/pricing.ts` and
+  `src/lib/scan/scan-shape.ts` live, never hard-coded - grep the finished
+  page for a literal `$` or a bare tier word to confirm nothing was typed
+  by hand. Before publishing, open each competitor's own site and confirm
+  its description in the draft is still accurate; cut any line that cannot
+  be confirmed live rather than marking it `[VERIFY]` - Danny's instruction
+  here is to cut, not flag. Keep the disclosure paragraph (the standard
+  "how we researched this" copy the other Findings posts carry) unchanged.
+  No competitor prices or scores anywhere in the post - if the draft has any,
+  cut them.
+  Verify: `npx tsc --noEmit`, `npm run check`, `npm run build`; the
+  structured-data census passes with the new `ItemList`; grep the built page
+  for a hard-coded `$` figure or tier word and confirm none exists outside
+  `pricing.ts`/`scan-shape.ts`-sourced values; shoot `/blog` (confirms the new
+  post appears in the index) and the new post page at 1280 and 390; manually
+  confirm each competitor description against that competitor's own site
+  before the item is ticked, and note in the tick line which lines (if any)
+  were cut for lack of confirmation.
+
   **Section 6 scope, read 28 Sep 07:45Z for the next run:**
   `walkthrough_requests.scan_id` is already nullable (`on delete set null`),
   so a tokenless ask from a tier page can write a row with no DDL - a new
@@ -1546,3 +1822,142 @@ Items filed by the reviewer from live checks and from docs/danny.md. The builder
   comment. Baseline: 873 tests, 872 pass, 1 skip (the carries-video test),
   0 fail - no tests removed. The blocked.md lines are ticked in place with the
   resolution and commit.
+
+- [ ] R67 New page /llm-visibility-checker (Danny, docs/danny.md - filed
+  2026-09-28, line 68). Route does not exist today (checked `src/app`).
+  Target keyword "llm visibility checker" (US, ~600/mo, KD 0); use "ai
+  visibility checker" (~1,900/mo) and "llm brand visibility" (~700/mo)
+  naturally in the body copy too, not stuffed.
+  Metadata: title exactly "LLM visibility checker - free, four AI engines |
+  alwayscited"; meta description one sentence covering: sees whether
+  ChatGPT, Gemini, Perplexity and Google AI Overviews name the visitor's
+  brand, free, no email.
+  The page's one visible `<h1>` is "LLM visibility checker" - not sr-only
+  (that pattern is homepage-only, R15/danny.md line 10, and does not apply
+  here). Under it: one line stating free, no email, about two minutes; then
+  the existing `LiveScanChecker` component unchanged - no new scan code, no
+  new paid path, reuse exactly what `/` and `/scan` already mount.
+  Below that, as real DOM text (never hand-typed numbers) reading counts
+  from `src/config/scan-shape.ts` (`QUESTIONS` = 5 today) and engine names
+  from `src/lib/scan/engines.ts` (`FREE_ENGINES` = google_aio, chatgpt,
+  gemini, perplexity via `ENGINE_SPECS[...].label`; `claude` is gated, not
+  free - this is the fact the FAQ below must state):
+  1. What it checks: the five buyer questions, the four free engines,
+     every answer and the pages each engine cited, the Google position,
+     who is named instead, placement pages scored for difficulty.
+  2. How it works, three steps: domain, confirm topic and questions, read
+     the answers.
+  3. What it is not: not a crawler or an HTML-readability check - it asks
+     the engines the questions a buyer actually asks.
+  4. `alwaystracked` pitched for the same check daily, with the existing
+     walkthrough CTA (`WalkthroughForm`, R54's third option included).
+  FAQ section with `FAQPage` JSON-LD (follow the structured-data pattern
+  `structured-data.test.mts` already checks elsewhere in the tree): is it
+  free, which LLMs does it check, why is Claude not in the free check (it
+  is on the placement tiers - state this as fact, sourced from
+  `FREE_ENGINES`/`ENGINES` in engines.ts, not asserted independently), how
+  does this differ from `alwaystracked`, are the answers stored.
+  Any illustrative example brand carries the site's existing made-up-brands
+  disclosure line (grep an existing vignette, e.g. `what-is-aeo` or a case
+  study, for the exact wording already in use).
+  Visual language: dark hero matching the homepage (reuse `HomeHero`'s dark
+  ground/glow tokens, not a new style). At most one animated beat, and only
+  if it makes the page's argument the way the homepage's engine demo does -
+  if nothing on this page needs one, ship with none rather than adding
+  motion for its own sake.
+  Registration: add to `src/app/sitemap.ts`'s `ENTRIES`, confirm
+  `src/app/llms.txt/pages.ts`'s `SECTIONS` picks it up (R21 built that
+  registry off the route list plus each page's `metadata.description` -
+  verify rather than assume), and to whatever route-count censuses sweep
+  every page (`structured-data.test.mts`, `public-routes.test.mts`,
+  `route-closure.test.mts`, `price-surfaces.test.mts` if it prints any
+  price-adjacent claim - check whether it does). Set an explicit canonical
+  URL in metadata the same way other pages in this tree do.
+  Verify: `npx tsc --noEmit`, `npm run check`, `npm run build`; shoot the
+  new page at 1280 and 390, `--js-off` (LiveScanChecker's no-JS fallback
+  must still work) and `--reduced`; confirm the FAQ's `FAQPage` JSON-LD
+  validates against the same pattern other pages use; grep the built page
+  for a hard-coded question/engine count or engine name and confirm each
+  traces back to `scan-shape.ts`/`engines.ts`; fetch the live route,
+  `/sitemap.xml` and `/llms.txt` on production afterward and confirm the
+  new page appears in both.
+
+- [ ] R68 Internal links to /llm-visibility-checker (Danny, docs/danny.md -
+  filed 2026-09-28, line 69 - do this in the same push as R67 or
+  immediately after, since it links to a page R67 creates). Not in the
+  main nav. Four link sites:
+  1. Footer: `src/components/Footer.tsx` has no "Free tools" group today
+     (checked - `PRODUCT`/`FOR`/`COMPANY` are the only three columns,
+     line 24-43). Add a fourth column, title "Free tools", listing
+     `/llm-visibility-checker` and `/coverage-check` (which currently
+     lives under `PRODUCT`, line 26 - Danny's note groups it under the new
+     "Free tools" heading instead; move it there rather than duplicating
+     the link in both columns). Read `GRID12`/`footer-grid`'s column-span
+     CSS (`globals.css`) before adding a fourth `span` column - the grid
+     may need its spans rebalanced across four columns instead of three
+     plus the brand block, check at 1280 and 390 that nothing overflows
+     or wraps awkwardly.
+  2. One contextual link each, varied anchor text (Danny names three
+     options - "LLM visibility checker", "check your AI visibility",
+     "free AI visibility check" - use a different one on each page, not
+     the same string three times) from:
+     - `/what-is-aeo`
+     - `/how-it-works`
+     - `src/app/blog/how-llms-pick-which-brands-to-recommend/page.tsx`
+  Verify: `npx tsc --noEmit`, `npm run check`; shoot the footer at 1280 and
+  390 confirming the fourth column reads cleanly and `/coverage-check` no
+  longer appears twice; grep the three contextual-link pages for
+  `/llm-visibility-checker` and confirm one hit each with three distinct
+  anchor strings; click each of the four links on a local build and
+  confirm they land on the new page.
+
+- [ ] R69 Selections carry through from the packages tiles to the tier page
+  (Danny, docs/danny.md - filed 2026-09-28, line 70). Today
+  `src/components/SectorPrice.tsx` (`SectorPrice`, used by both
+  `Packages.tsx` and `PackagePage.tsx`) initialises its `sector`/`qty`
+  state with no read of the URL at all (checked - no `useSearchParams` or
+  `URLSearchParams` anywhere in the file), and the CTA hrefs in
+  `Packages.tsx` (`CTA` map, line 34-38, e.g. `contactUrlFor("tracked")`,
+  `/contact`) carry no sector/cluster query params either. This is
+  genuinely new work, not a wiring gap.
+  1. On an `alwaysmentioned`/`alwayscited` tile (homepage packages table,
+     `Packages.tsx`), once a visitor picks a sector and/or steps the
+     quantity away from its default, the tile's CTA `href` gains
+     `?sector=<id>&clusters=<n>` - only the params that are actually set
+     (an untouched tile's CTA stays bare, matching today's behaviour).
+     `<id>` must be one of `SECTORS`' ids (`src/config/sector-pricing.ts`);
+     `<n>` an integer in `1..MAX_CLUSTERS` (currently 10).
+  2. `SectorPrice` reads `sector`/`clusters` off the URL on first render (of
+     the page it is mounted on, i.e. the tier page when linked-to) and uses
+     them as its initial `sector`/`qty` state instead of the defaults,
+     validated against `SECTORS`/`1..MAX_CLUSTERS` - anything outside that
+     range (unknown sector id, non-integer, out-of-range count) is ignored
+     silently and falls back to the current default, never a thrown error
+     or a visible message.
+  3. As the visitor changes sector/qty on whichever page they are on, keep
+     the URL in step via `history.replaceState` (not `router.push` - no new
+     history entries for a slider/select change) so a reload or a shared
+     link reproduces the same state.
+  4. When the selection resolves to "Book a call" (sector `"other"`, or
+     quantity above `MAX_CLUSTERS`), the call CTA on that tile/page carries
+     `tier`, `sector` and `clusters` through to `/contact` the same way
+     R24's tracked-tier CTA already carries `tier` - reuse that param name/
+     pattern rather than inventing a second one.
+  5. The market toggle (`MarketToggle`/`useMarket` in `SectorPrice.tsx`) is
+     a module-level store, not the URL, and R70's own note says "market
+     carries as it already does" - confirm it actually survives a
+     click-through from the homepage tile to the tier page today (it may
+     not, since it resets per page load per the file's own doc comment,
+     "a reload is US again"); if it does not survive, carry it in the URL
+     too, the same mechanism as sector/clusters.
+  Add a test alongside `SectorPrice`'s existing coverage (or a new
+  `sector-price-params.test.mts` if none exists) covering: the href built
+  from a selection, the tier page's first render from those params
+  including an invalid-param case (garbage sector id, qty 0, qty 11 -> all
+  ignored, defaults used, no error).
+  Verify: `npx tsc --noEmit`, `npm run check`; on a local build, pick
+  "Technology" and 3 clusters on a homepage tile, click its CTA, and
+  confirm the tier page opens already showing Technology, 3 clusters and
+  the identical price the homepage tile showed; repeat for a call-CTA path
+  (Other, or 11+) and confirm `/contact` carries `tier`, `sector` and
+  `clusters`; do this live on production once pushed, not only locally.

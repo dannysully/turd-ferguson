@@ -1207,3 +1207,49 @@ Spec: pricing-spec section 8, on open decision 5's default (sold to brands direc
 - LIVE: /alwaystracked card at 1280 (call selected) and 390 `--reduced` (video and call), 390 `--js-off` (no switch, the card's own Book a call link) - read. Three options, call link /contact, no email field under call, scrollWidth = viewport at both widths.
 - Not in the denominator: /scan/[token] and /coverage-check (same component, not shot); a stored 'call' row (none is written by design).
 - Suite 875 / 874 pass / 1 skip (after `npm run capture`).
+
+## R56 (packages table: compact select, header alignment) - b377d60 (28 Sep 2026, 11:29Z)
+- Spec: Danny, danny.md line 57. No board; the check is the table against itself.
+- Built: SectorPrice compact mode sizes the select `0 0 auto` / 36px / full width and the stepper group 36px (the column-flex `1 1 150px` had been read as a height). SectorPrice takes a `basis` node drawn between price and controls, so every column reads name / price / basis / controls. Each header `<th>` is `height: 1px` with an inner column flex; engine marks carry `marginTop: auto`, so marks and CTA sit on one bottom line. Basis minHeight 35px (two lines).
+- LIVE (docs/parity/r56-measure.mjs, offsets from the th top): 1280 and 390 with a sector picked on both tiles - name 20, price 54, basis 86 in all four; select 131, 36px tall, on mentioned and cited; CTA 271-311 in all four. 1280 `--js-off` and `--reduced`: CTA 227 in all four (no controls). /alwayscited 390 `--reduced`: non-compact tile unchanged.
+- Still differs: the engine row's top sits 4px lower on alwaystracked because the higher tiers carry the "Includes Claude" line; R60 removes it.
+- Suite 875 / 874 pass / 1 skip (after `npm run capture`).
+
+## R57 (packages table heading) - ab54af0 (28 Sep 2026, 11:31Z)
+- Spec: Danny, danny.md line 58. No board.
+- Built: the first header cell's "What each tier adds" is 20px / 700 / T.ink, `verticalAlign: top`; the `sr-only` caption is unchanged (present in the built index.html beside the same text).
+- LIVE, computed styles read in four states - 1280, 390, 1280 `--js-off`, 390 `--reduced`: 20px, 700, rgb(15,17,21), top; the heading's content top equals the first tier name's top in all four; caption present.
+- Suite 875 / 874 pass / 1 skip (after `npm run capture`).
+
+## R58 (packages table: no tint, "Recommended" pill) - 7a4c9d0 (28 Sep 2026, 11:35Z)
+- Spec: Danny, danny.md line 59. No board.
+- Built: `colBg` and `HI` gone from Packages.tsx (grep: 0), header and body cells untinted. A "Recommended" pill (T.accent on T.wash, 11.5px/600, 999px radius, 22px tall) above the alwayscited name, drawn only for `emphasis`; the other three columns hold an empty 22px aria-hidden spacer so the names stay on one line (R56). Never "Most popular".
+- LIVE, read in four states - 1280, 390, 1280 `--js-off`, 390 `--reduced`: 0 table cells with a background, pill in column 3 only, CTA at the same offset in all four columns. Local 1280 with a sector picked: name/price/basis/select/CTA rows equal across columns (screenshot read).
+- Suite 875 / 874 pass / 1 skip (after `npm run capture`).
+
+## R59 (packages table CTAs) - ec4a034 (28 Sep 2026, 11:38Z)
+- Spec: Danny, danny.md line 60. No board.
+- Built: the emphasis CTA is `background: T.accent, color: #ffffff`, the header "Free scan" pattern, not `.btn-primary`'s gradient; the other three keep the shared outline. `pkg-btn--dark` had no CSS rule and no other user; gone.
+- LIVE, computed styles in four states - 1280, 390, 1280 `--js-off`, 390 `--reduced`: alwayscited rgb(124,58,237), no background-image, white text; the other three white ground, ink text.
+- Suite 875 / 874 pass / 1 skip (after `npm run capture`).
+
+## R60 (TierEngines logos only) - 4091b78 (28 Sep 2026, 11:43Z)
+- Spec: Danny, danny.md line 61. No board.
+- Built: the visible "Includes Claude" span is gone from TierEngines.tsx, its only source (grep of src: none left). The existing sr-only "Reads Google, ChatGPT, ..., and Claude." sentence already names Claude on the higher tiers; no test asserted the visible string, so none moved.
+- LIVE, / and /alwayscited, at 1280 js, 390 `--js-off`, 390 `--reduced` (also / at 1280 js-off and 390 js in the first pass): 8 engine groups on /, 5 on /alwayscited; 0 with visible text outside the sr-only node; the sr-only sentence names Claude on 6 and 4 of them (the tracked groups read four engines); `body.innerText` has no "Includes Claude". Local 1280: engine rows now level across all four table columns (R56's leftover difference closed).
+- Suite 875 / 874 pass / 1 skip (after `npm run capture`).
+
+## R61 (alwaystracked basis, market-scoped pack line) - 9c4f95a (28 Sep 2026, 11:49Z)
+- Spec: Danny, danny.md line 62. No board.
+- Built: tracked `priceBasis` is exactly "20 questions and 10 keywords, checked daily". The pack is TRACKING_PACK_PRICE { us: 49, uk: 39 } + TRACKING_PACK_LINE ("Extra tracking pack: {price}/mo for 20 more questions and 10 more keywords."), drawn by `PackLine` (SectorPrice.tsx) in the page's market; server/no-script reads US. EXTRA_TRACKING_LINE, the pattern the item pointed at, printed "+$49 / £39" too, so it went and the mentioned/cited cards use the same PackLine - one mechanism for all three. Its own line under the basis in the table's tracked column and on the three priced tier cards. /what-is-aeo's price answer adds the full stop the basis no longer carries.
+- Census moved (price-surfaces, "the basis travels with the price"): it matched the basis's second sentence, which was the pack. Now it asserts the whole resolved basis and the US pack line (parsed from pricing.ts, not retyped) are in the grid, and fails on any "$N / £N" pair in it.
+- LIVE, / and /alwaystracked, at 1280, 390, 1280 `--js-off`, 390 `--reduced`: US view "+$49/mo", UK view (toggle clicked) "+£39/mo", never both; basis line present. Local also /alwayscited at 1280 and 390, both markets. Not compared: UK with no script (there is no toggle without script).
+- Suite 875 / 874 pass / 1 skip (after `npm run capture`).
+
+## R62 (no "editorial" / "listicle" in visible copy) - 5664267 (28 Sep 2026, 11:55Z)
+- Spec: Danny, danny.md line 63. No board.
+- Built: 46 sentence-by-sentence rewrites in 19 files (docs/r62-copy.mjs, every pair matched exactly once): "placements" for what we deliver, "best-of lists, comparisons and round-ups" for the pages; "editorial relationships" -> media/publisher relationships, "reads as editorial" -> "reads as part of the page", "Their editorial" -> "Their words". The two named fixes: vibe-retail's Placements row reads "On retail and ecommerce publications" (the label reads "Placements", unchanged); the table row reads "Placements in cited pages, links included". Meta descriptions, OG/Twitter, JSON-LD (schema.ts) and the blog anchor id (#why-llms-lean-on-third-party) changed too. NOT_LISTED_BASIS is "... - a pitch to the publisher"; it never leaves the server, but rows saved with the old sentence map to it on read (currentBasis, tested).
+- Left, by the item's own exemptions: source comments, tests, src/lib/scan/source-kind-prompt.ts (model input), and PRE_R62_NOT_LISTED_BASIS (a stored-value match, not rendered).
+- New census src/app/placement-vocabulary.test.mts: every swept page's HTML before the flight payload, floor 20 pages. Trips on the pre-R62 build (read: meta and JSON-LD hits on every page), passes on this one.
+- LIVE, 14 routes (/, both case studies, /alwaysmentioned, /alwayscited, /how-it-works, /what-is-aeo, /pr-agencies, /compare, /white-label, /scan, the three posts) at 1280, 390, 1280 `--js-off`, 390 `--reduced`: 0 hits in body text or in the HTML. Local vibe-retail at 1280 and 390: row reads as specified. Not in the denominator: /scan/[token] (no DB locally, and copy there is swept only through src grep).
+- Suite 876 / 875 pass / 1 skip (after `npm run capture`; +1 is the new census).
