@@ -6,7 +6,9 @@ import { useState } from "react";
 
 import BrandMark from "./BrandMark";
 import NavDropdown, { type NavItem } from "./NavDropdown";
+import { MarketPrice } from "./SectorPrice";
 import TierName from "./TierName";
+import { TIERS } from "@/config/pricing";
 import { T } from "@/config/tokens";
 import { D, HEADER_H, WASH, WASH_SIZE } from "./home/dark";
 
@@ -19,8 +21,10 @@ import { D, HEADER_H, WASH, WASH_SIZE } from "./home/dark";
  *
  * "White label" became "For agencies", a dropdown of the two agency pages
  * (Danny, 28 Sep 2026, R63). /white-label stays live, linked from the footer
- * and from both agency pages. On mobile the two sit indented under a plain
- * "For agencies" label rather than behind a hover.
+ * and from both agency pages. Packages is the same dropdown: the four tiers,
+ * each with its from-price in the page's market (MarketPrice - never typed
+ * here), then "Compare all packages" (R64). On mobile each group's links sit
+ * indented under a plain label rather than behind a hover.
  *
  * On `/` only it sits on the hero's dark ground, as Main.dc.html draws it:
  * no hairline, links in D.muted, the lockup lifted with `.on-dark`. The wash
@@ -28,7 +32,24 @@ import { D, HEADER_H, WASH, WASH_SIZE } from "./home/dark";
  * read as one surface. Every other route keeps the light bar.
  */
 
-const packagesLink = { href: "/#packages", label: "Packages" };
+const COMPARE_HREF = "/#packages";
+const packageLinks: NavItem[] = [
+  ...TIERS.map((t) => ({
+    key: t.key,
+    href: t.href,
+    label: (
+      <span style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "16px" }}>
+        <span style={{ fontWeight: 600 }}>
+          <TierName tier={t.key} />
+        </span>
+        <span style={{ fontSize: "12.5px", color: T.soft, whiteSpace: "nowrap" }}>
+          <MarketPrice tier={t.key} fallback={t.priceLabel} />
+        </span>
+      </span>
+    ),
+  })),
+  { key: "compare", href: COMPARE_HREF, label: <span style={{ color: T.accent, fontWeight: 600 }}>Compare all packages</span> },
+];
 const navLinks = [
   { href: "/how-it-works", label: "How it works" },
   { href: "/blog", label: "Blog" },
@@ -37,6 +58,10 @@ const AGENCIES = "For agencies";
 const agencyLinks: NavItem[] = [
   { key: "seo", href: "/seo-agencies", label: "SEO agencies" },
   { key: "pr", href: "/pr-agencies", label: "PR agencies" },
+];
+const groups = [
+  { label: "Packages", items: packageLinks, minWidth: "280px" },
+  { label: AGENCIES, items: agencyLinks, minWidth: "190px" },
 ];
 
 const linkStyle: React.CSSProperties = {
@@ -92,10 +117,9 @@ export default function Header() {
         <div style={{ flexGrow: 1 }} />
 
         <nav className="nav-links" style={{ display: "flex", alignItems: "center", gap: "20px" }} aria-label="Main navigation">
-          <Link href={packagesLink.href} style={links}>
-            {packagesLink.label}
-          </Link>
-          <NavDropdown label={AGENCIES} items={agencyLinks} style={links} />
+          {groups.map((g) => (
+            <NavDropdown key={g.label} label={g.label} items={g.items} style={links} minWidth={g.minWidth} />
+          ))}
           {navLinks.map((link) => (
             <Link key={link.href} href={link.href} style={links}>
               {link.label}
@@ -133,23 +157,20 @@ export default function Header() {
       {open && (
         <nav style={{ background: T.surface, borderTop: `1px solid ${T.line}`, padding: "1rem 1.5rem 1.5rem" }} aria-label="Mobile navigation">
           <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "1rem" }}>
-            <li>
-              <Link href={packagesLink.href} style={linkStyle} onClick={() => setOpen(false)}>
-                {packagesLink.label}
-              </Link>
-            </li>
-            <li>
-              <span style={{ ...linkStyle, color: T.ink }}>{AGENCIES}</span>
-              <ul style={{ listStyle: "none", padding: "0 0 0 16px", margin: "12px 0 0", display: "flex", flexDirection: "column", gap: "12px" }}>
-                {agencyLinks.map((link) => (
-                  <li key={link.key}>
-                    <Link href={link.href} style={linkStyle} onClick={() => setOpen(false)}>
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </li>
+            {groups.map((g) => (
+              <li key={g.label}>
+                <span style={{ ...linkStyle, color: T.ink }}>{g.label}</span>
+                <ul style={{ listStyle: "none", padding: "0 0 0 16px", margin: "12px 0 0", display: "flex", flexDirection: "column", gap: "12px" }}>
+                  {g.items.map((link) => (
+                    <li key={link.key}>
+                      <Link href={link.href} style={{ ...linkStyle, display: "block", maxWidth: "300px" }} onClick={() => setOpen(false)}>
+                        {link.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            ))}
             {navLinks.map((link) => (
               <li key={link.href}>
                 <Link href={link.href} style={linkStyle} onClick={() => setOpen(false)}>

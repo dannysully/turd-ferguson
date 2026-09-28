@@ -29,10 +29,12 @@ export default function NavDropdown({
   label,
   items,
   style,
+  minWidth = "190px",
 }: {
   label: string;
   items: NavItem[];
   style: React.CSSProperties;
+  minWidth?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [js, setJs] = useState(false);
@@ -119,7 +121,7 @@ export default function NavDropdown({
             listStyle: "none",
             margin: 0,
             padding: "6px",
-            minWidth: "190px",
+            minWidth,
             background: T.surface,
             border: `1px solid ${T.line}`,
             borderRadius: "12px",
