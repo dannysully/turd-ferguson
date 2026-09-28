@@ -77,6 +77,13 @@ export const TRACKED_BASIS = `${TRACKED_QUESTIONS} questions and ${TRACKED_KEYWO
  * The extra tracking pack, on any tier (spec section 1): +$49 / £39 a month
  * for another TRACKED_QUESTIONS questions and TRACKED_KEYWORDS keywords.
  */
+/**
+ * The same pack, as the higher tiers say it (spec section 8). Only the second
+ * sentence of the spec's line: its first, "Add keyword clusters: up to 10 at
+ * checkout", describes a checkout that does not exist until section 5 does.
+ */
+export const EXTRA_TRACKING_LINE = `Extra tracking: +$49 / £39 a month for ${TRACKED_QUESTIONS} questions and ${TRACKED_KEYWORDS} keywords.`;
+
 export const TRACKING_PACK_LINE = `Need more? Add ${TRACKED_QUESTIONS} questions and ${TRACKED_KEYWORDS} keywords for +$49 / £39 a month.`;
 
 /**
