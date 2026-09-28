@@ -100,10 +100,10 @@ export default function CaseStudiesPage() {
                 color: T.ink,
               }}
             >
-              One listicle placement, on a page already ranking for the category
+              One placement, on a best-of list already ranking for the category
             </h2>
             <p style={{ margin: "10px 0 0", fontSize: "14px", lineHeight: 1.6, color: T.soft, maxWidth: "62ch" }}>
-              A single editorial placement, on a third-party page that already ranked for the category.
+              A single placement, on a third-party page that already ranked for the category.
             </p>
           </div>
           {/* Cells wrap at 150px: with a zero basis the panel never wrapped,

@@ -3,7 +3,7 @@
  *
  * Every row on "Where to get placed" is a page the engines already cite. What
  * the visitor cannot tell from the list is which of those they could land
- * themselves and which need an editorial pitch or a budget - which is exactly
+ * themselves and which need a pitch to the publisher or a budget - which is exactly
  * the line between doing it yourself and alwaysmentioned. So each row gets a
  * score out of 100 and a band, from what a link marketplace says the site
  * costs:
@@ -14,7 +14,7 @@
  *   a review or directory site,
  *     not listed              moderate    50 - organic effort, not a purchase
  *   not listed on a
- *     marketplace             hard        80 - an editorial pitch
+ *     marketplace             hard        80 - a pitch to the publisher
  *   DR 80 or more             up to +10, capped at 100
  *
  * The price itself is never shown and the marketplace is never named: the
@@ -34,15 +34,18 @@ export const EASY_MAX_PRICE = 300;
  * listed there - not that it is sold nowhere. Worded to claim only that
  * (25 September 2026, N8).
  */
-export const NOT_LISTED_BASIS = "Not listed on link marketplaces - an editorial pitch";
+export const NOT_LISTED_BASIS = "Not listed on link marketplaces - a pitch to the publisher";
 
 /**
  * A basis as stored, in today's words. Scans scored before N8 saved the
  * earlier not-listed sentence, which claimed the site was sold nowhere; the
- * row still means "not listed", so it renders as that.
+ * row still means "not listed", so it renders as that. Scans scored from N8
+ * to 28 Sep 2026 saved "... - an editorial pitch", which R62 took out of
+ * visible copy; those rows render in today's words too.
  */
+export const PRE_R62_NOT_LISTED_BASIS = "Not listed on link marketplaces - an " + "editorial pitch";
 export function currentBasis(stored: string | null): string | null {
-  if (stored !== null && stored.startsWith("Not sold")) return NOT_LISTED_BASIS;
+  if (stored !== null && (stored.startsWith("Not sold") || stored === PRE_R62_NOT_LISTED_BASIS)) return NOT_LISTED_BASIS;
   return stored;
 }
 

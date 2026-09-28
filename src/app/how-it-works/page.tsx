@@ -63,7 +63,7 @@ const tracked = TIERS.find((t) => t.id === "tracked");
 const WORK: { heading: string; body: string }[] = [
   {
     heading: "Placement on pages the engines already read",
-    body: "Editorial placements on the third-party pages behind the answers in your category, with the brand where a ranked list gets quoted from. Not paid promotion dressed up as editorial.",
+    body: "Placements on the third-party pages behind the answers in your category - best-of lists, comparisons and round-ups - with the brand where a ranked list gets quoted from. Not paid promotion dressed up as independent coverage.",
   },
   {
     heading: "On-site pages built for the question",

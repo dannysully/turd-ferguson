@@ -113,7 +113,7 @@ const BEATS: Beat[] = [
   {
     tier: "mentioned",
     headline: "We place you in the answers.",
-    line: "Editorial placements in the pages the engines already cite, links included. Three a month, on one topic.",
+    line: "Placements in the pages the engines already cite, links included. Three a month, on one topic.",
     alt: `The pages the engines cite for one buyer question, and the answers that now name ${SUBJECT}.`,
   },
   {

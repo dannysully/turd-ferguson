@@ -214,8 +214,8 @@ export default function PrAgenciesPage() {
               <TierName tier="mentioned" /> <span style={{ fontSize: "13px", color: T.soft, fontWeight: 600, letterSpacing: 0 }}>{priceOf("mentioned")}</span>
             </div>
             <p style={{ margin: "8px 0 0", fontSize: "14px", lineHeight: 1.55, color: T.soft }}>
-              We place into the pages your team does not cover - listicles, comparisons, round-ups - and leave your
-              editorial relationships alone.
+              We place into the pages your team does not cover - best-of lists, comparisons and round-ups - and leave
+              your media relationships alone.
             </p>
           </div>
         </div>

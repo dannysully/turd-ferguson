@@ -100,7 +100,7 @@ export default function HeroSection({
         </p>
 
         <p className="phone-only ac-row" style={{ margin: "12px 0 0", fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
-          Free scan, then editorial placements in the pages the engines actually cite.
+          Free scan, then placements in the pages the engines actually cite.
         </p>
 
         {/* Above the field rather than below it: it is the reason they are on

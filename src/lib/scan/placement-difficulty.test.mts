@@ -40,7 +40,7 @@ test("not listed: a review site is organic effort, anything else a pitch", () =>
   assert.deepEqual(scoreDifficulty({ listing: null, kind: "placement" }), {
     score: 80,
     band: "Hard",
-    basis: "Not listed on link marketplaces - an editorial pitch",
+    basis: "Not listed on link marketplaces - a pitch to the publisher",
   });
   // A listing with no price is not a price.
   assert.equal(scoreDifficulty({ listing: { price: null, dr: 60 }, kind: "placement" }).score, 80);
@@ -60,7 +60,7 @@ test("the basis is one of five fixed sentences: never a price, never a marketpla
     "Listed on link marketplaces, $300-$1,000",
     "Listed on link marketplaces, over $1,000",
     "Earned through reviews and a listing",
-    "Not listed on link marketplaces - an editorial pitch",
+    "Not listed on link marketplaces - a pitch to the publisher",
   ]);
   for (const price of [0, 150, 299, 450, 999, 2500, null]) {
     for (const kind of ["placement", "review"]) {
@@ -70,9 +70,11 @@ test("the basis is one of five fixed sentences: never a price, never a marketpla
   }
 });
 
-test("a stored basis from before N8 renders in today's words, and nothing else is touched", () => {
+test("a stored basis from before N8 or R62 renders in today's words, and nothing else is touched", () => {
   assert.equal(currentBasis("Not sold" + " anywhere - an editorial pitch"), NOT_LISTED_BASIS);
   assert.equal(currentBasis(NOT_LISTED_BASIS), NOT_LISTED_BASIS);
+  // Saved from N8 to 28 Sep 2026, before R62 took the word out of the copy.
+  assert.equal(currentBasis("Not listed on link marketplaces - an " + "editorial pitch"), NOT_LISTED_BASIS);
   assert.equal(currentBasis("Earned through reviews and a listing"), "Earned through reviews and a listing");
   assert.equal(currentBasis(null), null);
 });

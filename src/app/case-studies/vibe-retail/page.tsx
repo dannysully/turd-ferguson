@@ -29,7 +29,7 @@ import { ORG_REF, ld } from "@/config/schema";
 export const metadata: Metadata = {
   title: "One placement, and what it moved",
   description:
-    `One listicle placement on a page already ranking for the category. The money keyword ${KEYWORD_EIGHT_WEEKS.value} in ${KEYWORD_EIGHT_WEEKS.scope}, #1 at ${KEYWORD_FOUR_MONTHS.scope}.`,
+    `One placement on a best-of list already ranking for the category. The money keyword ${KEYWORD_EIGHT_WEEKS.value} in ${KEYWORD_EIGHT_WEEKS.scope}, #1 at ${KEYWORD_FOUR_MONTHS.scope}.`,
   alternates: { canonical: "https://alwayscited.com/case-studies/vibe-retail" },
   openGraph: {
     images: OG_IMAGE,
@@ -43,7 +43,7 @@ export const metadata: Metadata = {
 const articleSchema = {
   "@context": "https://schema.org",
   "@type": "Article",
-  headline: "One listicle placement, on a page already ranking for the category",
+  headline: "One placement, on a best-of list already ranking for the category",
   // Both windows, because that is what the page says. This field carried
   // "in under eight weeks" over every figure on the page long after the
   // visible copy had been split into an eight-week reading and a four-month
@@ -89,7 +89,7 @@ const Row = ({ label, value }: { label: string; value: string }) => (
 const GLANCE: [string, string][] = [
   ["Sector", "US retail SaaS, cloud POS"],
   ["Window", "Eight weeks, with a four-month reading"],
-  ["Placements", "Editorial listicles on retail and ecommerce publications"],
+  ["Placements", "On retail and ecommerce publications"],
 ];
 
 const KEYWORDS: [string, string][] = [
@@ -158,7 +158,7 @@ export default function CaseStudyPage() {
                 color: T.ink,
               }}
             >
-              One listicle placement, on a page already ranking for the category
+              One placement, on a best-of list already ranking for the category
             </h1>
             <p className="ac-row" style={{ margin: "14px 0 0", fontSize: "15px", lineHeight: 1.6, color: T.soft, maxWidth: "64ch" }}>
               The client is Vibe Retail. The position below is the account owner's own reading, over the
@@ -228,9 +228,9 @@ export default function CaseStudyPage() {
               and returns what that list says. So the work was to be in those lists.
             </P>
 
-            <H3>Listicle placements on pages already ranking for the category</H3>
+            <H3>Placements on best-of lists already ranking for the category</H3>
             <P>
-              Editorial &ldquo;best of&rdquo; placements on high-authority retail and ecommerce publications, where the
+              &ldquo;Best of&rdquo; placements on high-authority retail and ecommerce publications, where the
               client was positioned on merit.
             </P>
 
@@ -250,7 +250,7 @@ export default function CaseStudyPage() {
             <H2>What moved</H2>
             <H3>The same placements moved the Google position</H3>
             <P>
-              Because the pages carrying the citations are editorial pages with real organic traffic in this exact
+              Because the pages carrying the citations are published pages with real organic traffic in this exact
               niche, the links in them pass authority to the product and cluster pages. The core money keyword went
               from the position below to the top of page one, with eleven further commercial variations now ranking
               between four and seventeen.

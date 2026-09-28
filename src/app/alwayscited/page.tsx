@@ -9,7 +9,7 @@ const price = priceProse(tier);
 export const metadata: Metadata = {
   title: "AI citations and rankings for agencies",
   description:
-    "Editorial placements in the sources AI engines cite, plus schema work and link insertions aimed at the Google position." +
+    "Placements in the sources AI engines cite, plus schema work and link insertions aimed at the Google position." +
     (price ? ` ${price}, priced per topic.` : ""),
   openGraph: { url: "https://alwayscited.com/alwayscited", images: OG_IMAGE },
   alternates: { canonical: "https://alwayscited.com/alwayscited" },

@@ -45,7 +45,7 @@ const ROWS: { what: string; cells: Record<TierKey, Cell> }[] = [
   { what: "Every source behind every answer", cells: { tracked: 1, mentioned: 1, cited: 1, everywhere: 1 } },
   { what: "Placement opportunities, scored for difficulty", cells: { tracked: 1, mentioned: 1, cited: 1, everywhere: 1 } },
   { what: "Who runs the outreach", cells: { tracked: "You", mentioned: "Us", cited: "Us", everywhere: "Us" } },
-  { what: "Editorial placements in cited pages, links included", cells: { tracked: 0, mentioned: 1, cited: 1, everywhere: 1 } },
+  { what: "Placements in cited pages, links included", cells: { tracked: 0, mentioned: 1, cited: 1, everywhere: 1 } },
   { what: "Citation reporting on every placement", cells: { tracked: 0, mentioned: 1, cited: 1, everywhere: 1 } },
   { what: "Placements chosen to move the Google position too", cells: { tracked: 0, mentioned: 0, cited: 1, everywhere: 1 } },
   { what: "Link insertions and schema work", cells: { tracked: 0, mentioned: 0, cited: 1, everywhere: 1 } },

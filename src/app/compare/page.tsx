@@ -128,7 +128,7 @@ export default function ComparePage() {
         <div className="ac-row" style={{ ...CARD, border: `1px solid ${T.accent}`, padding: "24px" }}>
           <div style={{ ...MICRO, color: T.accent }}>When we are</div>
           <p style={{ margin: "10px 0 0", fontSize: "14px", lineHeight: 1.6, color: T.ink }}>
-            When you need the gap closed rather than measured, and you do not have editorial relationships with the
+            When you need the gap closed rather than measured, and you do not have relationships with the
             sites the engines read. That is the whole difference, and it is a supply problem rather than a software one.
           </p>
         </div>

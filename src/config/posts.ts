@@ -32,7 +32,7 @@ const REGISTERED: Post[] = [
     slug: "how-llms-pick-which-brands-to-recommend",
     title: "How LLMs pick which brands to recommend",
     blurb:
-      "A model asked for a recommendation does not evaluate suppliers. It reads a small set of editorial sources and returns what they say.",
+      "A model asked for a recommendation does not evaluate suppliers. It reads a small set of third-party sources - best-of lists, comparisons and round-ups - and returns what they say.",
     kind: "Method",
     date: "2026-04-30",
     readMinutes: 5,

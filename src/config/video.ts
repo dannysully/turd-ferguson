@@ -44,7 +44,7 @@ export const LAUNCH_VIDEO = {
 export const LAUNCH_VIDEO_SUMMARY: string[] = [
   "A buyer asks the AI engines for the best invoicing software for freelancers, and each engine names a ranked list of other brands. The brand in the video, Tallyroo, is made up, as is every brand shown.",
   `${TIER_PLAIN.tracked}, ${LAUNCH_VIDEO.shownPrices[0]}: buyer questions put to the engines every week, with every source behind every answer, so you can see every placement opportunity.`,
-  `${TIER_PLAIN.mentioned}, ${LAUNCH_VIDEO.shownPrices[1]}: editorial placements in the pages the engines already cite, links included - three a month, on one topic.`,
+  `${TIER_PLAIN.mentioned}, ${LAUNCH_VIDEO.shownPrices[1]}: placements in the pages the engines already cite, links included - three a month, on one topic.`,
   `The ${TIER_PLAIN.cited} plan, ${LAUNCH_VIDEO.shownPrices[2]}: link insertions and on-site work move the Google listing as well as the answer, with your own page cited.`,
   `${TIER_PLAIN.everywhere}, ${LAUNCH_VIDEO.shownPrices[3]}: a portfolio of clients under one agreement, priced on volume rather than per seat.`,
   "It closes on the free scan: pick a domain and find out.",

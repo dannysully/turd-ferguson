@@ -99,7 +99,7 @@ export const siteGraph = {
       url: SITE_URL,
       logo: LOGO_URL,
       description:
-        "Editorial placements in the third-party pages AI search systems already read for a category, so a brand is named inside the answer rather than ranked in the links under it.",
+        "Placements in the third-party pages AI search systems already read for a category, so a brand is named inside the answer rather than ranked in the links under it.",
       parentOrganization: {
         "@type": "Organization",
         name: "Nomada Digital",

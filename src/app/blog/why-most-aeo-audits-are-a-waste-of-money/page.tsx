@@ -74,8 +74,8 @@ export default function Post() {
           the listicle" is the actual point and is not a claim about the
           engine's internals. */}
       <P>
-        The real cause of zero AI visibility is editorial: your brand isn&apos;t in the listicles
-        AI is citing. On-site optimisation alone will not put it there. Vendor pages are not
+        The real cause of zero AI visibility is off-site: your brand isn&apos;t in the best-of lists,
+        comparisons and round-ups AI is citing. On-site optimisation alone will not put it there. Vendor pages are not
         shut out of an answer - our own scan reports a client&apos;s own domain as a source
         category in its own right - but a page nobody else writes about leaves an answer
         nothing to draw on except the vendor&apos;s account of itself. An AEO audit that focuses
@@ -85,7 +85,7 @@ export default function Post() {
 
       <H2 id="the-audit-to-action-gap">The audit-to-action gap.</H2>
       <P>
-        A typical AEO audit ends at the recommendation stage. Securing the editorial
+        A typical AEO audit ends at the recommendation stage. Securing the
         placements that would actually move AI citations is &ldquo;out of scope.&rdquo; So the client pays
         for the diagnosis, then has to either hire a separate agency for the cure, or attempt
         the placement work in-house. Most don&apos;t have the publisher relationships to execute.

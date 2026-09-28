@@ -11,7 +11,7 @@ const post = requirePost("how-llms-pick-which-brands-to-recommend");
 
 const COPY: PostCopy = {
   description:
-    "What we find behind an AI product recommendation in the campaigns we run: a small set of editorial sources, and the brands listed at the top of them.",
+    "What we find behind an AI product recommendation in the campaigns we run: a small set of third-party sources, and the brands listed at the top of them.",
   ogDescription:
     "The mechanics of LLM citation are simpler - and more exploitable - than most agencies realise.",
 };
@@ -24,7 +24,7 @@ const STANDFIRST =
   "The mechanics of LLM citation are simpler, and more exploitable, than most agencies realise.";
 
 const SECTIONS = [
-  { id: "why-llms-lean-on-editorial", label: "Why LLMs lean on editorial sources rather than evaluating products directly" },
+  { id: "why-llms-lean-on-third-party", label: "Why LLMs lean on third-party sources rather than evaluating products directly" },
   { id: "which-sources-llms-cite-and", label: "Which sources LLMs cite (and which they don't)" },
   { id: "the-implication-for-b2b-brands", label: "The implication for B2B brands" },
   { id: "what-this-looks-like-in", label: "What this looks like in practice" },
@@ -38,15 +38,15 @@ export default function Post() {
       <PostShell post={post} standfirst={STANDFIRST} sections={SECTIONS}>
       <P>
         When a B2B buyer asks ChatGPT, Perplexity, or Claude for product recommendations, the
-        LLM doesn&apos;t independently evaluate vendors. It cites a small set of editorial sources
-        - typically &ldquo;best of&rdquo; listicles from authoritative publications - and returns the brand
+        LLM doesn&apos;t independently evaluate vendors. It cites a small set of third-party sources
+        - typically &ldquo;best of&rdquo; lists from authoritative publications - and returns the brand
         listed at the top of those sources as its primary recommendation. This means the
         question of &ldquo;how do I get my brand recommended by ChatGPT?&rdquo; reduces to a more specific
-        question: how do I get my brand listed at position #1 in the editorial sources LLMs
+        question: how do I get my brand listed at position #1 in the third-party sources LLMs
         are already citing?
       </P>
 
-      <H2 id="why-llms-lean-on-editorial">Why LLMs lean on editorial sources rather than evaluating products directly.</H2>
+      <H2 id="why-llms-lean-on-third-party">Why LLMs lean on third-party sources rather than evaluating products directly.</H2>
       <P>
         LLMs aren&apos;t trained to be product evaluators. They&apos;re trained to be probability
         machines that return the most likely useful answer based on patterns in their training
@@ -58,7 +58,7 @@ export default function Post() {
       <P>
         The result is that LLMs converge on a small set of trusted source publications per
         category. For retail POS, that might be three or four publications. For B2B SaaS, a
-        different cluster. For each category, there&apos;s a hierarchy of editorial sources the AI
+        different cluster. For each category, there&apos;s a hierarchy of third-party sources the AI
         considers authoritative - and brands positioned at the top of those sources are the
         ones the AI repeats back.
       </P>
@@ -73,10 +73,10 @@ export default function Post() {
         scans, not a rule we can see inside the engine.
       </P>
       <P>
-        Second: editorial format. Listicles, comparisons, &ldquo;best of&rdquo; rankings - with a clear
+        Second: format. Best-of lists, comparisons and round-ups - with a clear
         ranked structure and named brands at each position - are the format AI systems cite
         most reliably. A review article that doesn&apos;t produce a clear winner is less useful to
-        the AI than a listicle that says &ldquo;#1 Best Overall: [Brand].&rdquo;
+        the AI than a best-of list that says &ldquo;#1 Best Overall: [Brand].&rdquo;
       </P>
       <P>
         Third: recency. The pages we find behind an answer are usually current ones, and citation
@@ -90,12 +90,12 @@ export default function Post() {
 
       <H2 id="the-implication-for-b2b-brands">The implication for B2B brands.</H2>
       <P>
-        This means AI search visibility is engineered through editorial placement, not through
+        This means AI search visibility is engineered through placements, not through
         on-site content alone. Plenty of what is sold as AEO is on-site work - FAQ schema, H2
         structure, comparison tables. That work matters. But it is the half that comes after
         placement, not before. The brand
-        cited at position #1 in the editorial source is the brand the AI repeats. If you&apos;re
-        not in the editorial source, you&apos;re not in the AI&apos;s answer - regardless of how well
+        cited at position #1 in the source is the brand the AI repeats. If you&apos;re
+        not in the source, you&apos;re not in the AI&apos;s answer - regardless of how well
         your FAQ schema is structured.
       </P>
 
@@ -116,14 +116,14 @@ export default function Post() {
       <P>
         This is why &ldquo;create great content and wait&rdquo; doesn&apos;t work as an AI search strategy.
         Creating great on-site content is necessary but not sufficient. The citation comes from
-        the editorial source, not from your own site. You need to be in the listicle first.
+        the third-party source, not from your own site. You need to be on the list first.
       </P>
 
       <H2 id="the-closing-point">The closing point.</H2>
       <P>
         The reason this is not the standard offering is that it requires a publisher network to
         execute. On-site content can be produced from a desk. Placements require relationships,
-        editorial credibility, and the willingness to pitch on merit rather than buy a slot.
+        credibility with editors, and the willingness to pitch on merit rather than buy a slot.
         That is a slower thing to build than a prompt library, which is the real barrier here.
       </P>
       <P>

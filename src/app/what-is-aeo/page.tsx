@@ -149,12 +149,12 @@ const FAQS: Faq[] = [
   {
     q: "Is AEO replacing SEO?",
     hint: "No - it sits on top of it",
-    a: "No. A placement is an ordinary editorial link as well as a page an engine can read as a source, so one article can move a citation and a Google position. We report the two separately, because only one of them may have moved.",
+    a: "No. A placement is an ordinary link as well as a page an engine can read as a source, so one article can move a citation and a Google position. We report the two separately, because only one of them may have moved.",
   },
   {
     q: "Can I do AEO myself?",
     hint: "The on-site half, yes",
-    a: "Some of it. FAQ schema, question-format headings, comparison tables and opening lines in the buyer’s phrasing are all yours to ship. Getting into the third-party pages the engines already read is editorial relationship work, not a change you can deploy.",
+    a: "Some of it. FAQ schema, question-format headings, comparison tables and opening lines in the buyer’s phrasing are all yours to ship. Getting into the third-party pages the engines already read is relationship work with publishers, not a change you can deploy.",
   },
   {
     q: "Which AI systems do you read?",
@@ -407,13 +407,13 @@ export default function WhatIsAEOPage() {
               <h2 style={H2_LONG}>Can it be engineered on purpose?</h2>
               <p style={{ ...PROSE, marginTop: "16px" }}>
                 Yes, and the mechanism is specific enough to write down. Identify the pages an engine already reads for
-                a category - which is what the free scan does - then secure editorial placement on them, with the
+                a category - which is what the free scan does - then secure placements on them, with the
                 brand where the ranked list gets quoted from. Then structure your own pages so a reader arriving from
                 the answer finds the same story.
               </p>
               <p style={PROSE}>
                 The on-site half you can do yourself. The part that needs a specialist is finding the right
-                publications and getting into them editorially rather than buying a slot.
+                publications and getting into them on merit rather than buying a slot.
               </p>
               <Link
                 href="/case-studies/vibe-retail"

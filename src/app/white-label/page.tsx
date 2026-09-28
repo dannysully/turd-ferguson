@@ -62,7 +62,7 @@ const ROWS: { surface: string; brand: string; note: string }[] = [
   { surface: "Monthly reporting", brand: "Yours", note: "Generated from the same data, none of our marks on it." },
   { surface: "Placement summaries", brand: "Yours", note: "What went live, where, and what it moved." },
   { surface: "Outreach to publishers", brand: "Ours", note: "We approach the title. Your client is never named unless you ask." },
-  { surface: "The published article", brand: "Publisher", note: "Their editorial. Neither of us is in the byline." },
+  { surface: "The published article", brand: "Publisher", note: "Their words. Neither of us is in the byline." },
   { surface: "Invoices and contracts", brand: "Ours, to you", note: "The one place our name appears. Your client never sees it." },
 ];
 

@@ -9,7 +9,7 @@ const price = priceProse(tier);
 export const metadata: Metadata = {
   title: "alwaysmentioned | AI citation placements",
   description:
-    "Three editorial placements a month in the sources AI engines already cite for your client's topic, white-labelled." +
+    "Three placements a month in the sources AI engines already cite for your client's topic, white-labelled." +
     (price ? ` ${price}, priced per topic.` : ""),
   openGraph: { url: "https://alwayscited.com/alwaysmentioned", images: OG_IMAGE },
   alternates: { canonical: "https://alwayscited.com/alwaysmentioned" },
@@ -23,9 +23,9 @@ export default function Page() {
       headlineAccent="AI recommends."
       standfirst="Three placements a month in the third-party articles the engines draw on when someone asks who to use. The focus is recommendations and brand mentions for one topic. Rankings improve as a side effect."
       included={[
-        "3 editorial placements a month on one topic",
+        "3 placements a month on one topic",
         "Placed in sources the scan shows the engines already citing",
-        "Editorial coverage approached through editors we work with",
+        "Best-of lists, comparisons and round-ups, approached through editors we work with",
         "Anchor text agreed with you before anything goes live",
         "Everything in alwaystracked, so you can see what each placement did",
         "White-label reporting with your logo",
@@ -38,7 +38,7 @@ export default function Page() {
       sections={[
         {
           heading: "Every placement passes the same three-part screen",
-          body: "Already cited by the engines for the topic, so we place where the answers are actually drawn from rather than on a domain-authority list. Real organic traffic, verified rather than claimed. And contextual to the topic, so the mention reads as editorial to a person and to a model.",
+          body: "Already cited by the engines for the topic, so we place where the answers are actually drawn from rather than on a domain-authority list. Real organic traffic, verified rather than claimed. And contextual to the topic, so the mention reads as part of the page to a person and to a model.",
         },
         {
           heading: "A placement that fails the screen is replaced",

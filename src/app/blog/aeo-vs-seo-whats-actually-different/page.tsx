@@ -65,7 +65,7 @@ export default function Post() {
       <H2 id="the-signals-are-different-mostly">The signals are different (mostly).</H2>
       <P>
         SEO is driven by link equity, on-page relevance, technical health, and user signals.
-        AEO is driven by editorial authority of cited sources, topical relevance, and recency.
+        AEO is driven by the authority of cited sources, topical relevance, and recency.
         Both care about content quality. But the weight of each signal differs in important
         ways.
       </P>
@@ -116,8 +116,8 @@ export default function Post() {
 
       <H2 id="where-they-overlap-and-why">Where they overlap (and why this matters).</H2>
       <P>
-        This is the actual punchline. The placements that get you cited - editorial listicles in
-        your niche - are ordinary editorial links as well. A &ldquo;best of&rdquo; listicle in your exact
+        This is the actual punchline. The placements that get you cited - best-of lists, comparisons and
+        round-ups in your niche - are ordinary links as well. A &ldquo;best of&rdquo; list in your exact
         category, on a page with real organic traffic on the category query, is a link worth
         having on its own terms. We count it once and report the citation and the position
         separately, rather than claiming one of them bought the other.
@@ -147,7 +147,7 @@ export default function Post() {
       </P>
       <P>
         Two separate retainers with two different agencies is the worst option: duplicate cost,
-        conflicting strategies, and no integrated measurement. The editorial work that drives
+        conflicting strategies, and no integrated measurement. The placement work that drives
         both channels should come from one source with one coherent campaign structure.
       </P>
 
