@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { SCAN_LIMITS } from "@/config/contact";
+import { CONTACT_URL } from "@/config/pricing";
 import { T } from "@/config/tokens";
 import { track } from "@/lib/analytics";
 
@@ -37,12 +38,18 @@ import { btn, field, label } from "./screens";
  * which stores the ask with no scan. Without JS that version renders nothing -
  * the page's own "Book a call" link stands in, since a form that cannot post
  * would only lose the address.
+ *
+ * The third option, "Book a call" (R54, Danny, danny.md line 55), is a link to
+ * /contact, not a stored ask: `walkthrough_requests.kind` allows only video and
+ * demo, and widening that check is a drop-and-recreate outside the additive
+ * authorisation (blocked.md, default (b)). Once the constraint allows 'call',
+ * this option can post like the other two.
  */
 export default function WalkthroughForm(p: { token: string } | { from: string }) {
   const token = "token" in p ? p.token : null;
   const [mounted, setMounted] = useState(token !== null);
   useEffect(() => setMounted(true), []);
-  const [kind, setKind] = useState<"video" | "demo">("video");
+  const [kind, setKind] = useState<"video" | "demo" | "call">("video");
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -92,15 +99,16 @@ export default function WalkthroughForm(p: { token: string } | { from: string })
     );
   }
 
-  // ScanResult.dc.html's switch: two short labels on a grey track, and the
-  // chosen one's note under it rather than inside each half.
-  const options: { key: "video" | "demo"; title: string; note: string }[] = [
+  // ScanResult.dc.html's switch: short labels on a grey track, and the chosen
+  // one's note under it rather than inside each option.
+  const options: { key: "video" | "demo" | "call"; title: string; note: string }[] = [
     {
       key: "video",
       title: "Loom walkthrough",
       note: token ? "A Loom of the platform, recorded against this report." : "A Loom of the platform, recorded for you.",
     },
     { key: "demo", title: "Demo with Danny", note: "Danny takes you through it on a call." },
+    { key: "call", title: "Book a call", note: "Pick a time with Danny on the contact page, and bring your questions." },
   ];
   const chosen = options.find((o) => o.key === kind) ?? options[0];
 
@@ -123,6 +131,16 @@ export default function WalkthroughForm(p: { token: string } | { from: string })
       <p aria-live="polite" style={{ margin: "14px 0 0", fontSize: "13.5px", lineHeight: 1.5, color: T.soft, minHeight: "42px" }}>
         {chosen.note}
       </p>
+      {kind === "call" ? (
+        <a
+          href={CONTACT_URL}
+          className="btn-primary"
+          style={{ ...btn, width: "100%", marginTop: "14px", display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none", boxSizing: "border-box" }}
+        >
+          Book a call
+        </a>
+      ) : (
+      <>
       <label htmlFor="wt-email" style={{ ...label, marginTop: "14px", display: "block" }}>
         Work email
       </label>
@@ -151,6 +169,8 @@ export default function WalkthroughForm(p: { token: string } | { from: string })
       <p style={{ fontSize: "12px", color: T.soft, marginTop: "10px", lineHeight: 1.5 }}>
         We use it to send you the walkthrough or arrange the call, and nothing else. <a href="/legal">What we collect</a>.
       </p>
+      </>
+      )}
     </form>
   );
 }

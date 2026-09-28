@@ -1347,13 +1347,13 @@ details > summary { list-style: none; }
 @keyframes ans-in { from { transform: translateX(24px); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes ans-fade { from { opacity: 0; } to { opacity: 0.28; } }
 
-/* The walkthrough ask's two-way switch, from ScanResult.dc.html (Q10): a grey
-   track with the chosen half raised in white. The note for the chosen half
-   sits under the track. */
-.wt-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: var(--chip); border-radius: 12px; padding: 4px; }
+/* The walkthrough ask's switch, from ScanResult.dc.html (Q10): a grey track
+   with the chosen option raised in white. The note for the chosen option sits
+   under the track. Three options since R54 (28 Sep 2026); labels wrap at 390. */
+.wt-toggle { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: var(--chip); border-radius: 12px; padding: 4px; }
 .wt-option {
-  font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; min-height: 44px;
-  border: 0; border-radius: 9px; background: transparent; color: var(--soft);
+  font: inherit; font-size: 14px; font-weight: 600; line-height: 1.25; cursor: pointer; min-height: 44px;
+  padding: 4px 6px; border: 0; border-radius: 9px; background: transparent; color: var(--soft);
 }
 .wt-option--on { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
 .wt-option:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
