@@ -1242,8 +1242,20 @@ Items filed by the reviewer from live checks and from docs/danny.md. The builder
   third stored option is blocked on a check constraint (blocked.md, DANNY,
   with a no-DDL default), the waitlist needs its additive `leads.source`
   migration; section 5 (Stripe, DANNY); section 7 (held).
+  **Section 6 scope, read 28 Sep 07:45Z for the next run:**
+  `walkthrough_requests.scan_id` is already nullable (`on delete set null`),
+  so a tokenless ask from a tier page can write a row with no DDL - a new
+  `/api/walkthrough` route beside `/api/scan/[token]/walkthrough`, reusing
+  its rate limit, ip_hash and mail path (register it in the mail-doors
+  census). Note the unique index `(scan_id, email, kind)` does not dedupe
+  when scan_id is null (nulls are distinct), so the route must check for a
+  recent same-email row itself. The `kind` check allows only video/demo -
+  see blocked.md for "book a call". No `leads` table exists in
+  `supabase/migrations/` (grepped: only account-disclosure.test.mts names
+  it), so the waitlist is `create table if not exists` plus `source` -
+  confirm against production before writing, in case it was made by hand.
 
-- [ ] R51 `src/config/sector-prices.json` confirmed in place - unblock R50's
+- [x] R51 `src/config/sector-prices.json` confirmed in place -> 5444fdd, 41b552f - unblock R50's
   blocker 1, build sections 1-4 (Danny, docs/danny.md - filed 2026-09-27, line
   53). Read back today: the file exists, is well-formed JSON, and matches the
   spec exactly - all 18 priced sectors plus `"other": { "label": "Other", "us":
@@ -1311,6 +1323,15 @@ Items filed by the reviewer from live checks and from docs/danny.md. The builder
   `alwaystracked` now reads $129/£99 everywhere it is quoted; grep `src` for
   the old `$995`/`$2,495`/`$99` literals afterward and confirm none survive
   outside a changelog/comment.
+  **Done (28 Sep 07:40Z, builder):** sections 1-3 -> 5444fdd (fromLabel/
+  fromPrice, true minima checked against the JSON: US mentioned $1,395, cited
+  $3,395; UK £995 / £2,495; tracked $129 / £99). Section 4 -> 41b552f
+  (select, stepper, toggle; driven live at 1280 and 390, 24 readings, all
+  correct). Built HTML carries no $995, $2,495 or $99; in `src` they survive
+  only in comments and in video.ts (the stale video's record, held off the
+  site by video.test.mts). The "no literal from figure in a component" rule:
+  price-surfaces/price-claims read the computed labels, and copy.test's
+  typedPrices already fails any `$` figure outside pricing.ts.
 
 - [x] R52 Video decision: take the launch video down, then ship section 3 -> 5444fdd
   (Danny, docs/danny.md - filed 2026-09-27, line 54 - answers the "R50
