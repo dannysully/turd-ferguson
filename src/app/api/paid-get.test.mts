@@ -135,8 +135,27 @@ test("every route that spends money refuses GET, except the email link", () => {
 
   const gettable = paid.filter((r) => methodsOf(r.src).includes("GET"));
 
+  /**
+   * 29 September 2026: `cron/track`, the daily tracking dispatch (T1). Vercel
+   * Cron can only GET. What stands in for a POST is what stands in front of
+   * the two crons beside it - a request without `Bearer <CRON_SECRET>` is a
+   * 401 before anything is read, so a crawler following the link pays nothing
+   * - and the unique (client, day) run row, so even an authorised repeat
+   * dispatches nothing. Earned here against the route's own source.
+   */
+  const SECRET_GATED_GET = ["cron/track"];
+  for (const name of SECRET_GATED_GET) {
+    const r = all.find((x) => x.name === name);
+    assert.ok(r, `${name} is allowed a paid GET here and is not a route any more`);
+    assert.match(
+      code(r.src),
+      /if \(!constantTimeEqual\(offered, `Bearer \$\{secret\}`\)\)/,
+      `${name} answers GET and spends, and no longer refuses a request without CRON_SECRET`,
+    );
+  }
+
   assert.deepEqual(
-    gettable.map((r) => r.name),
+    gettable.map((r) => r.name).filter((n) => !SECRET_GATED_GET.includes(n)),
     [],
     `These routes spend money and answer GET, so any crawler that follows a link to one pays for ` +
       `it:\n${gettable.map((r) => "  " + r.name).join("\n")}\n` +

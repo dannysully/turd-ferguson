@@ -255,6 +255,12 @@ test("the four sites are the ones we think they are", () => {
       // 25 Sep 2026: difficulty.ts writes each placeable source's difficulty
       // score back onto its own row, on the same (scan_id, domain) index.
       "scan_sources:domain,scan_id",
+      // 29 Sep 2026, the daily tracking runner (T1), each on its own unique
+      // constraint in 20260929000000_tracking_dashboard.sql: one run per client
+      // per day, one answer per run, question and engine, one SERP per keyword.
+      "tracking_answers:engine,question_id,run_id",
+      "tracking_runs:client_domain_id,run_date",
+      "tracking_serp:keyword_id,run_id",
       // 24 Sep 2026: one walkthrough request per scan, address and kind.
       "walkthrough_requests:email,kind,scan_id",
     ],

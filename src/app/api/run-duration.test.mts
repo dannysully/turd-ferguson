@@ -337,8 +337,17 @@ const LONG_ROUTES = sourceFiles(ROOT)
  * count: `readiness.ts` was right about every key it named while
  * `SCAN_FROM_EMAIL` was on no list at all, and a `>= 3` floor over four
  * senders could not notice one dropping off.
+ *
+ * One since 29 September 2026: the daily tracking run (T1). It is not a scan
+ * pass, so the call graph rightly does not find one, but it is the same shape
+ * - one client's questions on its engines - and budgets itself the way the
+ * pipeline does: RUN_BUDGET_MS = 270_000 against this route's 300, writing
+ * its own status on the way out, the stall reaper closing one that was killed.
  */
-const LONG_WITHOUT_PASS: Record<string, string> = {};
+const LONG_WITHOUT_PASS: Record<string, string> = {
+  "src/app/api/track/run/route.ts":
+    "One client's daily tracking run in after(); runner.ts budgets 270s against this 300 and closes its own row.",
+};
 
 // ---------------------------------------------------------------------------
 // One property, one test. Two assertions under one name destroy the only

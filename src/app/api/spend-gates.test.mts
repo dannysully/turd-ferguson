@@ -197,6 +197,29 @@ const EXEMPT: Record<string, { why: string; evidence: RegExp; where: string }> =
     evidence: /const PER_IP_PER_DAY = \d+/,
     where: "src/app/api/walkthrough/route.ts",
   },
+  /**
+   * 29 September 2026, T1 of docs/tracked-dashboard-2026-09-29/BRIEF.md. The
+   * daily tracking runner is not a visitor's scan, so `checkCeilings` - an
+   * allowance per hashed IP and a count of free scans - is the wrong guard.
+   * It has its own pair, both read before a single request goes out.
+   */
+  "cron/track": {
+    why:
+      "Opens one tracking run per active client with a live question and hands each to /api/track/run. " +
+      "Behind CRON_SECRET; refused outright by refuseRun when tracking_enabled is off or today's tracking " +
+      "dfs_cost has reached tracking_daily_cost_cap_usd; and the unique (client, day) row means a second " +
+      "call the same day dispatches nothing.",
+    evidence: /refuseRun\(await trackingSettings\(\), await trackingSpentOn\(day\)\)/,
+    where: "src/lib/tracking/runner.ts",
+  },
+  "track/run": {
+    why:
+      "Runs one client's day. Only a body signed with CRON_SECRET is accepted; the claim moves only a " +
+      "queued row to running, so one run reads once however often it is posted; and the same " +
+      "tracking_enabled / daily cost cap refusal is re-read at the claim.",
+    evidence: /\.eq\("status", "queued"\)/,
+    where: "src/lib/tracking/runner.ts",
+  },
 };
 
 /**
@@ -457,8 +480,13 @@ test("the kill switch is read in one place, so its reach is exactly the guarded 
      * one Resend message to our own inbox, like its scan-keyed sibling above.
      * `scans_enabled` stops new scans; this starts none, so the switch has
      * nothing to refuse here and the decision is not moved.
+     *
+     * Seven on 29 Sep 2026: `cron/track` and `track/run`, the daily tracking
+     * runner (T1). Deliberately outside `scans_enabled`: that switch stops
+     * visitors' scans, and a client's paid tracking has its own switch,
+     * `tracking_enabled`, plus its own dollar cap - both in refuseRun.
      */
-    5,
+    7,
     "the number of spending doors the kill switch does not reach has changed - see docs/blocked.md",
   );
 });

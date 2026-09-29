@@ -265,6 +265,14 @@ const RETENTION_CLAIMS: {
     why: "not a published surface - the message of a thrown Error on the insert path",
     holds: (src) => /throw new Error\(`could not store the answers/.test(src),
   },
+  {
+    file: "src/lib/tracking/runner.ts",
+    needle: "could not store the answers",
+    why:
+      "not a published surface - the daily tracking runner's thrown Error on its answer upsert (T1, 29 Sep " +
+      "2026). Tracked answers are kept for the life of the account, per the dashboard brief",
+    holds: (src) => /throw new Error\(`could not store the answers/.test(src),
+  },
 ];
 
 /** Every claim in one file, flattened so a sentence broken over lines is one match. */

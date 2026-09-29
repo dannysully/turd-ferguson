@@ -215,6 +215,20 @@ const NO_CALLER: { route: string; method: string; why: string; earns: () => bool
     earns: () => declaredCron("/api/cron/reap-stalled-scans"),
   },
   {
+    route: "/api/cron/track",
+    method: "GET",
+    why: "Vercel Cron calls it on a schedule (the daily tracking check, 29 Sep 2026); nothing in the app does.",
+    earns: () => declaredCron("/api/cron/track"),
+  },
+  {
+    route: "/api/track/run",
+    method: "POST",
+    why:
+      "Posted by the tracking dispatcher with an HMAC of the body, at an absolute URL built from the " +
+      "cron request's origin, so the path scanner reads no literal call to it.",
+    earns: () => readFileSync(join(ROOT, "src/lib/tracking/runner.ts"), "utf8").includes("/api/track/run`"),
+  },
+  {
     route: "/api/verify/[vtoken]",
     method: "GET",
     why: "It is the link in the verification email, followed by a person in a mail client.",

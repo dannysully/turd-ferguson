@@ -164,3 +164,22 @@ export async function readKeywordRank(
   const task = firstTask(await post(path, body, budgetFor(timeoutMs, budgetMs)));
   return { rank: rankOf(parseOrganic(task.result?.[0]), domain), cost: taskCost(task) };
 }
+
+/**
+ * The same read as `readKeywordRank`, keeping the URL of the domain's
+ * best-ranking page as well - the daily tracking runner stores both (T1,
+ * 29 Sep 2026). One request shape, one ranker; only what is kept differs.
+ */
+export async function readKeywordPosition(
+  keyword: string,
+  domain: string,
+  market: Market,
+  budgetMs?: number,
+): Promise<{ rank: number | null | undefined; url: string | null; cost: number }> {
+  const { path, body, timeoutMs } = keywordRankRequest(keyword, market);
+  const task = firstTask(await post(path, body, budgetFor(timeoutMs, budgetMs)));
+  const organic = parseOrganic(task.result?.[0]);
+  const rank = rankOf(organic, domain);
+  const url = typeof rank === "number" ? (organic.find((o) => o.rank === rank)?.url ?? null) : null;
+  return { rank, url, cost: taskCost(task) };
+}

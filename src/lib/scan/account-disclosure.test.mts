@@ -443,7 +443,10 @@ test("the SQL walk can see the functions it is sweeping", () => {
   // exactly the thing that can go quiet without anybody editing it.
   assert.deepEqual(
     BEARERS,
-    ["accounts", "client_domains", "leads", "scans"],
+    // dashboard_members joined on 29 Sep 2026 (20260929000000_tracking_dashboard,
+    // the alwaystracked dashboard's logins). No SQL function reads it; the
+    // dashboard reads it server-side through the service role only.
+    ["accounts", "client_domains", "dashboard_members", "leads", "scans"],
     `the tables carrying ${COLUMN} have changed, or bearerTables has stopped parsing them`,
   );
 });

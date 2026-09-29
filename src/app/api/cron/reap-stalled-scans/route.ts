@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { constantTimeEqual } from "@/lib/constant-time";
 import { reapStalledFreePass, reapStalledGatedPass, STALL_AFTER_MS } from "@/lib/scan/stall";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { reapStalledTrackingRuns } from "@/lib/tracking/runner";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -79,6 +80,16 @@ export async function GET(req: Request) {
     errors.push(err instanceof Error ? err.message : String(err));
   }
 
+  // Daily tracking runs (T1, 29 Sep 2026) left `running` past 15 minutes.
+  // Their own try, for the reason above.
+  let tracking: string[] = [];
+  try {
+    tracking = (await reapStalledTrackingRuns()).ids;
+  } catch (err) {
+    errors.push(err instanceof Error ? err.message : String(err));
+  }
+  if (tracking.length) console.warn(`[track] stall sweep closed ${tracking.length} tracking run(s): ${tracking.join(", ")}`);
+
   // Logged as well as returned. The response goes to Vercel's cron log, which
   // nobody reads on a quiet day; a scan being closed by this job means a
   // function was killed, and that is worth finding in the log next to whatever
@@ -96,6 +107,7 @@ export async function GET(req: Request) {
       stall_after_ms: STALL_AFTER_MS,
       free_passes_closed: free.length,
       gated_passes_closed: gated.length,
+      tracking_runs_closed: tracking.length,
       // The ids, because the whole point of this job is that something was
       // wrong with these scans and the next question is always which ones.
       scans: free.length || gated.length ? { free, gated } : undefined,

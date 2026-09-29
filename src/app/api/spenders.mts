@@ -86,6 +86,20 @@ export const PAID: Record<string, { module: string; what: string }> = {
    * is checked against its module by `paidEntryPoints`, so a rename fails
    * loudly instead of quietly emptying the set.
    */
+  /**
+   * 29 September 2026, T1 of the alwaystracked dashboard. The daily runner:
+   * every live question on the tier's engines, every live keyword's SERP and
+   * a brand extraction per engine, for one client. `dispatchTrackingRuns`
+   * opens and hands off one of those per client, so it queues work that bills.
+   */
+  runTrackingDay: {
+    module: "src/lib/tracking/runner.ts",
+    what: "one client's daily tracking run - its questions on its engines, its keywords, a brand read per engine",
+  },
+  dispatchTrackingRuns: {
+    module: "src/lib/tracking/runner.ts",
+    what: "one tracking run per active client with a live question, handed to /api/track/run",
+  },
   sendRequestedReport: {
     module: "src/lib/scan/report-mail.ts",
     what: "one report message per scan, to an address given while it was still running",
