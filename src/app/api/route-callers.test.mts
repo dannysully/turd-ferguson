@@ -229,8 +229,10 @@ const NO_CALLER: { route: string; method: string; why: string; earns: () => bool
   {
     route: "/api/app/logout",
     method: "POST",
+    // The sidebar moved out of /app/[client]/page.tsx into its own component
+    // on 29 Sep 2026 (T4), so the parity fixture draws the same one.
     why: "Posted by the plain HTML form in the dashboard sidebar, which the fetch scanner does not read.",
-    earns: () => readFileSync(join(ROOT, "src/app/app/[client]/page.tsx"), "utf8").includes('action="/api/app/logout"'),
+    earns: () => readFileSync(join(ROOT, "src/components/app/Sidebar.tsx"), "utf8").includes('action="/api/app/logout"'),
   },
   {
     route: "/api/track/run",

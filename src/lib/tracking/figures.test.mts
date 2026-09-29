@@ -1,0 +1,147 @@
+import assert from "node:assert/strict";
+import { test } from "node:test";
+
+import {
+  type AnswerRow,
+  brandBoard,
+  checkGrid,
+  citedPages,
+  comparisonRange,
+  daysIn,
+  keywordRows,
+  keywordsOnPage1,
+  liveThroughout,
+  movers,
+  namedRate,
+  overview,
+  pointsDelta,
+  questionsNamed,
+  shareOfVoice,
+} from "./figures.ts";
+
+/** T4's figures (docs/tracked-dashboard-2026-09-29/BRIEF.md, 29 Sep 2026). */
+
+const a = (run_date: string, question_id: string, engine: string, named: boolean, brands: string[] = [], answered = true): AnswerRow => ({
+  run_date,
+  question_id,
+  engine,
+  answered,
+  named,
+  brands,
+});
+
+test("a rate carries its numerator and denominator, and has no percentage over nothing", () => {
+  assert.deepEqual(namedRate([a("2026-09-02", "q1", "chatgpt", true), a("2026-09-02", "q2", "chatgpt", false)], { from: "2026-09-01", to: "2026-09-30" }), { num: 1, den: 2, pct: 50 });
+  assert.deepEqual(namedRate([], { from: "2026-09-01", to: "2026-09-30" }), { num: 0, den: 0, pct: null });
+});
+
+test("an unanswered read is not in the denominator", () => {
+  const r = namedRate([a("2026-09-02", "q1", "gemini", false, [], false), a("2026-09-02", "q1", "chatgpt", true)], { from: "2026-09-02", to: "2026-09-02" });
+  assert.deepEqual([r.num, r.den], [1, 1]);
+});
+
+test("the previous period is the same length, just before; the month before is one calendar month back", () => {
+  assert.deepEqual(comparisonRange({ from: "2026-09-02", to: "2026-09-29" }, "prev"), { from: "2026-08-05", to: "2026-09-01" });
+  assert.deepEqual(comparisonRange({ from: "2026-03-31", to: "2026-03-31" }, "month"), { from: "2026-02-28", to: "2026-02-28" });
+  assert.equal(comparisonRange({ from: "2026-09-02", to: "2026-09-29" }, "none"), null);
+  assert.equal(daysIn({ from: "2026-09-02", to: "2026-09-29" }).length, 28);
+});
+
+test("like-for-like counts only questions live all of both periods", () => {
+  const range = { from: "2026-09-15", to: "2026-09-28" };
+  const qs = [
+    { id: "old", added_on: "2026-08-01", stopped_on: null },
+    { id: "new", added_on: "2026-09-20", stopped_on: null },
+    { id: "gone", added_on: "2026-08-01", stopped_on: "2026-09-22" },
+  ];
+  const answers = [
+    a("2026-09-05", "old", "chatgpt", false),
+    a("2026-09-05", "gone", "chatgpt", true),
+    a("2026-09-16", "old", "chatgpt", true),
+    a("2026-09-21", "new", "chatgpt", true),
+    a("2026-09-21", "gone", "chatgpt", false),
+  ];
+  assert.equal(liveThroughout(qs[0]!, { from: "2026-09-01", to: "2026-09-28" }), true);
+  const o = overview({ range, compare: "prev", startedOn: "2026-08-01", engines: ["chatgpt"], questions: qs, answers, serp: [], keywordCount: 0 });
+  assert.equal(o.lfl?.questions, 1);
+  assert.deepEqual([o.lfl!.now.num, o.lfl!.now.den], [1, 1]);
+  assert.deepEqual([o.lfl!.before.num, o.lfl!.before.den], [0, 1]);
+  // Overall includes the added and the stopped question, so it differs.
+  assert.deepEqual([o.named.num, o.named.den], [2, 3]);
+  assert.equal(pointsDelta(o.lfl!.now, o.lfl!.before), 100);
+});
+
+test("a comparison reaching before tracking began is hidden, with the line that says so", () => {
+  const o = overview({ range: { from: "2026-09-02", to: "2026-09-29" }, compare: "prev", startedOn: "2026-09-10", engines: [], questions: [], answers: [], serp: [], keywordCount: 10 });
+  assert.equal(o.compare, null);
+  assert.equal(o.lfl, null);
+  assert.match(o.compareHidden ?? "", /^Tracking began 10 Sep/);
+});
+
+test("questions named, share of voice with rank, keywords on page 1", () => {
+  const r = { from: "2026-09-01", to: "2026-09-30" };
+  const rows = [a("2026-09-02", "q1", "chatgpt", true, ["Acme"]), a("2026-09-02", "q2", "chatgpt", false, ["Acme", "Bolt"]), a("2026-09-03", "q2", "gemini", false, ["acme"])];
+  assert.deepEqual(questionsNamed(rows, r), { num: 1, den: 2, pct: 50 });
+  const sov = shareOfVoice(rows, r);
+  assert.deepEqual([sov.num, sov.den, sov.rank, sov.brands], [1, 5, 2, 3]);
+  const kw = keywordsOnPage1(
+    [
+      { run_date: "2026-09-01", keyword_id: "k1", position: 14 },
+      { run_date: "2026-09-02", keyword_id: "k1", position: 8 },
+      { run_date: "2026-09-02", keyword_id: "k2", position: 3 },
+      { run_date: "2026-09-02", keyword_id: "k3", position: null },
+    ],
+    r,
+    10,
+  );
+  assert.deepEqual([kw.num, kw.den, kw.avg], [2, 10, 5.5]);
+});
+
+test("movers sort by the size of the change; the brand board counts the client as one brand among them", () => {
+  const now = { from: "2026-09-15", to: "2026-09-28" };
+  const was = { from: "2026-09-01", to: "2026-09-14" };
+  const rows = [
+    a("2026-09-02", "up", "chatgpt", false, ["Acme"]),
+    a("2026-09-16", "up", "chatgpt", true),
+    a("2026-09-02", "flat", "gemini", true),
+    a("2026-09-16", "flat", "gemini", true, ["Acme", "Bolt"]),
+  ];
+  const m = movers(rows, now, was);
+  assert.deepEqual(m.map((x) => [x.id, x.delta]), [["up", 100], ["flat", 0]]);
+  assert.deepEqual(m[0]!.engines, ["chatgpt"]);
+  const board = brandBoard(rows, now, was, "Tally");
+  assert.deepEqual(board.map((b) => [b.name, b.you, b.share.num, b.share.den]), [["Tally", true, 2, 4], ["Acme", false, 1, 4], ["Bolt", false, 1, 4]]);
+  assert.equal(board[0]!.delta, 0);
+});
+
+test("keyword rows: latest position, places gained over the range, one point per day", () => {
+  const k = keywordRows(
+    [
+      { run_date: "2026-09-01", keyword_id: "k", position: 11 },
+      { run_date: "2026-09-03", keyword_id: "k", position: 7 },
+    ],
+    { from: "2026-09-01", to: "2026-09-03" },
+  ).get("k")!;
+  assert.deepEqual(k, { position: 7, change: 4, series: [11, null, 7] });
+});
+
+test("cited pages: counted per page, engines listed, the client's own site marked", () => {
+  const pages = citedPages(
+    [
+      { run_date: "2026-09-02", engine: "chatgpt", citations: [{ source_domain: "www.tally.com", url: "https://www.tally.com/pricing/" }, { source_domain: "review.io", url: null }] },
+      { run_date: "2026-09-02", engine: "gemini", citations: [{ source_domain: "tally.com", url: "https://tally.com/pricing" }] },
+    ],
+    { from: "2026-09-01", to: "2026-09-30" },
+    "tally.com",
+  );
+  assert.deepEqual(pages, [
+    { page: "tally.com/pricing", count: 2, engines: ["chatgpt", "gemini"], yours: true },
+    { page: "review.io", count: 1, engines: ["chatgpt"], yours: false },
+  ]);
+});
+
+test("the check grid has one cell per engine per day, null where nothing ran", () => {
+  const g = checkGrid([a("2026-09-02", "q1", "chatgpt", true), a("2026-09-02", "q2", "chatgpt", false)], { from: "2026-09-01", to: "2026-09-02" }, ["chatgpt", "gemini"]);
+  assert.deepEqual(g.chatgpt, [null, { num: 1, den: 2, pct: 50 }]);
+  assert.deepEqual(g.gemini, [null, null]);
+});

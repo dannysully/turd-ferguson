@@ -159,6 +159,10 @@ export const STATES: Record<string, State> = {
   // Same: with no session a client slug redirects to /app/login. The signed-in
   // render needs a session cookie and a client row, which the capture has not.
   "/app/[client]": { urls: ["/app/example"] },
+  // 29 Sep 2026, T4: the overview drawn from the local parity fixture - the
+  // only way the sweeps see the signed-in overview's markup at all. A 404 in
+  // a checkout that has not run docs/parity/T4/make-fixture.py.
+  "/app/parity": { urls: ["/app/parity"] },
   // 29 Sep 2026, T2: the same /admin Basic auth as /admin/scans.
   "/admin/tracking": {
     urls: [],
