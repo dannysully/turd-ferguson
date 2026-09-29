@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
-import { clientsFor, sessionEmail } from "@/lib/tracking/member";
+import { trackingRepo } from "@/lib/tracking/repo";
 
 export const dynamic = "force-dynamic";
 
@@ -14,9 +14,10 @@ export const runtime = "nodejs";
 
 /** /app sends a member to their first client, and anyone else to the login page. */
 export default async function AppHome() {
-  const email = await sessionEmail();
+  const repo = trackingRepo();
+  const email = await repo.sessionEmail();
   if (!email) redirect("/app/login");
-  const clients = await clientsFor(email);
+  const clients = await repo.clientsFor(email);
   if (!clients.length) redirect("/app/login?access=none");
   redirect(`/app/${clients[0]!.slug}`);
 }

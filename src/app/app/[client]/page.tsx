@@ -6,9 +6,8 @@ import Sidebar from "@/components/app/Sidebar";
 import type { TierKey } from "@/components/TierName";
 import { enginesFor } from "@/config/pricing";
 import { T } from "@/config/tokens";
-import { trackingDay } from "@/lib/tracking/decide";
-import { clientsFor, sessionEmail } from "@/lib/tracking/member";
-import { loadOverview, rangeFrom } from "@/lib/tracking/overview-data";
+import { rangeFrom } from "@/lib/tracking/overview-data";
+import { trackingRepo } from "@/lib/tracking/repo";
 
 export const dynamic = "force-dynamic";
 
@@ -34,17 +33,18 @@ export default async function ClientDashboard({
   params: Promise<{ client: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const email = await sessionEmail();
+  const repo = trackingRepo();
+  const email = await repo.sessionEmail();
   if (!email) redirect("/app/login");
   const { client: slug } = await params;
-  const clients = await clientsFor(email);
+  const clients = await repo.clientsFor(email);
   const client = clients.find((c) => c.slug === slug);
   if (!client) notFound();
   const tier = (client.tier as TierKey) ?? "tracked";
   const engines = enginesFor(tier);
-  const today = trackingDay();
+  const today = repo.today();
   const { range, compare } = rangeFrom(await searchParams, today);
-  const data = await loadOverview(client.id, range, compare);
+  const data = await repo.loadOverview(client.id, range, compare);
 
   return (
     <div className="app-shell" style={{ display: "flex", flexWrap: "wrap", minHeight: "100vh", color: T.ink }}>
