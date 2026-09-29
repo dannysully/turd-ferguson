@@ -61,3 +61,12 @@ next-env.d.ts
 
 # Design briefs - images and boards, large and not source.
 /docs/site-brief-*/
+
+# builder working files - client names, and this repo is public
+/docs/danny.md
+/docs/review-queue.md
+/docs/review-latest.md
+/docs/queue.md
+/docs/rules.md
+/docs/parity/
+/docs/tracked-dashboard-*/
