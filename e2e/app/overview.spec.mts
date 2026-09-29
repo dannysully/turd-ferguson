@@ -1,0 +1,208 @@
+/**
+ * `npm run e2e:app` - the T9 harness (R93, 29 Sep 2026; BRIEF-2 T9). Runs the
+ * real /app pages under `next start` with `TRACKING_FIXTURE=1`, so no login
+ * and no database: made-up Tallyroo from src/lib/tracking/fixture.json.
+ *
+ * Needs a build (`npm run build`). Serves it in-process on E2E_PORT (3107)
+ * unless E2E_BASE points at a server already running in fixture mode.
+ *
+ * Playwright is resolved from ~/code/.parity, the copy docs/parity/shoot.mjs
+ * uses, and axe from the repo's own node_modules/axe-core (a lint
+ * dependency), injected into the page - the engine @axe-core/playwright
+ * wraps. Neither is a dependency of the site build.
+ *
+ * Every check runs at 1440, 1024 and 390, each with and without reduced
+ * motion. Screens not built yet (T5 picker, T6 questions, T7 one question,
+ * T8 CSV, T13 placements) carry their task budgets as `todo`, so the gap is
+ * reported rather than passing silently.
+ */
+import { readFileSync } from "node:fs";
+import { createServer, type Server } from "node:http";
+import { createRequire } from "node:module";
+import os from "node:os";
+import path from "node:path";
+import { after, before, describe, test } from "node:test";
+import assert from "node:assert/strict";
+import { gzipSync } from "node:zlib";
+
+import { expandFixture } from "../../src/lib/tracking/fixture-mode.ts";
+import { addDays, overview, type Rate } from "../../src/lib/tracking/figures.ts";
+
+const ROOT = path.resolve(import.meta.dirname, "..", "..");
+const require = createRequire(path.join(os.homedir(), "code/.parity/package.json"));
+// Playwright is not a repo dependency, so its types are not either: the
+// little of its surface these specs touch, typed by hand.
+type Page = {
+  goto(url: string, o?: object): Promise<unknown>;
+  url(): string;
+  $$eval<R>(sel: string, fn: (els: Element[]) => R): Promise<R>;
+  evaluate<R>(fn: () => R | Promise<R>): Promise<R>;
+  addScriptTag(o: { content: string }): Promise<unknown>;
+  locator(sel: string): { count(): Promise<number> };
+  keyboard: { press(key: string): Promise<void> };
+  on(ev: "response", fn: (r: { url(): string; request(): { resourceType(): string } }) => void): void;
+};
+type Context = { newPage(): Promise<Page>; close(): Promise<void> };
+type Browser = { newContext(o: object): Promise<Context>; close(): Promise<void> };
+const { chromium } = require("playwright") as { chromium: { launch(): Promise<Browser> } };
+const AXE = readFileSync(path.join(ROOT, "node_modules", "axe-core", "axe.min.js"), "utf8");
+
+const PORT = Number(process.env.E2E_PORT ?? 3107);
+const BASE = process.env.E2E_BASE ?? `http://127.0.0.1:${PORT}`;
+const WIDTHS = [1440, 1024, 390] as const;
+const MOTION = ["no-preference", "reduce"] as const;
+/** BRIEF-2 T9 budget 7: /app route JS under 180 kB gzipped. */
+const JS_BUDGET_GZ = 180 * 1024;
+
+const fx = expandFixture(JSON.parse(readFileSync(path.join(ROOT, "src", "lib", "tracking", "fixture.json"), "utf8")));
+const range = { from: addDays(fx.today, -27), to: fx.today };
+const o = overview({
+  range,
+  compare: "prev",
+  startedOn: fx.client.started_on,
+  engines: [],
+  questions: fx.data.questions,
+  answers: fx.data.answers,
+  serp: fx.data.serp,
+  keywordCount: fx.data.keywords.filter((k) => k.stopped_on === null).length,
+});
+const pct = (r: Rate) => (r.pct === null ? "-" : `${r.pct}%`);
+/** What figures.ts says each `data-figure` must read on the default range. */
+const EXPECTED: Record<string, string> = {
+  "headline-named": pct(o.named),
+  named: pct(o.named),
+  questions: `${o.questions.num} of ${o.questions.den}`,
+  sov: pct(o.sov),
+  keywords: `${o.keywords.num} of ${o.keywords.den}`,
+};
+
+let server: Server | null = null;
+let browser: Browser;
+
+before(async () => {
+  if (!process.env.E2E_BASE) {
+    // In-process, as src/app/dynamic-render.mts serves the build: `next start`
+    // on the built output, with the fixture switch on and production off.
+    // Set, not deleted: .env.local is a pulled Vercel file carrying
+    // VERCEL_ENV=production, and Next loads it into any variable left unset.
+    process.env.TRACKING_FIXTURE = "1";
+    process.env.VERCEL_ENV = "development";
+    const { default: next } = await import("next");
+    const app = next({ dev: false, dir: ROOT });
+    await app.prepare();
+    const handle = app.getRequestHandler();
+    server = createServer((req, res) => handle(req, res));
+    await new Promise<void>((resolve) => server!.listen(PORT, "127.0.0.1", () => resolve()));
+  }
+  browser = await chromium.launch();
+});
+
+after(async () => {
+  await browser?.close();
+  server?.close();
+  server?.closeAllConnections();
+});
+
+async function figures(page: Page): Promise<Record<string, string>> {
+  return page.$$eval("[data-figure]", (els) => Object.fromEntries(els.map((e) => [e.getAttribute("data-figure")!, (e.textContent ?? "").trim()])));
+}
+
+for (const width of WIDTHS) {
+  for (const motion of MOTION) {
+    describe(`overview at ${width}, motion ${motion}`, () => {
+      const open = async (javaScriptEnabled = true) => {
+        const ctx = await browser.newContext({ viewport: { width, height: 900 }, reducedMotion: motion, javaScriptEnabled });
+        const page = await ctx.newPage();
+        await page.goto(`${BASE}/app`, { waitUntil: "networkidle" });
+        return { ctx, page };
+      };
+
+      test("/app lands on the fixture client", async () => {
+        const { ctx, page } = await open();
+        assert.equal(new URL(page.url()).pathname, `/app/${fx.client.slug}`);
+        await ctx.close();
+      });
+
+      test("1. every data-figure equals figures.ts", async () => {
+        const { ctx, page } = await open();
+        const seen = await figures(page);
+        for (const [k, v] of Object.entries(EXPECTED)) assert.equal(seen[k], v, `data-figure="${k}"`);
+        await ctx.close();
+      });
+
+      test("3. Tab never loses focus to body, and focus is visible", async () => {
+        const { ctx, page } = await open();
+        for (let i = 0; i < 25; i++) {
+          await page.keyboard.press("Tab");
+          const f = await page.evaluate(() => {
+            const el = document.activeElement as HTMLElement | null;
+            if (!el || el === document.body) return { body: true, visible: false, what: "body" };
+            const cs = getComputedStyle(el);
+            const visible = (cs.outlineStyle !== "none" && parseFloat(cs.outlineWidth) > 0) || cs.boxShadow !== "none";
+            return { body: false, visible, what: `${el.tagName.toLowerCase()} ${el.getAttribute("href") ?? el.textContent?.trim().slice(0, 40) ?? ""}` };
+          });
+          assert.equal(f.body, false, `tab ${i + 1} landed on body`);
+          assert.ok(f.visible, `tab ${i + 1}: no visible focus on ${f.what}`);
+        }
+        await ctx.close();
+      });
+
+      test("4. axe: 0 serious or critical", async () => {
+        const { ctx, page } = await open();
+        await page.addScriptTag({ content: AXE });
+        const found = await page.evaluate(async () => {
+          // @ts-expect-error injected
+          const r = await window.axe.run(document, { resultTypes: ["violations"] });
+          return (r.violations as { id: string; impact: string; nodes: { target: string[] }[] }[])
+            .filter((v) => v.impact === "serious" || v.impact === "critical")
+            .map((v) => `${v.impact} ${v.id}: ${v.nodes.slice(0, 3).map((n) => n.target.join(" ")).join(", ")}`);
+        });
+        assert.deepEqual(found, []);
+        await ctx.close();
+      });
+
+      test("5. JS off: settled figures and chart from the server", async () => {
+        const { ctx, page } = await open(false);
+        const seen = await figures(page);
+        for (const [k, v] of Object.entries(EXPECTED)) assert.equal(seen[k], v, `data-figure="${k}" with JS off`);
+        assert.ok((await page.locator("main svg, svg").count()) > 0, "no chart drawn with JS off");
+        await ctx.close();
+      });
+    });
+  }
+}
+
+describe("budgets", () => {
+  test("7. /app route JS under 180 kB gzipped", async () => {
+    const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const page = await ctx.newPage();
+    const scripts = new Set<string>();
+    page.on("response", (r) => {
+      if (r.request().resourceType() === "script") scripts.add(r.url());
+    });
+    await page.goto(`${BASE}/app`, { waitUntil: "networkidle" });
+    let gz = 0;
+    for (const url of scripts) gz += gzipSync(Buffer.from(await (await fetch(url)).arrayBuffer())).length;
+    await ctx.close();
+    console.log(`# /app JS: ${scripts.size} scripts, ${(gz / 1024).toFixed(1)} kB gzipped (budget 180 kB)`);
+    assert.ok(gz < JS_BUDGET_GZ, `${(gz / 1024).toFixed(1)} kB gzipped`);
+  });
+
+  test.todo("7. overview in 3 or fewer database round trips (the Supabase repo does not log round trips yet)");
+});
+
+describe("2. task budgets", () => {
+  test.todo("range to August vs the month before: 5 or fewer (T5 picker not built)");
+  test.todo("engine that names you least: 0 at 1440, 1 scroll at 390");
+  test.todo("stop a prompt, then undo: 3 or fewer (T6 not built)");
+  test.todo("add when full, refusal visible: 2 or fewer (T6 not built)");
+  test.todo("open one day's answer from the check strip: 2 or fewer (T7 not built)");
+  test.todo("select a placement and see it on the chart: 1 (T13 not built)");
+  test.todo("download the CSV for the range: 1 (T8 not built)");
+});
+
+describe("6. empty and edge states", () => {
+  for (const s of ["no runs yet", "a range before tracking began", "a comparison reaching before tracking", "a prompt added mid-range", "a partial run", "a client at the limit"]) {
+    test.todo(`${s} (needs fixture variants)`);
+  }
+});

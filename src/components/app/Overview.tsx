@@ -200,7 +200,7 @@ export default function Overview({
             {checked}
           </div>
           <h2 style={{ margin: 0, fontSize: "40px", lineHeight: 1.12, fontWeight: 700, letterSpacing: "-0.03em", maxWidth: "520px" }} className="app-headline-h">
-            {brand} was named in {pct(o.named)} of AI answers
+            {brand} was named in <span data-figure="headline-named">{pct(o.named)}</span> of AI answers
           </h2>
           <p style={{ margin: 0, fontSize: "16px", lineHeight: 1.55, color: D.cardHead, maxWidth: "500px" }}>
             {o.named.num.toLocaleString("en-GB")} of {o.named.den.toLocaleString("en-GB")} answers across {questionsAnswered} questions and {WORDS[engines.length] ?? engines.length} engines.
@@ -264,24 +264,28 @@ export default function Overview({
       <section aria-label="Key figures" className="app-figures" style={{ ...CARD, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", overflow: "hidden" }}>
         {[
           {
+            figure: "named",
             label: "Answers naming you",
             value: pct(o.named),
             delta: <Delta value={pointsDelta(o.named, o.namedBefore)} />,
             foot: <span style={{ fontSize: "13px", color: T.soft }}>{`${o.named.num.toLocaleString("en-GB")} of ${o.named.den.toLocaleString("en-GB")} answers`}</span>,
           },
           {
+            figure: "questions",
             label: "Questions you are named in",
             value: `${o.questions.num} of ${o.questions.den}`,
             delta: o.questionsBefore && o.questionsBefore.den ? <span style={{ fontSize: "13px", color: T.soft }}>{`was ${o.questionsBefore.num} of ${o.questionsBefore.den}`}</span> : null,
             foot: o.questions.den - o.questions.num ? <span style={{ fontSize: "13px", color: T.soft }}>{`${o.questions.den - o.questions.num} never name you`}</span> : <span style={{ fontSize: "13px", color: T.soft }}>Named in every question</span>,
           },
           {
+            figure: "sov",
             label: "Share of voice",
             value: pct(o.sov),
             delta: <Delta value={pointsDelta(o.sov, o.sovBefore)} />,
             foot: <span style={{ fontSize: "13px", color: T.soft }}>{o.sov.rank ? `${ordinal(o.sov.rank)} of ${o.sov.brands} brands named` : `Not named; ${o.sov.brands} other brands were`}</span>,
           },
           {
+            figure: "keywords",
             label: "Google keywords on page 1",
             value: `${o.keywords.num} of ${o.keywords.den}`,
             delta: o.keywordsBefore && o.keywordsBefore.den ? <Delta value={o.keywords.num - o.keywordsBefore.num} unit="" /> : null,
@@ -291,7 +295,7 @@ export default function Overview({
           <div key={f.label} style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "22px 24px", minWidth: 0, borderLeft: i ? `1px solid ${T.line}` : undefined, marginLeft: i ? "-1px" : undefined }}>
             <div style={LABEL}>{f.label}</div>
             <div style={{ display: "flex", alignItems: "baseline", gap: "10px", flexWrap: "wrap" }}>
-              <span style={{ fontSize: "30px", fontWeight: 700, letterSpacing: "-0.03em", color: T.ink, fontVariantNumeric: "tabular-nums" }}>{f.value}</span>
+              <span style={{ fontSize: "30px", fontWeight: 700, letterSpacing: "-0.03em", color: T.ink, fontVariantNumeric: "tabular-nums" }} data-figure={f.figure}>{f.value}</span>
               {f.delta}
             </div>
             {f.foot}
@@ -315,7 +319,7 @@ export default function Overview({
       />
 
       <div className="app-pair" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.35fr) minmax(0, 1fr)", gap: "24px" }}>
-        <section aria-labelledby="movers-h" style={{ ...CARD, paddingTop: "22px", minWidth: 0, overflowX: "auto" }}>
+        <section aria-labelledby="movers-h" tabIndex={0} style={{ ...CARD, paddingTop: "22px", minWidth: 0, overflowX: "auto" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "0 24px 14px" }}>
             <h2 id="movers-h" style={H2}>
               Biggest movers
@@ -394,7 +398,7 @@ export default function Overview({
       </div>
 
       <div className="app-pair" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.35fr) minmax(0, 1fr)", gap: "24px" }}>
-        <section aria-labelledby="kw-h" style={{ ...CARD, paddingTop: "22px", minWidth: 0, overflowX: "auto" }}>
+        <section aria-labelledby="kw-h" tabIndex={0} style={{ ...CARD, paddingTop: "22px", minWidth: 0, overflowX: "auto" }}>
           <div style={{ padding: "0 24px 14px" }}>
             <h2 id="kw-h" style={H2}>
               Google keywords
