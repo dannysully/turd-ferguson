@@ -249,6 +249,12 @@ test("the four sites are the ones we think they are", () => {
   assert.deepEqual(
     sites.map((s) => `${s.table}:${key((s.onConflict ?? "").split(","))}`).sort(),
     [
+      // 29 Sep 2026, T2 /admin/tracking: a client from a scan on client_domains'
+      // original unique key (scan_phase1), and a member on dashboard_members'
+      // (account_id, email) - once as the owner at create, once from the form.
+      "client_domains:account_id,domain,market,topic",
+      "dashboard_members:account_id,email",
+      "dashboard_members:account_id,email",
         "scan_answers:engine,question_id",
       "scan_brands:brand,engine,scan_id",
       "scan_sources:domain,scan_id",
@@ -258,7 +264,9 @@ test("the four sites are the ones we think they are", () => {
       // 29 Sep 2026, the daily tracking runner (T1), each on its own unique
       // constraint in 20260929000000_tracking_dashboard.sql: one run per client
       // per day, one answer per run, question and engine, one SERP per keyword.
+      // The second tracking_runs site is T2's "Run now", same key.
       "tracking_answers:engine,question_id,run_id",
+      "tracking_runs:client_domain_id,run_date",
       "tracking_runs:client_domain_id,run_date",
       "tracking_serp:keyword_id,run_id",
       // 24 Sep 2026: one walkthrough request per scan, address and kind.

@@ -146,6 +146,13 @@ function selectsIn({ file, src }: Source): Select[] {
  * keep the suite green is an entry nobody re-reads.
  */
 const RECORDED: Record<string, string> = {
+  // 29 Sep 2026, T2. Both render only on /admin/tracking, behind the /admin
+  // Basic auth; the requester is Nomada, and the id is used only to group
+  // members and post it back as a hidden field to the admin's own action.
+  "src/app/admin/tracking/page.tsx :: account_id, email, role":
+    "admin-only page; groups dashboard members under their client. Never reaches a visitor.",
+  "src/app/admin/tracking/page.tsx :: id, account_id, domain, market, tier, status, started_on, question_limit, keyword_limit, slug":
+    "admin-only page; the account id goes back only into the admin's own member form.",
 };
 
 /**
@@ -160,6 +167,12 @@ const MENTIONED: Record<string, string> = {
     "Declares SCAN_UNLOCK_COLUMNS, and writes the column on the accounts and " +
     "client_domains rows. Writes, not reads: resolveAccount is the only thing that " +
     "inserts into accounts.",
+  "src/app/admin/tracking/actions.ts":
+    "T2 (29 Sep 2026): writes the column on client_domains and dashboard_members when " +
+    "Nomada creates a tracked client or a member. Writes, behind the admin check.",
+  "src/app/admin/tracking/page.tsx":
+    "T2: renders the admin's member form with the account id as a hidden field. " +
+    "Admin-only, behind the /admin Basic auth.",
 };
 
 test("nothing in this tree selects *", () => {

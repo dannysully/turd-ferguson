@@ -160,13 +160,15 @@ test("the blog kind discovery finds pills and nothing else", async () => {
  * the gap that started all of this - and if one of them ever becomes
  * renderable, `capture()` throws rather than letting it sit on the list.
  */
-test("the routes that cannot be rendered here are exactly the three known ones", () => {
+test("the routes that cannot be rendered here are exactly the four known ones", () => {
   const blocked = Object.entries(STATES)
     .filter(([, s]) => !s.urls.length)
     .map(([route]) => route)
     .sort();
 
-  assert.deepEqual(blocked, ["/admin/scans", "/coverage-check/[token]", "/scan/[token]"]);
+  // Four since 29 Sep 2026: /admin/tracking (T2) sits behind the same Basic
+  // auth as /admin/scans, and a credential is not ours to hold.
+  assert.deepEqual(blocked, ["/admin/scans", "/admin/tracking", "/coverage-check/[token]", "/scan/[token]"]);
 
   for (const route of blocked) {
     assert.ok(

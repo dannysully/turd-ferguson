@@ -47,6 +47,7 @@ const NEEDS_BUILD = "no build to read - run `npm run build` then `npm run captur
  */
 const CLOSED_ON_PURPOSE: Record<string, string> = {
   "/admin/scans": "the ops page; 401s to everyone and has no public reader at all",
+  "/admin/tracking": "tracked-client operations (T2, 29 Sep 2026); behind the same /admin Basic auth, no public reader",
   "/scan": "the GET form target, noindex and deliberately headerless - see HEADERLESS_ON_PURPOSE",
   "/scan/[token]": "somebody's own scan result, reachable only by holding the token",
   "/coverage-check/[token]": "somebody's own campaign reading, reachable only by holding the token",

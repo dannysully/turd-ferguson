@@ -107,5 +107,36 @@ export function runOutcome(reads: number, failed: number): "complete" | "partial
   return failed > 0 ? "partial" : "complete";
 }
 
+/** The London day after `day` (YYYY-MM-DD). Additions start at the next daily check. */
+export function dayAfter(day: string): string {
+  const d = new Date(`${day}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
+/** A client's dashboard slug off its domain: "www.nomadadigital.co.uk" -> "nomadadigital-co-uk". */
+export function slugFor(domain: string): string {
+  return domain
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, "")
+    .replace(/^www\./, "")
+    .replace(/\/.*$/, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/**
+ * Field bounds for /admin/tracking, read by the form's `maxLength` and by the
+ * actions. Question and keyword match the migration's check constraints
+ * (8-300, 2-120); an email is at most 254 characters (RFC 5321).
+ */
+export const ADMIN_LIMITS = { scan: 200, email: 254, question: 300, keyword: 120, id: 36 } as const;
+
+/** Server-side limit:a new question or keyword is allowed only while the live count is under the limit. */
+export function underLimit(liveCount: number, limit: number): boolean {
+  return liveCount < limit;
+}
+
 /** A `running` tracking run older than this was killed by the platform. */
 export const TRACKING_STALL_MS = 15 * 60 * 1000;

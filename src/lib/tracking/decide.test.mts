@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
+  dayAfter,
   liveOn,
+  slugFor,
+  underLimit,
   readTrackingSettings,
   refuseRun,
   runOutcome,
@@ -69,6 +72,16 @@ test("a run signature verifies only for the body and secret it was made with", (
   assert.ok(!verifyRun(body, sig, "other"));
   assert.ok(!verifyRun(body, null, "s3cret"));
   assert.ok(!verifyRun(body, sig, ""), "an unset secret verifies nothing");
+});
+
+test("admin helpers: next day, slug, limit (T2)", () => {
+  assert.equal(dayAfter("2026-09-29"), "2026-09-30");
+  assert.equal(dayAfter("2026-09-30"), "2026-10-01");
+  assert.equal(dayAfter("2026-12-31"), "2027-01-01");
+  assert.equal(slugFor("www.nomadadigital.co.uk"), "nomadadigital-co-uk");
+  assert.equal(slugFor("https://Example.com/path"), "example-com");
+  assert.equal(underLimit(19, 20), true);
+  assert.equal(underLimit(20, 20), false, "the 21st question is refused");
 });
 
 test("a run that read nothing successfully is failed, not a day of zeros", () => {
