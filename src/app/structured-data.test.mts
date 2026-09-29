@@ -387,11 +387,11 @@ test("every own-domain URL in the structured data is a real route", (t) => {
   // The public/ allowance is earned by the files that use it, and only them.
   assert.deepEqual(
     [...publicFiles].sort(),
-    // Empty since 28 Sep 2026: the launch video and its poster came off
-    // /how-it-works with its VideoObject (stale prices, Danny's call), so
-    // no JSON-LD points into public/. A re-cut puts the two back here.
-    [],
-    "the JSON-LD points at a different set of public/ files than none - record the new one here with why",
+    // The launch video and its poster, from /how-it-works's VideoObject. Off
+    // 28 Sep 2026 (stale prices); back 29 Sep with the price-free re-cut
+    // (R118, danny.md line 110).
+    ["/video/alwayscited-tiers-720.mp4", "/video/alwayscited-tiers-poster.jpg"],
+    "the JSON-LD points at a different set of public/ files than the launch video's two - record the new one here with why",
   );
 
   t.diagnostic(`${checked.size} distinct own-domain URLs in JSON-LD, ${bad.length} unresolved`);

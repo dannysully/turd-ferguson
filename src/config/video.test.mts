@@ -41,10 +41,15 @@ function priceLabels(): string[] {
   return [...source.matchAll(/priceLabel:\s*"([^"]+)"/g)].map((m) => m[1]!);
 }
 
-/** True while the prices painted into the file are the prices the site quotes. */
+/**
+ * True while the prices painted into the file are the prices the site quotes -
+ * or while it paints none, as the 29 Sep 2026 re-cut does (R118): a video with
+ * no price has nothing to go stale against pricing.ts.
+ */
 function videoIsCurrent(): boolean {
   const site = priceLabels();
   assert.equal(site.length, 4, `read ${site.length} price labels out of pricing.ts - the parse, not the site, changed`);
+  if (LAUNCH_VIDEO.shownPrices.length === 0) return true;
   return JSON.stringify([...LAUNCH_VIDEO.shownPrices]) === JSON.stringify(site);
 }
 
@@ -56,6 +61,10 @@ function videoIsCurrent(): boolean {
  * not the site's is on no page, in no JSON-LD, and linked from nowhere. When
  * a re-cut lands with the new prices, videoIsCurrent() turns true and the last
  * test below holds the page to carrying it again.
+ *
+ * 29 Sep 2026 (R118): the re-cut landed, showing no price at all, so
+ * videoIsCurrent() is true and the video is back on /how-it-works. This test
+ * stays for the next cut that paints a price pricing.ts no longer charges.
  */
 test("a video that shows prices the site no longer charges is on no page", (t) => {
   if (videoIsCurrent()) return;
@@ -98,6 +107,16 @@ test("the files the page points at exist, and are the video the record describes
   // whole file has arrived. preload="none" does not help if it is at the end.
   assert.ok(buf.indexOf("moov") < buf.indexOf("mdat"), "moov sits after mdat - the file is not faststart");
   assert.ok(statSync(mp4).size < 5_000_000, "the video is over 5MB - it was 3.4MB when it went up");
+});
+
+test("the re-cut shows no price, so the summary and description name none (R118, 29 Sep 2026)", () => {
+  assert.deepEqual([...LAUNCH_VIDEO.shownPrices], [], "the re-cut paints no price; a new cut that does is recorded here first");
+  const PRICE = /[$£€]\s?\d|\d\s?\/\s?mo\b|per month|a month for/i;
+  for (const line of [...LAUNCH_VIDEO_SUMMARY, LAUNCH_VIDEO.description, LAUNCH_VIDEO.name]) {
+    assert.ok(!PRICE.test(line), `a price in the video's text: ${line}`);
+  }
+  assert.ok(!/\bweekly\b|\bevery week\b/i.test(LAUNCH_VIDEO_SUMMARY.join(" ")), "tracking is daily, not weekly");
+  assert.equal(LAUNCH_VIDEO_SUMMARY.length, 7, "hook, question, four tiers, close - one line a beat");
 });
 
 test("the text summary says the video's prices, one tier a line", () => {
