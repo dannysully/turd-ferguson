@@ -162,6 +162,8 @@ export const STATES: Record<string, State> = {
       "/checkout?tier=alwaysmentioned&sector=technology&clusters=11",
     ],
   },
+  // Stripe's success URL; the Session id is not read, so a made-up one renders the same page.
+  "/checkout/done": { urls: ["/checkout/done", "/checkout/done?session=cs_placeholder"] },
   "/app/auth": {
     urls: ["/app/auth", "/app/auth?token=0000000000000000000000000000000000000000000000000000000000000000"],
   },
