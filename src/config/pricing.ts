@@ -41,6 +41,17 @@ export function contactUrlFor(tier: TierKey): string {
 }
 
 /**
+ * The order form for one tier (R91, pricing spec section 5, 30 Sep 2026), in
+ * the same `?tier=<plain tier word>` form /checkout reads back. The tier
+ * pages' primary CTA for the three checkout tiers; a pick that prices as a
+ * call still goes to contactUrlFor (SelectionCta).
+ */
+export const CHECKOUT_URL = "/checkout";
+export function checkoutUrlFor(tier: TierKey): string {
+  return `${CHECKOUT_URL}?${CONTACT_TIER_PARAM}=${encodeURIComponent(TIER_PLAIN[tier])}`;
+}
+
+/**
  * How many questions the tracking base price covers.
  *
  * Declared here because it is half of what $99 buys, and a number that says

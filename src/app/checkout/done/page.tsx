@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 /** After Stripe - noindex here, in the /checkout header rule and in robots.txt. */
 export const metadata: Metadata = {
-  title: "Order received",
+  title: "Next step: your onboarding call",
   robots: { index: false, follow: false },
 };
 

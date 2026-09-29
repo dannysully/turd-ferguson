@@ -4,7 +4,7 @@ import TierEngines from "@/components/TierEngines";
 import WalkthroughForm from "@/components/scan/WalkthroughForm";
 import TierName, { TierText, type TierKey } from "@/components/TierName";
 import { ALWAYS_ON, ALWAYS_ON_SUPPORT } from "@/config/always-on";
-import { CONTACT_URL, TIERS, TRACKED_BASIS, TRACKED_KEYWORDS, TRACKED_QUESTIONS, contactUrlFor, enginesFor, type Tier } from "@/config/pricing";
+import { CONTACT_URL, TIERS, TRACKED_BASIS, TRACKED_KEYWORDS, TRACKED_QUESTIONS, checkoutUrlFor, enginesFor, type Tier } from "@/config/pricing";
 import { ld } from "@/config/schema";
 import { serviceSchema } from "@/config/service-schema";
 import { CARD, MICRO, SHELL, T } from "@/config/tokens";
@@ -177,14 +177,14 @@ export default function PackagePage({
             )}
           </p>
           <TierEngines tier={tier.key} size={16} colour={T.soft} style={{ margin: "-4px 0 16px" }} />
-          {/* The sector tiers' CTA carries the picks to /contact, with the tier
-              when they price as a call (R69). */}
+          {/* The sector tiers' CTA carries the picks to the order form, or to
+              /contact with the tier when they price as a call (R69, R91). */}
           {tier.key === "mentioned" || tier.key === "cited" ? (
-            <SelectionCta tier={tier.key} href={CONTACT_URL} className="btn-primary" style={CTA_STYLE}>
+            <SelectionCta tier={tier.key} href={checkoutUrlFor(tier.key)} className="btn-primary" style={CTA_STYLE}>
               {tier.action}
             </SelectionCta>
           ) : (
-            <a href={tier.key === "tracked" ? contactUrlFor("tracked") : CONTACT_URL} className="btn-primary" style={CTA_STYLE}>
+            <a href={tier.key === "tracked" ? checkoutUrlFor("tracked") : CONTACT_URL} className="btn-primary" style={CTA_STYLE}>
               {/* The tier's own verb from pricing.ts (R79). alwayseverywhere's
                   still goes to /contact as a call - only the label moved. */}
               {tier.action}
