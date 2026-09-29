@@ -4,11 +4,12 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 
 import { type TierKey } from "@/components/TierName";
-import { TRACKED_KEYWORDS, TRACKED_QUESTIONS, enginesFor } from "@/config/pricing";
+import { enginesFor } from "@/config/pricing";
 import { constantTimeEqual, decodeBasicAuth } from "@/lib/constant-time";
 import { isPlausibleEmail } from "@/lib/email-address";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { ADMIN_LIMITS, dayAfter, liveOn, slugFor, trackingDay, underLimit, upsellSetting } from "@/lib/tracking/decide";
+import { ADMIN_LIMITS, dayAfter, liveOn, slugFor, trackingDay, upsellSetting } from "@/lib/tracking/decide";
+import { insertKeyword, insertPrompts, readPromptRoom } from "@/lib/tracking/limits";
 import { dispatchTrackingRun } from "@/lib/tracking/runner";
 
 /**
@@ -22,14 +23,13 @@ import { dispatchTrackingRun } from "@/lib/tracking/runner";
  * sends the header because the post goes to /admin/tracking, inside the realm.
  *
  * Every action returns a sentence rather than throwing, so the page can say
- * what happened. Limits are enforced here, never only in the form.
+ * what happened. Limits are enforced in `limits.ts` (BRIEF-3 C2), never only
+ * in the form; every tracked insert goes through it.
  */
 
 export type AdminResult = { ok: boolean; message: string };
 
-/** Every tier starts at the plan basis in pricing.ts; the +$49 pack raises a client row by hand. */
 const TIERS = ["tracked", "mentioned", "cited", "everywhere"];
-const LIMITS = { questions: TRACKED_QUESTIONS, keywords: TRACKED_KEYWORDS };
 
 /** The proxy's check, repeated inside the action. Null when the caller is the admin. */
 async function refuseUnlessAdmin(): Promise<AdminResult | null> {
@@ -78,7 +78,9 @@ export async function createClientFromScan(_prev: AdminResult | null, form: Form
   }
 
   const startedOn = dayAfter(trackingDay());
-  const limits = LIMITS;
+  // question_limit and keyword_limit keep their column defaults and are no
+  // longer read (BRIEF-3 C0/C2); cluster_limit is left to its default on
+  // insert so a re-run never undoes packs the webhook set.
   const fields = {
     account_id: accountId,
     domain: scan.domain as string,
@@ -88,8 +90,6 @@ export async function createClientFromScan(_prev: AdminResult | null, form: Form
     slug: slugFor(scan.domain as string),
     status: "active",
     tier,
-    question_limit: limits.questions,
-    keyword_limit: limits.keywords,
     started_on: startedOn,
     source_scan_id: scan.id as string,
   };
@@ -115,15 +115,15 @@ export async function createClientFromScan(_prev: AdminResult | null, form: Form
     .eq("scan_id", scan.id)
     .order("idx", { ascending: true });
   if (qErr) return { ok: false, message: `Could not read the scan's questions: ${qErr.message}` };
+  const room = await readPromptRoom(db, client.id as string, null);
+  if (typeof room === "string") return { ok: false, message: room };
   const rows = (sq ?? [])
     .map((q) => String(q.question).trim())
     .filter((q) => q.length >= 8 && q.length <= 300 && !have.has(q.toLowerCase()))
-    .slice(0, Math.max(0, limits.questions - have.size))
-    .map((q) => ({ client_domain_id: client.id, text: q, source: "scan", added_on: startedOn, added_by: "nomada" }));
-  if (rows.length) {
-    const { error } = await db.from("tracked_questions").insert(rows);
-    if (error) return { ok: false, message: `Could not copy the questions: ${error.message}` };
-  }
+    .slice(0, room.room)
+    .map((q) => ({ text: q, source: "scan", added_on: startedOn, added_by: "nomada" }));
+  const copied = await insertPrompts(db, client.id as string, null, rows);
+  if (!copied.ok) return { ok: false, message: `Could not copy the questions: ${copied.message}` };
 
   const { error: memErr } = await db
     .from("dashboard_members")
@@ -134,7 +134,7 @@ export async function createClientFromScan(_prev: AdminResult | null, form: Form
   return { ok: true, message: `${scan.domain} set up: ${rows.length} scan question(s), first check ${startedOn}.` };
 }
 
-/** Add a Nomada question or a keyword, up to the client's limit. */
+/** Add a Nomada question or a keyword, up to the client's allowance (limits.ts). */
 export async function addTracked(_prev: AdminResult | null, form: FormData): Promise<AdminResult> {
   const refused = await refuseUnlessAdmin();
   if (refused) return refused;
@@ -146,13 +146,6 @@ export async function addTracked(_prev: AdminResult | null, form: FormData): Pro
   if (kind === "keyword" && (value.length < 2 || value.length > 120)) return { ok: false, message: "A keyword is 2 to 120 characters." };
 
   const db = supabaseAdmin();
-  const { data: client, error: cErr } = await db
-    .from("client_domains")
-    .select("id, question_limit, keyword_limit")
-    .eq("id", clientId)
-    .single();
-  if (cErr) return { ok: false, message: `Could not read the client: ${cErr.message}` };
-
   const table = kind === "question" ? "tracked_questions" : "tracked_keywords";
   const column = kind === "question" ? "text" : "keyword";
   const { data: live, error: lErr } = await db
@@ -162,21 +155,17 @@ export async function addTracked(_prev: AdminResult | null, form: FormData): Pro
     .is("stopped_on", null);
   if (lErr) return { ok: false, message: `Could not read the current list: ${lErr.message}` };
   const rows = (live ?? []) as unknown as Record<string, string | null>[];
-  const limit = kind === "question" ? (client.question_limit as number) : (client.keyword_limit as number);
-  if (!underLimit(rows.length, limit)) return { ok: false, message: `At the limit of ${limit} ${kind}s.` };
   if (rows.some((r) => String(r[column]).toLowerCase() === value.toLowerCase())) {
     return { ok: false, message: `That ${kind} is already tracked.` };
   }
 
   const addedOn = dayAfter(trackingDay());
-  const { error } = await db.from(table).insert({
-    client_domain_id: clientId,
-    [column]: value,
-    ...(kind === "question" ? { source: "nomada" } : {}),
-    added_on: addedOn,
-    added_by: "nomada",
-  });
-  if (error) return { ok: false, message: `Could not add it: ${error.message}` };
+  // Ungrouped until C3's cluster form names one; limits.ts refuses past the allowance.
+  const written =
+    kind === "question"
+      ? await insertPrompts(db, clientId, null, [{ text: value, source: "nomada", added_on: addedOn, added_by: "nomada" }])
+      : await insertKeyword(db, clientId, null, { keyword: value, added_on: addedOn, added_by: "nomada" });
+  if (!written.ok) return { ok: false, message: written.message };
   revalidatePath("/admin/tracking");
   return { ok: true, message: `Added; first check ${addedOn}.` };
 }

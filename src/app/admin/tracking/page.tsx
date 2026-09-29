@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { T } from "@/config/tokens";
 import { supabaseAdmin, supabaseConfigured } from "@/lib/supabase/admin";
 import { ADMIN_LIMITS, UPSELL_MODES, liveOn, trackingDay } from "@/lib/tracking/decide";
+import { PROMPTS_PER_CLUSTER } from "@/lib/tracking/limits";
 
 import { ActionForm } from "./ActionForm";
 import { addTracked, createClientFromScan, runNow, setMember, setUpsell } from "./actions";
@@ -46,7 +47,8 @@ export default async function TrackingAdmin() {
 
   const { data: clients, error: cErr } = await db
     .from("client_domains")
-    .select("id, account_id, domain, market, tier, status, started_on, question_limit, keyword_limit, slug")
+    // question_limit and keyword_limit are no longer read: the allowance is cluster_limit (BRIEF-3 C2, limits.ts).
+    .select("id, account_id, domain, market, tier, status, started_on, cluster_limit, slug")
     .not("slug", "is", null)
     .order("created_at", { ascending: true });
   if (cErr) throw new Error(`could not read tracked clients: ${cErr.message}`);
@@ -120,7 +122,7 @@ export default async function TrackingAdmin() {
               {c.domain as string} <span style={{ color: T.soft, fontWeight: 400 }}>/{c.slug as string} - {c.market as string} - {c.tier as string} - {c.status as string} - started {String(c.started_on ?? "-")}</span>
             </h2>
             <p style={{ margin: "0 0 8px", color: T.soft }}>
-              Questions {liveQ.length}/{c.question_limit as number} ({checkedToday} live today) - keywords {liveK.length}/{c.keyword_limit as number} - today&apos;s run:{" "}
+              Clusters allowed {c.cluster_limit as number} - prompts {liveQ.length}/{(c.cluster_limit as number) * PROMPTS_PER_CLUSTER} ({checkedToday} live today) - keywords {liveK.length}/{c.cluster_limit as number} - today&apos;s run:{" "}
               {todayRun ? `${todayRun.status} ${money(Number(todayRun.dfs_cost ?? 0))}${todayRun.error ? ` (${todayRun.error})` : ""}` : "none"} - 14 days {money(cost14)}
             </p>
             <ActionForm action={runNow} submit="Run now">

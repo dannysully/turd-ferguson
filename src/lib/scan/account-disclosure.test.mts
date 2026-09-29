@@ -151,7 +151,8 @@ const RECORDED: Record<string, string> = {
   // members and post it back as a hidden field to the admin's own action.
   "src/app/admin/tracking/page.tsx :: account_id, email, role":
     "admin-only page; groups dashboard members under their client. Never reaches a visitor.",
-  "src/app/admin/tracking/page.tsx :: id, account_id, domain, market, tier, status, started_on, question_limit, keyword_limit, slug":
+  // 29 Sep 2026, BRIEF-3 C2: the limit columns became cluster_limit; same read, same reason.
+  "src/app/admin/tracking/page.tsx :: id, account_id, domain, market, tier, status, started_on, cluster_limit, slug":
     "admin-only page; the account id goes back only into the admin's own member form.",
   // 29 Sep 2026, T3. The signed-in member's memberships and clients; the
   // account id is used only to join the two and is dropped before return
