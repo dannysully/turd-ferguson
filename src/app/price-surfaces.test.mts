@@ -141,10 +141,23 @@ test("a floor is never quoted as a flat price on any page", () => {
   const floors = TIERS.filter((t) => /^from /i.test(t.priceLabel));
   assert.ok(floors.length > 0, "no tier quotes a floor, so this check is now vacuous - delete it or find the floor");
 
+  /**
+   * The one place a figure is exact on purpose (R91, 29 Sep 2026): the order
+   * form's quote, `data-figure="checkout-price"` on /checkout, is the amount
+   * Stripe will charge for the picks in that form, not a floor. Only that
+   * element is cut, only on that route, and the cut must find it.
+   */
+  const QUOTE = /<div[^>]*data-figure="checkout-price"[^>]*>[^<]*<\/div>/g;
+  let quotesCut = 0;
+  const bodyFor = (p: Page) => {
+    if (!routeOf(p.page).startsWith("/checkout")) return text(p.html);
+    return text(p.html.replace(QUOTE, () => (quotesCut++, "")));
+  };
+
   for (const t of floors) {
     const figure = t.priceLabel.replace(/^from\s*/i, "");
     for (const p of pages) {
-      const body = text(p.html);
+      const body = bodyFor(p);
       let at = body.indexOf(figure);
       while (at !== -1) {
         const before = body.slice(Math.max(0, at - 6), at);
@@ -156,6 +169,7 @@ test("a floor is never quoted as a flat price on any page", () => {
       }
     }
   }
+  assert.ok(quotesCut > 0, "the checkout quote exemption cut nothing - the element moved, so this exemption is stale");
 });
 
 test("the basis travels with the price it qualifies, on every surface that prints the price", () => {

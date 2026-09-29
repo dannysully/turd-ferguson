@@ -101,6 +101,13 @@ export const CONTACT_EMAIL = "hello@alwayscited.com";
 export const WAITLIST_LIMITS = { domain: 253, topic: 200, email: 254, website: 200 };
 
 /**
+ * The order form on /checkout (R91, 29 Sep 2026). `email` and `keyword` are
+ * refused over their bound by `checkoutRequest`; the hidden picks are cut to
+ * theirs by `/api/checkout` before they are read, and must then validate.
+ */
+export const CHECKOUT_LIMITS = { email: 254, keyword: { min: 2, max: 120 }, tier: 20, sector: 60, clusters: 4, market: 4 };
+
+/**
  * The campaign benchmark form, which is the fourth table this file predicted.
  *
  * The comment above says in as many words that "a fourth form with its own

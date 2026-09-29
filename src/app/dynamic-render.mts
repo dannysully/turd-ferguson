@@ -151,6 +151,17 @@ export const STATES: Record<string, State> = {
   // 29 Sep 2026, T3: the client dashboard. The two pages a stranger reaches
   // render here; the two behind a session cannot.
   "/app/login": { urls: ["/app/login", "/app/login?link=expired"] },
+  // 29 Sep 2026, R91: the order form. Tracked, a placements tier before a
+  // sector is picked, one priced with an error back from the route, and one
+  // past ten clusters (a call). No database and no Stripe call either way.
+  "/checkout": {
+    urls: [
+      "/checkout?tier=alwaystracked",
+      "/checkout?tier=alwaysmentioned",
+      "/checkout?tier=alwayscited&sector=technology&clusters=3&market=uk&error=keyword",
+      "/checkout?tier=alwaysmentioned&sector=technology&clusters=11",
+    ],
+  },
   "/app/auth": {
     urls: ["/app/auth", "/app/auth?token=0000000000000000000000000000000000000000000000000000000000000000"],
   },

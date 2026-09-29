@@ -58,6 +58,8 @@ const CLOSED_ON_PURPOSE: Record<string, string> = {
   // T4, 29 Sep 2026: renders only in a local checkout that has generated the
   // uncommitted fixture file, and 404s on Vercel whatever else is true.
   "/app/parity": "the T4 parity fixture; a 404 in production, local builds only, reads a file under docs/ and no database",
+  // R91, 29 Sep 2026: reached from a tier's checkout button with the picks in its query.
+  "/checkout": "an order in progress - the form before Stripe's payment page; nothing on it is meant to be found by search",
   "/scan": "the GET form target, noindex and deliberately headerless - see HEADERLESS_ON_PURPOSE",
   "/scan/[token]": "somebody's own scan result, reachable only by holding the token",
   "/coverage-check/[token]": "somebody's own campaign reading, reachable only by holding the token",

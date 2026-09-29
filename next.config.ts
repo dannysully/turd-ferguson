@@ -228,6 +228,8 @@ const nextConfig: NextConfig = {
       { source: "/admin/:path*", headers: [noIndex] },
       // The client dashboard (T3, 29 Sep 2026). `:path*` so /app itself is covered.
       { source: "/app/:path*", headers: [noIndex] },
+      // The order form and its confirmation (R91, 29 Sep 2026): an order in progress.
+      { source: "/checkout/:path*", headers: [noIndex] },
     ];
   },
 };

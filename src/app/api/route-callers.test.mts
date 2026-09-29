@@ -237,12 +237,11 @@ const NO_CALLER: { route: string; method: string; why: string; earns: () => bool
   {
     route: "/api/checkout",
     method: "POST",
-    // R91 part 2, 29 Sep 2026. It opens a live Stripe Checkout - the one
-    // route where a buyer's money moves - but Stripe bills nobody for the
-    // Session itself. When the order form lands (part 3) it will post here as
-    // a plain HTML form, and this entry goes stale and says so.
-    why: "The live checkout route, shipped ahead of the order form (R91 part 3) that will post to it.",
-    earns: () => !walk("src").some((f) => /\.tsx$/.test(f) && readFileSync(join(ROOT, f), "utf8").includes('action="/api/checkout"')),
+    // R91, 29 Sep 2026. It opens a live Stripe Checkout - the one route
+    // where a buyer's money moves - though Stripe bills nobody for the
+    // Session itself.
+    why: "Posted by the plain HTML order form on /checkout, which the fetch scanner does not read.",
+    earns: () => readFileSync(join(ROOT, "src/app/checkout/page.tsx"), "utf8").includes('action="/api/checkout"'),
   },
   {
     route: "/api/track/run",

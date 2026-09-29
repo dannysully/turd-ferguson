@@ -40,8 +40,11 @@ import type { MetadataRoute } from "next";
  * `/app` is the alwaystracked client dashboard (T3, 29 Sep 2026): a client's
  * own figures behind a login. No trailing slash, so `/app` itself is closed
  * as well as everything under it; nothing public on this site starts with it.
+ *
+ * `/checkout` is an order in progress (R91, 29 Sep 2026): the order form and,
+ * after payment, its confirmation. Closed the same way as `/app`.
  */
-const CLOSED = ["/scan/", "/coverage-check/", "/api/", "/admin/", "/app"];
+const CLOSED = ["/scan/", "/coverage-check/", "/api/", "/admin/", "/app", "/checkout"];
 
 const AGENTS = [
   "*",

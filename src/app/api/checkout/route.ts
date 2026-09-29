@@ -1,5 +1,7 @@
+import { CHECKOUT_LIMITS } from "@/config/contact";
 import { contactUrlFor, TRACKED_PRICE } from "@/config/pricing";
 import { TIER_PLAIN } from "@/components/TierName";
+import { isPlausibleEmail } from "@/lib/email-address";
 import { CHECKOUT_TIERS, checkoutRequest, type CheckoutTier } from "@/lib/checkout/session";
 import { createCheckoutSession } from "@/lib/checkout/stripe";
 
@@ -20,8 +22,8 @@ const ORIGIN = "https://alwayscited.com";
  * refused Session is logged by status and Stripe's error code only; if the
  * code names a missing permission it goes to docs/blocked.md, not round it.
  *
- * The order form that posts here is not built yet (R91 part 3), so the
- * route has no caller in the app; route-callers records that.
+ * The order form at /checkout posts here as plain HTML (R91 part 3); an
+ * invalid or refused form post goes back to it with its picks and a reason.
  */
 export async function POST(req: Request) {
   const isForm = (req.headers.get("content-type") ?? "").includes("application/x-www-form-urlencoded");
@@ -34,14 +36,16 @@ export async function POST(req: Request) {
   if (!raw || typeof raw !== "object") return Response.json({ error: "bad_request" }, { status: 400 });
   const field = (k: string, max: number) => (typeof raw[k] === "string" ? (raw[k] as string).slice(0, max) : typeof raw[k] === "number" ? String(raw[k]) : "");
 
-  const tier = field("tier", 20);
+  const tier = field("tier", CHECKOUT_LIMITS.tier);
+  // Email and keyword are cut one past their bound, so checkoutRequest refuses
+  // an over-long one rather than this silently shortening it.
   const order = {
     tier,
-    sector: field("sector", 60),
-    quantity: Number(field("quantity", 4) || "1"),
-    market: field("market", 4),
-    email: field("email", 300),
-    keyword: field("keyword", 200),
+    sector: field("sector", CHECKOUT_LIMITS.sector),
+    quantity: Number(field("quantity", CHECKOUT_LIMITS.clusters) || "1"),
+    market: field("market", CHECKOUT_LIMITS.market),
+    email: field("email", CHECKOUT_LIMITS.email + 1),
+    keyword: field("keyword", CHECKOUT_LIMITS.keyword.max + 1),
   };
 
   const r = checkoutRequest(order, {
@@ -54,12 +58,28 @@ export async function POST(req: Request) {
   const call = ORIGIN + (known ? contactUrlFor(tier as CheckoutTier | "everywhere") : "/contact");
   const go = (url: string) => (isForm ? Response.redirect(url, 303) : Response.json({ url }));
 
-  if (r.kind === "invalid") return Response.json({ error: "invalid", message: r.message }, { status: 400 });
+  // A plain form post goes back to the order form with its picks and a reason.
+  const back = (error: string) => {
+    const b = new URLSearchParams({ tier: TIER_PLAIN[(CHECKOUT_TIERS as readonly string[]).includes(tier) ? (tier as CheckoutTier) : "tracked"], market: order.market, error });
+    if (order.sector) b.set("sector", order.sector);
+    if (order.quantity > 1) b.set("clusters", String(order.quantity));
+    return Response.redirect(`${ORIGIN}/checkout?${b}`, 303);
+  };
+
+  // checkoutRequest checks the address too; this door checks it itself, as every door that takes one does.
+  if (r.kind === "session" && !isPlausibleEmail(order.email.trim().toLowerCase())) {
+    return isForm ? back("email") : Response.json({ error: "invalid", message: "A work email is needed." }, { status: 400 });
+  }
+  if (r.kind === "invalid") {
+    if (isForm) return back(r.message.includes("email") ? "email" : "keyword");
+    return Response.json({ error: "invalid", message: r.message }, { status: 400 });
+  }
   if (r.kind === "call") return go(call);
 
   const s = await createCheckoutSession(r.form);
   if (s.ok) return go(s.url);
   if (s.reason === "no_key") return go(call);
   console.error(`[checkout] Stripe did not create a Session: ${s.reason} ${s.status ?? ""} ${s.code ?? ""}`.trim());
+  if (isForm) return back("failed");
   return Response.json({ error: "checkout_failed", message: "The checkout did not open. Please try again, or book a call." }, { status: 502 });
 }

@@ -1,4 +1,5 @@
 import { MAX_CLUSTERS, type Market, quoteFor } from "../../config/sector-pricing.ts";
+import { CHECKOUT_LIMITS } from "../../config/contact.ts";
 import { isPlausibleEmail } from "../email-address.ts";
 
 /**
@@ -38,9 +39,9 @@ export function checkoutRequest(order: Order, ctx: CheckoutContext): CheckoutReq
   if (!(CHECKOUT_TIERS as readonly string[]).includes(order.tier)) return { kind: "call" };
   const tier = order.tier as CheckoutTier;
   const email = order.email.trim().toLowerCase();
-  if (email.length > 254 || !isPlausibleEmail(email)) return { kind: "invalid", message: "A work email is needed." };
+  if (email.length > CHECKOUT_LIMITS.email || !isPlausibleEmail(email)) return { kind: "invalid", message: "A work email is needed." };
   const keyword = order.keyword.trim();
-  if (tier !== "tracked" && (keyword.length < 2 || keyword.length > 120)) return { kind: "invalid", message: "A keyword target is needed." };
+  if (tier !== "tracked" && (keyword.length < CHECKOUT_LIMITS.keyword.min || keyword.length > CHECKOUT_LIMITS.keyword.max)) return { kind: "invalid", message: "A keyword target is needed." };
   if (!Number.isInteger(order.quantity) || order.quantity < 1) return { kind: "invalid", message: "Pick a quantity." };
   if (order.quantity > MAX_CLUSTERS) return { kind: "call" };
 
