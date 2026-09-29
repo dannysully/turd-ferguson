@@ -1083,6 +1083,8 @@ html[data-motion="on"] .seq-rise { animation: seqRise 1s cubic-bezier(.2,.7,.3,1
 .proc-headline { font-size: 34px; }
 .proc-foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 18px; flex-wrap: wrap; }
 .proc-qrow { display: grid; grid-template-columns: 1fr repeat(4, 58px); gap: 4px; align-items: center; }
+.proc-opps { text-align: right; }
+.proc-opps > span { display: block; }
 .proc-schema { margin: 8px 0 0; font-size: 11px; line-height: 1.6; color: var(--soft); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; overflow-x: auto; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 
 @media (min-width: 900px) {
@@ -1095,6 +1097,10 @@ html[data-motion="on"] .seq-rise { animation: seqRise 1s cubic-bezier(.2,.7,.3,1
    columns are the finding, so they stay and the question wraps. */
 @media (max-width: 560px) {
   .proc-qrow { grid-template-columns: 1fr repeat(4, 40px); }
+  /* 'Placement opportunities' and its 9 read as one left-aligned row on a
+     phone, not a right-aligned stack floating under the 15% line (R82). */
+  .proc-opps-gap { display: none; }
+  .proc-opps { display: flex; align-items: baseline; gap: 8px; text-align: left; }
 }
 
 .proc-beats { display: grid; gap: 28px; }

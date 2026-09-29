@@ -230,10 +230,10 @@ function BeatTracked() {
       <div {...seqStep(1, { display: "flex", alignItems: "baseline", gap: "12px", padding: "14px 0 4px", flexWrap: "wrap" })}>
         <span style={{ fontSize: "34px", fontWeight: 700, letterSpacing: "-0.035em", lineHeight: 1 }}>15%</span>
         <span style={{ fontSize: "12.5px", color: T.soft }}>{NAMED_COUNT} of {WEEKLY_ANSWERS} answers name {SUBJECT}</span>
-        <span style={{ flexGrow: 1 }} />
-        <span style={{ textAlign: "right" }}>
-          <span style={{ display: "block", fontSize: "11.5px", color: T.soft }}>Placement opportunities</span>
-          <span style={{ display: "block", fontSize: "20px", fontWeight: 700, color: T.accent, lineHeight: 1.2 }}>9</span>
+        <span className="proc-opps-gap" style={{ flexGrow: 1 }} />
+        <span className="proc-opps">
+          <span style={{ fontSize: "11.5px", color: T.soft }}>Placement opportunities</span>
+          <span style={{ fontSize: "20px", fontWeight: 700, color: T.accent, lineHeight: 1.2 }}>9</span>
         </span>
       </div>
 
