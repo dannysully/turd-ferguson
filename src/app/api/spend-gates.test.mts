@@ -220,6 +220,18 @@ const EXEMPT: Record<string, { why: string; evidence: RegExp; where: string }> =
     evidence: /\.eq\("status", "queued"\)/,
     where: "src/lib/tracking/runner.ts",
   },
+  /**
+   * 29 September 2026, T3: the dashboard login link - one Resend message, to a
+   * member's stored address, and no scan.
+   */
+  "app/login": {
+    why:
+      "Sends one login link to an address already in dashboard_members, never a typed one, and starts " +
+      "no scan. Bounded by LOGIN_PER_EMAIL_PER_HOUR per address and LOGIN_PER_IP_PER_HOUR per hashed IP, " +
+      "counted off dashboard_login_tokens, where every request is recorded whether or not it mails.",
+    evidence: /export const LOGIN_PER_EMAIL_PER_HOUR = \d+/,
+    where: "src/lib/tracking/session.ts",
+  },
 };
 
 /**
@@ -485,8 +497,12 @@ test("the kill switch is read in one place, so its reach is exactly the guarded 
      * runner (T1). Deliberately outside `scans_enabled`: that switch stops
      * visitors' scans, and a client's paid tracking has its own switch,
      * `tracking_enabled`, plus its own dollar cap - both in refuseRun.
+     *
+     * Eight the same day: `app/login`, the dashboard login link (T3). One
+     * message to a member we already hold; `scans_enabled` stops scans and
+     * this starts none.
      */
-    7,
+    8,
     "the number of spending doors the kill switch does not reach has changed - see docs/blocked.md",
   );
 });

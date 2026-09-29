@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import TierName from "@/components/TierName";
 import { OG_IMAGE } from "@/config/og";
 
 import { COMPANY_LINE, CONTACT_EMAIL } from "@/config/contact";
@@ -126,8 +127,10 @@ const SECTIONS: Section[] = [
     title: "Cookies and tracking",
     body: (
       <>
-        This site sets no cookies of its own and runs no analytics - there is no Google Analytics, no tag manager, and
-        no advertising pixel. The one third-party script the page loads is Cloudflare Turnstile, which checks you are not
+        This site sets no cookies of its own, with one exception: when a client signs in to their <TierName tier="tracked" />{" "}
+        dashboard, we set one login cookie so they stay signed in. It holds a random key and nothing else, lasts 30
+        days, is cleared when they log out, and is never set on any other visit. The site runs no analytics - there is
+        no Google Analytics, no tag manager, and no advertising pixel. The one third-party script the page loads is Cloudflare Turnstile, which checks you are not
         a robot before a scan runs - usually without showing anything - and it sets storage of its own to do that.
       </>
     ),

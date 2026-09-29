@@ -148,6 +148,17 @@ export const STATES: Record<string, State> = {
     urls: [],
     blocked: "behind auth - answers 401 with 24 bytes and no HTML at all, and a credential is not ours to hold",
   },
+  // 29 Sep 2026, T3: the client dashboard. The two pages a stranger reaches
+  // render here; the two behind a session cannot.
+  "/app/login": { urls: ["/app/login", "/app/login?link=expired"] },
+  "/app/auth": {
+    urls: ["/app/auth", "/app/auth?token=0000000000000000000000000000000000000000000000000000000000000000"],
+  },
+  // With no session it redirects to /app/login, which the capture follows.
+  "/app": { urls: ["/app"] },
+  // Same: with no session a client slug redirects to /app/login. The signed-in
+  // render needs a session cookie and a client row, which the capture has not.
+  "/app/[client]": { urls: ["/app/example"] },
   // 29 Sep 2026, T2: the same /admin Basic auth as /admin/scans.
   "/admin/tracking": {
     urls: [],

@@ -151,6 +151,22 @@ const SENDERS: Record<
     evidence: /const PER_IP_PER_DAY = \d+/,
     where: "src/app/api/walkthrough/route.ts",
   },
+  /**
+   * 29 September 2026, T3: the dashboard login link. Anyone can post an
+   * address, so the reach is open; the route mails only an address already in
+   * dashboard_members (the stored one, not the typed one), and caps link
+   * requests per address and per hashed IP an hour, counted off
+   * dashboard_login_tokens - where every request, member or not, is recorded.
+   */
+  "src/lib/tracking/login-mail.ts": {
+    reach: "open, limited per caller",
+    bound:
+      "Mails only an address found in dashboard_members, never one a stranger typed. At most " +
+      "LOGIN_PER_EMAIL_PER_HOUR links an hour per address and LOGIN_PER_IP_PER_HOUR per hashed IP, " +
+      "counted off dashboard_login_tokens before anything is sent.",
+    evidence: /export const LOGIN_PER_IP_PER_HOUR = \d+/,
+    where: "src/lib/tracking/session.ts",
+  },
   "src/app/contact/actions.ts": {
     reach: "anonymous",
     bound:

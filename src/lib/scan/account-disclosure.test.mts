@@ -153,6 +153,13 @@ const RECORDED: Record<string, string> = {
     "admin-only page; groups dashboard members under their client. Never reaches a visitor.",
   "src/app/admin/tracking/page.tsx :: id, account_id, domain, market, tier, status, started_on, question_limit, keyword_limit, slug":
     "admin-only page; the account id goes back only into the admin's own member form.",
+  // 29 Sep 2026, T3. The signed-in member's memberships and clients; the
+  // account id is used only to join the two and is dropped before return
+  // (MemberClient has no account_id), so no page or response carries it.
+  "src/lib/tracking/member.ts :: account_id, role":
+    "joins a member to their accounts server-side; clientsFor returns no account_id.",
+  "src/lib/tracking/member.ts :: id, account_id, slug, domain, brand_name, market, tier, started_on, question_limit, keyword_limit":
+    "maps each client to its role by account server-side; the returned MemberClient omits account_id.",
 };
 
 /**
@@ -173,6 +180,8 @@ const MENTIONED: Record<string, string> = {
   "src/app/admin/tracking/page.tsx":
     "T2: renders the admin's member form with the account id as a hidden field. " +
     "Admin-only, behind the /admin Basic auth.",
+  "src/lib/tracking/member.ts":
+    "T3: reads the column to join a signed-in member to their clients; returns none of it.",
 };
 
 test("nothing in this tree selects *", () => {

@@ -124,6 +124,9 @@ test("every door that takes a caller's address is in this file's denominator", (
   assert.deepEqual(
     IP_CALLERS.sort(),
     [
+      // The seventh, 29 September 2026: the dashboard login link (T3), which
+      // caps requests per hashed IP. The address goes to `hashIp` only.
+      "src/app/api/app/login/route.ts",
       "src/app/api/coverage-check/[token]/rerun/route.ts",
       "src/app/api/coverage-check/route.ts",
       // The fourth, 20 September 2026. It takes no scan and starts nothing - it
@@ -385,11 +388,28 @@ test("nothing in the tree touches document.cookie", () => {
   assert.deepEqual(hits, [], '/legal says "This site sets no cookies of its own". Reading is forbidden alongside writing on purpose: the page promises the site does not deal in them at all, and a read is one character from a write.');
 });
 
-test("nothing reads or writes the request cookie jar", () => {
+/**
+ * One reader since 29 September 2026: the alwaystracked dashboard's login
+ * session (T3, BRIEF decision 2 - a 30-day httpOnly cookie, Danny's call).
+ * /legal's sentence changed with it to name the one exception, and that
+ * sentence is asserted here, so the reader and the promise cannot drift apart.
+ */
+const COOKIE_JAR_READERS = ["src/lib/tracking/member.ts"];
+
+test("only the dashboard session reads the request cookie jar, and /legal says so", () => {
   const hits = FILES.filter(({ source }) =>
     /import\s*{[^}]*\bcookies\b[^}]*}\s*from\s*["']next\/headers["']/.test(code(source)),
   ).map((f) => f.file);
-  assert.deepEqual(hits, [], "next/headers cookies() is imported somewhere. Setting one through it is the server-side half of the sentence on /legal.");
+  assert.deepEqual(
+    hits.sort(),
+    COOKIE_JAR_READERS,
+    "next/headers cookies() is imported somewhere new. Setting one through it is the server-side half of the sentence on /legal.",
+  );
+  assert.match(
+    LEGAL.replace(/\s+/g, " "),
+    /sets no cookies of its own, with one exception: when a client signs in to their <TierName tier="tracked" \/>\{" "\} dashboard, we set one login cookie/,
+    "the dashboard reads a login cookie and /legal no longer names it as the one exception",
+  );
 });
 
 test("no response this site serves carries a Set-Cookie header", () => {

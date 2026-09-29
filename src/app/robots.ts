@@ -36,8 +36,12 @@ import type { MetadataRoute } from "next";
  * /admin/ answers 401 to everyone via proxy.ts, so that line changes nothing
  * today. It is here so that the day the auth moves, the crawl rule does not
  * have to be remembered separately.
+ *
+ * `/app` is the alwaystracked client dashboard (T3, 29 Sep 2026): a client's
+ * own figures behind a login. No trailing slash, so `/app` itself is closed
+ * as well as everything under it; nothing public on this site starts with it.
  */
-const CLOSED = ["/scan/", "/coverage-check/", "/api/", "/admin/"];
+const CLOSED = ["/scan/", "/coverage-check/", "/api/", "/admin/", "/app"];
 
 const AGENTS = [
   "*",

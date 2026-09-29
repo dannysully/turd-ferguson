@@ -226,6 +226,8 @@ const nextConfig: NextConfig = {
       { source: "/scan/:path+", headers: [noIndex] },
       { source: "/coverage-check/:path+", headers: [noIndex] },
       { source: "/admin/:path*", headers: [noIndex] },
+      // The client dashboard (T3, 29 Sep 2026). `:path*` so /app itself is covered.
+      { source: "/app/:path*", headers: [noIndex] },
     ];
   },
 };

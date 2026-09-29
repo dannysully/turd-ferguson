@@ -167,8 +167,14 @@ test("the routes that cannot be rendered here are exactly the four known ones", 
     .sort();
 
   // Four since 29 Sep 2026: /admin/tracking (T2) sits behind the same Basic
-  // auth as /admin/scans, and a credential is not ours to hold.
-  assert.deepEqual(blocked, ["/admin/scans", "/admin/tracking", "/coverage-check/[token]", "/scan/[token]"]);
+  // auth as /admin/scans, and a credential is not ours to hold. The /app
+  // routes (T3) all render here: without a session they land on /app/login.
+  assert.deepEqual(blocked, [
+    "/admin/scans",
+    "/admin/tracking",
+    "/coverage-check/[token]",
+    "/scan/[token]",
+  ]);
 
   for (const route of blocked) {
     assert.ok(

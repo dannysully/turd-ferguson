@@ -221,6 +221,18 @@ const NO_CALLER: { route: string; method: string; why: string; earns: () => bool
     earns: () => declaredCron("/api/cron/track"),
   },
   {
+    route: "/api/app/auth",
+    method: "POST",
+    why: "Posted by the plain HTML form on /app/auth (the login link's button), which the fetch scanner does not read.",
+    earns: () => readFileSync(join(ROOT, "src/app/app/auth/page.tsx"), "utf8").includes('action="/api/app/auth"'),
+  },
+  {
+    route: "/api/app/logout",
+    method: "POST",
+    why: "Posted by the plain HTML form in the dashboard sidebar, which the fetch scanner does not read.",
+    earns: () => readFileSync(join(ROOT, "src/app/app/[client]/page.tsx"), "utf8").includes('action="/api/app/logout"'),
+  },
+  {
     route: "/api/track/run",
     method: "POST",
     why:
