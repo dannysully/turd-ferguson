@@ -239,11 +239,19 @@ test("the chrome cut still finds chrome, so the disclosure rule is not reading w
    * on every page at once - which is how it was written, and it could never
    * have fired. Asserted over the set because one page legitimately has no
    * chrome: `_global-error.html` renders its own minimal document.
+   *
+   * Since 29 Sep 2026 (R104) the client dashboard is a second: every /app
+   * route is its own full-height shell, with neither the site header nor the
+   * site footer, as boards/Main.dc.html draws it. Those are set aside by
+   * route, not by loosening the count, so the floor still bites on every
+   * public page.
    */
-  const withChrome = pages.filter(hasChrome);
+  const publicPages = pages.filter((p) => p.page !== "/app" && !p.page.startsWith("/app/") && !p.page.startsWith("/app?"));
+  assert.ok(pages.length - publicPages.length >= 1, "no /app page was swept - the dashboard exception is reading nothing");
+  const withChrome = publicPages.filter(hasChrome);
   assert.ok(
-    withChrome.length > pages.length - 3,
-    "only " + withChrome.length + " of " + pages.length + " pages carry a <header> or <footer> - the chrome has moved",
+    withChrome.length > publicPages.length - 3,
+    "only " + withChrome.length + " of " + publicPages.length + " public pages carry a <header> or <footer> - the chrome has moved",
   );
   const cut = withChrome.filter((p) => contentOf(p).length < pageText(p.html).replace(/\s+/g, " ").length);
   assert.equal(cut.length, withChrome.length, "the chrome cut removed nothing from a page that has chrome");

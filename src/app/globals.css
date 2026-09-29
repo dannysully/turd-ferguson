@@ -1601,12 +1601,17 @@ html[data-motion="on"] .res-dial { animation: resDial 1.4s .3s cubic-bezier(.2,.
 /* ── The alwaystracked overview (T4, 29 Sep 2026; Main.dc.html, Mobile.dc.html) ── */
 /* Inline styles set the desktop layout; these override them on narrow widths. */
 .app-chart-day:focus-visible { outline: 2px solid var(--brand-purple); outline-offset: -2px; }
+/* R104: the phone shell's top bar and tabs exist in the HTML at every width
+   and show only below 860px, where the pinned sidebar goes. */
+.app-topbar, .app-tabs { display: none; }
 @media (max-width: 1100px) {
   .app-pair { grid-template-columns: minmax(0, 1fr) !important; }
 }
 @media (max-width: 860px) {
-  .app-side { flex: 1 1 100% !important; border-right: 0 !important; border-bottom: 1px solid var(--line); }
-  .app-main { padding: 24px 16px 40px !important; }
+  .app-side { display: none !important; }
+  .app-topbar, .app-tabs { display: flex; }
+  .app-main { padding: 16px 16px 96px !important; }
+  .app-kw { white-space: normal !important; }
   .app-headline { padding: 28px 22px !important; gap: 28px !important; }
   .app-headline-h { font-size: 30px !important; }
   .app-figures > * { border-left: 0 !important; margin-left: 0 !important; border-top: 1px solid var(--line); }

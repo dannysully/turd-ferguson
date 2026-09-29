@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import BrandMark from "@/components/BrandMark";
+import TierName from "@/components/TierName";
 import { T } from "@/config/tokens";
 
 import LoginForm from "./LoginForm";
@@ -21,7 +23,12 @@ export default async function AppLogin({ searchParams }: { searchParams: Promise
         ? "That address has no dashboard yet. If you think it should, reply to the email you got from us."
         : null;
   return (
+    // No site header or footer here (R104), so the page carries its own lockup.
     <section style={{ maxWidth: "420px", margin: "0 auto", padding: "72px 24px 96px", color: T.ink }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "17px", fontWeight: 700, letterSpacing: "-0.02em", marginBottom: "40px" }}>
+        <BrandMark id="app-login" size={15} />
+        <TierName tier="tracked" />
+      </div>
       <h1 style={{ fontSize: "28px", fontWeight: 700, margin: "0 0 8px" }}>Log in to your dashboard</h1>
       <p style={{ margin: "0 0 24px", color: T.soft, fontSize: "15px" }}>
         We&apos;ll email you a link. It works once, for 15 minutes.

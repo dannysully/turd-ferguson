@@ -16,6 +16,7 @@ import {
   movers,
   overview,
   pointsDelta,
+  sparkPoints,
 } from "@/lib/tracking/figures";
 import type { Compare, OverviewData } from "@/lib/tracking/overview-data";
 
@@ -402,10 +403,10 @@ export default function Overview({
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
-                <th style={TH}>Keyword</th>
-                <th style={TH} className="app-hide-sm">4 weeks</th>
-                <th style={{ ...TH, textAlign: "right" }}>Position</th>
-                <th style={{ ...TH, textAlign: "right" }}>Places</th>
+                <th style={{ ...TH, paddingRight: "8px" }}>Keyword</th>
+                <th style={{ ...TH, padding: "10px 8px" }} className="app-hide-sm">4 weeks</th>
+                <th style={{ ...TH, padding: "10px 8px", textAlign: "right" }}>Position</th>
+                <th style={{ ...TH, paddingLeft: "8px", textAlign: "right" }}>Places</th>
               </tr>
             </thead>
             <tbody>
@@ -415,12 +416,13 @@ export default function Overview({
                   const row = kwRows.get(k.id);
                   return (
                     <tr key={k.id}>
-                      <td style={TD_WIDE}>{k.keyword}</td>
-                      <td style={TD} className="app-hide-sm">{row ? <Spark series={row.series} colour={!row.change ? T.soft : row.change > 0 ? T.goodFg : T.badFg} /> : null}</td>
-                      <td style={{ ...TD, textAlign: "right", fontWeight: 600, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
+                      {/* One line, as the board keeps it; the phone lets it wrap (R104). */}
+                      <td style={{ ...TD_WIDE, whiteSpace: "nowrap", fontWeight: 500, paddingRight: "8px" }} className="app-kw">{k.keyword}</td>
+                      <td style={{ ...TD, padding: "12px 8px", lineHeight: 0 }} className="app-hide-sm">{row ? <Spark series={row.series} colour={!row.change ? T.soft : row.change > 0 ? T.goodFg : T.badFg} /> : null}</td>
+                      <td style={{ ...TD, padding: "12px 8px", textAlign: "right", fontSize: "15px", fontWeight: 700, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
                         {k.added_on > today ? <span style={{ fontWeight: 400, fontSize: "13px", color: T.soft }}>First check tomorrow at 06:00</span> : row?.position ? `#${row.position}` : <span style={{ fontWeight: 400, fontSize: "13px", color: T.soft }}>Not in top 20</span>}
                       </td>
-                      <td style={{ ...TD, textAlign: "right" }}>{row?.change === null || row?.change === undefined ? null : <Delta value={row.change} unit="" />}</td>
+                      <td style={{ ...TD, paddingLeft: "8px", textAlign: "right" }}>{row?.change === null || row?.change === undefined ? null : <Delta value={row.change} unit="" />}</td>
                     </tr>
                   );
                 })}
@@ -473,24 +475,23 @@ function ordinal(n: number): string {
   return `${n}${s}`;
 }
 
-/** A keyword's four weeks: position 1 at the top, 20 at the bottom, gaps where it was outside the top 20 or not read. */
+/** A keyword's four weeks, one point a week on its own scale (sparkPoints), gaps where it was outside the top 20 or not read. */
 function Spark({ series, colour }: { series: (number | null)[]; colour: string }) {
-  const w = 96;
-  const h = 24;
-  const step = series.length > 1 ? w / (series.length - 1) : 0;
+  const w = 64;
+  const h = 20;
   let d = "";
   let pen = false;
-  series.forEach((p, i) => {
-    if (p === null) {
+  for (const p of sparkPoints(series, w, h)) {
+    if (p.y === null) {
       pen = false;
-      return;
+      continue;
     }
-    d += `${pen ? "L" : "M"}${(i * step).toFixed(1)},${(((Math.min(p, 20) - 1) / 19) * (h - 4) + 2).toFixed(1)} `;
+    d += `${pen ? "L" : "M"}${p.x},${p.y} `;
     pen = true;
-  });
+  }
   return (
     <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden="true">
-      <path d={d.trim()} fill="none" stroke={colour} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+      <path d={d.trim()} fill="none" stroke={colour} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

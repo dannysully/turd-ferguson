@@ -4,6 +4,7 @@ import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Motion from "@/components/Motion";
+import SiteChrome from "@/components/SiteChrome";
 import { ld, siteGraph } from "@/config/schema";
 
 /**
@@ -79,9 +80,13 @@ export default function RootLayout({
           @id reference back to it rather than another copy.
         */}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ld(siteGraph) }} />
-        <Header />
+        <SiteChrome>
+          <Header />
+        </SiteChrome>
         <main className="flex-1">{children}</main>
-        <Footer />
+        <SiteChrome>
+          <Footer />
+        </SiteChrome>
       </body>
     </html>
   );

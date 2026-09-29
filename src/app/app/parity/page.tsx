@@ -43,7 +43,7 @@ export default async function ParityOverview({ searchParams }: { searchParams: P
   const client = { slug: "parity", domain: fx.client.domain, brand: fx.client.brand, market: fx.client.market };
 
   return (
-    <div className="app-shell" style={{ display: "flex", flexWrap: "wrap", minHeight: "70vh", color: T.ink }}>
+    <div className="app-shell" style={{ display: "flex", flexWrap: "wrap", minHeight: "100vh", color: T.ink }}>
       <Sidebar client={client} others={[]} email="parity@localhost" role="owner" tier={fx.client.tier} engines={engines} />
       <div className="app-main" style={{ flex: "1 1 480px", minWidth: 0, padding: "36px 40px 48px", background: T.bg }}>
         <Overview

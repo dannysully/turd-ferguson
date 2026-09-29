@@ -267,7 +267,31 @@ export function keywordRows(rows: SerpRow[], r: Range): Map<string, { position: 
   return out;
 }
 
-export type CitationRow = { run_date: Day; engine: string; citations: { source_domain: string; url: string | null }[] };
+/**
+ * A keyword's four-week sparkline as boards/Main.dc.html draws it (R104, 29 Sep
+ * 2026): one point a week - the last position read in each seven-day block -
+ * scaled to that keyword's own best and worst, so a climb from #11 to #7
+ * slopes across the cell rather than drawing flat on a 1-20 scale. Better
+ * positions sit higher. Unchanged draws level through the middle; a week with
+ * no reading in the top 20 is a gap (null y).
+ */
+export function sparkPoints(series: (number | null)[], w = 64, h = 20, pad = 2): { x: number; y: number | null }[] {
+  const weeks: (number | null)[] = [];
+  for (let end = series.length; end > 0; end -= 7) {
+    const block = series.slice(Math.max(0, end - 7), end).filter((p): p is number => p !== null);
+    weeks.unshift(block.length ? block[block.length - 1]! : null);
+  }
+  const read = weeks.filter((p): p is number => p !== null);
+  const best = read.length ? Math.min(...read) : 0;
+  const worst = read.length ? Math.max(...read) : 0;
+  const step = weeks.length > 1 ? (w - pad * 2) / (weeks.length - 1) : 0;
+  return weeks.map((p, i) => ({
+    x: Math.round((pad + i * step) * 10) / 10,
+    y: p === null ? null : worst === best ? h / 2 : Math.round((pad + ((p - best) / (worst - best)) * (h - pad * 2)) * 10) / 10,
+  }));
+}
+
+export type CitationRow ={ run_date: Day; engine: string; citations: { source_domain: string; url: string | null }[] };
 
 /** The pages the engines cite most in the range: times cited, which engines cite it, and whether it is the client's own site. */
 export function citedPages(rows: CitationRow[], r: Range, domain: string, limit = 6): { page: string; count: number; engines: string[]; yours: boolean }[] {

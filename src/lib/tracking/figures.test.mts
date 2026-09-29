@@ -17,6 +17,7 @@ import {
   pointsDelta,
   questionsNamed,
   shareOfVoice,
+  sparkPoints,
 } from "./figures.ts";
 
 /** T4's figures (docs/tracked-dashboard-2026-09-29/BRIEF.md, 29 Sep 2026). */
@@ -144,4 +145,16 @@ test("the check grid has one cell per engine per day, null where nothing ran", (
   const g = checkGrid([a("2026-09-02", "q1", "chatgpt", true), a("2026-09-02", "q2", "chatgpt", false)], { from: "2026-09-01", to: "2026-09-02" }, ["chatgpt", "gemini"]);
   assert.deepEqual(g.chatgpt, [null, { num: 1, den: 2, pct: 50 }]);
   assert.deepEqual(g.gemini, [null, null]);
+});
+
+test("sparkPoints: one point a week on the keyword's own scale, better positions higher (R104)", () => {
+  const days = (ps: (number | null)[]) => ps.flatMap((p) => Array<number | null>(7).fill(p));
+  const climb = sparkPoints(days([11, 10, 8, 7]));
+  assert.equal(climb.length, 4);
+  assert.deepEqual(climb.map((p) => p.x), [2, 22, 42, 62]);
+  assert.equal(climb[0]!.y, 18);
+  assert.equal(climb[3]!.y, 2);
+  assert.ok(climb[1]!.y! > climb[2]!.y!, "a climb slopes up across the cell, not flat");
+  assert.ok(sparkPoints(days([3, 3, 3, 3])).every((p) => p.y === 10), "unchanged draws level through the middle");
+  assert.equal(sparkPoints(days([5, null, 6, 4]))[1]!.y, null, "a week outside the top 20 is a gap");
 });
