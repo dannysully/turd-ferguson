@@ -58,6 +58,8 @@ export const RECOMMENDED: Requirement[] = [
   { key: "ADMIN_PASSWORD", why: "/admin/scans stays shut without it" },
   /** 25 Sep 2026. Unset, every placement reads "Not scored"; nothing else changes. */
   { key: "FATGRID_API_KEY", why: "scores how hard each placement is to land" },
+  /** 29 Sep 2026 (R91). Unset, /api/checkout sends every buyer to "Book a call" instead of Stripe. */
+  { key: "STRIPE_SECRET_KEY", why: "opens a live Stripe Checkout; without it checkout falls back to a call" },
 ];
 
 /**
