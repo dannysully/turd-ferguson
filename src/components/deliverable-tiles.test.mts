@@ -13,7 +13,9 @@ const TIER_PAGES = ["alwaystracked", "alwaysmentioned", "alwayscited", "alwaysev
 test("the figure tiles read their numbers from pricing.ts, never a literal", () => {
   const fn = page.slice(page.indexOf("function tilesFor"), page.indexOf("export default function PackagePage"));
   assert.ok(fn.length > 200, "tilesFor was not found");
-  assert.match(fn, /figure: String\(TRACKED_QUESTIONS\)/);
+  // Clusters and prompts replaced the question tile on 29 Sep 2026 (R112/R115).
+  assert.match(fn, /figure: String\(TRACKED_CLUSTERS\)/);
+  assert.match(fn, /figure: String\(TRACKED_PROMPTS\)/);
   assert.match(fn, /figure: String\(TRACKED_KEYWORDS\)/);
   assert.match(fn, /enginesFor\(tier\.key\)\.length/);
   assert.match(fn, /<TierEngines tier=\{tier\.key\}/);

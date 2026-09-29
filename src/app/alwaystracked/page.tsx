@@ -29,9 +29,9 @@ export default function Page() {
       beat={<TrackedBeat />}
       headline="Know what your coverage"
       headlineAccent="actually did."
-      standfirst="The scan tells you where a client stands today. alwaystracked keeps reading, week after week, so you can show a client what changed and when it changed."
+      standfirst="The scan tells you where a client stands today. alwaystracked keeps reading, every morning, so you can show a client what changed and when it changed."
       included={[
-        "Ongoing AI visibility readings on a locked question set",
+        "Daily AI visibility readings on your clusters: each keyword joined to the prompts buyers ask about it",
         "The category leaderboard, and where your client sits in it",
         "The sources the engines cite for your topic, ranked by how often",
         "Coverage matching: upload a campaign, see which pieces are cited",

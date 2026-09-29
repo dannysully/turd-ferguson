@@ -24,6 +24,7 @@ export default function Page() {
       standfirst="Three placements a month in the third-party articles the engines draw on when someone asks who to use. The focus is recommendations and brand mentions for one topic. Rankings improve as a side effect."
       included={[
         "3 placements a month on one topic",
+        "The cluster you track is the one you upgrade: the same keyword and prompts, now worked on",
         "Placed in sources the scan shows the engines already citing",
         "Best-of lists, comparisons and round-ups, approached through editors we work with",
         "Anchor text agreed with you before anything goes live",
@@ -54,7 +55,7 @@ export default function Page() {
         {
           figure: "Per topic",
           heading: "Priced per topic",
-          body: "You name the topic, we build the question set buyers actually ask around it - the longer-tail questions people use when they are choosing a provider. One topic per plan, so the work stays focused enough to move.",
+          body: "You name the topic, we build the prompts buyers actually ask around it - the longer-tail prompts people use when they are choosing a provider. One topic per plan, so the work stays focused enough to move.",
         },
       ]}
     />

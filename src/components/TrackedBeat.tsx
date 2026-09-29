@@ -1,6 +1,6 @@
 import EngineLogo from "@/components/EngineLogo";
 import TierName from "@/components/TierName";
-import { TRACKED_KEYWORDS, TRACKED_QUESTIONS } from "@/config/pricing";
+import { TRACKED_CLUSTERS, TRACKED_KEYWORDS, TRACKED_PROMPTS } from "@/config/pricing";
 import { FREE_ENGINE_COUNT } from "@/config/scan-shape";
 import { CARD, MICRO, T } from "@/config/tokens";
 import { FREE_ENGINES } from "@/lib/scan/engines";
@@ -8,31 +8,59 @@ import { FREE_ENGINES } from "@/lib/scan/engines";
 import { LIFT_SOFT } from "./home/dark";
 
 /**
- * The weekly-report beat on /alwaystracked only, from TrackedBeat.dc.html
- * (Danny, 26 Sep 2026, R25): a lens walks the report row by row and stops on
- * the one question that moved this week. The board's engine tiles are the
- * engines' own marks here, dimmed where the engine did not name the brand.
+ * The daily cluster beat on /alwaystracked only, from the top of
+ * TrackedCluster.dc.html (site boards 29 Sep 2026, R115/S2): today's check
+ * across the tracked clusters, one cluster open - its prompts, one per angle,
+ * wired to the Google keyword they share. The board's coloured engine tiles
+ * are the engines' own marks here, dimmed where the engine did not name the
+ * brand.
  *
- * The markup is the settled state - lens on the row that moved, its after
- * line showing - so without JS, or with reduced motion, that is what reads.
- * globals.css (.tb-*) runs the walk only under html[data-motion="on"].
+ * Static and server-rendered: the markup is the board's settled frame (lens
+ * on the Sector prompt, named today, the keyword at #7 was #9), so it reads
+ * the same with JS off or reduced motion. The old weekly walk's .tb-lens /
+ * .tb-row / .tb-now animation classes are deliberately not used.
  *
- * Every brand, question and figure is made up, and labelled so, as the
- * board labels them.
+ * Every brand, prompt and figure is made up, and labelled so, as the board
+ * labels them. Counts come from pricing.ts, never typed.
  */
 
-type Row = { q: string; named: number; rank: string };
-const ROWS: Row[] = [
-  { q: "best invoicing software for freelancers", named: 2, rank: "#3" },
-  { q: "invoicing app with late payment reminders", named: 3, rank: "#2" },
-  { q: "cheapest invoicing tool for sole traders", named: 0, rank: "#11" },
-  { q: "recurring invoices for contractors", named: 1, rank: "#6" },
-  { q: "invoicing software that syncs with bank feeds", named: 0, rank: "#9" },
-  { q: "best invoicing app for designers", named: 0, rank: "#14" },
+type Cluster = { keyword: string; named: string; rank: string };
+/** The clusters shown as chips; the first is the one open below. */
+const CLUSTERS: Cluster[] = [
+  { keyword: "invoicing software for freelancers", named: "24%", rank: "#7" },
+  { keyword: "invoicing app for contractors", named: "31%", rank: "#6" },
+  { keyword: "recurring invoice software", named: "12%", rank: "#14" },
+  { keyword: "best billing software uk", named: "0%", rank: "#22" },
 ];
-/** The row that moved, and what it moved to. */
-const MOVED = 4;
-const AFTER = { named: 2, rank: "#7" };
+const MORE_CLUSTERS = TRACKED_CLUSTERS - CLUSTERS.length;
+
+type Prompt = { angle: string; prompt: string; named: number };
+/** The open cluster's prompts, one per angle. */
+const PROMPTS: Prompt[] = [
+  { angle: "Category", prompt: "best invoicing software for freelancers", named: 2 },
+  { angle: "Positioning", prompt: "multi-currency invoicing for freelancers", named: 3 },
+  { angle: "Sector", prompt: "invoicing software freelance designers use", named: 2 },
+  { angle: "Outcome", prompt: "invoicing that gets freelancers paid on time", named: 1 },
+  { angle: "Comparison", prompt: "alternatives to Ledgerbird for freelancers", named: 0 },
+];
+/** The prompt the lens sits on: named today. */
+const PICKED = 2;
+const KEYWORD = { rank: "#7", was: "#9", volume: "1,900" };
+
+const PER_CLUSTER = TRACKED_PROMPTS / TRACKED_CLUSTERS;
+const SMALL_WORDS: Record<number, string> = { 3: "three", 4: "four", 5: "five", 6: "six" };
+const perClusterWord = SMALL_WORDS[PER_CLUSTER] ?? String(PER_CLUSTER);
+
+const COLS: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "92px minmax(0, 1fr) 118px",
+  columnGap: "12px",
+};
+const ROW_H = 50;
+const ROW_GAP = 4;
+const PITCH = ROW_H + ROW_GAP;
+const WIRES_H = PROMPTS.length * PITCH - ROW_GAP;
+const WIRES_MID = WIRES_H / 2;
 
 function Marks({ named }: { named: number }) {
   return (
@@ -46,92 +74,176 @@ function Marks({ named }: { named: number }) {
   );
 }
 
-const COLS = "tb-cols";
+function Wires() {
+  return (
+    <svg className="tb-meta" width="80" height={WIRES_H} viewBox={`0 0 80 ${WIRES_H}`} aria-hidden="true" style={{ flexShrink: 0 }}>
+      {PROMPTS.map((p, i) => {
+        const y = i * PITCH + ROW_H / 2;
+        const picked = i === PICKED;
+        return (
+          <path
+            key={p.angle}
+            d={`M0,${y} C44,${y} 36,${WIRES_MID} 80,${WIRES_MID}`}
+            fill="none"
+            stroke={p.named > 0 ? T.accent : T.faint}
+            strokeOpacity={picked ? 1 : p.named > 0 ? 0.5 : 0.6}
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeDasharray={p.named > 0 ? undefined : "3 4"}
+          />
+        );
+      })}
+      <circle cx="77" cy={WIRES_MID} r="4" fill={T.accent} />
+    </svg>
+  );
+}
 
 export default function TrackedBeat() {
   return (
     <div className="tb-grid ac-row">
       <div className="tb-report" style={{ ...CARD, boxShadow: LIFT_SOFT, overflow: "hidden" }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: "12px", padding: "18px 24px", borderBottom: `1px solid ${T.line}` }}>
-          <div style={{ fontSize: "15px", fontWeight: 700, color: T.ink, flex: "none" }}>Weekly report</div>
+          <div style={{ fontSize: "15px", fontWeight: 700, color: T.ink, flex: "none" }}>Today&apos;s check</div>
           <div className="tb-meta" style={{ fontSize: "13px", color: T.soft }}>
-            tallyroo.com · {TRACKED_QUESTIONS} questions · week 14
+            tallyroo.com · {TRACKED_CLUSTERS} clusters · 06:10
           </div>
           <div style={{ flexGrow: 1 }} />
           <div style={{ fontSize: "12px", fontWeight: 600, color: T.soft }}>Illustrative</div>
         </div>
-        <div className={COLS} style={{ padding: "10px 24px", fontSize: "12px", fontWeight: 600, color: T.soft, borderBottom: `1px solid ${T.hair}` }}>
-          <span>Question</span>
-          <span>Engines naming you</span>
-          <span>Google</span>
-        </div>
 
-        <div style={{ position: "relative", padding: "0 12px 12px" }}>
-          <div
-            className="tb-lens"
-            aria-hidden="true"
-            style={{ position: "absolute", left: "12px", right: "12px", top: 0, height: "54px", borderRadius: "12px", background: T.wash, boxShadow: `inset 0 0 0 1.5px ${T.accent}` }}
-          />
-          {ROWS.map((r, i) => (
-            <div
-              key={r.q}
-              className={`${COLS} tb-row tb-r${i + 1}${i === MOVED ? " tb-was" : ""}`}
-              style={{ position: "relative", alignItems: "center", height: "54px", padding: "0 12px" }}
-            >
-              <span style={{ fontSize: "14px", fontWeight: 500, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.q}</span>
-              <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                <Marks named={r.named} />
-                <span style={{ marginLeft: "6px", fontSize: "13px", color: T.soft, whiteSpace: "nowrap" }}>
-                  {r.named} of {FREE_ENGINE_COUNT}
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", padding: "14px 24px", background: T.bg, borderBottom: `1px solid ${T.hair}` }}>
+          {CLUSTERS.map((c, i) => {
+            const open = i === 0;
+            return (
+              <span
+                key={c.keyword}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  fontSize: "12.5px",
+                  fontWeight: open ? 700 : 600,
+                  color: open ? T.accentHover : T.ink,
+                  background: open ? T.wash : T.surface,
+                  border: `1px solid ${open ? T.washLine : T.line}`,
+                  borderRadius: "999px",
+                  padding: "5px 11px",
+                }}
+              >
+                {c.keyword}
+                <span style={{ fontWeight: 500, color: open ? undefined : T.soft }}>
+                  {c.named} · {c.rank}
                 </span>
               </span>
-              <span style={{ fontSize: "13.5px", fontWeight: 600, color: T.ink }}>{r.rank}</span>
-            </div>
-          ))}
+            );
+          })}
+          {MORE_CLUSTERS > 0 ? (
+            <span style={{ display: "inline-flex", alignItems: "center", fontSize: "12.5px", fontWeight: 600, color: T.soft, background: T.surface, border: `1px solid ${T.line}`, borderRadius: "999px", padding: "5px 11px" }}>
+              + {MORE_CLUSTERS} more clusters
+            </span>
+          ) : null}
+        </div>
 
-          {/* The row that moved: its after-state, laid over it. */}
-          <div
-            className={`${COLS} tb-now`}
-            // Inset inside the lens ring, so the settled frame shows the ring whole.
-            style={{ position: "absolute", left: "24px", right: "24px", top: `${MOVED * 54 + 2}px`, height: "50px", alignItems: "center", background: T.surface, pointerEvents: "none" }}
-          >
-            <span style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
-              <span style={{ fontSize: "14px", fontWeight: 600, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                {ROWS[MOVED].q}
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", rowGap: "14px", padding: "12px 12px 14px" }}>
+          <div style={{ flex: "1 1 380px", minWidth: 0 }}>
+            <div style={{ ...COLS, padding: "0 12px 8px", fontSize: "12px", fontWeight: 600, color: T.soft }}>
+              <span>Angle</span>
+              <span>Prompt</span>
+              <span>Engines naming you</span>
+            </div>
+            {PROMPTS.map((p, i) => {
+              const picked = i === PICKED;
+              return (
+                <div
+                  key={p.angle}
+                  style={{
+                    ...COLS,
+                    alignItems: "center",
+                    height: `${ROW_H}px`,
+                    padding: "0 12px",
+                    marginBottom: i === PROMPTS.length - 1 ? 0 : `${ROW_GAP}px`,
+                    borderRadius: "12px",
+                    background: picked ? T.wash : undefined,
+                    boxShadow: picked ? `inset 0 0 0 1.5px ${T.accent}` : undefined,
+                  }}
+                >
+                  <span
+                    style={{
+                      justifySelf: "start",
+                      fontSize: "11px",
+                      fontWeight: 700,
+                      color: picked ? T.accentHover : T.soft,
+                      background: picked ? T.surface : T.chip,
+                      borderRadius: "6px",
+                      padding: "3px 7px",
+                    }}
+                  >
+                    {p.angle}
+                  </span>
+                  <span style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
+                    <span style={{ fontSize: "13.5px", fontWeight: picked ? 600 : 500, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {p.prompt}
+                    </span>
+                    {picked ? (
+                      <span className="tb-pill" style={{ flexShrink: 0, fontSize: "11px", fontWeight: 700, color: T.accentHover, background: T.surface, borderRadius: "999px", padding: "2px 8px" }}>
+                        Named today
+                      </span>
+                    ) : null}
+                  </span>
+                  <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                    <Marks named={p.named} />
+                    <span style={{ marginLeft: "6px", fontSize: "12.5px", fontWeight: picked ? 600 : undefined, color: picked ? T.accentHover : T.soft, whiteSpace: "nowrap" }}>
+                      {p.named} of {FREE_ENGINE_COUNT}
+                    </span>
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+
+          <div style={{ display: "flex", alignItems: "flex-end", flexShrink: 0, alignSelf: "flex-end" }}>
+            <Wires />
+            <div
+              style={{
+                width: "156px",
+                boxSizing: "border-box",
+                padding: "14px",
+                borderRadius: "14px",
+                border: `1px solid ${T.washLine}`,
+                background: T.surface,
+                display: "flex",
+                flexDirection: "column",
+                gap: "6px",
+                alignSelf: "center",
+              }}
+            >
+              <span style={{ fontSize: "11px", fontWeight: 600, color: T.soft }}>Google keyword</span>
+              <span style={{ fontSize: "13px", fontWeight: 700, lineHeight: 1.3, color: T.ink }}>{CLUSTERS[0].keyword}</span>
+              <span style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
+                <span style={{ fontSize: "32px", fontWeight: 700, letterSpacing: "-0.03em", color: T.ink }}>{KEYWORD.rank}</span>
+                <span style={{ fontSize: "12px", fontWeight: 600, color: T.accentHover }}>was {KEYWORD.was}</span>
               </span>
-              <span className="tb-pill" style={{ flexShrink: 0, fontSize: "11.5px", fontWeight: 700, color: T.accentHover, background: T.wash, borderRadius: "999px", padding: "2px 9px" }}>
-                Named this week
-              </span>
-            </span>
-            <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-              <Marks named={AFTER.named} />
-              <span style={{ marginLeft: "6px", fontSize: "13px", fontWeight: 600, color: T.accentHover, whiteSpace: "nowrap" }}>
-                {AFTER.named} of {FREE_ENGINE_COUNT}
-              </span>
-            </span>
-            <span style={{ fontSize: "13.5px", fontWeight: 600, color: T.ink, whiteSpace: "nowrap" }}>
-              {AFTER.rank}{" "}
-              <span className="tb-was-rank" style={{ fontSize: "12px", fontWeight: 600, color: T.accentHover }}>was {ROWS[MOVED].rank}</span>
-            </span>
+              <span style={{ fontSize: "11.5px", color: T.soft }}>{KEYWORD.volume} searches a month</span>
+            </div>
           </div>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "14px 24px", borderTop: `1px solid ${T.hair}`, fontSize: "12.5px", color: T.soft }}>
-          <span>Cited this week for that question:</span>
+        <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "10px", padding: "14px 24px", borderTop: `1px solid ${T.hair}`, fontSize: "12.5px", color: T.soft }}>
+          <span>Cited today for that prompt:</span>
           <span style={{ fontWeight: 600, color: T.accentHover, background: T.wash, borderRadius: "999px", padding: "2px 10px" }}>solodesk.io</span>
         </div>
       </div>
 
       <div className="tb-argument" style={{ paddingTop: "8px" }}>
         <div style={MICRO}>
-          What <TierName tier="tracked" /> sends you
+          What <TierName tier="tracked" /> shows you
         </div>
         <h2 style={{ margin: "10px 0 0", fontSize: "28px", fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.15, color: T.ink }}>
-          {TRACKED_QUESTIONS} questions and {TRACKED_KEYWORDS} keywords, every day. One line tells you what moved.
+          {TRACKED_KEYWORDS} keywords. {TRACKED_PROMPTS} prompts. Checked every morning.
         </h2>
         <p style={{ margin: "14px 0 0", fontSize: "15px", lineHeight: 1.6, color: T.soft }}>
-          The same questions, re-asked every day, reported question by question: which engines named the brand, the
-          Google position beside it, and the pages the engines cited.
+          Each keyword your buyers search, joined to the {perClusterWord} prompts they ask AI about it. Which engines named
+          you, where you rank on Google, and the pages they cited, side by side.
         </p>
         <div style={{ marginTop: "22px", display: "flex", flexDirection: "column", gap: "12px" }}>
           {[
@@ -139,7 +251,7 @@ export default function TrackedBeat() {
             <>Every answer kept, with the sources behind it</>,
             <>
               {/* Not a link: no tier name sits inside one on this site (the lockup census). */}
-              Reporting only. Winning the placements is <TierName tier="mentioned" />
+              Reporting only. Moving a cluster is <TierName tier="mentioned" />, one cluster at a time
             </>,
           ].map((item, i) => (
             <div key={i} style={{ display: "flex", gap: "10px", fontSize: "14px", lineHeight: 1.5, color: T.ink }}>

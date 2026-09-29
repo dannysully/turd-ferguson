@@ -52,28 +52,29 @@ export function checkoutUrlFor(tier: TierKey): string {
 }
 
 /**
- * How many questions the tracking base price covers.
+ * What the tracking base price covers: 10 clusters, each one Google keyword
+ * joined to the 5 prompts buyers ask AI about it - 50 prompts and 10 keywords
+ * (BRIEF-3, Danny, 29 Sep 2026; R112, danny.md line 104). Until 29 Sep this was
+ * "20 questions and 10 keywords".
  *
- * Declared here because it is half of what $99 buys, and a number that says
+ * Declared here because it is what the price buys, and a number that says
  * what a price includes is a claim to a buyer in the same way the price is.
- * It was typed on four surfaces - the basis line under the homepage card, the
- * tier journey's lead, the package page gloss and the footer line on
- * /seo-agencies - and the four did not agree: three said "20 questions,
- * checked weekly" and the fourth said "20 questions a week", which is a
- * different offer. An agency reads one of those to a client.
+ * The question count was once typed on four surfaces and two of them
+ * disagreed ("checked weekly" against "a week").
  *
- * `priceBasis` below is built from it rather than repeating it, so the number
- * and the sentence that qualifies it cannot come apart.
+ * Literals, because the price censuses resolve `${NAME}` in the basis against
+ * `export const NAME = <digits>;` here. The limits the server enforces live in
+ * `src/lib/tracking/limits.ts`; `tracked-basis.test.mts` holds these equal to
+ * them, so the copy cannot promise a cluster the API refuses.
  */
-export const TRACKED_QUESTIONS = 20;
-
-/**
- * The Google keywords the tracking base price covers, beside the questions
- * (pricing spec section 1, 27 Sep 2026: "20 questions across four engines and
- * 10 Google keywords, checked daily"). Declared for the reason TRACKED_QUESTIONS
- * is: it is half of what the price buys.
- */
+export const TRACKED_CLUSTERS = 10;
+export const TRACKED_PROMPTS = 50;
 export const TRACKED_KEYWORDS = 10;
+
+/** What one +$49 pack adds (spec section 1, re-cut as clusters by R112). */
+export const PACK_CLUSTERS = 5;
+export const PACK_PROMPTS = 25;
+export const PACK_KEYWORDS = 5;
 
 /**
  * alwaystracked's "from" in each market (pricing spec sections 1 and 3): $129,
@@ -84,11 +85,11 @@ export const TRACKED_KEYWORDS = 10;
 export const TRACKED_PRICE = { us: 129, uk: 99 } as const;
 
 /** What the tracking price covers, as every surface says it (spec section 8). */
-export const TRACKED_BASIS = `${TRACKED_QUESTIONS} questions and ${TRACKED_KEYWORDS} keywords, checked daily`;
+export const TRACKED_BASIS = `${TRACKED_CLUSTERS} clusters: ${TRACKED_PROMPTS} prompts and ${TRACKED_KEYWORDS} keywords, checked daily`;
 
 /**
  * The extra tracking pack, on any tier (spec section 1): +$49 / £39 a month
- * for another TRACKED_QUESTIONS questions and TRACKED_KEYWORDS keywords.
+ * for another PACK_CLUSTERS clusters (PACK_PROMPTS prompts, PACK_KEYWORDS keywords).
  *
  * One currency at a time (Danny, 28 Sep 2026, danny.md line 62, R61): the line
  * used to print "+$49 / £39" whatever the page's market toggle said. `{price}`
@@ -99,7 +100,7 @@ export const TRACKED_BASIS = `${TRACKED_QUESTIONS} questions and ${TRACKED_KEYWO
  * checkout", describes a checkout that does not exist until section 5 does.
  */
 export const TRACKING_PACK_PRICE = { us: 49, uk: 39 } as const;
-export const TRACKING_PACK_LINE = `Extra tracking pack: {price}/mo for ${TRACKED_QUESTIONS} more questions and ${TRACKED_KEYWORDS} more keywords.`;
+export const TRACKING_PACK_LINE = `Extra tracking pack: {price}/mo for +${PACK_CLUSTERS} clusters (${PACK_PROMPTS} prompts, ${PACK_KEYWORDS} keywords).`;
 export function trackingPackLine(price: string): string {
   return TRACKING_PACK_LINE.replace("{price}", "+" + price);
 }
@@ -166,7 +167,7 @@ export const TIERS: Tier[] = [
     priceLabel: "from $129/mo",
     // Spec section 8: the daily basis. The add-on is its own line, in the
     // page's market (TRACKING_PACK_LINE, R61).
-    priceBasis: `${TRACKED_QUESTIONS} questions and ${TRACKED_KEYWORDS} keywords, checked daily`,
+    priceBasis: `${TRACKED_CLUSTERS} clusters: ${TRACKED_PROMPTS} prompts and ${TRACKED_KEYWORDS} keywords, checked daily`,
     positioning: "Know what your coverage did",
     href: "/alwaystracked",
     includes: [

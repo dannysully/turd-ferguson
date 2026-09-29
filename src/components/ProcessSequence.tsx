@@ -4,10 +4,11 @@ import { Fragment, useEffect, useState } from "react";
 
 import EngineLogo from "@/components/EngineLogo";
 import TierName, { TierText, type TierKey } from "@/components/TierName";
-import { TIERS, TRACKED_QUESTIONS } from "@/config/pricing";
+import { TIERS, TRACKED_CLUSTERS, TRACKED_PROMPTS } from "@/config/pricing";
 import { FREE_ENGINE_COUNT } from "@/config/scan-shape";
 import { CARD, MICRO, SHELL, T } from "@/config/tokens";
 import { ENGINE_SPECS, FREE_ENGINES } from "@/lib/scan/engines";
+import { PROMPTS_PER_CLUSTER } from "@/lib/tracking/limits";
 
 import { seqStep } from "./scan/seq-stagger";
 
@@ -73,25 +74,30 @@ export const HOME_TEMPO: Tempo = { beatMs: 16_000, bridgeMs: 5_000, stepS: 1.2, 
 export const WAITING_TEMPO: Tempo = { beatMs: 8_000, bridgeMs: 2_700, stepS: 0.6, firstStepS: 0.8 };
 
 /**
- * What a week of alwaystracked covers, derived rather than typed.
+ * What a day of alwaystracked covers, derived rather than typed.
  *
- * `TRACKED_QUESTIONS` is the number `pricing.ts` already publishes as half of
- * what $99 buys, and the answer total is that times the engine set. Both were
- * typed into this panel as "20 questions" and "80 answers" until
+ * `TRACKED_CLUSTERS` and `TRACKED_PROMPTS` are what `pricing.ts` publishes as
+ * what the tracking price buys (R112, 29 Sep 2026), and the day's answer total
+ * is the prompts times the engine set. One cluster's answers are its prompts
+ * times the same set. Counts like these were once typed into this panel until
  * `copy.test.mts` caught them - which is the whole point of that rule: the
  * free engine set has changed once already, and every typed count of it was
  * true when it was written.
  */
-const WEEKLY_ANSWERS = TRACKED_QUESTIONS * FREE_ENGINE_COUNT;
-/** Illustrative: how many of those answers name the subject, and the rivals' share. */
-const NAMED_COUNT = 12;
+const DAILY_ANSWERS = TRACKED_PROMPTS * FREE_ENGINE_COUNT;
+const CLUSTER_ANSWERS = PROMPTS_PER_CLUSTER * FREE_ENGINE_COUNT;
+/** Illustrative: how many of today's answers name the subject. */
+const NAMED_COUNT = 30;
+const NAMED_SHARE = Math.round((NAMED_COUNT / DAILY_ANSWERS) * 100);
 /** Illustrative: engines citing the subject's own page on the cited tier. */
 const CITED_BY = 3;
 
 /** The invented brand every panel is about, and the question it is judged on. */
 const SUBJECT = "Tallyroo";
-const RIVALS = ["Ledgerbird", "Stackbill", "Pennywell"] as const;
+const RIVALS = ["Ledgerbird", "Stackbill"] as const;
 const ASK = "best invoicing software for freelancers";
+/** The Google keyword the tracked cluster is joined to, and its illustrative position. */
+const KEYWORD = { term: "invoicing software for freelancers", now: 7, was: 9 };
 
 type Beat = {
   tier: TierKey;
@@ -107,8 +113,8 @@ const BEATS: Beat[] = [
   {
     tier: "tracked",
     headline: "See every placement opportunity.",
-    line: `Buyer questions put to ${FREE_ENGINE_COUNT} AI engines every day, with every source behind every answer.`,
-    alt: `A tracking dashboard for ${SUBJECT}: ${TRACKED_QUESTIONS} questions across ${FREE_ENGINE_COUNT} engines, ${NAMED_COUNT} of ${WEEKLY_ANSWERS} answers naming it, and the brands named instead.`,
+    line: `Buyer prompts put to ${FREE_ENGINE_COUNT} AI engines every day, with every source behind every answer.`,
+    alt: `A daily tracking dashboard for ${SUBJECT}: ${TRACKED_CLUSTERS} clusters, ${TRACKED_PROMPTS} prompts across ${FREE_ENGINE_COUNT} engines, ${NAMED_SHARE}% of today's ${DAILY_ANSWERS} answers naming it, one cluster's prompt angles joined to the Google keyword "${KEYWORD.term}" at #${KEYWORD.now}, up from #${KEYWORD.was}, and the brands named instead in that cluster's ${CLUSTER_ANSWERS} answers.`,
   },
   {
     tier: "mentioned",
@@ -206,30 +212,40 @@ function PanelHead(p: { note: string; badge?: string }) {
 
 /* -- Tier 1: where you stand ------------------------------------- */
 
-/** Which engine named the brand on each question. Positions into FREE_ENGINES. */
-const TRACKED_ROWS: { q: string; named: number[] }[] = [
-  { q: ASK, named: [2] },
-  { q: "best invoicing app for small agencies", named: [] },
-  { q: "top invoicing tools for contractors", named: [1] },
-  { q: "best invoicing tools to get paid faster", named: [] },
-  { q: "best alternatives to ledgerbird", named: [3] },
+/**
+ * One cluster: its prompt angles, and which engine named the brand on each.
+ * Positions into FREE_ENGINES. From TrackedCluster.dc.html (29 Sep 2026, R115):
+ * the prompt list became one cluster joined to a keyword and its Google position.
+ */
+const CLUSTER_ANGLES: { angle: string; named: number[] }[] = [
+  { angle: "Category", named: [0, 1] },
+  { angle: "Positioning", named: [0, 1, 2] },
+  { angle: "Sector", named: [] },
+  { angle: "Outcome", named: [0] },
+  { angle: "Comparison", named: [] },
 ];
 
+/** The subject's count in the cluster is the dots above, not a second typed figure. */
+const CLUSTER_NAMED = CLUSTER_ANGLES.reduce((sum, a) => sum + a.named.length, 0);
+
 const NAMED_INSTEAD: { brand: string; of: number; you?: boolean }[] = [
-  { brand: RIVALS[0], of: 41 },
-  { brand: RIVALS[1], of: 33 },
-  { brand: RIVALS[2], of: 26 },
-  { brand: SUBJECT, of: NAMED_COUNT, you: true },
+  { brand: RIVALS[0], of: 11 },
+  { brand: RIVALS[1], of: 9 },
+  { brand: SUBJECT, of: CLUSTER_NAMED, you: true },
 ];
+
+/** One angle row's height; the connectors are drawn to the same grid. */
+const ANGLE_ROW = 24;
+const ANGLE_GRID = `72px repeat(${FREE_ENGINES.length}, 20px)`;
 
 function BeatTracked() {
   return (
     <div style={PANEL}>
-      <PanelHead note={`${TRACKED_QUESTIONS} questions across ${FREE_ENGINE_COUNT} engines`} badge="Week 38" />
+      <PanelHead note={`${TRACKED_CLUSTERS} clusters, ${TRACKED_PROMPTS} prompts across ${FREE_ENGINE_COUNT} engines`} badge="Today, 06:10" />
 
       <div {...seqStep(1, { display: "flex", alignItems: "baseline", gap: "12px", padding: "14px 0 4px", flexWrap: "wrap" })}>
-        <span style={{ fontSize: "34px", fontWeight: 700, letterSpacing: "-0.035em", lineHeight: 1 }}>15%</span>
-        <span style={{ fontSize: "12.5px", color: T.soft }}>{NAMED_COUNT} of {WEEKLY_ANSWERS} answers name {SUBJECT}</span>
+        <span style={{ fontSize: "34px", fontWeight: 700, letterSpacing: "-0.035em", lineHeight: 1 }}>{NAMED_SHARE}%</span>
+        <span style={{ fontSize: "12.5px", color: T.soft }}>{`of today's ${DAILY_ANSWERS} answers name ${SUBJECT}`}</span>
         <span className="proc-opps-gap" style={{ flexGrow: 1 }} />
         <span className="proc-opps">
           <span style={{ fontSize: "11.5px", color: T.soft }}>Placement opportunities</span>
@@ -237,60 +253,129 @@ function BeatTracked() {
         </span>
       </div>
 
-      <div {...seqStep(2, { marginTop: "10px" })}>
-        <div className="proc-qrow" style={{ paddingBottom: "7px", borderBottom: hair }}>
-          <span style={MICRO}>Question</span>
+      {/* One cluster: its prompt angles on the left, joined by a line each to
+          the Google keyword they share. A line is solid where that angle
+          named the subject on any engine, dashed where none did. */}
+      <div style={{ marginTop: "12px", paddingTop: "12px", borderTop: hair }}>
+        <div
+          {...seqStep(2, {
+            display: "grid",
+            gridTemplateColumns: ANGLE_GRID,
+            columnGap: "6px",
+            paddingBottom: "6px",
+          })}
+        >
+          <span style={{ fontSize: "10.5px", fontWeight: 600, color: T.soft }}>Angle</span>
           {FREE_ENGINES.map((e) => (
-            <span key={e} title={ENGINE_SPECS[e].label} style={{ display: "flex", justifyContent: "center" }}>
-              <EngineLogo engine={e} size={14} />
+            <span key={e} title={ENGINE_SPECS[e].label} style={{ display: "grid", placeItems: "center" }}>
+              <EngineLogo engine={e} size={12} />
               <span className="sr-only">{ENGINE_SPECS[e].label}</span>
             </span>
           ))}
         </div>
-        {TRACKED_ROWS.map((r, n) => (
-          <div
-            key={r.q}
-            {...seqStep(3 + n, {
-              padding: "7px 0",
-              borderBottom: n === TRACKED_ROWS.length - 1 ? undefined : hair,
-            })}
-            className="proc-qrow seq-step"
-          >
-            <span style={{ fontSize: "12px", color: T.ink }}>{r.q}</span>
-            {FREE_ENGINES.map((e, i) => (
-              <span key={e} style={{ display: "grid", placeItems: "center" }}>
-                <span
-                  aria-hidden="true"
-                  style={{
-                    width: "9px",
-                    height: "9px",
-                    borderRadius: "50%",
-                    background: r.named.includes(i) ? T.accent : "transparent",
-                    border: r.named.includes(i) ? undefined : "1px solid " + T.line,
-                  }}
-                />
-                <span className="sr-only">
-                  {ENGINE_SPECS[e].label}: {r.named.includes(i) ? `named ${SUBJECT}` : `did not name ${SUBJECT}`}
-                </span>
-              </span>
-            ))}
+
+        <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", rowGap: "10px" }}>
+          <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
+            <div>
+              {CLUSTER_ANGLES.map((a, n) => (
+                <div
+                  key={a.angle}
+                  {...seqStep(3 + n, {
+                    display: "grid",
+                    gridTemplateColumns: ANGLE_GRID,
+                    columnGap: "6px",
+                    alignItems: "center",
+                    height: ANGLE_ROW + "px",
+                  })}
+                >
+                  <span style={{ fontSize: "10.5px", fontWeight: 700, letterSpacing: ".03em", textTransform: "uppercase", color: T.soft }}>
+                    {a.angle}
+                  </span>
+                  {FREE_ENGINES.map((e, i) => (
+                    <span key={e} style={{ display: "grid", placeItems: "center" }}>
+                      <span
+                        aria-hidden="true"
+                        style={{
+                          width: "9px",
+                          height: "9px",
+                          boxSizing: "border-box",
+                          borderRadius: "50%",
+                          background: a.named.includes(i) ? T.accent : "transparent",
+                          border: a.named.includes(i) ? undefined : "1px solid " + T.line,
+                        }}
+                      />
+                      <span className="sr-only">
+                        {ENGINE_SPECS[e].label}: {a.named.includes(i) ? `named ${SUBJECT}` : `did not name ${SUBJECT}`}
+                      </span>
+                    </span>
+                  ))}
+                </div>
+              ))}
+            </div>
+            <svg
+              {...seqStep(3 + CLUSTER_ANGLES.length, { flexShrink: 0 })}
+              width="48"
+              height={CLUSTER_ANGLES.length * ANGLE_ROW}
+              viewBox={`0 0 48 ${CLUSTER_ANGLES.length * ANGLE_ROW}`}
+              aria-hidden="true"
+            >
+              {CLUSTER_ANGLES.map((a, n) => {
+                const y = n * ANGLE_ROW + ANGLE_ROW / 2;
+                const mid = (CLUSTER_ANGLES.length * ANGLE_ROW) / 2;
+                const hit = a.named.length > 0;
+                return (
+                  <path
+                    key={a.angle}
+                    d={`M0,${y} C26,${y} 22,${mid} 48,${mid}`}
+                    fill="none"
+                    stroke={hit ? T.accent : T.faint}
+                    strokeOpacity={hit ? 0.55 : 0.6}
+                    strokeWidth="1.5"
+                    strokeDasharray={hit ? undefined : "3 3"}
+                  />
+                );
+              })}
+              <circle cx="45" cy={(CLUSTER_ANGLES.length * ANGLE_ROW) / 2} r="3.5" fill={T.accent} />
+            </svg>
           </div>
-        ))}
+
+          <div
+            {...seqStep(3 + CLUSTER_ANGLES.length, {
+              flex: "1 1 150px",
+              minWidth: 0,
+              boxSizing: "border-box",
+              padding: "12px 14px",
+              borderRadius: "12px",
+              border: "1px solid " + T.washLine,
+              background: T.wash,
+              display: "flex",
+              flexDirection: "column",
+              gap: "3px",
+            })}
+          >
+            <span style={{ fontSize: "10.5px", fontWeight: 600, color: T.soft }}>Google keyword</span>
+            <span style={{ fontSize: "13px", fontWeight: 700, color: T.ink }}>{KEYWORD.term}</span>
+            <span style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
+              <span style={{ fontSize: "24px", fontWeight: 700, letterSpacing: "-0.03em" }}>#{KEYWORD.now}</span>
+              <span style={{ fontSize: "11.5px", fontWeight: 600, color: T.accentHover }}>was #{KEYWORD.was}</span>
+            </span>
+          </div>
+        </div>
       </div>
 
-      <div {...seqStep(8, { marginTop: "12px", paddingTop: "10px", borderTop: hair })}>
-        <div style={MICRO}>Named instead, of {WEEKLY_ANSWERS} answers</div>
+      <div {...seqStep(4 + CLUSTER_ANGLES.length, { marginTop: "12px", paddingTop: "10px", borderTop: hair })}>
+        <div style={MICRO}>{`Named instead, of this cluster's ${CLUSTER_ANSWERS} answers`}</div>
         {NAMED_INSTEAD.map((b, n) => (
           <div
             key={b.brand}
-            {...seqStep(9 + n, { display: "flex", alignItems: "center", gap: "10px", marginTop: "6px" })}
+            {...seqStep(5 + CLUSTER_ANGLES.length + n, { display: "flex", alignItems: "center", gap: "10px", marginTop: "6px" })}
           >
             <span style={{ fontSize: "12px", fontWeight: 700, color: b.you ? T.accent : T.ink, width: "80px", flexShrink: 0 }}>
               {b.brand}
             </span>
             <span aria-hidden="true" style={{ flexGrow: 1, height: "7px", borderRadius: "4px", background: T.line, overflow: "hidden" }}>
               <span
-                style={{ display: "block", height: "100%", width: Math.round((b.of / WEEKLY_ANSWERS) * 100) + "%", background: b.you ? T.accent : "#c9ccd3" }}
+                style={{ display: "block", height: "100%", width: Math.round((b.of / CLUSTER_ANSWERS) * 100) + "%", background: b.you ? T.accent : "#c9ccd3" }}
               />
             </span>
             <span style={{ fontSize: "12px", fontWeight: 700, width: "22px", textAlign: "right" }}>{b.of}</span>
@@ -700,7 +785,7 @@ export default function ProcessSequence(p: { heading?: string; standfirst?: stri
             the nodes are joined is a sentence no grep of the built page can
             find - which is how you end up unable to prove the label shipped. */}
         <p style={{ margin: 0, fontSize: "12px", color: T.soft }}>
-          {`Illustrative. ${SUBJECT} and every brand shown are made up.`}
+          {`Illustrative. ${SUBJECT} and every brand and figure shown are made up.`}
         </p>
         {/* Only once a reader has pinned a tier. Until then the story is
             already playing and a "play" button would be a control that does

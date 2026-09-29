@@ -211,7 +211,7 @@ export default function SeoAgenciesPage() {
         <div className="seo-notes" style={{ color: T.soft }}>
           <span>Measured as a position, daily</span>
           <span>Illustrative. Every brand shown is made up.</span>
-          <span>Measured across the question set, every engine</span>
+          <span>Measured across the cluster&apos;s prompts, every engine</span>
         </div>
       </section>
 
@@ -232,7 +232,7 @@ export default function SeoAgenciesPage() {
             See all packages
           </Link>
           {/* "a week" said something the other three surfaces did not: the basis
-              is questions checked weekly, not new questions every week. */}
+              is the same prompts checked daily, not new prompts every week. */}
           {tracked ? ` - ${tracked.priceLabel} for tracking alone, at ${TRACKED_BASIS}.` : "."}
         </p>
         <p style={{ margin: "8px 0 0", fontSize: "14px", color: T.soft, lineHeight: 1.6 }}>

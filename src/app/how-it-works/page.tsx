@@ -313,7 +313,7 @@ export default function HowItWorksPage() {
           <div className="two-up" style={{ gap: "16px", marginTop: "24px" }}>
             {[
               { label: "Google reads a link", body: "Authority passes to the page the anchor points at, and the article itself ranks for the term.", foot: "Measured as a position, with a note when an AI Overview sits above it", accent: false },
-              { label: "The engines read a source", body: "The article becomes one of the pages an answer is assembled from, so the brand gets named.", foot: "Measured across the question set, on every engine", accent: true },
+              { label: "The engines read a source", body: "The article becomes one of the pages an answer is assembled from, so the brand gets named.", foot: "Measured across each cluster of prompts, on every engine", accent: true },
             ].map((c) => (
               <div key={c.label} style={{ ...CARD, borderRadius: "18px", padding: "24px 26px", border: "1px solid " + (c.accent ? T.accent : T.line) }}>
                 <div style={{ ...MICRO, color: c.accent ? T.accent : T.soft }}>{c.label}</div>

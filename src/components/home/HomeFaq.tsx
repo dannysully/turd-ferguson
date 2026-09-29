@@ -1,6 +1,8 @@
 import { ALWAYS_ON, ALWAYS_ON_SUPPORT } from "@/config/always-on";
 import { WAITLIST_LIMITS } from "@/config/contact";
 import { FREE_ENGINE_COUNT, QUESTIONS } from "@/config/scan-shape";
+import { TRACKED_CLUSTERS, TRACKED_PROMPTS } from "@/config/pricing";
+import { PROMPTS_PER_CLUSTER } from "@/lib/tracking/limits";
 import { word } from "./EngineDemo";
 import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
 import { ORG_REF, SITE_REF, ld } from "@/config/schema";
@@ -66,6 +68,12 @@ export const FAQS: Faq[] = [
     q: "Then how do you choose which questions to track?",
     hint: "Backwards, from the decision",
     a: 'We start at the prompt someone types when they are ready to choose - "best X for a team of twelve moving off spreadsheets" - and work outwards to the questions sitting next to it. That is the opposite of keyword research, which starts at the biggest number and works down. Being named in the broadest question in your category is worth less than being named in the narrow one where somebody is deciding, and the broad one is far more crowded.',
+  },
+  {
+    // Added 29 Sep 2026 (R115, danny.md line 107): tracking is sold as clusters.
+    q: "What's a cluster?",
+    hint: "One keyword and the prompts around it",
+    a: `One Google keyword your buyers search, joined to the ${PROMPTS_PER_CLUSTER} prompts they ask AI about it - the category, your positioning, your sector, the outcome they want and a comparison. Every day we check the prompts on each engine and the keyword's Google position, side by side and never averaged. The tracking plan covers ${TRACKED_CLUSTERS} clusters, ${TRACKED_PROMPTS} prompts in all. The placement tiers are sold per cluster, and the cluster you track is the one you upgrade.`,
   },
   {
     q: "What if I already pay for a tracking tool?",

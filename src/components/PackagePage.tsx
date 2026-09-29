@@ -4,7 +4,7 @@ import TierEngines from "@/components/TierEngines";
 import WalkthroughForm from "@/components/scan/WalkthroughForm";
 import TierName, { TierText, type TierKey } from "@/components/TierName";
 import { ALWAYS_ON, ALWAYS_ON_SUPPORT } from "@/config/always-on";
-import { CONTACT_URL, TIERS, TRACKED_BASIS, TRACKED_KEYWORDS, TRACKED_QUESTIONS, checkoutUrlFor, enginesFor, type Tier } from "@/config/pricing";
+import { CONTACT_URL, TIERS, TRACKED_BASIS, TRACKED_CLUSTERS, TRACKED_KEYWORDS, TRACKED_PROMPTS, checkoutUrlFor, enginesFor, type Tier } from "@/config/pricing";
 import { ld } from "@/config/schema";
 import { serviceSchema } from "@/config/service-schema";
 import { CARD, MICRO, SHELL, T } from "@/config/tokens";
@@ -30,8 +30,9 @@ export type PackageSection = { figure: string; heading: string; body: string };
 function tilesFor(tier: Tier, sections: PackageSection[]): Tile[] {
   const engines = enginesFor(tier.key).length;
   return [
-    { key: "questions", figure: String(TRACKED_QUESTIONS), label: "questions checked daily" },
-    { key: "keywords", figure: String(TRACKED_KEYWORDS), label: "keywords ranked" },
+    { key: "clusters", figure: String(TRACKED_CLUSTERS), label: "keyword clusters" },
+    { key: "prompts", figure: String(TRACKED_PROMPTS), label: "prompts checked daily" },
+    { key: "keywords", figure: String(TRACKED_KEYWORDS), label: "keywords ranked on Google daily" },
     {
       key: "engines",
       figure: (

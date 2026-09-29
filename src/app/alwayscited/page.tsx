@@ -24,6 +24,7 @@ export default function Page() {
       standfirst="Everything in alwaysmentioned, then we go after the ranking directly. Schema work on your client's pages and link insertions from the placements, so the same coverage that wins the AI answer also moves the keyword."
       included={[
         "Everything in alwaysmentioned, including the placements and the tracking",
+        "The cluster you track is the one you upgrade: the same keyword and prompts, now worked on",
         "Schema work on your client's target pages",
         "Link insertions inside existing high-authority articles",
         "Insertions agreed with the publisher and with you",

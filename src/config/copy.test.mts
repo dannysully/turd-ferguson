@@ -238,10 +238,14 @@ const DASH_EXEMPT: Record<string, DashExemption> = {
  *    four surfaces and two of them disagreed about what it meant - "20
  *    questions, checked weekly" against "20 questions a week", which is a
  *    different offer at the same price.
+ *  - TRACKED_PROMPTS replaced it on 29 Sep 2026 (R112, danny.md line 104):
+ *    the price now covers 10 clusters, 50 prompts and 10 keywords, and
+ *    TRACKED_QUESTIONS is gone. The prompt count is the one a question count
+ *    beside "question" would now be a stale copy of.
  */
 const OWNED = [
   { home: "src/config/scan-shape.ts", decl: /export const QUESTIONS = (\d+)/ },
-  { home: "src/config/pricing.ts", decl: /export const TRACKED_QUESTIONS = (\d+)/ },
+  { home: "src/config/pricing.ts", decl: /export const TRACKED_PROMPTS = (\d+)/ },
 ] as const;
 
 /**
