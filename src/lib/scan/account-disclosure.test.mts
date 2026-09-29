@@ -183,6 +183,10 @@ const MENTIONED: Record<string, string> = {
     "Admin-only, behind the /admin Basic auth.",
   "src/lib/tracking/member.ts":
     "T3: reads the column to join a signed-in member to their clients; returns none of it.",
+  "src/lib/checkout/signup.ts":
+    "C4 (30 Sep 2026): writes the column on client_domains and dashboard_members when a " +
+    "paid checkout from a scan becomes a client. Writes, behind the Stripe signature; " +
+    "the webhook answers with no row.",
 };
 
 test("nothing in this tree selects *", () => {

@@ -1,0 +1,171 @@
+import { createHmac, timingSafeEqual } from "node:crypto";
+
+/**
+ * The Stripe webhook's rules - BRIEF-3 C4 (docs/tracked-dashboard-2026-09-29/
+ * BRIEF-3-clusters.md), R92/R110/R117, 30 Sep 2026.
+ *
+ * Pure apart from what the caller injects, so every rule is tested with a
+ * recorded fixture and never a live call: the signature is checked against
+ * the raw body before anything is parsed; with no secret the door answers
+ * 503 and acts on nothing, never skips the check; the event id is recorded
+ * first and a replay answers 200 and does nothing; only the three events the
+ * endpoint is registered for are acted on.
+ */
+
+/** Stripe's own default tolerance for a signature's timestamp. */
+export const SIGNATURE_TOLERANCE_S = 300;
+
+export const HANDLED_EVENTS = ["checkout.session.completed", "customer.subscription.updated", "customer.subscription.deleted"] as const;
+export type HandledEvent = (typeof HANDLED_EVENTS)[number];
+
+function hmacHex(secret: string, data: string): string {
+  return createHmac("sha256", secret).update(data, "utf8").digest("hex");
+}
+
+/** `Stripe-Signature: t=<unix>,v1=<hex>[,v1=...]`, HMAC-SHA256 of `${t}.${body}`. */
+export function verifyStripeSignature(raw: string, header: string | null, secret: string, nowS: number = Math.floor(Date.now() / 1000)): boolean {
+  if (!header || !secret) return false;
+  let t: number | null = null;
+  const sigs: string[] = [];
+  for (const part of header.split(",")) {
+    const [k, v] = part.split("=", 2).map((s) => s?.trim());
+    if (k === "t" && v && /^\d+$/.test(v)) t = Number(v);
+    if (k === "v1" && v && /^[0-9a-f]{64}$/i.test(v)) sigs.push(v.toLowerCase());
+  }
+  if (t === null || !sigs.length || Math.abs(nowS - t) > SIGNATURE_TOLERANCE_S) return false;
+  const want = Buffer.from(hmacHex(secret, `${t}.${raw}`));
+  return sigs.some((s) => {
+    const got = Buffer.from(s);
+    return got.length === want.length && timingSafeEqual(got, want);
+  });
+}
+
+/** For tests: the header Stripe would send. */
+export function signStripePayload(raw: string, secret: string, t: number): string {
+  return `t=${t},v1=${hmacHex(secret, `${t}.${raw}`)}`;
+}
+
+export type StripeEvent = { id: string; type: string; data: { object: Record<string, unknown> } };
+
+/** What checkout.session.completed carries that signup needs, read from the Session and its metadata. */
+export type CompletedOrder = {
+  sessionId: string;
+  email: string | null;
+  tier: string;
+  sector: string;
+  quantity: number;
+  market: string;
+  keyword: string;
+  scanToken: string | null;
+  subscriptionId: string | null;
+  amountTotal: number | null;
+  currency: string | null;
+};
+
+const str = (v: unknown) => (typeof v === "string" ? v : "");
+
+export function completedOrder(session: Record<string, unknown>): CompletedOrder {
+  const m = (session.metadata ?? {}) as Record<string, unknown>;
+  const details = (session.customer_details ?? {}) as Record<string, unknown>;
+  const email = (str(details.email) || str(session.customer_email)).trim().toLowerCase() || null;
+  const scan = str(m.scan_token);
+  return {
+    sessionId: str(session.id),
+    email,
+    tier: str(m.tier),
+    sector: str(m.sector),
+    quantity: Number(str(m.quantity)) || 1,
+    market: str(m.market),
+    keyword: str(m.keyword),
+    scanToken: /^[0-9a-f]{32}$/i.test(scan) ? scan.toLowerCase() : null,
+    subscriptionId: str(session.subscription) || null,
+    amountTotal: typeof session.amount_total === "number" ? session.amount_total : null,
+    currency: str(session.currency) || null,
+  };
+}
+
+/** The subscription's scan token, set on it at checkout (subscription_data[metadata]). */
+export function subscriptionScanToken(sub: Record<string, unknown>): string | null {
+  const t = str(((sub.metadata ?? {}) as Record<string, unknown>).scan_token);
+  return /^[0-9a-f]{32}$/i.test(t) ? t.toLowerCase() : null;
+}
+
+/**
+ * Packs on a subscription: the quantity of the item marked `kind=pack`, on the
+ * item or its price. No checkout sells a pack yet, so today this is 0 and the
+ * client sits at the base limit (limits.ts clusterLimitFor).
+ */
+export function packsOn(sub: Record<string, unknown>): number {
+  const items = (((sub.items ?? {}) as Record<string, unknown>).data ?? []) as Record<string, unknown>[];
+  let packs = 0;
+  for (const it of items) {
+    const own = str(((it.metadata ?? {}) as Record<string, unknown>).kind);
+    const price = str((((it.price ?? {}) as Record<string, unknown>).metadata as Record<string, unknown> | undefined)?.kind);
+    if (own === "pack" || price === "pack") packs += typeof it.quantity === "number" && it.quantity > 0 ? it.quantity : 1;
+  }
+  return packs;
+}
+
+export type WebhookDeps = {
+  /** Insert the event id. "duplicate" when it was already there. */
+  record: (id: string, type: string) => Promise<"new" | "duplicate" | "failed">;
+  /** Undo `record` when the handler failed, so Stripe's retry is acted on. */
+  forget: (id: string) => Promise<void>;
+  completed: (order: CompletedOrder, eventId: string) => Promise<boolean>;
+  updated: (sub: Record<string, unknown>) => Promise<boolean>;
+  deleted: (sub: Record<string, unknown>) => Promise<boolean>;
+};
+
+export type WebhookAnswer = { status: number; body: { ok?: true; ignored?: string; error?: string } };
+
+export async function handleWebhook(raw: string, signature: string | null, secret: string | undefined, deps: WebhookDeps, nowS?: number): Promise<WebhookAnswer> {
+  if (!secret) return { status: 503, body: { error: "not_configured" } };
+  if (!verifyStripeSignature(raw, signature, secret, nowS)) return { status: 400, body: { error: "bad_signature" } };
+  let event: StripeEvent;
+  try {
+    event = JSON.parse(raw) as StripeEvent;
+  } catch {
+    return { status: 400, body: { error: "bad_body" } };
+  }
+  if (!event || typeof event.id !== "string" || typeof event.type !== "string" || !event.data?.object) {
+    return { status: 400, body: { error: "bad_body" } };
+  }
+  if (!(HANDLED_EVENTS as readonly string[]).includes(event.type)) return { status: 200, body: { ok: true, ignored: event.type } };
+
+  const recorded = await deps.record(event.id, event.type);
+  if (recorded === "failed") return { status: 500, body: { error: "record_failed" } };
+  if (recorded === "duplicate") return { status: 200, body: { ok: true, ignored: "duplicate" } };
+
+  const obj = event.data.object;
+  const type = event.type as HandledEvent;
+  const done =
+    type === "checkout.session.completed" ? await deps.completed(completedOrder(obj), event.id) : type === "customer.subscription.updated" ? await deps.updated(obj) : await deps.deleted(obj);
+  if (!done) {
+    await deps.forget(event.id);
+    return { status: 500, body: { error: "handler_failed" } };
+  }
+  return { status: 200, body: { ok: true } };
+}
+
+/** The order email to Danny (pricing spec section 5): plain text, what was bought and what the webhook did. */
+export function orderEmailText(o: CompletedOrder, outcome: string, siteOrigin: string): { subject: string; text: string } {
+  const amount = o.amountTotal !== null && o.currency ? `${(o.amountTotal / 100).toFixed(2)} ${o.currency.toUpperCase()}` : "unknown";
+  const text = [
+    "A checkout completed on alwayscited.com.",
+    "",
+    `Tier: ${o.tier || "unknown"}`,
+    `Sector: ${o.sector || "-"}`,
+    `Clusters: ${o.quantity}`,
+    `Market: ${o.market || "unknown"}`,
+    `Work email: ${o.email ?? "none given"}`,
+    `Keyword target: ${o.keyword || "-"}`,
+    `First payment: ${amount}`,
+    `Scan: ${o.scanToken ? `${siteOrigin}/scan/${o.scanToken}` : "none - set the client up by hand in /admin/tracking"}`,
+    `Stripe session: ${o.sessionId}`,
+    "",
+    `Set up: ${outcome}`,
+    "",
+    "Book the onboarding call, where the prompts are agreed.",
+  ].join("\n");
+  return { subject: `Order: ${o.tier || "unknown tier"}, ${o.quantity} cluster(s), ${o.email ?? "no email"}`, text };
+}

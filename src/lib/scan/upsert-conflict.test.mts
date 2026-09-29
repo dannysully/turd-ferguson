@@ -252,7 +252,11 @@ test("the four sites are the ones we think they are", () => {
       // 29 Sep 2026, T2 /admin/tracking: a client from a scan on client_domains'
       // original unique key (scan_phase1), and a member on dashboard_members'
       // (account_id, email) - once as the owner at create, once from the form.
+      // 30 Sep 2026, BRIEF-3 C4: the second of each is the Stripe webhook's
+      // signup (checkout/signup.ts), the client and its owner on T2's keys.
       "client_domains:account_id,domain,market,topic",
+      "client_domains:account_id,domain,market,topic",
+      "dashboard_members:account_id,email",
       "dashboard_members:account_id,email",
       "dashboard_members:account_id,email",
         "scan_answers:engine,question_id",

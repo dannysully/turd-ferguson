@@ -60,6 +60,8 @@ export const RECOMMENDED: Requirement[] = [
   { key: "FATGRID_API_KEY", why: "scores how hard each placement is to land" },
   /** 29 Sep 2026 (R91). Unset, /api/checkout sends every buyer to "Book a call" instead of Stripe. */
   { key: "STRIPE_SECRET_KEY", why: "opens a live Stripe Checkout; without it checkout falls back to a call" },
+  /** 30 Sep 2026 (BRIEF-3 C4). Unset, /api/stripe/webhook answers 503 and no paid checkout becomes a client. */
+  { key: "STRIPE_WEBHOOK_SECRET", why: "verifies Stripe's webhook; without it a paid checkout sets nothing up" },
 ];
 
 /**

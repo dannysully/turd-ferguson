@@ -74,6 +74,8 @@ export default async function Checkout({ searchParams }: { searchParams: Promise
     else price = `${formatPrice(quote.amount, sel.market)}/mo`;
   }
   const error = q.error ? ERRORS[q.error] : undefined;
+  // The free scan this order came from, carried to the Session for the webhook (BRIEF-3 C4).
+  const scan = /^[0-9a-f]{32}$/i.test(q.scan ?? "") ? q.scan!.toLowerCase() : null;
 
   return (
     <section style={{ ...SHELL, maxWidth: "640px", paddingTop: "48px", paddingBottom: "96px" }}>
@@ -90,6 +92,7 @@ export default async function Checkout({ searchParams }: { searchParams: Promise
 
       <form method="get" action="/checkout" style={{ ...CARD, padding: "22px", marginTop: "26px" }}>
         <input type="hidden" id="checkout-pick-tier" name="tier" value={TIER_PLAIN[tier]} maxLength={CHECKOUT_LIMITS.tier} />
+        {scan ? <input type="hidden" id="checkout-pick-scan" name="scan" value={scan} maxLength={CHECKOUT_LIMITS.scan} /> : null}
         <div style={{ display: "grid", gap: "14px" }}>
           {perCluster ? (
             <>
@@ -148,6 +151,7 @@ export default async function Checkout({ searchParams }: { searchParams: Promise
         <form method="post" action="/api/checkout" style={{ ...CARD, padding: "22px", marginTop: "16px" }}>
           <input type="hidden" id="checkout-tier" name="tier" value={tier} maxLength={CHECKOUT_LIMITS.tier} />
           <input type="hidden" id="checkout-market" name="market" value={sel.market} maxLength={CHECKOUT_LIMITS.market} />
+          {scan ? <input type="hidden" id="checkout-scan" name="scan" value={scan} maxLength={CHECKOUT_LIMITS.scan} /> : null}
           {perCluster ? (
             <>
               <input type="hidden" id="checkout-sector" name="sector" value={sel.sector} maxLength={CHECKOUT_LIMITS.sector} />

@@ -244,6 +244,14 @@ const NO_CALLER: { route: string; method: string; why: string; earns: () => bool
     earns: () => readFileSync(join(ROOT, "src/app/checkout/page.tsx"), "utf8").includes('action="/api/checkout"'),
   },
   {
+    route: "/api/stripe/webhook",
+    method: "POST",
+    // BRIEF-3 C4, 30 Sep 2026. Registered in Stripe's dashboard for three
+    // events (R110); nothing on the site calls it.
+    why: "Posted by Stripe to the endpoint registered in its dashboard, signed with STRIPE_WEBHOOK_SECRET.",
+    earns: () => readFileSync(join(ROOT, "src/app/api/stripe/webhook/route.ts"), "utf8").includes("process.env.STRIPE_WEBHOOK_SECRET"),
+  },
+  {
     route: "/api/track/run",
     method: "POST",
     why:

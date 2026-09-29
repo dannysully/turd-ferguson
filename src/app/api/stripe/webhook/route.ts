@@ -1,0 +1,42 @@
+import { supabaseAdmin } from "@/lib/supabase/admin";
+import { onCheckoutCompleted, onSubscriptionDeleted, onSubscriptionUpdated } from "@/lib/checkout/signup";
+import { handleWebhook } from "@/lib/checkout/webhook";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+/**
+ * Stripe's webhook (BRIEF-3 C4, R92/R110/R117, 30 Sep 2026). Registered in
+ * Stripe for checkout.session.completed, customer.subscription.updated and
+ * customer.subscription.deleted. The raw body is verified against
+ * STRIPE_WEBHOOK_SECRET before it is parsed; unset, the door answers 503 and
+ * acts on nothing. The event id goes into stripe_events first, so a replay is
+ * a 200 that does nothing. The rules are in lib/checkout/webhook.ts, the
+ * writes in lib/checkout/signup.ts.
+ */
+export async function POST(req: Request) {
+  const raw = await req.text();
+  const answer = await handleWebhook(raw, req.headers.get("stripe-signature"), process.env.STRIPE_WEBHOOK_SECRET, {
+    record: async (id, type) => {
+      const { error } = await supabaseAdmin().from("stripe_events").insert({ id, type });
+      if (!error) return "new";
+      if (error.code === "23505") return "duplicate";
+      console.error(`[stripe] could not record ${id}: ${error.message}`);
+      return "failed";
+    },
+    forget: async (id) => {
+      // Only the row this request wrote, so Stripe's retry is acted on rather than read as a replay.
+      const { error } = await supabaseAdmin().from("stripe_events").delete().eq("id", id);
+      if (error) console.error(`[stripe] could not forget ${id}: ${error.message}`);
+    },
+    completed: (order, eventId) => onCheckoutCompleted(supabaseAdmin(), order, eventId),
+    updated: (sub) => onSubscriptionUpdated(supabaseAdmin(), sub),
+    deleted: (sub) => onSubscriptionDeleted(supabaseAdmin(), sub),
+  });
+  return Response.json(answer.body, { status: answer.status });
+}
+
+/** Stripe only posts. Anything else is told so, never a 500. */
+export function GET() {
+  return Response.json({ error: "method_not_allowed" }, { status: 405, headers: { allow: "POST" } });
+}

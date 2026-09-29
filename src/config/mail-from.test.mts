@@ -221,6 +221,11 @@ const SENDERS: { file: string; sends: number; why: string }[] = [
     sends: 1,
     why: "the dashboard login link, 29 Sep 2026 (T3) - to a stored dashboard member, capped per address and per IP an hour",
   },
+  {
+    file: "src/lib/checkout/order-mail.ts",
+    sends: 1,
+    why: "the order email, 30 Sep 2026 (BRIEF-3 C4, pricing spec section 5) - to us at the contact destination, only from the signed Stripe webhook, once per event id",
+  },
 ];
 
 test("the send census still finds every sender, and the right number in each", () => {
@@ -239,8 +244,9 @@ test("every send takes its From from the one reader", () => {
   const all = sends();
   // A reader that has stopped matching returns a clean list, which is the
   // state every sweep in this tree has been caught in at least once.
-  // 5 since 29 Sep 2026: the dashboard login link (T3).
-  assert.equal(all.length, 5, `expected 5 sends, the walk found ${all.length}`);
+  // 5 since 29 Sep 2026: the dashboard login link (T3). 6 since 30 Sep 2026:
+  // the order email from the Stripe webhook (C4).
+  assert.equal(all.length, 6, `expected 6 sends, the walk found ${all.length}`);
 
   for (const s of all) {
     assert.equal(s.from, "mailFrom()", `${s.file} sets its own From: ${s.from}`);
@@ -299,8 +305,9 @@ const RECIPIENTS: { to: string; why: string }[] = [
 
 test("every send is addressed to somebody we are allowed to write to", () => {
   const all = sends();
-  // 5 since 29 Sep 2026: the dashboard login link (T3).
-  assert.equal(all.length, 5, `expected 5 sends, the walk found ${all.length}`);
+  // 5 since 29 Sep 2026: the dashboard login link (T3). 6 since 30 Sep 2026:
+  // the order email from the Stripe webhook (C4).
+  assert.equal(all.length, 6, `expected 6 sends, the walk found ${all.length}`);
 
   const allowed = new Map(RECIPIENTS.map((r) => [r.to, r.why]));
   for (const s of all) {

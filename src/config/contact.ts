@@ -105,7 +105,7 @@ export const WAITLIST_LIMITS = { domain: 253, topic: 200, email: 254, website: 2
  * refused over their bound by `checkoutRequest`; the hidden picks are cut to
  * theirs by `/api/checkout` before they are read, and must then validate.
  */
-export const CHECKOUT_LIMITS = { email: 254, keyword: { min: 2, max: 120 }, tier: 20, sector: 60, clusters: 4, market: 4 };
+export const CHECKOUT_LIMITS = { email: 254, keyword: { min: 2, max: 120 }, tier: 20, sector: 60, clusters: 4, market: 4, scan: 32 };
 
 /**
  * The campaign benchmark form, which is the fourth table this file predicted.

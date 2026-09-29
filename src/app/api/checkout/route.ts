@@ -46,6 +46,7 @@ export async function POST(req: Request) {
     market: field("market", CHECKOUT_LIMITS.market),
     email: field("email", CHECKOUT_LIMITS.email + 1),
     keyword: field("keyword", CHECKOUT_LIMITS.keyword.max + 1),
+    scan: field("scan", CHECKOUT_LIMITS.scan),
   };
 
   const r = checkoutRequest(order, {
@@ -63,6 +64,7 @@ export async function POST(req: Request) {
     const b = new URLSearchParams({ tier: TIER_PLAIN[(CHECKOUT_TIERS as readonly string[]).includes(tier) ? (tier as CheckoutTier) : "tracked"], market: order.market, error });
     if (order.sector) b.set("sector", order.sector);
     if (order.quantity > 1) b.set("clusters", String(order.quantity));
+    if (/^[0-9a-f]{32}$/i.test(order.scan)) b.set("scan", order.scan);
     return Response.redirect(`${ORIGIN}/checkout?${b}`, 303);
   };
 

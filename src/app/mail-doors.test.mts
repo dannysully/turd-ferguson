@@ -107,7 +107,7 @@ const files = sourceFiles(SRC).map((f) => ({
 const SENDERS: Record<
   string,
   {
-    reach: "anonymous" | "behind the ceilings" | "open, limited per caller";
+    reach: "anonymous" | "behind the ceilings" | "open, limited per caller" | "signed by Stripe";
     bound: string;
     evidence: RegExp;
     where: string;
@@ -166,6 +166,21 @@ const SENDERS: Record<
       "counted off dashboard_login_tokens before anything is sent.",
     evidence: /export const LOGIN_PER_IP_PER_HOUR = \d+/,
     where: "src/lib/tracking/session.ts",
+  },
+  /**
+   * 30 Sep 2026, BRIEF-3 C4 / pricing spec section 5: the order email to
+   * Danny. Its one caller is the Stripe webhook, which acts only on a body
+   * whose Stripe-Signature verifies against STRIPE_WEBHOOK_SECRET, and records
+   * the event id before acting, so one message per paid checkout.
+   */
+  "src/lib/checkout/order-mail.ts": {
+    reach: "signed by Stripe",
+    bound:
+      "Mails only our own contact destination. Sent only from the Stripe webhook after the " +
+      "signature verifies and the event id is newly recorded in stripe_events, so once per paid " +
+      "checkout; a replay is a 200 that sends nothing.",
+    evidence: /if \(!verifyStripeSignature\(raw, signature, secret, nowS\)\) return/,
+    where: "src/lib/checkout/webhook.ts",
   },
   "src/app/contact/actions.ts": {
     reach: "anonymous",
