@@ -12,8 +12,18 @@ import {
   shouldTrack,
   signRun,
   trackingDay,
+  upsellSetting,
   verifyRun,
 } from "./decide.ts";
+
+test("upgrade prompts: nomada or off need nothing; agency needs the agency's email (R94)", () => {
+  assert.deepEqual(upsellSetting("nomada", "ignored@example.com"), { mode: "nomada", contact: null });
+  assert.deepEqual(upsellSetting("off", ""), { mode: "off", contact: null });
+  assert.deepEqual(upsellSetting("agency", " Hello@Example.com "), { mode: "agency", contact: "hello@example.com" });
+  assert.ok("error" in upsellSetting("agency", ""), "agency without a contact is refused");
+  assert.ok("error" in upsellSetting("agency", "not an email"));
+  assert.ok("error" in upsellSetting("tracked", ""), "a tier is not a mode");
+});
 
 /**
  * T1's decisions, run (docs/tracked-dashboard-2026-09-29/BRIEF.md, 29 Sep 2026).
@@ -78,7 +88,7 @@ test("admin helpers: next day, slug, limit (T2)", () => {
   assert.equal(dayAfter("2026-09-29"), "2026-09-30");
   assert.equal(dayAfter("2026-09-30"), "2026-10-01");
   assert.equal(dayAfter("2026-12-31"), "2027-01-01");
-  assert.equal(slugFor("www.nomadadigital.co.uk"), "nomadadigital-co-uk");
+  assert.equal(slugFor("www.tallyroo.com"), "tallyroo-com");
   assert.equal(slugFor("https://Example.com/path"), "example-com");
   assert.equal(underLimit(19, 20), true);
   assert.equal(underLimit(20, 20), false, "the 21st question is refused");

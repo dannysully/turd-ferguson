@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 
 import { T } from "@/config/tokens";
 import { supabaseAdmin, supabaseConfigured } from "@/lib/supabase/admin";
-import { ADMIN_LIMITS, liveOn, trackingDay } from "@/lib/tracking/decide";
+import { ADMIN_LIMITS, UPSELL_MODES, liveOn, trackingDay } from "@/lib/tracking/decide";
 
 import { ActionForm } from "./ActionForm";
-import { addTracked, createClientFromScan, runNow, setMember } from "./actions";
+import { addTracked, createClientFromScan, runNow, setMember, setUpsell } from "./actions";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -58,6 +58,7 @@ export default async function TrackingAdmin() {
     { data: keywords, error: kErr },
     { data: runs, error: rErr },
     { data: members, error: mErr },
+    { data: accountRows, error: acErr },
   ] = await Promise.all([
     db.from("tracked_questions").select("client_domain_id, text, source, added_on, stopped_on").in("client_domain_id", ids),
     db.from("tracked_keywords").select("client_domain_id, keyword, added_on, stopped_on").in("client_domain_id", ids),
@@ -68,11 +69,13 @@ export default async function TrackingAdmin() {
       .gte("run_date", since)
       .order("run_date", { ascending: false }),
     db.from("dashboard_members").select("account_id, email, role").in("account_id", accounts),
+    db.from("accounts").select("id, upsell_mode, upsell_contact_email").in("id", accounts),
   ]);
   if (qErr) throw new Error(`could not read tracked questions: ${qErr.message}`);
   if (kErr) throw new Error(`could not read tracked keywords: ${kErr.message}`);
   if (rErr) throw new Error(`could not read tracking runs: ${rErr.message}`);
   if (mErr) throw new Error(`could not read dashboard members: ${mErr.message}`);
+  if (acErr) throw new Error(`could not read accounts: ${acErr.message}`);
 
   const of = (rows: Row[] | null, id: string, key = "client_domain_id") => (rows ?? []).filter((r) => r[key] === id);
 
@@ -110,6 +113,7 @@ export default async function TrackingAdmin() {
         const todayRun = rs.find((r) => r.run_date === today);
         const cost14 = rs.reduce((n, r) => n + Number(r.dfs_cost ?? 0), 0);
         const ms = of(members, c.account_id as string, "account_id");
+        const account = (accountRows ?? []).find((a) => a.id === c.account_id);
         return (
           <section key={id} style={{ border: `1px solid ${T.line}`, borderRadius: "10px", padding: "16px", marginBottom: "16px" }}>
             <h2 style={{ fontSize: "16px", margin: "0 0 4px" }}>
@@ -158,6 +162,22 @@ export default async function TrackingAdmin() {
                 <label style={{ fontSize: "13px" }}>
                   <input type="checkbox" name="remove" value="1" maxLength={ADMIN_LIMITS.id} /> remove
                 </label>
+              </ActionForm>
+            </div>
+            <div style={{ marginTop: "8px" }}>
+              <strong style={{ fontSize: "13px" }}>Upgrade prompts</strong>{" "}
+              {String(account?.upsell_mode ?? "nomada")}
+              {account?.upsell_contact_email ? ` - asks go to ${account.upsell_contact_email as string}` : ""}
+              <ActionForm action={setUpsell} submit="Save prompts">
+                <input type="hidden" name="account" value={c.account_id as string} maxLength={ADMIN_LIMITS.id} />
+                <select name="mode" defaultValue={String(account?.upsell_mode ?? "nomada")} style={input} aria-label="Upgrade prompt mode">
+                  {UPSELL_MODES.map((m) => (
+                    <option key={m} value={m}>
+                      {m === "nomada" ? "nomada - brand sold direct" : m === "agency" ? "agency - ask the agency, no tier names" : "off - no prompts"}
+                    </option>
+                  ))}
+                </select>
+                <input name="contact" maxLength={ADMIN_LIMITS.email} defaultValue={(account?.upsell_contact_email as string | null) ?? ""} placeholder="Agency contact email" style={{ ...input, width: "220px" }} aria-label="Agency contact email" />
               </ActionForm>
             </div>
             {rs.length ? (

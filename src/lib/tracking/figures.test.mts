@@ -129,15 +129,15 @@ test("keyword rows: latest position, places gained over the range, one point per
 test("cited pages: counted per page, engines listed, the client's own site marked", () => {
   const pages = citedPages(
     [
-      { run_date: "2026-09-02", engine: "chatgpt", citations: [{ source_domain: "www.tally.com", url: "https://www.tally.com/pricing/" }, { source_domain: "review.io", url: null }] },
-      { run_date: "2026-09-02", engine: "gemini", citations: [{ source_domain: "tally.com", url: "https://tally.com/pricing" }] },
+      { run_date: "2026-09-02", engine: "chatgpt", citations: [{ source_domain: "www.tallyroo.com", url: "https://www.tallyroo.com/pricing/" }, { source_domain: "ledgerline.com", url: null }] },
+      { run_date: "2026-09-02", engine: "gemini", citations: [{ source_domain: "tallyroo.com", url: "https://tallyroo.com/pricing" }] },
     ],
     { from: "2026-09-01", to: "2026-09-30" },
-    "tally.com",
+    "tallyroo.com",
   );
   assert.deepEqual(pages, [
-    { page: "tally.com/pricing", count: 2, engines: ["chatgpt", "gemini"], yours: true },
-    { page: "review.io", count: 1, engines: ["chatgpt"], yours: false },
+    { page: "tallyroo.com/pricing", count: 2, engines: ["chatgpt", "gemini"], yours: true },
+    { page: "ledgerline.com", count: 1, engines: ["chatgpt"], yours: false },
   ]);
 });
 

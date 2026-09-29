@@ -1,6 +1,7 @@
 import { createHmac } from "node:crypto";
 
 import { constantTimeEqual } from "../constant-time.ts";
+import { isPlausibleEmail } from "../email-address.ts";
 
 /**
  * The decisions the daily tracking runner makes, with nothing in here that
@@ -114,7 +115,7 @@ export function dayAfter(day: string): string {
   return d.toISOString().slice(0, 10);
 }
 
-/** A client's dashboard slug off its domain: "www.nomadadigital.co.uk" -> "nomadadigital-co-uk". */
+/** A client's dashboard slug off its domain: "www.tallyroo.com" -> "tallyroo-com". */
 export function slugFor(domain: string): string {
   return domain
     .trim()
@@ -136,6 +137,23 @@ export const ADMIN_LIMITS = { scan: 200, email: 254, question: 300, keyword: 120
 /** Server-side limit:a new question or keyword is allowed only while the live count is under the limit. */
 export function underLimit(liveCount: number, limit: number): boolean {
   return liveCount < limit;
+}
+
+/**
+ * An account's upgrade prompts (R94, 29 Sep 2026; BRIEF-2): `nomada`, the
+ * column's default, for brands sold direct; `agency` for an agency's client,
+ * which names no Nomada tier and asks the agency, so it needs the agency's
+ * contact email; `off` for none. Returns the row to write, or why not.
+ */
+export const UPSELL_MODES = ["nomada", "agency", "off"] as const;
+export type UpsellMode = (typeof UPSELL_MODES)[number];
+
+export function upsellSetting(mode: string, contact: string): { mode: UpsellMode; contact: string | null } | { error: string } {
+  if (!(UPSELL_MODES as readonly string[]).includes(mode)) return { error: "Unknown prompt mode." };
+  const email = contact.trim().toLowerCase();
+  if (mode !== "agency") return { mode: mode as UpsellMode, contact: null };
+  if (!email || email.length > ADMIN_LIMITS.email || !isPlausibleEmail(email)) return { error: "An agency account needs the agency's contact email." };
+  return { mode: "agency", contact: email };
 }
 
 /** A `running` tracking run older than this was killed by the platform. */

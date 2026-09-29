@@ -201,7 +201,9 @@ const ACTIONS: Record<string, string[]> = {
   // 29 Sep 2026, T2 /admin/tracking. Sends no mail. Each checks the admin's
   // Basic auth itself (refuseUnlessAdmin) before anything, because an action
   // id is answered on any path and the /admin proxy covers only /admin.
-  "src/app/admin/tracking/actions.ts": ["addTracked", "createClientFromScan", "runNow", "setMember"],
+  // setUpsell, 29 Sep 2026 (R94): writes accounts.upsell_mode and the agency
+  // contact, sends nothing, same admin check first.
+  "src/app/admin/tracking/actions.ts": ["addTracked", "createClientFromScan", "runNow", "setMember", "setUpsell"],
 };
 
 // --------------------------------------------------------------- the tests

@@ -8,7 +8,7 @@ import { TRACKED_KEYWORDS, TRACKED_QUESTIONS, enginesFor } from "@/config/pricin
 import { constantTimeEqual, decodeBasicAuth } from "@/lib/constant-time";
 import { isPlausibleEmail } from "@/lib/email-address";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { ADMIN_LIMITS, dayAfter, liveOn, slugFor, trackingDay, underLimit } from "@/lib/tracking/decide";
+import { ADMIN_LIMITS, dayAfter, liveOn, slugFor, trackingDay, underLimit, upsellSetting } from "@/lib/tracking/decide";
 import { dispatchTrackingRun } from "@/lib/tracking/runner";
 
 /**
@@ -203,6 +203,20 @@ export async function setMember(_prev: AdminResult | null, form: FormData): Prom
   }
   revalidatePath("/admin/tracking");
   return { ok: true, message: remove ? `${email} removed.` : `${email} is ${role}.` };
+}
+
+/** An account's upgrade prompts: nomada (default), agency (asks the agency, no tier names) or off. */
+export async function setUpsell(_prev: AdminResult | null, form: FormData): Promise<AdminResult> {
+  const refused = await refuseUnlessAdmin();
+  if (refused) return refused;
+  const accountId = text(form, "account");
+  const setting = upsellSetting(text(form, "mode"), text(form, "contact"));
+  if ("error" in setting) return { ok: false, message: setting.error };
+  const db = supabaseAdmin();
+  const { error } = await db.from("accounts").update({ upsell_mode: setting.mode, upsell_contact_email: setting.contact }).eq("id", accountId);
+  if (error) return { ok: false, message: `Could not save the prompt mode: ${error.message}` };
+  revalidatePath("/admin/tracking");
+  return { ok: true, message: setting.mode === "agency" ? `Agency mode; asks go to ${setting.contact}.` : `Prompts: ${setting.mode}.` };
 }
 
 /**
