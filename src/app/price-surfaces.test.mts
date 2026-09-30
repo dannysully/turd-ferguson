@@ -207,5 +207,16 @@ test("the basis travels with the price it qualifies, on every surface that print
   assert.ok(packTpl && usPack, "no TRACKING_PACK_LINE / TRACKING_PACK_PRICE in " + PRICING + " - if the pack went, remove this half");
   const pack = resolve(packTpl!, "TRACKING_PACK_LINE").replace("{price}", "+$" + usPack);
   assert.ok(grid.includes(pack), "the /packages grid quotes a floor price without saying what moves it: " + pack);
+
+  // The spec's first add-on sentence for the per-cluster tiers (R50 section
+  // 8, 30 Sep 2026): its figure is the cap /checkout enforces, parsed out of
+  // sector-pricing.ts, so the grid cannot promise more clusters than the order
+  // form takes.
+  const clustersTpl = /CLUSTERS_LINE = `([^`]*)`/.exec(source)?.[1];
+  const maxClusters = /export const MAX_CLUSTERS = (\d+);/.exec(readFileSync("src/config/sector-pricing.ts", "utf8"))?.[1];
+  assert.ok(clustersTpl && maxClusters, "no CLUSTERS_LINE in " + PRICING + " or MAX_CLUSTERS in sector-pricing.ts");
+  const clustersLine = clustersTpl!.replace("${MAX_CLUSTERS}", maxClusters!);
+  assert.ok(!clustersLine.includes("${"), "CLUSTERS_LINE names a figure this test does not resolve: " + clustersLine);
+  assert.ok(grid.includes(clustersLine), "the /packages grid sells clusters without saying how many checkout takes: " + clustersLine);
   assert.ok(!/\$\d+\s*\/\s*£\d+/.test(grid), "the packages grid prints a price in both currencies at once, whatever the toggle says (R61)");
 });

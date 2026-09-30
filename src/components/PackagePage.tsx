@@ -4,7 +4,7 @@ import TierEngines from "@/components/TierEngines";
 import WalkthroughForm from "@/components/scan/WalkthroughForm";
 import TierName, { TierText, type TierKey } from "@/components/TierName";
 import { ALWAYS_ON, ALWAYS_ON_SUPPORT } from "@/config/always-on";
-import { CONTACT_URL, TIERS, TRACKED_BASIS, TRACKED_CLUSTERS, TRACKED_KEYWORDS, TRACKED_PROMPTS, checkoutUrlFor, enginesFor, type Tier } from "@/config/pricing";
+import { CLUSTERS_LINE, CONTACT_URL, TIERS, TRACKED_BASIS, TRACKED_CLUSTERS, TRACKED_KEYWORDS, TRACKED_PROMPTS, checkoutUrlFor, enginesFor, type Tier } from "@/config/pricing";
 import { ld } from "@/config/schema";
 import { serviceSchema } from "@/config/service-schema";
 import { CARD, MICRO, SHELL, T } from "@/config/tokens";
@@ -173,6 +173,7 @@ export default function PackagePage({
             <TierText>{tier.priceBasis ?? "Monthly, no minimum term, white-labelled. What you pay us, not what you charge on."}</TierText>
             {tier.key === "everywhere" ? null : (
               <span style={{ display: "block", marginTop: "4px" }}>
+                {tier.key === "tracked" ? null : <>{CLUSTERS_LINE} </>}
                 <PackLine />
               </span>
             )}

@@ -22,7 +22,7 @@ import { TIER_PLAIN, type TierKey } from "@/components/TierName";
 // the two-copies-of-one-function species this repo has already paid for once.
 import { listOf } from "@/config/scan-shape";
 // The sector tiers' "from" is computed, never typed (pricing spec section 3).
-import { fromLabel, fromPrice } from "@/config/sector-pricing";
+import { MAX_CLUSTERS, fromLabel, fromPrice } from "@/config/sector-pricing";
 import type { Engine } from "@/lib/scan/engines";
 
 /** Single destination for every CTA until real signup and booking flows exist. */
@@ -95,9 +95,8 @@ export const TRACKED_BASIS = `${TRACKED_CLUSTERS} clusters: ${TRACKED_PROMPTS} p
  * used to print "+$49 / £39" whatever the page's market toggle said. `{price}`
  * is filled with the active market's figure by `PackLine` in SectorPrice.tsx;
  * the server, and a visitor with no script, read the US one, as they do every
- * other price on the page. For the higher tiers this is only the second
- * sentence of the spec's line: its first, "Add keyword clusters: up to 10 at
- * checkout", describes a checkout that does not exist until section 5 does.
+ * other price on the page. For the higher tiers this is the second sentence of
+ * the spec's line; the first is CLUSTERS_LINE below.
  */
 export const TRACKING_PACK_PRICE = { us: 49, uk: 39 } as const;
 export const TRACKING_PACK_LINE = `Extra tracking pack: {price}/mo for +${PACK_CLUSTERS} clusters (${PACK_PROMPTS} prompts, ${PACK_KEYWORDS} keywords).`;
@@ -108,6 +107,15 @@ export function trackingPackPrice(market: string): string {
 export function trackingPackLine(price: string): string {
   return TRACKING_PACK_LINE.replace("{price}", "+" + price);
 }
+
+/**
+ * The first sentence of the spec's add-on line for the two tiers sold per
+ * cluster (section 8). Held back until checkout existed; /checkout now takes
+ * 1 to MAX_CLUSTERS clusters and sends more to a call (session.ts, R50 section
+ * 5, 3768369), so the sentence is true. The figure is the one checkout
+ * enforces, not typed (30 Sep 2026).
+ */
+export const CLUSTERS_LINE = `Add keyword clusters: up to ${MAX_CLUSTERS} at checkout, more on a call.`;
 
 /**
  * Which engines each tier reads (pricing spec, Danny, 27 Sep 2026, sections 1

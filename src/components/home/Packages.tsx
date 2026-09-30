@@ -2,7 +2,7 @@ import { MarketPrice, MarketToggle, PackLine, SectorPrice, SelectionCta } from "
 import TierEngines from "@/components/TierEngines";
 import TierName, { TierText, type TierKey } from "@/components/TierName";
 import { ALWAYS_ON, ALWAYS_ON_SUPPORT } from "@/config/always-on";
-import { TIERS, contactUrlFor } from "@/config/pricing";
+import { CLUSTERS_LINE, TIERS, contactUrlFor } from "@/config/pricing";
 import { CARD, SHELL, T } from "@/config/tokens";
 
 import { D, PACKAGES_WASH } from "./dark";
@@ -233,7 +233,22 @@ export default function Packages({ full = false }: { full?: boolean }) {
                       <TierName tier={t.key} />
                     </div>
                     {t.key === "mentioned" || t.key === "cited" ? (
-                      <SectorPrice tier={t.key} fallback={t.priceLabel} compact per={PER} priceStyle={PRICE} basis={<Basis text={t.priceBasis ?? t.positioning} />} />
+                      <SectorPrice
+                        tier={t.key}
+                        fallback={t.priceLabel}
+                        compact
+                        per={PER}
+                        priceStyle={PRICE}
+                        basis={
+                          <>
+                            <Basis text={t.priceBasis ?? t.positioning} />
+                            {/* Spec section 8's add-on line, both sentences (R50). */}
+                            <div style={{ fontSize: "12px", lineHeight: 1.45, color: T.soft, marginTop: "4px" }}>
+                              {CLUSTERS_LINE} <PackLine />
+                            </div>
+                          </>
+                        }
+                      />
                     ) : (
                       <>
                         <div style={PRICE}>
