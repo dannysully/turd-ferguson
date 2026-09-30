@@ -40,10 +40,12 @@ const SHADOW = `0 24px 60px -28px color-mix(in srgb, ${T.ink} 45%, transparent)`
 const BTN: React.CSSProperties = { display: "flex", alignItems: "center", height: "44px", padding: "0 16px", borderRadius: "12px", fontSize: "14px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" };
 const ARROW: React.CSSProperties = { position: "absolute", top: 0, width: "36px", height: "36px", border: `1px solid ${T.line}`, borderRadius: "10px", background: T.surface, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" };
 
-export default function DatePicker({ range, compare, today, startedOn, className, children }: { range: Range; compare: Compare; today: Day; startedOn: Day | null; className?: string; children: React.ReactNode }) {
+export default function DatePicker({ range, compare, today, startedOn, className, grow = true, children }: { range: Range; compare: Compare; today: Day; startedOn: Day | null; className?: string; /** Fill the row, as the Overview header does; the cluster pages keep the face its own width. */ grow?: boolean; children: React.ReactNode }) {
   const router = useRouter();
   const b = bounds(today, startedOn);
   const [open, setOpen] = useState(false);
+  // Open under the face's right edge when there is room to its left (the Overview header), else under its left edge (the one-cluster page, where the face wraps to the left).
+  const [left, setLeft] = useState(false);
   const [pick, setPick] = useState<Pick>({ ...range, picking: false });
   const [preset, setPreset] = useState<string | null>(null);
   const [cmp, setCmp] = useState<Compare>(compare);
@@ -124,7 +126,7 @@ export default function DatePicker({ range, compare, today, startedOn, className
   };
 
   return (
-    <div className={className} style={{ position: "relative", display: "flex", flex: "1 1 auto" }}>
+    <div className={className} style={{ position: "relative", display: "flex", flex: grow ? "1 1 auto" : "0 0 auto" }}>
       <button
         ref={trigger}
         type="button"
@@ -132,7 +134,10 @@ export default function DatePicker({ range, compare, today, startedOn, className
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={() => {
-          if (!open) reset();
+          if (!open) {
+            reset();
+            setLeft((trigger.current?.getBoundingClientRect().right ?? 0) < 728);
+          }
           setOpen(!open);
         }}
         style={{ display: "flex", flex: "1 1 auto", alignItems: "center", gap: "12px", height: "48px", padding: "0 14px", border: `1px solid ${T.line}`, borderRadius: "12px", background: T.surface, color: T.ink, fontFamily: "inherit", textAlign: "left", cursor: "pointer" }}
@@ -145,7 +150,7 @@ export default function DatePicker({ range, compare, today, startedOn, className
       {open ? (
         <>
           <div aria-hidden="true" onClick={close} style={{ position: "fixed", inset: 0, zIndex: 29 }} />
-          <div ref={dialog} role="dialog" aria-modal="true" aria-label="Choose a date range" className="app-dp" style={{ position: "absolute", right: 0, top: "calc(100% + 12px)", zIndex: 30, width: "712px", maxWidth: "calc(100vw - 32px)", boxSizing: "border-box", background: T.surface, border: `1px solid ${T.line}`, borderRadius: "18px", boxShadow: SHADOW, display: "flex", flexDirection: "column", color: T.ink }}>
+          <div ref={dialog} role="dialog" aria-modal="true" aria-label="Choose a date range" className="app-dp" style={{ position: "absolute", ...(left ? { left: 0 } : { right: 0 }), top: "calc(100% + 12px)", zIndex: 30, width: "712px", maxWidth: "calc(100vw - 32px)", boxSizing: "border-box", background: T.surface, border: `1px solid ${T.line}`, borderRadius: "18px", boxShadow: SHADOW, display: "flex", flexDirection: "column", color: T.ink }}>
             <div className="app-dp-body" style={{ display: "flex" }}>
               <div className="app-dp-presets" style={{ width: "188px", flexShrink: 0, boxSizing: "border-box", padding: "16px 12px", borderRight: `1px solid ${T.line}`, display: "flex", flexDirection: "column", gap: "2px" }}>
                 {presets(today, startedOn).map((p) => {

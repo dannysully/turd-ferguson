@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { rangeLabel } from "@/lib/tracking/date-range";
+
+import DatePicker from "./DatePicker";
 
 import EngineLogo from "@/components/EngineLogo";
 import { APP_LIMITS } from "@/config/contact";
@@ -46,6 +49,7 @@ export default function OneCluster({
   today,
   range,
   compareMode,
+  startedOn,
   data,
   detail,
   index,
@@ -66,6 +70,8 @@ export default function OneCluster({
   today: Day;
   range: Range;
   compareMode: Compare;
+  /** The client's started_on, the date picker's first pickable day (T5). */
+  startedOn?: string | null;
   data: OverviewData;
   detail: ClusterDetail;
   /** 1-based place among the client's clusters, for "Cluster 1 of 10". */
@@ -149,16 +155,17 @@ export default function OneCluster({
             {pending ? "First check tomorrow at 06:00." : `Tracked since ${formatDay(c.started_on, true)}.`}
           </p>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px", height: "48px", padding: "0 14px", border: `1px solid ${T.line}`, borderRadius: "12px", background: T.surface, flexShrink: 0 }}>
+        {/* T5 (30 Sep 2026): the server-drawn face opens boards/DatePicker.dc.html; JS off still shows the range. */}
+        <DatePicker range={range} compare={compareMode} today={today} startedOn={startedOn ?? null} grow={false}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={T.ink} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <rect x="3" y="5" width="18" height="16" rx="2" />
             <path d="M3 10h18M8 3v4M16 3v4" />
           </svg>
           <span style={{ display: "flex", flexDirection: "column", lineHeight: 1.25 }}>
-            <span style={{ fontSize: "14px", fontWeight: 700 }}>{days.length === 28 && range.to === today ? "Last 28 days" : `${days.length} days`}</span>
+            <span style={{ fontSize: "14px", fontWeight: 700 }}>{rangeLabel(range, today, startedOn ?? null)}</span>
             <span style={{ fontSize: "12px", color: T.soft }}>{`${formatDay(range.from)} - ${formatDay(range.to, true)}${before ? `, vs ${span(before)}` : ""}`}</span>
           </span>
-        </div>
+        </DatePicker>
       </header>
 
       <section aria-label="Summary" className="app-cl-sum" style={{ ...CARD, display: "flex", flexWrap: "wrap" }}>

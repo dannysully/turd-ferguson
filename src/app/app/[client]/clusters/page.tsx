@@ -82,6 +82,7 @@ export default async function ClientClusters({
           today={today}
           range={range}
           compareMode={compare}
+          startedOn={client.started_on}
           data={data}
           clusterLimit={client.cluster_limit ?? CLUSTER_BASE}
           open={one("open")}

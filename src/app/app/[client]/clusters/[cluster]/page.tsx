@@ -72,6 +72,7 @@ export default async function ClientCluster({
           today={today}
           range={range}
           compareMode={compare}
+          startedOn={client.started_on}
           data={data}
           detail={detail}
           index={cards.findIndex((c) => c.id === id) + 1}
