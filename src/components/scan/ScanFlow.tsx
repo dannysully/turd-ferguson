@@ -6,14 +6,13 @@ import { SCAN_LIMITS } from "@/config/contact";
 import { MICRO, SHELL, T } from "@/config/tokens";
 import { track } from "@/lib/analytics";
 import type {
-  ClusterKeywordView,
-  EngineAnswer,
   EngineBreakdown,
   Market,
   RunScanResponse,
   ScanOpportunity,
   ScanQuestion,
 } from "@/lib/scan";
+import { type FullInput, type FullPayload, asFull } from "@/lib/scan/full-payload";
 import { OFFER_AFTER_MS, OFFER_COPY, OFFER_STEP, offerReady } from "@/lib/scan/email-offer";
 import type { MarketReason } from "@/lib/scan/market-pick";
 import { type EngineResult, parseEngineResults } from "@/lib/scan/engine-results";
@@ -110,37 +109,6 @@ type Teaser = {
   questions: TeaserQuestion[] | null;
 };
 
-type FullPayload = {
-  brands: { brand: string; mentions: number; is_subject: boolean }[];
-  sources: { source: string; mentions: number; urls: string[]; kind?: string | null; note?: string | null }[];
-  /**
-   * Per-question engine detail, including what each one actually said.
-   *
-   * `google_rank` is here because the merge below used to take `engines` and
-   * nothing else off these rows. buildUnlockPayload has always sent the rank
-   * and this type did not name it, so it was dropped on the way into state and
-   * the two places that render it - the "- Google 3rd" note on a question row
-   * and the "Best Google position" tile on the unlocked report - had never once
-   * shown a value.
-   */
-  questions?: {
-    idx: number;
-    google_rank?: number | null;
-    target_keyword?: string | null;
-    search_volume?: number | null;
-    keyword_rank?: number | null;
-    engines: EngineAnswer[];
-  }[];
-  /** True when the questions' keyword trio is the scan's one cluster keyword (BRIEF-3 C1). */
-  cluster_keyword?: boolean;
-  /** The cluster keyword itself (S1). Null before C1. */
-  cluster?: ClusterKeywordView | null;
-  /** The gated finding: pages feeding answers the brand is absent from. */
-  opportunities?: ScanOpportunity[];
-  gated_engines?: string[];
-  gated_status?: string;
-};
-
 /**
  * The gated engine list, in prose: "ChatGPT, Gemini and Perplexity".
  *
@@ -228,29 +196,6 @@ const STUCK_MS = 6 * 60 * 1000;
  */
 const RUN_FAILED =
   "We could not finish that check. You can run it again - a run that fails on our side does not count against your free scans.";
-
-/**
- * The unlock payload, as the screens need it.
- *
- * Written once because it was written three times and one of them was wrong:
- * every reader picked brands, sources and questions off the response and left
- * `opportunities` behind, which is the one thing the email address buys. The
- * table that renders it has shipped since 9d54925 and has never had a row in
- * it, because nothing ever put the rows into state.
- */
-function asFull(data: {
-  brands?: FullPayload["brands"];
-  sources?: FullPayload["sources"];
-  questions?: FullPayload["questions"];
-  opportunities?: ScanOpportunity[];
-}): FullPayload {
-  return {
-    brands: data.brands ?? [],
-    sources: data.sources ?? [],
-    questions: data.questions ?? [],
-    opportunities: data.opportunities ?? [],
-  };
-}
 
 /** Teaser plus whatever has been unlocked, in the shape the screens render. */
 function toResult(t: Teaser, domain: string, full: FullPayload | null): RunScanResponse {
@@ -382,12 +327,7 @@ export default function ScanFlow(p: {
    */
   unlocked?: boolean;
   /** The unlocked half, read on the server for a scan that has been unlocked. */
-  initialFull?: {
-    brands?: FullPayload["brands"];
-    sources?: FullPayload["sources"];
-    questions?: FullPayload["questions"];
-    opportunities?: ScanOpportunity[];
-  } | null;
+  initialFull?: FullInput | null;
   /**
    * How many placements are behind the gate, counted on the server for a
    * finished scan that is still locked.

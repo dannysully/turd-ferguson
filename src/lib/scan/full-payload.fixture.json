@@ -1,0 +1,95 @@
+{
+  "unlocked": true,
+  "gated_engines": [],
+  "gated_status": "none",
+  "brands": [
+    {
+      "brand": "Example",
+      "mentions": 30,
+      "is_subject": true,
+      "engines": [
+        "chatgpt",
+        "gemini",
+        "perplexity",
+        "google_aio"
+      ]
+    }
+  ],
+  "brands_by_engine": [
+    {
+      "engine": "gemini",
+      "brand": "Example",
+      "mentions": 5,
+      "is_subject": false
+    }
+  ],
+  "sources": [
+    {
+      "source": "zeni.ai",
+      "mentions": 5,
+      "engines": [
+        "perplexity",
+        "gemini",
+        "google_aio"
+      ],
+      "urls": [
+        "https://www.zeni.ai/product/outsourced-accounting-services"
+      ],
+      "kind": "competitor",
+      "note": "Named competitor; AI startup accounting service"
+    }
+  ],
+  "questions": [
+    {
+      "idx": 0,
+      "question": "best outsourced bookkeeping services for small business in the us",
+      "kind": "category",
+      "google_rank": null,
+      "target_keyword": "bookkeeping services small business",
+      "search_volume": 3600,
+      "keyword_rank": null,
+      "engines": [
+        {
+          "engine": "google_aio",
+          "answered": true,
+          "brand_named": true,
+          "response_text": "The best outsourced bookkeeping services for small businesses in the US combine dedicated human expertise with intuitive",
+          "citations": [
+            {
+              "domain": "jumpstartpartners.finance",
+              "url": "https://jumpstartpartners.finance/blog/best-outsourced-accounting-services",
+              "title": "The 7 Best Outsourced Accounting Services for Growing ..."
+            },
+            {
+              "domain": "techrepublic.com",
+              "url": "https://www.techrepublic.com/article/best-outsourced-bookkeeping-firms/",
+              "title": "6 Best Outsourced Bookkeeping Firms"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "cluster_keyword": true,
+  "cluster": {
+    "status": "chosen",
+    "keyword": "bookkeeping services small business",
+    "volume": 3600,
+    "intent": "commercial",
+    "rank": null
+  },
+  "opportunities": [
+    {
+      "domain": "clutch.co",
+      "kind": "review",
+      "note": null,
+      "absent_answers": 2,
+      "absent_questions": 1,
+      "questions": [
+        "recommend a firm that offers bookkeeping and fractional cfo services together"
+      ],
+      "cited_by": 2,
+      "difficulty": 50
+    }
+  ]
+}
