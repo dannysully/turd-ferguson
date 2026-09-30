@@ -14,6 +14,8 @@ import { ENGINE_SPECS, isEngine } from "@/lib/scan/engines";
 import {
   PLAN_ORDER,
   SOV_ROWS,
+  clusterRank,
+  clusterState,
   engineLabel,
   fmtDate,
   googleLine,
@@ -792,6 +794,7 @@ export default function ResultView(p: {
 }) {
   const r = p.r;
   const f = resultFigures(r, p.domain, { unlocked: true, noPlacements: p.noPlacements });
+  const cluster = clusterState(r);
   const qs = r.questions ?? [];
   const [openIdx, setOpenIdx] = useState<number | null>(null);
   const close = useCallback(() => setOpenIdx(null), [setOpenIdx]);
@@ -844,15 +847,28 @@ export default function ResultView(p: {
             note={f.pct === null ? "No engine answered yet." : f.pct + "% across the question set"}
           />
           <Metric
-            label="Questions, no mention"
+            label={cluster ? "Prompts, no mention" : "Questions, no mention"}
             value={
               <>
                 {f.blank} <span style={unit}>{"of " + f.answeredQuestions}</span>
               </>
             }
-            note="Of the questions an engine answered at all."
+            note={cluster ? "Of the prompts an engine answered at all." : "Of the questions an engine answered at all."}
           />
-          {f.bestRank !== null ? (
+          {/* ScanCluster.dc.html: a scan with a cluster keyword (C1) shows the
+              keyword's own Google figure here, or "-" when none qualified;
+              a scan from before C1 keeps its best position on any question. */}
+          {cluster ? (
+            <Metric
+              label="Google, for the keyword"
+              value={clusterRank(r)}
+              note={
+                cluster === "chosen"
+                  ? "Your organic position for " + (r.cluster_keyword?.keyword ?? "") + "."
+                  : "No Google keyword was picked for this scan, so there is no position to show."
+              }
+            />
+          ) : f.bestRank !== null ? (
             <Metric label="Best Google position" value={"#" + f.bestRank} note="Your best organic position on any of these questions." />
           ) : null}
         </div>
