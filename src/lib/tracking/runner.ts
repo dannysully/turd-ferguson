@@ -26,6 +26,8 @@ import {
   trackingDay,
 } from "./decide.ts";
 import { dispatchRun } from "./dispatch.ts";
+import { sendLinkAlerts } from "./link-mail.ts";
+import { decideLinkCheck, isLinkCheckDay, type LinkRow, readPlacement } from "./placements.ts";
 
 /**
  * The daily alwaystracked runner - T1 of
@@ -408,6 +410,34 @@ export async function runTrackingDay(runId: string): Promise<{ status: string; s
     if (serpRows.length) {
       const { error } = await db.from("tracking_serp").upsert(serpRows, { onConflict: "run_id,keyword_id" });
       if (error) throw new Error(`could not store the keyword positions: ${error.message}`);
+    }
+
+    // BRIEF-2 T12 (R96): the Sunday link check of this client's live
+    // placements. Never fatal - the reads are stored - and never changes
+    // status; a failed fetch records nothing (placements.ts decideLinkCheck).
+    // Logged, so a check that broke shows in the run's log rather than hiding.
+    if (isLinkCheckDay(day)) {
+      try {
+        const { data: ps, error: pErr } = await db
+          .from("placements")
+          .select("id, url, last_checked_on, link_present")
+          .eq("client_domain_id", client.id)
+          .eq("status", "live");
+        if (pErr) throw new Error(pErr.message);
+        const alerts: string[] = [];
+        await mapWithConcurrency((ps ?? []) as (LinkRow & { id: string })[], CONCURRENCY, async (p) => {
+          if (remainingMs() < 15_000) return;
+          const out = decideLinkCheck(p, await readPlacement(p.url, fetch), domain, day);
+          if (out.alert) alerts.push(out.alert);
+          if (!out.write) return;
+          const { error } = await db.from("placements").update({ ...out.write, updated_at: new Date().toISOString() }).eq("id", p.id);
+          if (error) console.warn(`[track] ${runId} placement ${p.id} not updated: ${error.message}`);
+        });
+        console.log(`[track] ${runId} link check: ${(ps ?? []).length} live placements, ${alerts.length} alerts`);
+        if (alerts.length && !(await sendLinkAlerts({ domain, lines: alerts }))) console.warn(`[track] ${runId} link alert not sent`);
+      } catch (err) {
+        console.warn(`[track] ${runId} link check failed: ${message(err)}`);
+      }
     }
 
     const reads = answers.length + serp.length;

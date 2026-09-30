@@ -107,7 +107,7 @@ const files = sourceFiles(SRC).map((f) => ({
 const SENDERS: Record<
   string,
   {
-    reach: "anonymous" | "behind the ceilings" | "open, limited per caller" | "signed by Stripe" | "signed-in member, limited per member";
+    reach: "anonymous" | "behind the ceilings" | "open, limited per caller" | "signed by Stripe" | "signed-in member, limited per member" | "the tracking runner, once a client a Sunday";
     bound: string;
     evidence: RegExp;
     where: string;
@@ -196,6 +196,22 @@ const SENDERS: Record<
       "ASKS_PER_MEMBER_PER_DAY asks a member a day, counted off cta_events before the send; off mode sends none.",
     evidence: /export const ASKS_PER_MEMBER_PER_DAY = \d+/,
     where: "src/lib/tracking/ask.ts",
+  },
+  /**
+   * 30 Sep 2026, BRIEF-2 T12 (R96): the Sunday link check's alert to Danny.
+   * Called only from runTrackingDay, which runs a claimed tracking_runs row
+   * (one per client a day, started by the cron's signed dispatch), and only
+   * when isLinkCheckDay says Sunday. One message per client per Sunday, to our
+   * own contact destination, nothing when no row alerts.
+   */
+  "src/lib/tracking/link-mail.ts": {
+    reach: "the tracking runner, once a client a Sunday",
+    bound:
+      "Mails only our own contact destination. One call per claimed Sunday tracking run, a run " +
+      "being one per client a day and claimed by a compare-and-swap on status queued; no alert " +
+      "lines, no message.",
+    evidence: /if \(isLinkCheckDay\(day\)\)/,
+    where: "src/lib/tracking/runner.ts",
   },
   "src/app/contact/actions.ts": {
     reach: "anonymous",

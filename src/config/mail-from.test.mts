@@ -231,6 +231,11 @@ const SENDERS: { file: string; sends: number; why: string }[] = [
     sends: 1,
     why: "a signed-in member's ask, 30 Sep 2026 (BRIEF-2 T11 /ask) - to us, or to the account's agency contact in agency mode, member as reply-to, 3 per member a day",
   },
+  {
+    file: "src/lib/tracking/link-mail.ts",
+    sends: 1,
+    why: "the Sunday placement link check's alert, 30 Sep 2026 (BRIEF-2 T12, R96) - to us at the contact destination, from the tracking runner, one per client a Sunday when a link has gone",
+  },
 ];
 
 test("the send census still finds every sender, and the right number in each", () => {
@@ -251,8 +256,9 @@ test("every send takes its From from the one reader", () => {
   // state every sweep in this tree has been caught in at least once.
   // 5 since 29 Sep 2026: the dashboard login link (T3). 6 since 30 Sep 2026:
   // the order email from the Stripe webhook (C4). 7 since 30 Sep 2026: a
-  // member's ask from the dashboard (T11 /ask).
-  assert.equal(all.length, 7, `expected 7 sends, the walk found ${all.length}`);
+  // member's ask from the dashboard (T11 /ask). 8 since 30 Sep 2026: the
+  // Sunday link check's alert (T12, R96).
+  assert.equal(all.length, 8, `expected 8 sends, the walk found ${all.length}`);
 
   for (const s of all) {
     assert.equal(s.from, "mailFrom()", `${s.file} sets its own From: ${s.from}`);
@@ -317,8 +323,9 @@ test("every send is addressed to somebody we are allowed to write to", () => {
   const all = sends();
   // 5 since 29 Sep 2026: the dashboard login link (T3). 6 since 30 Sep 2026:
   // the order email from the Stripe webhook (C4). 7 since 30 Sep 2026: a
-  // member's ask from the dashboard (T11 /ask).
-  assert.equal(all.length, 7, `expected 7 sends, the walk found ${all.length}`);
+  // member's ask from the dashboard (T11 /ask). 8 since 30 Sep 2026: the
+  // Sunday link check's alert (T12, R96), to the contact destination.
+  assert.equal(all.length, 8, `expected 8 sends, the walk found ${all.length}`);
 
   const allowed = new Map(RECIPIENTS.map((r) => [r.to, r.why]));
   for (const s of all) {
