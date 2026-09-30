@@ -18,7 +18,7 @@ import {
   pointsDelta,
   sparkPoints,
 } from "@/lib/tracking/figures";
-import { clusterCards, clusterSummary } from "@/lib/tracking/cluster-figures";
+import { type ClusterCard, clusterCards, clusterSummary } from "@/lib/tracking/cluster-figures";
 import type { Compare, OverviewData } from "@/lib/tracking/overview-data";
 
 import OverviewChart, { type ChartDay } from "./OverviewChart";
@@ -210,6 +210,161 @@ export default function Overview({
   const brandTotal = board.reduce((s, b) => s + b.share.num, 0);
   const kwRows = keywordRows(data.serp, { from: addDays(range.to, -27) < range.from ? range.from : addDays(range.to, -27), to: range.to });
   const pages = citedPages(data.answers, range, domain);
+
+  // The four lower cards; the cluster layout keeps two of them (boards-3/Main.dc.html).
+  const moversCard = (
+    <section aria-labelledby="movers-h" tabIndex={0} style={{ ...CARD, paddingTop: "22px", minWidth: 0, overflowX: "auto" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "0 24px 14px" }}>
+            <h2 id="movers-h" style={H2}>
+              Biggest movers
+            </h2>
+            <span style={{ fontSize: "13px", color: T.soft }}>{`All ${questionsAnswered} prompts`}</span>
+          </div>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr>
+                <th style={TH}>Prompt</th>
+                <th style={TH} className="app-hide-sm">Named by</th>
+                <th style={{ ...TH, textAlign: "right" }}>Rate</th>
+                <th style={{ ...TH, textAlign: "right" }}>Change</th>
+              </tr>
+            </thead>
+            <tbody>
+              {moved.map((m) => (
+                <tr key={m.id}>
+                  <td style={TD_WIDE}>{text.get(m.id) ?? "A prompt no longer tracked"}</td>
+                  <td style={TD} className="app-hide-sm">
+                    <span style={{ display: "flex", gap: "4px" }}>
+                      {engines.map((e) => (
+                        <span key={e} style={{ opacity: m.engines.includes(e) ? 1 : 0.25 }}>
+                          <EngineLogo engine={e} size={16} title={`${ENGINE_SPECS[e].label}${m.engines.includes(e) ? " named you" : " did not name you"}`} />
+                        </span>
+                      ))}
+                    </span>
+                  </td>
+                  <td style={{ ...TD, textAlign: "right", fontWeight: 600, fontVariantNumeric: "tabular-nums" }} title={`${m.now.num} of ${m.now.den} answers`}>
+                    {pct(m.now)}
+                  </td>
+                  <td style={{ ...TD, textAlign: "right" }}>{m.delta === null ? <span style={{ fontSize: "13px", color: T.soft }}>New</span> : <Delta value={m.delta} />}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+  );
+  const whoNamed = (
+    <section aria-labelledby="lb-h" style={{ ...CARD, paddingTop: "22px", minWidth: 0 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "4px", padding: "0 24px 14px" }}>
+            <h2 id="lb-h" style={H2}>
+              Who is named instead
+            </h2>
+            <p style={{ margin: 0, fontSize: "14px", color: T.soft }}>Share of every brand mention across your prompts.</p>
+          </div>
+          <ol style={{ listStyle: "none", margin: 0, padding: "0 0 8px" }}>
+            {top.map((b, i) => (
+              <li key={b.name} className="app-brand" style={{ display: "grid", gridTemplateColumns: "20px minmax(0, 1fr) 72px 40px 78px", gap: "12px", alignItems: "center", padding: "10px 24px", background: b.you ? T.wash : undefined }}>
+                <span style={{ fontSize: "13px", color: T.soft, fontVariantNumeric: "tabular-nums" }}>{i + 1}</span>
+                <span style={{ fontSize: "14px", fontWeight: b.you ? 700 : 500, color: b.you ? T.accent : T.ink, overflowWrap: "anywhere" }}>{b.name}</span>
+                <span aria-hidden="true" className="app-hide-sm" style={{ height: "6px", borderRadius: "999px", background: T.hair }}>
+                  <span style={{ display: "block", height: "100%", width: `${Math.round(((b.share.num || 0) / (top[0]!.share.num || 1)) * 100)}%`, borderRadius: "999px", background: b.you ? T.accent : T.faint }} />
+                </span>
+                <span style={{ fontSize: "14px", fontWeight: 600, fontVariantNumeric: "tabular-nums", textAlign: "right" }} title={`${b.share.num} of ${b.share.den} mentions`}>
+                  {pct(b.share)}
+                </span>
+                <span style={{ display: "flex", justifyContent: "flex-end" }}>
+                  <Delta value={b.delta} />
+                </span>
+              </li>
+            ))}
+            {rest.length ? (
+              <li className="app-brand" style={{ display: "grid", gridTemplateColumns: "20px minmax(0, 1fr) 72px 40px 78px", gap: "12px", alignItems: "center", padding: "10px 24px" }}>
+                <span />
+                <span style={{ fontSize: "14px", color: T.soft }}>{`${rest.length} other${rest.length === 1 ? "" : "s"}`}</span>
+                <span aria-hidden="true" className="app-hide-sm" style={{ height: "6px", borderRadius: "999px", background: T.hair }}>
+                  <span style={{ display: "block", height: "100%", width: `${Math.min(100, Math.round((restShare / (top[0]!.share.num || 1)) * 100))}%`, borderRadius: "999px", background: T.faint }} />
+                </span>
+                <span style={{ fontSize: "14px", fontWeight: 600, fontVariantNumeric: "tabular-nums", textAlign: "right" }}>{brandTotal ? `${Math.round((restShare / brandTotal) * 100)}%` : "-"}</span>
+                <span />
+              </li>
+            ) : null}
+          </ol>
+          <p style={{ margin: 0, padding: "4px 24px 20px", fontSize: "13px", color: T.soft }}>{`${board.length} brand${board.length === 1 ? " was" : "s were"} named across ${o.named.den.toLocaleString("en-GB")} answers.`}</p>
+        </section>
+  );
+  const keywordsCard = (
+    <section aria-labelledby="kw-h" tabIndex={0} style={{ ...CARD, paddingTop: "22px", minWidth: 0, overflowX: "auto" }}>
+          <div style={{ padding: "0 24px 14px" }}>
+            <h2 id="kw-h" style={H2}>
+              Google keywords
+            </h2>
+          </div>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr>
+                <th style={{ ...TH, paddingRight: "8px" }}>Keyword</th>
+                <th style={{ ...TH, padding: "10px 8px" }} className="app-hide-sm">4 weeks</th>
+                <th style={{ ...TH, padding: "10px 8px", textAlign: "right" }}>Position</th>
+                <th style={{ ...TH, paddingLeft: "8px", textAlign: "right" }}>Places</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.keywords
+                .filter((k) => k.stopped_on === null)
+                .map((k) => {
+                  const row = kwRows.get(k.id);
+                  return (
+                    <tr key={k.id}>
+                      {/* One line, as the board keeps it; the phone lets it wrap (R104). */}
+                      <td style={{ ...TD_WIDE, whiteSpace: "nowrap", fontWeight: 500, paddingRight: "8px" }} className="app-kw">{k.keyword}</td>
+                      <td style={{ ...TD, padding: "12px 8px", lineHeight: 0 }} className="app-hide-sm">{row ? <Spark series={row.series} colour={!row.change ? T.soft : row.change > 0 ? T.goodFg : T.badFg} /> : null}</td>
+                      <td style={{ ...TD, padding: "12px 8px", textAlign: "right", fontSize: "15px", fontWeight: 700, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
+                        {k.added_on > today ? <span style={{ fontWeight: 400, fontSize: "13px", color: T.soft }}>First check tomorrow at 06:00</span> : row?.position ? `#${row.position}` : <span style={{ fontWeight: 400, fontSize: "13px", color: T.soft }}>Not in top 20</span>}
+                      </td>
+                      <td style={{ ...TD, paddingLeft: "8px", textAlign: "right" }}>{row?.change === null || row?.change === undefined ? null : <Delta value={row.change} unit="" />}</td>
+                    </tr>
+                  );
+                })}
+            </tbody>
+          </table>
+        </section>
+  );
+  const citedCard = (
+    <section aria-labelledby="cited-h" style={{ ...CARD, paddingTop: "22px", minWidth: 0 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "4px", padding: "0 24px 14px" }}>
+            <h2 id="cited-h" style={H2}>
+              Pages the engines cite most
+            </h2>
+            <p style={{ margin: 0, fontSize: "14px", color: T.soft }}>Times cited in answers to your prompts.</p>
+          </div>
+          {pages.length ? (
+            <ol style={{ listStyle: "none", margin: 0, padding: "0 24px 12px" }}>
+              {pages.map((p) => (
+                <li key={p.page} style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "center", padding: "12px 0", borderBottom: `1px solid ${T.hair}` }}>
+                  <span style={{ display: "flex", flexDirection: "column", gap: "6px", minWidth: 0 }}>
+                    <span style={{ fontSize: "14px", fontWeight: 600, overflowWrap: "anywhere" }}>{p.page}</span>
+                    <span style={{ display: "flex", gap: "4px", alignItems: "center" }}>
+                      {p.engines.map((e) => (
+                        <EngineLogo key={e} engine={e as Engine} size={14} title={ENGINE_SPECS[e as Engine]?.label ?? e} />
+                      ))}
+                    </span>
+                  </span>
+                  <span style={{ display: "flex", gap: "10px", alignItems: "center", flexShrink: 0 }}>
+                    {p.yours ? <span style={{ fontSize: "12px", fontWeight: 600, color: T.accent, background: T.wash, borderRadius: "999px", padding: "2px 8px" }}>You</span> : null}
+                    <span style={{ fontSize: "14px", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{p.count}</span>
+                  </span>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p style={{ margin: 0, padding: "0 24px 20px", fontSize: "14px", color: T.soft }}>No engine cited a page in this range.</p>
+          )}
+          {/* BRIEF T4: the alwaysmentioned line appears only when at least one
+              cited publisher provably does not name the client, with that
+              count. Nothing stored yet says what a cited page names - the
+              runner keeps the citation, not the page - so the line stays off
+              rather than claim a count it cannot stand behind. */}
+        </section>
+  );
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px", minWidth: 0 }}>
@@ -410,6 +565,8 @@ export default function Overview({
         ))}
       </section>
 
+      {cards ? <ClusterCards cards={cards} engines={engines} /> : null}
+
       <OverviewChart
         data={{
           engines: [...engines],
@@ -425,159 +582,143 @@ export default function Overview({
         }}
       />
 
-      <div className="app-pair" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.35fr) minmax(0, 1fr)", gap: "24px" }}>
-        <section aria-labelledby="movers-h" tabIndex={0} style={{ ...CARD, paddingTop: "22px", minWidth: 0, overflowX: "auto" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "0 24px 14px" }}>
-            <h2 id="movers-h" style={H2}>
-              Biggest movers
-            </h2>
-            <span style={{ fontSize: "13px", color: T.soft }}>{`All ${questionsAnswered} prompts`}</span>
+      {cards ? (
+        <div className="app-pair" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: "24px" }}>
+          {whoNamed}
+          {citedCard}
+        </div>
+      ) : (
+        <>
+          <div className="app-pair" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.35fr) minmax(0, 1fr)", gap: "24px" }}>
+            {moversCard}
+            {whoNamed}
           </div>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr>
-                <th style={TH}>Prompt</th>
-                <th style={TH} className="app-hide-sm">Named by</th>
-                <th style={{ ...TH, textAlign: "right" }}>Rate</th>
-                <th style={{ ...TH, textAlign: "right" }}>Change</th>
-              </tr>
-            </thead>
-            <tbody>
-              {moved.map((m) => (
-                <tr key={m.id}>
-                  <td style={TD_WIDE}>{text.get(m.id) ?? "A prompt no longer tracked"}</td>
-                  <td style={TD} className="app-hide-sm">
-                    <span style={{ display: "flex", gap: "4px" }}>
-                      {engines.map((e) => (
-                        <span key={e} style={{ opacity: m.engines.includes(e) ? 1 : 0.25 }}>
-                          <EngineLogo engine={e} size={16} title={`${ENGINE_SPECS[e].label}${m.engines.includes(e) ? " named you" : " did not name you"}`} />
-                        </span>
-                      ))}
-                    </span>
-                  </td>
-                  <td style={{ ...TD, textAlign: "right", fontWeight: 600, fontVariantNumeric: "tabular-nums" }} title={`${m.now.num} of ${m.now.den} answers`}>
-                    {pct(m.now)}
-                  </td>
-                  <td style={{ ...TD, textAlign: "right" }}>{m.delta === null ? <span style={{ fontSize: "13px", color: T.soft }}>New</span> : <Delta value={m.delta} />}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
-
-        <section aria-labelledby="lb-h" style={{ ...CARD, paddingTop: "22px", minWidth: 0 }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: "4px", padding: "0 24px 14px" }}>
-            <h2 id="lb-h" style={H2}>
-              Who is named instead
-            </h2>
-            <p style={{ margin: 0, fontSize: "14px", color: T.soft }}>Share of every brand mention across your prompts.</p>
+          <div className="app-pair" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.35fr) minmax(0, 1fr)", gap: "24px" }}>
+            {keywordsCard}
+            {citedCard}
           </div>
-          <ol style={{ listStyle: "none", margin: 0, padding: "0 0 8px" }}>
-            {top.map((b, i) => (
-              <li key={b.name} className="app-brand" style={{ display: "grid", gridTemplateColumns: "20px minmax(0, 1fr) 72px 40px 78px", gap: "12px", alignItems: "center", padding: "10px 24px", background: b.you ? T.wash : undefined }}>
-                <span style={{ fontSize: "13px", color: T.soft, fontVariantNumeric: "tabular-nums" }}>{i + 1}</span>
-                <span style={{ fontSize: "14px", fontWeight: b.you ? 700 : 500, color: b.you ? T.accent : T.ink, overflowWrap: "anywhere" }}>{b.name}</span>
-                <span aria-hidden="true" className="app-hide-sm" style={{ height: "6px", borderRadius: "999px", background: T.hair }}>
-                  <span style={{ display: "block", height: "100%", width: `${Math.round(((b.share.num || 0) / (top[0]!.share.num || 1)) * 100)}%`, borderRadius: "999px", background: b.you ? T.accent : T.faint }} />
-                </span>
-                <span style={{ fontSize: "14px", fontWeight: 600, fontVariantNumeric: "tabular-nums", textAlign: "right" }} title={`${b.share.num} of ${b.share.den} mentions`}>
-                  {pct(b.share)}
-                </span>
-                <span style={{ display: "flex", justifyContent: "flex-end" }}>
-                  <Delta value={b.delta} />
-                </span>
-              </li>
-            ))}
-            {rest.length ? (
-              <li className="app-brand" style={{ display: "grid", gridTemplateColumns: "20px minmax(0, 1fr) 72px 40px 78px", gap: "12px", alignItems: "center", padding: "10px 24px" }}>
-                <span />
-                <span style={{ fontSize: "14px", color: T.soft }}>{`${rest.length} other${rest.length === 1 ? "" : "s"}`}</span>
-                <span aria-hidden="true" className="app-hide-sm" style={{ height: "6px", borderRadius: "999px", background: T.hair }}>
-                  <span style={{ display: "block", height: "100%", width: `${Math.min(100, Math.round((restShare / (top[0]!.share.num || 1)) * 100))}%`, borderRadius: "999px", background: T.faint }} />
-                </span>
-                <span style={{ fontSize: "14px", fontWeight: 600, fontVariantNumeric: "tabular-nums", textAlign: "right" }}>{brandTotal ? `${Math.round((restShare / brandTotal) * 100)}%` : "-"}</span>
-                <span />
-              </li>
-            ) : null}
-          </ol>
-          <p style={{ margin: 0, padding: "4px 24px 20px", fontSize: "13px", color: T.soft }}>{`${board.length} brand${board.length === 1 ? " was" : "s were"} named across ${o.named.den.toLocaleString("en-GB")} answers.`}</p>
-        </section>
-      </div>
-
-      <div className="app-pair" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.35fr) minmax(0, 1fr)", gap: "24px" }}>
-        <section aria-labelledby="kw-h" tabIndex={0} style={{ ...CARD, paddingTop: "22px", minWidth: 0, overflowX: "auto" }}>
-          <div style={{ padding: "0 24px 14px" }}>
-            <h2 id="kw-h" style={H2}>
-              Google keywords
-            </h2>
-          </div>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr>
-                <th style={{ ...TH, paddingRight: "8px" }}>Keyword</th>
-                <th style={{ ...TH, padding: "10px 8px" }} className="app-hide-sm">4 weeks</th>
-                <th style={{ ...TH, padding: "10px 8px", textAlign: "right" }}>Position</th>
-                <th style={{ ...TH, paddingLeft: "8px", textAlign: "right" }}>Places</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.keywords
-                .filter((k) => k.stopped_on === null)
-                .map((k) => {
-                  const row = kwRows.get(k.id);
-                  return (
-                    <tr key={k.id}>
-                      {/* One line, as the board keeps it; the phone lets it wrap (R104). */}
-                      <td style={{ ...TD_WIDE, whiteSpace: "nowrap", fontWeight: 500, paddingRight: "8px" }} className="app-kw">{k.keyword}</td>
-                      <td style={{ ...TD, padding: "12px 8px", lineHeight: 0 }} className="app-hide-sm">{row ? <Spark series={row.series} colour={!row.change ? T.soft : row.change > 0 ? T.goodFg : T.badFg} /> : null}</td>
-                      <td style={{ ...TD, padding: "12px 8px", textAlign: "right", fontSize: "15px", fontWeight: 700, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
-                        {k.added_on > today ? <span style={{ fontWeight: 400, fontSize: "13px", color: T.soft }}>First check tomorrow at 06:00</span> : row?.position ? `#${row.position}` : <span style={{ fontWeight: 400, fontSize: "13px", color: T.soft }}>Not in top 20</span>}
-                      </td>
-                      <td style={{ ...TD, paddingLeft: "8px", textAlign: "right" }}>{row?.change === null || row?.change === undefined ? null : <Delta value={row.change} unit="" />}</td>
-                    </tr>
-                  );
-                })}
-            </tbody>
-          </table>
-        </section>
-
-        <section aria-labelledby="cited-h" style={{ ...CARD, paddingTop: "22px", minWidth: 0 }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: "4px", padding: "0 24px 14px" }}>
-            <h2 id="cited-h" style={H2}>
-              Pages the engines cite most
-            </h2>
-            <p style={{ margin: 0, fontSize: "14px", color: T.soft }}>Times cited in answers to your prompts.</p>
-          </div>
-          {pages.length ? (
-            <ol style={{ listStyle: "none", margin: 0, padding: "0 24px 12px" }}>
-              {pages.map((p) => (
-                <li key={p.page} style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "center", padding: "12px 0", borderBottom: `1px solid ${T.hair}` }}>
-                  <span style={{ display: "flex", flexDirection: "column", gap: "6px", minWidth: 0 }}>
-                    <span style={{ fontSize: "14px", fontWeight: 600, overflowWrap: "anywhere" }}>{p.page}</span>
-                    <span style={{ display: "flex", gap: "4px", alignItems: "center" }}>
-                      {p.engines.map((e) => (
-                        <EngineLogo key={e} engine={e as Engine} size={14} title={ENGINE_SPECS[e as Engine]?.label ?? e} />
-                      ))}
-                    </span>
-                  </span>
-                  <span style={{ display: "flex", gap: "10px", alignItems: "center", flexShrink: 0 }}>
-                    {p.yours ? <span style={{ fontSize: "12px", fontWeight: 600, color: T.accent, background: T.wash, borderRadius: "999px", padding: "2px 8px" }}>You</span> : null}
-                    <span style={{ fontSize: "14px", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{p.count}</span>
-                  </span>
-                </li>
-              ))}
-            </ol>
-          ) : (
-            <p style={{ margin: 0, padding: "0 24px 20px", fontSize: "14px", color: T.soft }}>No engine cited a page in this range.</p>
-          )}
-          {/* BRIEF T4: the alwaysmentioned line appears only when at least one
-              cited publisher provably does not name the client, with that
-              count. Nothing stored yet says what a cited page names - the
-              runner keeps the citation, not the page - so the line stays off
-              rather than claim a count it cannot stand behind. */}
-        </section>
-      </div>
+        </>
+      )}
     </div>
+  );
+}
+
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+/** A change chip in the cards' 12px size, or the grey word when there is no change to show. */
+function Chip({ value, unit, none }: { value: number | null; unit: string; none: string }) {
+  if (value === null || value === 0) return <span style={{ fontSize: "12px", fontWeight: 600, color: T.soft, whiteSpace: "nowrap" }}>{value === 0 ? "No change" : none}</span>;
+  const up = value > 0;
+  const fg = up ? T.goodFg : T.badFg;
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: "2px", padding: "2px 8px 2px 5px", borderRadius: "999px", background: up ? T.goodBg : T.badBg, color: fg, fontSize: "12px", fontWeight: 600, whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={fg} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d={up ? "M6 15l6-6 6 6" : "M6 9l6 6 6-6"} />
+      </svg>
+      {up ? "+" : "−"}
+      {Math.abs(value)}
+      {unit}
+    </span>
+  );
+}
+
+/**
+ * "Your clusters" (T4b part 4, 30 Sep 2026; boards-3/Main.dc.html): two
+ * columns, one card per cluster - keyword, intent and volume, the cluster's
+ * rate and change, one row per angle with the engines that named the client
+ * and a rate bar, lines joining each row to the Google node. Purple for a
+ * prompt named in range, grey dashed for one that never was. Static until the
+ * cluster chart lands: picking a card to set it comes with that part.
+ */
+function ClusterCards({ cards, engines }: { cards: ClusterCard[]; engines: readonly Engine[] }) {
+  return (
+    <section aria-labelledby="cl-h" style={{ ...CARD, padding: "22px 24px 24px", display: "flex", flexDirection: "column", gap: "18px" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+        <h2 id="cl-h" style={H2}>
+          Your clusters
+        </h2>
+        <p style={{ margin: 0, fontSize: "14px", lineHeight: 1.5, color: T.soft, maxWidth: "760px" }}>
+          Each cluster is one Google keyword and the 5 prompts about it. An engine mark is full where that engine named you at least once this period.
+        </p>
+      </div>
+      <div className="app-pair" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "16px" }}>
+        {cards.map((c) => {
+          const pending = c.status === "pending";
+          const meta = [c.intent ? cap(c.intent) : null, c.volume !== null ? `${c.volume.toLocaleString("en-GB")} searches a month` : null].filter(Boolean).join(", ");
+          const since = formatDay(c.started_on);
+          const foot = pending
+            ? "First check tomorrow at 06:00."
+            : `${c.promptsNamed.num} of ${c.promptsNamed.den} prompts name you. Tracked since ${since}${c.status === "added" ? ", so no change yet" : ""}.`;
+          const rowY = (i: number) => 11 + i * 26;
+          const h = Math.max(1, c.prompts.length) * 26 - 4;
+          const mid = h / 2;
+          return (
+            <article key={c.id} aria-label={c.keyword ?? c.name} style={{ display: "flex", flexDirection: "column", gap: "12px", padding: "16px 18px 14px", border: `1px solid ${T.line}`, borderRadius: "16px", background: T.surface, minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "3px", minWidth: 0 }}>
+                  <h3 style={{ margin: 0, fontSize: "15px", fontWeight: 700, letterSpacing: "-0.01em", color: T.ink }}>{c.keyword ?? c.name}</h3>
+                  {meta ? <span style={{ fontSize: "12px", color: T.soft }}>{meta}</span> : null}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
+                  <span style={{ fontSize: "20px", fontWeight: 700, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }} title={pending ? undefined : `${c.now.num} of ${c.now.den} answers`}>
+                    {pct(c.now)}
+                  </span>
+                  <Chip value={c.delta} unit=" pts" none={pending ? "Tomorrow" : "New"} />
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "4px", flexGrow: 1, minWidth: 0 }}>
+                  {c.prompts.map((r) => (
+                    <li key={r.id} title={r.text} style={{ display: "flex", alignItems: "center", gap: "8px", height: "22px" }}>
+                      <span style={{ width: "80px", flexShrink: 0, fontSize: "12px", fontWeight: 600, color: pending ? T.soft : T.ink }}>{r.angle ? cap(r.angle) : "Prompt"}</span>
+                      {pending ? (
+                        <span style={{ fontSize: "12px", color: T.soft }}>Asked from tomorrow, 06:00</span>
+                      ) : (
+                        <>
+                          <span style={{ display: "flex", gap: "3px", flexShrink: 0 }}>
+                            {engines.map((e) => (
+                              <span key={e} style={{ display: "inline-flex", opacity: r.namedBy.includes(e) ? 1 : 0.22 }}>
+                                <EngineLogo engine={e} size={16} title={`${ENGINE_SPECS[e].label}${r.namedBy.includes(e) ? " named you" : " did not name you"}: ${r.text}`} />
+                              </span>
+                            ))}
+                          </span>
+                          <span aria-hidden="true" style={{ flexGrow: 1, height: "6px", borderRadius: "3px", background: T.hair, overflow: "hidden" }}>
+                            <span style={{ display: "block", height: "100%", width: `${Math.min(100, (r.now.pct ?? 0) * 1.6)}%`, borderRadius: "3px", background: r.now.num ? T.accent : T.line }} />
+                          </span>
+                          <span style={{ width: "34px", flexShrink: 0, textAlign: "right", fontSize: "12px", fontWeight: 700, fontVariantNumeric: "tabular-nums" }} title={`${r.now.num} of ${r.now.den} answers`}>
+                            {pct(r.now)}
+                          </span>
+                        </>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+                <svg width="56" height={h} viewBox={`0 0 56 ${h}`} aria-hidden="true" style={{ flexShrink: 0 }}>
+                  {c.prompts.map((r, i) => (
+                    <path
+                      key={r.id}
+                      d={`M0,${rowY(i)} C30,${rowY(i)} 26,${mid} 56,${mid}`}
+                      fill="none"
+                      stroke={pending ? T.line : r.now.num ? D.accent : D.cardHead}
+                      strokeWidth={1.6}
+                      strokeDasharray={pending || !r.now.num ? "3 4" : undefined}
+                      strokeLinecap="round"
+                    />
+                  ))}
+                  <circle cx={54} cy={mid} r={3} fill={pending ? T.line : T.accent} />
+                </svg>
+                <div style={{ width: "108px", flexShrink: 0, boxSizing: "border-box", padding: "10px 12px", borderRadius: "12px", border: `1px solid ${T.line}`, background: T.bg, display: "flex", flexDirection: "column", gap: "4px", alignItems: "flex-start" }}>
+                  <span style={{ fontSize: "11px", fontWeight: 600, color: T.soft }}>Google</span>
+                  <span style={{ fontSize: "24px", fontWeight: 700, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }}>{c.position === null ? "-" : `#${c.position}`}</span>
+                  <Chip value={c.positionChange} unit="" none={pending ? "Tomorrow" : "New"} />
+                </div>
+              </div>
+              <span style={{ fontSize: "12px", color: T.soft }}>{foot}</span>
+            </article>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 

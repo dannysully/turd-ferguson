@@ -49,6 +49,8 @@ export type ClusterCard = {
   volume: number | null;
   intent: string | null;
   status: ClusterStatus;
+  /** The card's "Tracked since". */
+  started_on: Day;
   now: Rate;
   before: Rate | null;
   delta: number | null;
@@ -190,6 +192,7 @@ export function clusterCards(input: ClusterInput): ClusterCard[] {
         volume: kw?.search_volume ?? null,
         intent: kw?.intent ?? null,
         status,
+        started_on: c.started_on,
         now,
         before: wasRate,
         delta: pointsDelta(now, wasRate),
