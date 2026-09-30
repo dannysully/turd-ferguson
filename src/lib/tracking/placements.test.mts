@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { citesPlacement, decideLinkCheck, isLinkCheckDay, LINK_CHECK_UA, linksTo, readPlacement, urlKey } from "./placements.ts";
+import { citesPlacement, decideLinkCheck, isLinkCheckDay, LINK_CHECK_UA, linkCheckState, linksTo, placementFields, readPlacement, urlKey } from "./placements.ts";
 
 // R96 / BRIEF-2 T12 (30 Sep 2026). Stubbed fetch only: nothing here reaches the network.
 
@@ -83,4 +83,47 @@ test("readPlacement sends the polite agent with a timeout, and never throws", as
 test("the link check runs on Sundays", () => {
   assert.equal(isLinkCheckDay("2026-10-04"), true);
   assert.equal(isLinkCheckDay("2026-09-30"), false);
+});
+
+const form = { kind: "guest_post", url: "https://www.Example.com/best-apps/?ref=x", status: "live", scheduled_on: "", live_on: "2026-09-28", anchor_text: " invoicing app ", internal_note: "" };
+
+test("placement form: url_key and domain derived, blanks become null, no price field", () => {
+  const r = placementFields(form, "mentioned");
+  assert.ok("row" in r);
+  assert.deepEqual(r.row, {
+    kind: "guest_post",
+    url: "https://www.Example.com/best-apps/?ref=x",
+    url_key: "example.com/best-apps",
+    domain: "example.com",
+    status: "live",
+    scheduled_on: null,
+    live_on: "2026-09-28",
+    anchor_text: "invoicing app",
+    internal_note: null,
+  });
+  assert.equal(Object.keys(r.row).some((k) => /price|cost|fee/i.test(k)), false);
+  const bare = placementFields({ ...form, url: "example.com/p" }, "cited");
+  assert.ok("row" in bare && bare.row.url === "https://example.com/p");
+});
+
+test("placement form refuses what it cannot stand behind", () => {
+  const err = (over: Partial<typeof form>, tier = "mentioned") => {
+    const r = placementFields({ ...form, ...over }, tier);
+    return "error" in r ? r.error : null;
+  };
+  assert.match(err({ kind: "press" })!, /Unknown kind/);
+  assert.match(err({ kind: "coverage" })!, /alwayseverywhere/);
+  assert.equal(err({ kind: "coverage" }, "everywhere"), null);
+  assert.match(err({ status: "done" })!, /Unknown status/);
+  assert.match(err({ url: "mailto:a@example.com" })!, /not a page URL/);
+  assert.match(err({ live_on: "" })!, /needs its live date/);
+  assert.match(err({ live_on: "2026-02-30" })!, /not a date/);
+  assert.equal(err({ status: "pitched", live_on: "" }), null);
+});
+
+test("link check state: a flagged row is link_present false, a first 404 is not", () => {
+  assert.deepEqual(linkCheckState({ status: "live", last_checked_on: "2026-09-27", link_present: false }), { flagged: true, text: "link gone, checked 2026-09-27" });
+  assert.equal(linkCheckState({ status: "live", last_checked_on: "2026-09-27", link_present: null }).flagged, false);
+  assert.equal(linkCheckState({ status: "live", last_checked_on: "2026-09-27", link_present: true }).flagged, false);
+  assert.match(linkCheckState({ status: "live", last_checked_on: null, link_present: null }).text, /not checked yet/);
 });

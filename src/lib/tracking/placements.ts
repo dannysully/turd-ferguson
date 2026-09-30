@@ -104,3 +104,73 @@ export async function readPlacement(url: string, fetcher: FetchLike): Promise<Li
 export function isLinkCheckDay(day: string): boolean {
   return new Date(`${day}T00:00:00Z`).getUTCDay() === 0;
 }
+
+/** Bounds on the admin placement form (R96 part 3); the server refuses past the same. */
+export const PLACEMENT_LIMITS = { url: 500, anchor: 200, note: 500, date: 10, id: 36 } as const;
+
+export type PlacementInput = { kind: string; url: string; status: string; scheduled_on: string; live_on: string; anchor_text: string; internal_note: string };
+export type PlacementFields = {
+  kind: PlacementKind;
+  url: string;
+  url_key: string;
+  domain: string;
+  status: PlacementStatus;
+  scheduled_on: string | null;
+  live_on: string | null;
+  anchor_text: string | null;
+  internal_note: string | null;
+};
+
+const isDay = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(`${s}T00:00:00Z`)) && new Date(`${s}T00:00:00Z`).toISOString().startsWith(s);
+
+/**
+ * The row the admin placement form writes, or why not. Coverage is the
+ * alwayseverywhere kind (BRIEF-2 T12), so other tiers are refused it; a live
+ * placement needs its live date, because the placements screen draws its line
+ * on that day. Still no price field.
+ */
+export function placementFields(input: PlacementInput, tier: string): { row: PlacementFields } | { error: string } {
+  const kind = input.kind.trim();
+  const status = input.status.trim() || "pitched";
+  if (!(PLACEMENT_KINDS as readonly string[]).includes(kind)) return { error: "Unknown kind." };
+  if (kind === "coverage" && tier !== "everywhere") return { error: "Coverage is an alwayseverywhere placement." };
+  if (!(PLACEMENT_STATUSES as readonly string[]).includes(status)) return { error: "Unknown status." };
+  const url = input.url.trim();
+  if (url.length > PLACEMENT_LIMITS.url) return { error: `A URL is at most ${PLACEMENT_LIMITS.url} characters.` };
+  const key = urlKey(url);
+  if (!key) return { error: "That is not a page URL." };
+  const dates: Record<"scheduled_on" | "live_on", string | null> = { scheduled_on: null, live_on: null };
+  for (const f of ["scheduled_on", "live_on"] as const) {
+    const d = input[f].trim();
+    if (d && !isDay(d)) return { error: `${f === "live_on" ? "Live" : "Scheduled"} date is not a date.` };
+    dates[f] = d || null;
+  }
+  if (status === "live" && !dates.live_on) return { error: "A live placement needs its live date." };
+  const anchor = input.anchor_text.trim();
+  if (anchor.length > PLACEMENT_LIMITS.anchor) return { error: `Anchor text is at most ${PLACEMENT_LIMITS.anchor} characters.` };
+  const note = input.internal_note.trim();
+  if (note.length > PLACEMENT_LIMITS.note) return { error: `A note is at most ${PLACEMENT_LIMITS.note} characters.` };
+  return {
+    row: {
+      kind: kind as PlacementKind,
+      url: /^[a-z][a-z0-9+.-]*:\/\//i.test(url) ? url : `https://${url}`,
+      url_key: key,
+      domain: key.split("/")[0]!,
+      status: status as PlacementStatus,
+      ...dates,
+      anchor_text: anchor || null,
+      internal_note: note || null,
+    },
+  };
+}
+
+/**
+ * What the admin list says about a row's last link check. `flagged` is a row
+ * the Sunday check alerted on (link gone, or 404/410 twice): link_present false.
+ */
+export function linkCheckState(row: { status: string; last_checked_on: string | null; link_present: boolean | null }): { flagged: boolean; text: string } {
+  if (row.link_present === false) return { flagged: true, text: `link gone, checked ${row.last_checked_on ?? "-"}` };
+  if (row.link_present === true) return { flagged: false, text: `link present, checked ${row.last_checked_on}` };
+  if (row.last_checked_on) return { flagged: false, text: `page missing once, checked ${row.last_checked_on}; again next Sunday` };
+  return { flagged: false, text: row.status === "live" ? "not checked yet; next Sunday" : "checked once it is live" };
+}

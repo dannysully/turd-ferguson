@@ -133,6 +133,14 @@ export default async function TrackingAdmin() {
             <p style={{ margin: "0 0 8px", color: T.soft }}>
               Clusters allowed {c.cluster_limit as number} - prompts {n.prompts}/{n.promptLimit} ({n.checkedToday} live today) - keywords {n.keywords}/{n.keywordLimit} -today&apos;s run:{" "}
               {todayRun ? `${todayRun.status} ${money(Number(todayRun.dfs_cost ?? 0))}${todayRun.error ? ` (${todayRun.error})` : ""}` : "none"} - 14 days {money(cost14)}
+              {c.tier !== "tracked" ? (
+                <>
+                  {" - "}
+                  <a href={`/admin/tracking/${c.slug as string}/placements`} style={{ color: T.ink }}>
+                    Placements
+                  </a>
+                </>
+              ) : null}
             </p>
             <ActionForm action={runNow} submit="Run now">
               <input type="hidden" name="client" value={id} maxLength={ADMIN_LIMITS.id} />

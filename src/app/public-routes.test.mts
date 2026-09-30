@@ -48,6 +48,8 @@ const NEEDS_BUILD = "no build to read - run `npm run build` then `npm run captur
 const CLOSED_ON_PURPOSE: Record<string, string> = {
   "/admin/scans": "the ops page; 401s to everyone and has no public reader at all",
   "/admin/tracking": "tracked-client operations (T2, 29 Sep 2026); behind the same /admin Basic auth, no public reader",
+  // 30 Sep 2026, R96 part 3 (BRIEF-2 T12).
+  "/admin/tracking/[client]/placements": "logging one client's placements; behind the same /admin Basic auth, no public reader",
   // The alwaystracked client dashboard (T3, 29 Sep 2026): a client's own
   // figures behind a login. The login and link pages are reachable by anyone
   // but are doors to a private area, not pages to be found.

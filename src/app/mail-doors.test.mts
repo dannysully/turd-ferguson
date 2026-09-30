@@ -255,7 +255,11 @@ const ACTIONS: Record<string, string[]> = {
   // editTracked and stopTracked, 30 Sep 2026 (R102): fix one prompt's or
   // keyword's text before its first reading, or stop it from tomorrow
   // (admin-edit.ts). Send nothing, spend nothing, delete nothing, same admin check first.
-  "src/app/admin/tracking/actions.ts": ["addTracked", "createClientFromScan", "editTracked", "groupCluster", "runNow", "setMember", "setUpsell", "stopTracked"],
+  // logPlacement and updatePlacement, 30 Sep 2026 (R96 part 3, BRIEF-2 T12):
+  // write placements rows from /admin/tracking/[client]/placements, fields
+  // judged by placements.ts. Send nothing, spend nothing, delete nothing,
+  // never touch the link-check columns, same admin check first.
+  "src/app/admin/tracking/actions.ts": ["addTracked", "createClientFromScan", "editTracked", "groupCluster", "logPlacement", "runNow", "setMember", "setUpsell", "stopTracked", "updatePlacement"],
 };
 
 // --------------------------------------------------------------- the tests

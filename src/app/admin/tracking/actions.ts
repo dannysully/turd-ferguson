@@ -13,6 +13,7 @@ import { NEEDS_A_KEYWORD } from "@/lib/checkout/signup";
 import { type Angle, angleFor, groupPrompts, insertCluster, insertKeyword, insertPrompts, linkKeyword, namesBrandIn, PROMPTS_PER_CLUSTER, readPromptRoom, readSubject, refuseGrouping } from "@/lib/tracking/limits";
 import { dispatchTrackingRun } from "@/lib/tracking/runner";
 import { adminEdit, adminStop, isAdminKind } from "@/lib/tracking/admin-edit";
+import { placementFields } from "@/lib/tracking/placements";
 
 /**
  * /admin/tracking's writes - T2 of docs/tracked-dashboard-2026-09-29/BRIEF.md
@@ -300,6 +301,75 @@ export async function stopTracked(_prev: AdminResult | null, form: FormData): Pr
   const done = await adminStop(supabaseAdmin(), { kind, clientId: text(form, "client"), id: text(form, "id"), today: trackingDay() });
   if (done.ok) revalidatePath("/admin/tracking");
   return done;
+}
+
+const placementInput = (form: FormData) => ({
+  kind: text(form, "kind"),
+  url: text(form, "url"),
+  status: text(form, "status"),
+  scheduled_on: text(form, "scheduled_on"),
+  live_on: text(form, "live_on"),
+  anchor_text: text(form, "anchor_text"),
+  internal_note: text(form, "internal_note"),
+});
+
+/**
+ * R96 part 3 (BRIEF-2 T12): log a placement on one of the client's clusters.
+ * alwaystracked is reporting only, so its clients have none. placements.ts
+ * judges the fields and derives url_key; there is no price field anywhere.
+ */
+export async function logPlacement(_prev: AdminResult | null, form: FormData): Promise<AdminResult> {
+  const refused = await refuseUnlessAdmin();
+  if (refused) return refused;
+  const clientId = text(form, "client");
+  const clusterId = text(form, "cluster");
+  const db = supabaseAdmin();
+  const { data: client, error: cErr } = await db.from("client_domains").select("id, tier, slug").eq("id", clientId).single();
+  if (cErr) return { ok: false, message: `Could not read the client: ${cErr.message}` };
+  if (client.tier === "tracked") return { ok: false, message: "alwaystracked clients have no placements." };
+  const { data: cluster, error: clErr } = await db.from("tracked_clusters").select("id").eq("id", clusterId).eq("client_domain_id", clientId).maybeSingle();
+  if (clErr) return { ok: false, message: `Could not read the cluster: ${clErr.message}` };
+  if (!cluster) return { ok: false, message: "Pick one of this client's clusters." };
+  const judged = placementFields(placementInput(form), client.tier as string);
+  if ("error" in judged) return { ok: false, message: judged.error };
+  const { error } = await db.from("placements").insert({ ...judged.row, client_domain_id: clientId, cluster_id: clusterId, created_by: "nomada" });
+  if (error) return { ok: false, message: `Could not log the placement: ${error.message}` };
+  revalidatePath(`/admin/tracking/${client.slug as string}/placements`);
+  return { ok: true, message: `Logged ${judged.row.url_key} (${judged.row.status}).` };
+}
+
+/**
+ * R96 part 3: change a placement's status, dates, anchor or note. Nomada moves
+ * the status by hand; the Sunday check never does. The URL is fixed once
+ * logged (url_key is what citations match on), so a wrong one is marked
+ * removed and logged again.
+ */
+export async function updatePlacement(_prev: AdminResult | null, form: FormData): Promise<AdminResult> {
+  const refused = await refuseUnlessAdmin();
+  if (refused) return refused;
+  const clientId = text(form, "client");
+  const id = text(form, "id");
+  const db = supabaseAdmin();
+  const { data: row, error: rErr } = await db
+    .from("placements")
+    .select("id, kind, url, client_domains(tier, slug)")
+    .eq("id", id)
+    .eq("client_domain_id", clientId)
+    .maybeSingle();
+  if (rErr) return { ok: false, message: `Could not read the placement: ${rErr.message}` };
+  if (!row) return { ok: false, message: "No such placement on this client." };
+  const owner = row.client_domains as unknown as { tier: string; slug: string };
+  const judged = placementFields({ ...placementInput(form), kind: row.kind as string, url: row.url as string }, owner.tier);
+  if ("error" in judged) return { ok: false, message: judged.error };
+  const { status, scheduled_on, live_on, anchor_text, internal_note } = judged.row;
+  const { error } = await db
+    .from("placements")
+    .update({ status, scheduled_on, live_on, anchor_text, internal_note, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("client_domain_id", clientId);
+  if (error) return { ok: false, message: `Could not save the placement: ${error.message}` };
+  revalidatePath(`/admin/tracking/${owner.slug}/placements`);
+  return { ok: true, message: `Saved: ${status}.` };
 }
 
 /** Add or remove a dashboard member on an account. */
