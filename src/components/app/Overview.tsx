@@ -25,6 +25,24 @@ import type { Compare, OverviewData } from "@/lib/tracking/overview-data";
 
 import ClusterChart from "./ClusterChart";
 import OverviewChart, { type ChartDay } from "./OverviewChart";
+import { SEE_ALL, navFrom } from "./nav";
+
+/** R132: a card's link to its full page, or "Coming soon" unlinked while that page is not built (R130's rule). */
+function SeeAll({ card, clientPath }: { card: keyof typeof SEE_ALL; clientPath: string | null }) {
+  const to = clientPath ? navFrom(SEE_ALL[card], clientPath) : null;
+  if (to)
+    return (
+      <Link href={to} style={{ fontSize: "14px", fontWeight: 600, color: T.accent, textDecoration: "none", whiteSpace: "nowrap" }}>
+        See all
+      </Link>
+    );
+  return (
+    <span aria-disabled="true" style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "14px", fontWeight: 500, color: T.soft, whiteSpace: "nowrap", cursor: "default" }}>
+      See all
+      <span style={{ fontSize: "10px", fontWeight: 600, color: T.soft, background: T.chip, borderRadius: "999px", padding: "2px 6px" }}>Coming soon</span>
+    </span>
+  );
+}
 
 /**
  * The alwaystracked overview (T4, 29 Sep 2026), in the order
@@ -129,12 +147,18 @@ export default function Overview({
   const pickedChart = clusterInput && picked ? clusterChart(clusterInput, picked.id) : null;
   const rangeQuery = { from: range.from, to: range.to, ...(compareMode === "prev" ? {} : { compare: compareMode }) };
   const clusterHref = (id: string) => `?${new URLSearchParams({ ...rangeQuery, cluster: id })}`;
+  // R132 (Danny, 30 Sep 2026, danny.md 121): a cluster card opens its one-cluster page (T7) and a
+  // prompt row opens it on that prompt. None on /app/parity, which has no Clusters page to open.
+  const detailHref = clustersPath
+    ? (id: string, prompt?: number) => `${clustersPath}/${encodeURIComponent(id)}?${new URLSearchParams({ ...rangeQuery, ...(prompt === undefined ? {} : { prompt: String(prompt) }) })}`
+    : null;
   // T6 (30 Sep 2026): the board's "10 of 10 clusters in use" and "Manage clusters" (phone: "Manage"),
   // counted as the Clusters page counts - a stopped cluster frees its slot at once. None on /app/parity.
   const manage =
     cards && clustersPath
       ? { href: `${clustersPath}?${new URLSearchParams(rangeQuery)}`, inUse: clusterLimit ? `${cards.filter((c) => c.stoppedOn === null).length} of ${clusterLimit} clusters in use` : null }
       : null;
+  const clientPath = clustersPath ? clustersPath.replace(/\/clusters$/, "") : null;
   const pickedHasPrev =!!pickedChart?.namedBefore?.some((p) => p !== null);
   // R124: the phone board's one line under the chart's name - "42% named, #4 on Google. Dashed: 5 Aug - 1 Sep".
   const phoneLine = !picked
@@ -296,9 +320,12 @@ export default function Overview({
   const whoNamed = (
     <section aria-labelledby="lb-h" style={{ ...CARD, paddingTop: "22px", minWidth: 0 }}>
           <div style={{ display: "flex", flexDirection: "column", gap: "4px", padding: "0 24px 14px" }}>
-            <h2 id="lb-h" style={H2}>
-              Who is named instead
-            </h2>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "12px" }}>
+              <h2 id="lb-h" style={H2}>
+                Who is named instead
+              </h2>
+              <SeeAll card="Who is named instead" clientPath={clientPath} />
+            </div>
             <p style={{ margin: 0, fontSize: "14px", color: T.soft }}>Share of every brand mention across your prompts.</p>
           </div>
           <ol style={{ listStyle: "none", margin: 0, padding: "0 0 8px" }}>
@@ -372,9 +399,12 @@ export default function Overview({
   const citedCard = (
     <section aria-labelledby="cited-h" style={{ ...CARD, paddingTop: "22px", minWidth: 0 }}>
           <div style={{ display: "flex", flexDirection: "column", gap: "4px", padding: "0 24px 14px" }}>
-            <h2 id="cited-h" style={H2}>
-              Pages the engines cite most
-            </h2>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "12px" }}>
+              <h2 id="cited-h" style={H2}>
+                Pages the engines cite most
+              </h2>
+              <SeeAll card="Pages the engines cite most" clientPath={clientPath} />
+            </div>
             <p style={{ margin: 0, fontSize: "14px", color: T.soft }}>Times cited in answers to your prompts.</p>
           </div>
           {pages.length ? (
@@ -652,8 +682,8 @@ export default function Overview({
         </section>
       ) : null}
 
-      {cards ? <ClusterCards cards={cards} engines={engines} picked={picked?.id ?? null} href={clusterHref} manage={manage} /> : null}
-      {cards ? <ClusterRows cards={cards} picked={picked?.id ?? null} href={clusterHref} manage={manage} /> : null}
+      {cards ? <ClusterCards cards={cards} engines={engines} picked={picked?.id ?? null} href={clusterHref} detail={detailHref} manage={manage} /> : null}
+      {cards ? <ClusterRows cards={cards} picked={detailHref ? null : (picked?.id ?? null)} href={detailHref ?? clusterHref} opens={!!detailHref} manage={manage} /> : null}
 
       {picked && pickedChart ? (
         <ClusterChart
@@ -745,7 +775,22 @@ so picking works with JS off (T4b part 5b).
  */
 type Manage = { href: string; inUse: string | null } | null;
 
-function ClusterCards({ cards, engines, picked, href, manage }: { cards: ClusterCard[]; engines: readonly Engine[]; picked: string | null; href: (id: string) => string; manage: Manage }) {
+function ClusterCards({
+  cards,
+  engines,
+  picked,
+  href,
+  detail,
+  manage,
+}: {
+  cards: ClusterCard[];
+  engines: readonly Engine[];
+  picked: string | null;
+  href: (id: string) => string;
+  /** R132: the one-cluster page. When set the card opens it (the keyword's link stretches over the card), each prompt row opens it on that prompt, and "Chart this" picks the chart. */
+  detail: ((id: string, prompt?: number) => string) | null;
+  manage: Manage;
+}) {
   return (
     <section aria-labelledby="cl-h" className="app-hide-sm" style={{ ...CARD, padding: "22px 24px 24px", display: "flex", flexDirection: "column", gap: "18px" }}>
       <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "24px" }}>
@@ -778,11 +823,21 @@ function ClusterCards({ cards, engines, picked, href, manage }: { cards: Cluster
           const h = Math.max(1, c.prompts.length) * 26 - 4;
           const mid = h / 2;
           const on = c.id === picked;
-          return (
-            <Link key={c.id} href={href(c.id)} scroll={false} aria-current={on ? "true" : undefined} style={{ display: "flex", flexDirection: "column", gap: "12px", padding: "16px 18px 14px", border: `1px solid ${on ? T.accent : T.line}`, borderRadius: "16px", background: T.surface, boxShadow: on ? `0 0 0 3px ${T.wash}` : "none", color: T.ink, textDecoration: "none", minWidth: 0 }}>
+          const box: React.CSSProperties = { position: "relative", display: "flex", flexDirection: "column", gap: "12px", padding: "16px 18px 14px", border: `1px solid ${on ? T.accent : T.line}`, borderRadius: "16px", background: T.surface, boxShadow: on ? `0 0 0 3px ${T.wash}` : "none", color: T.ink, textDecoration: "none", minWidth: 0 };
+          const title = c.keyword ?? c.name;
+          const body = (
+            <>
               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px" }}>
                 <div style={{ display: "flex", flexDirection: "column", gap: "3px", minWidth: 0 }}>
-                  <h3 style={{ margin: 0, fontSize: "15px", fontWeight: 700, letterSpacing: "-0.01em", color: T.ink }}>{c.keyword ?? c.name}</h3>
+                  <h3 style={{ margin: 0, fontSize: "15px", fontWeight: 700, letterSpacing: "-0.01em", color: T.ink }}>
+                    {detail ? (
+                      <Link href={detail(c.id)} className="app-stretch" style={{ color: "inherit", textDecoration: "none" }}>
+                        {title}
+                      </Link>
+                    ) : (
+                      title
+                    )}
+                  </h3>
                   {meta ? <span style={{ fontSize: "12px", color: T.soft }}>{meta}</span> : null}
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
@@ -794,8 +849,10 @@ function ClusterCards({ cards, engines, picked, href, manage }: { cards: Cluster
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                 <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "4px", flexGrow: 1, minWidth: 0 }}>
-                  {c.prompts.map((r) => (
-                    <li key={r.id} title={r.text} style={{ display: "flex", alignItems: "center", gap: "8px", height: "22px" }}>
+                  {c.prompts.map((r, i) => {
+                    const row: React.CSSProperties = { display: "flex", alignItems: "center", gap: "8px", height: "22px" };
+                    const cells = (
+                      <>
                       <span style={{ width: "80px", flexShrink: 0, fontSize: "12px", fontWeight: 600, color: pending ? T.soft : T.ink }}>{r.angle ? cap(r.angle) : "Prompt"}</span>
                       {pending ? (
                         <span style={{ fontSize: "12px", color: T.soft }}>Asked from tomorrow, 06:00</span>
@@ -816,8 +873,20 @@ function ClusterCards({ cards, engines, picked, href, manage }: { cards: Cluster
                           </span>
                         </>
                       )}
-                    </li>
-                  ))}
+                      </>
+                    );
+                    return (
+                      <li key={r.id} title={r.text} style={detail ? undefined : row}>
+                        {detail ? (
+                          <Link href={detail(c.id, i)} className="app-over" aria-label={`${r.angle ? cap(r.angle) : "Prompt"}: ${r.text}`} style={{ ...row, color: "inherit", textDecoration: "none" }}>
+                            {cells}
+                          </Link>
+                        ) : (
+                          cells
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
                 <svg width="56" height={h} viewBox={`0 0 56 ${h}`} aria-hidden="true" style={{ flexShrink: 0 }}>
                   {c.prompts.map((r, i) => (
@@ -839,7 +908,29 @@ function ClusterCards({ cards, engines, picked, href, manage }: { cards: Cluster
                   <Chip value={c.positionChange} unit="" none={pending ? "Tomorrow" : "New"} />
                 </div>
               </div>
-              <span style={{ fontSize: "12px", color: T.soft }}>{foot}</span>
+              {detail ? (
+                <span style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "12px" }}>
+                  <span style={{ fontSize: "12px", color: T.soft }}>{foot}</span>
+                  {on ? (
+                    <span style={{ fontSize: "12px", fontWeight: 600, color: T.soft, whiteSpace: "nowrap" }}>In the chart below</span>
+                  ) : (
+                    <Link href={href(c.id)} scroll={false} className="app-over" style={{ fontSize: "12px", fontWeight: 600, color: T.accent, textDecoration: "none", whiteSpace: "nowrap" }}>
+                      Chart this
+                    </Link>
+                  )}
+                </span>
+              ) : (
+                <span style={{ fontSize: "12px", color: T.soft }}>{foot}</span>
+              )}
+            </>
+          );
+          return detail ? (
+            <div key={c.id} aria-current={on ? "true" : undefined} style={box}>
+              {body}
+            </div>
+          ) : (
+            <Link key={c.id} href={href(c.id)} scroll={false} aria-current={on ? "true" : undefined} style={box}>
+              {body}
             </Link>
           );
         })}
@@ -857,7 +948,7 @@ function ClusterCards({ cards, engines, picked, href, manage }: { cards: Cluster
  * picks the chart below, as the cards do. "Manage" goes to the Clusters
  * page (T6).
  */
-function ClusterRows({ cards, picked, href, manage }: { cards: ClusterCard[]; picked: string | null; href: (id: string) => string; manage: Manage }) {
+function ClusterRows({ cards, picked, href, opens, manage }: { cards: ClusterCard[]; picked: string | null; href: (id: string) => string; opens: boolean; manage: Manage }) {
   return (
     <section aria-labelledby="cl-h-sm" className="app-show-sm" style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: "16px", paddingTop: "14px" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "0 16px 10px" }}>
@@ -876,7 +967,7 @@ function ClusterRows({ cards, picked, href, manage }: { cards: ClusterCard[]; pi
         const h = Math.max(1, c.prompts.length) * 9 + 1;
         const mid = h / 2;
         return (
-          <Link key={c.id} href={href(c.id)} scroll={false} aria-current={c.id === picked ? "true" : undefined} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "12px 16px", borderTop: `1px solid ${T.hair}`, color: T.ink, textDecoration: "none" }}>
+          <Link key={c.id} href={href(c.id)} scroll={!opens ? false : undefined} aria-current={c.id === picked ? "true" : undefined} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "12px 16px", borderTop: `1px solid ${T.hair}`, color: T.ink, textDecoration: "none" }}>
             <svg width="36" height={h} viewBox={`0 0 36 ${h}`} aria-hidden="true" style={{ flexShrink: 0 }}>
               {c.prompts.map((r, i) => {
                 const y = 5 + i * 9;

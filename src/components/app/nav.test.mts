@@ -16,7 +16,7 @@ import { join, relative, sep } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { CLUSTER_NAV, CLUSTER_TABS, NAV, NAV_TARGET, SOON, TABS } from "./nav.ts";
+import { CLUSTER_NAV, CLUSTER_TABS, NAV, NAV_TARGET, SEE_ALL, SOON, TABS } from "./nav.ts";
 
 const ROOT = join(fileURLToPath(import.meta.url), "..", "..", "..", "..");
 const CLIENT = join(ROOT, "src", "app", "app", "[client]");
@@ -89,6 +89,38 @@ test("(c) every in-page /app/<client>/... link points at a built route", () => {
   assert.ok(links.length >= 4, `${links.length} in-page links found; the matcher has drifted`);
   const dead = links.filter((l) => !ROUTES.includes(l.route)).map((l) => `${l.file}: /app/[client]${l.route}`);
   assert.deepEqual(dead, [], `links to routes that do not exist:\n${dead.join("\n")}`);
+});
+
+/**
+ * R132 (Danny, 30 Sep 2026, danny.md 121): the Overview's own links. They are
+ * built from the clustersPath prop rather than a `/app/${slug}` literal, so (c)
+ * cannot see them; this holds them to the one-cluster route instead.
+ */
+test("(c) R132: Overview cluster cards and prompt rows open the one-cluster page", () => {
+  const src = readFileSync(join(ROOT, "src", "components", "app", "Overview.tsx"), "utf8");
+  const page = readFileSync(join(CLIENT, "page.tsx"), "utf8");
+  assert.match(page, /clustersPath=\{`\/app\/\$\{slug\}\/clusters`\}/, "the Overview is handed the Clusters route");
+  assert.ok(ROUTES.includes("/clusters/[]"), "the one-cluster route is built");
+  // `${clustersPath}/${encodeURIComponent(id)}?...` is /clusters/[]: the chart's Open cluster and R132's detailHref.
+  const detail = src.match(/`\$\{clustersPath\}\/\$\{encodeURIComponent\([^)]+\)\}\?/g) ?? [];
+  assert.ok(detail.length >= 2, `${detail.length} one-cluster links built in Overview.tsx, floor 2`);
+  assert.match(src, /href=\{detail\(c\.id\)\}/, "a cluster card opens its cluster");
+  assert.match(src, /href=\{detail\(c\.id, i\)\}/, "a prompt row opens its cluster on that prompt");
+  assert.match(src, /href=\{detailHref \?\? clusterHref\}/, "a phone cluster row opens its cluster");
+});
+
+test("(b) R132: each Overview card with a full page links to it, or says Coming soon unlinked", () => {
+  const src = readFileSync(join(ROOT, "src", "components", "app", "Overview.tsx"), "utf8");
+  const cards = Object.entries(SEE_ALL);
+  assert.ok(cards.length >= 2, `${cards.length} cards, floor 2`);
+  for (const [card, item] of cards) {
+    assert.ok(Object.hasOwn(NAV_TARGET, item), `${card} points at nav item ${item}, which nav.ts does not know`);
+    const t = NAV_TARGET[item];
+    assert.ok(t === SOON || ROUTES.includes(t!), `${item} is neither built nor Coming soon`);
+    assert.ok(src.includes(`<SeeAll card="${card}"`), `the ${card} card draws no link to its page`);
+  }
+  assert.match(src, /navFrom\(SEE_ALL\[card\]/, "the card link comes from nav.ts");
+  assert.match(src, /aria-disabled="true"[\s\S]{0,400}Coming soon/, "an unbuilt page is drawn disabled");
 });
 
 test("census probe: an orphan route, a plain item and a dead link each fire", () => {

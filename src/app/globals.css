@@ -1653,6 +1653,10 @@ html[data-motion="on"] .res-dial { animation: resDial 1.4s .3s cubic-bezier(.2,.
 }
 /* Mobile.dc.html: the key figures two by two; the bars, engine marks and
    sparklines give way so the words and numbers keep their width. */
+/* R132: an overview cluster card opens its one-cluster page - the keyword's
+   link covers the card; its prompt rows and "Chart this" sit above it. */
+.app-stretch::after { content: ""; position: absolute; inset: 0; border-radius: 16px; }
+.app-over { position: relative; z-index: 1; }
 /* Shown only on a phone: the compact cluster chart (T4b mobile, Mobile.dc.html). */
 .app-show-sm { display: none; }
 @media (max-width: 560px) {

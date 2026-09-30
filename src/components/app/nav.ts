@@ -34,3 +34,16 @@ export function navHref(item: string, slug: string): string | null {
   const t = NAV_TARGET[item];
   return typeof t === "string" ? `/app/${slug}${t}` : null;
 }
+
+/**
+ * R132 (Danny, 30 Sep 2026, danny.md 121): the Overview cards whose full page
+ * is a nav item. Each links there once the page is built and until then shows
+ * "Coming soon" unlinked, as the sidebar does; nav.test.mts holds the pairing.
+ */
+export const SEE_ALL = { "Who is named instead": "Who is named", "Pages the engines cite most": "Cited pages" } as const;
+
+/** The same, from a path already under the client (`/app/<slug>`). */
+export function navFrom(item: string, clientPath: string): string | null {
+  const t = NAV_TARGET[item];
+  return typeof t === "string" ? `${clientPath}${t}` : null;
+}
