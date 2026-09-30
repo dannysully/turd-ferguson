@@ -130,19 +130,26 @@ export default function Overview({
 
   const header = (
     <header style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "24px", flexWrap: "wrap" }}>
-      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }} className={cards ? "app-hide-sm" : undefined}>
         <h1 style={{ margin: 0, fontSize: "28px", fontWeight: 700, letterSpacing: "-0.03em", color: T.ink }}>Overview</h1>
         <p style={{ margin: 0, fontSize: "14px", color: T.soft }}>
           {brand} in {where}. {cards ? `${cards.length} cluster${cards.length === 1 ? "" : "s"} on ` : ""}
           {enginesSentence(engines)}.
         </p>
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: "12px", height: "48px", padding: "0 14px", border: `1px solid ${T.line}`, borderRadius: "12px", background: T.surface, color: T.ink }}>
+      <div className={cards ? "app-date" : undefined} style={{ display: "flex", alignItems: "center", gap: "12px", height: "48px", padding: "0 14px", border: `1px solid ${T.line}`, borderRadius: "12px", background: T.surface, color: T.ink }}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={T.ink} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <rect x="3" y="5" width="18" height="16" rx="2" />
           <path d="M3 10h18M8 3v4M16 3v4" />
         </svg>
-        <span style={{ display: "flex", flexDirection: "column", lineHeight: 1.25 }}>
+        {/* Mobile.dc.html: one line, "Last 28 days 2 - 29 Sep", no comparison range. */}
+        {cards ? (
+          <span className="app-show-sm" style={{ fontSize: "14px" }}>
+            <strong>{daysIn(range).length === 28 && range.to === today ? "Last 28 days" : `${daysIn(range).length} days`}</strong>{" "}
+            <span style={{ color: T.soft }}>{span(range)}</span>
+          </span>
+        ) : null}
+        <span className={cards ? "app-hide-sm" : undefined} style={{ display: "flex", flexDirection: "column", lineHeight: 1.25 }}>
           <span style={{ fontSize: "14px", fontWeight: 700 }}>{daysIn(range).length === 28 && range.to === today ? "Last 28 days" : `${daysIn(range).length} days`}</span>
           <span style={{ fontSize: "12px", color: T.soft }}>
             {span(range, true)}
@@ -158,6 +165,8 @@ export default function Overview({
       ? `Checked today at ${londonTime(data.lastRun.finished_at)}. Next check tomorrow at 06:00.`
       : `Last checked ${formatDay(data.lastRun.run_date)} at ${londonTime(data.lastRun.finished_at)}. Next check at 06:00.`
     : "Your first check runs tomorrow at 06:00.";
+  // Mobile.dc.html: "Checked today at 06:10", nothing after it.
+  const checkedShort = data.lastRun?.finished_at && data.lastRun.run_date === today ? `Checked today at ${londonTime(data.lastRun.finished_at)}` : null;
 
   if (!hasData) {
     const line = beforeRange && startedOn ? `Tracking began ${formatDay(startedOn, true)}.` : "Your first check runs tomorrow at 06:00.";
@@ -385,18 +394,37 @@ export default function Overview({
         <div style={{ display: "flex", flexDirection: "column", gap: "16px", flex: "1 1 320px", minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: D.muted }}>
             <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: D.accent }} />
-            {checked}
+            {cs && checkedShort ? (
+              <>
+                <span className="app-hide-sm">{checked}</span>
+                <span className="app-show-sm">{checkedShort}</span>
+              </>
+            ) : (
+              checked
+            )}
           </div>
-          <h2 style={{ margin: 0, fontSize: cs ? "36px" : "40px", lineHeight: 1.12, fontWeight: 700, letterSpacing: "-0.03em", maxWidth: "520px" }} className="app-headline-h">
+          <h2 style={{ margin: 0, fontSize: cs ? "36px" : "40px", lineHeight: 1.12, fontWeight: 700, letterSpacing: "-0.03em", maxWidth: "520px" }} className={cs ? "app-headline-h app-hide-sm" : "app-headline-h"}>
             {brand} was named in <span data-figure="headline-named">{pct(headlineRate)}</span> of AI answers
           </h2>
-          <p style={{ margin: 0, fontSize: cs ? "15px" : "16px", lineHeight: 1.55, color: D.cardHead, maxWidth: "500px" }}>
+          {/* Mobile.dc.html's short headline and one-line sub-line (T4b mobile, 30 Sep 2026): the same figures, fewer words. */}
+          {cs ? (
+            <h2 className="app-show-sm" style={{ margin: 0, fontSize: "28px", lineHeight: 1.15, fontWeight: 700, letterSpacing: "-0.03em" }}>
+              {`Named in ${pct(headlineRate)} of AI answers`}
+            </h2>
+          ) : null}
+          <p className={cs ? "app-hide-sm" : undefined} style={{ margin: 0, fontSize: cs ? "15px" : "16px", lineHeight: 1.55, color: D.cardHead, maxWidth: "500px" }}>
             {subLine}
             {lflLine}
             {o.compareHidden ? ` ${o.compareHidden}` : ""}
           </p>
+          {cs ? (
+            <p className="app-show-sm" style={{ margin: 0, fontSize: "14px", lineHeight: 1.5, color: D.cardHead }}>
+              {`${cs.now.num.toLocaleString("en-GB")} of ${cs.now.den.toLocaleString("en-GB")} answers across ${cs.clusters} cluster${cs.clusters === 1 ? "" : "s"}.`}
+              {cs.lflBefore && lflDelta !== null ? ` Like-for-like ${pct(cs.lfl)}, ${direction(lflDelta)} ${pct(cs.lflBefore)}.` : ""}
+            </p>
+          ) : null}
           {o.compare ? (
-            <div style={{ display: "flex", gap: "8px", marginTop: "4px", flexWrap: "wrap" }}>
+            <div className={cs ? "app-hide-sm" : undefined} style={{ display: "flex", gap: "8px", marginTop: "4px", flexWrap: "wrap" }}>
               {lflDelta !== null ? (
                 <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", padding: "4px 10px 4px 7px", borderRadius: "999px", background: D.field, color: D.accent, fontSize: "13px", fontWeight: 600 }}>
                   {lflDelta === 0 ? "No change" : `${lflDelta > 0 ? "+" : "−"}${Math.abs(lflDelta)} pts`} like-for-like
@@ -409,7 +437,10 @@ export default function Overview({
 
         {cs ? (
           <div style={{ display: "flex", flexDirection: "column", gap: "12px", flex: "0 1 auto", minWidth: 0 }}>
-            <div style={{ fontSize: "13px", fontWeight: 600, color: D.cardHead }}>Every daily check, by cluster</div>
+            <div style={{ fontSize: "13px", fontWeight: 600, color: D.cardHead }}>
+              <span className="app-hide-sm">Every daily check, by cluster</span>
+              <span className="app-show-sm">Every daily check, one row per cluster</span>
+            </div>
             <div style={{ display: "flex", gap: "12px", minWidth: 0 }}>
               <div className="app-heat-labels app-hide-sm" style={{ display: "flex", flexDirection: "column", width: "196px", minWidth: 0, flexShrink: 1 }}>
                 {heatRows.map((c) => (
@@ -438,12 +469,12 @@ export default function Overview({
                 </svg>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: D.quiet }}>
                   <span>{formatDay(gridDays[0]!)}</span>
-                  <span>{formatDay(gridDays[Math.floor(gridDays.length / 2)]!)}</span>
+                  <span className="app-hide-sm">{formatDay(gridDays[Math.floor(gridDays.length / 2)]!)}</span>
                   <span>{gridDays[gridDays.length - 1] === today ? "Today" : formatDay(gridDays[gridDays.length - 1]!)}</span>
                 </div>
               </div>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", color: D.quiet, flexWrap: "wrap" }}>
+            <div className="app-hide-sm" style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", color: D.quiet, flexWrap: "wrap" }}>
               {`Share of the cluster's ${5 * engines.length} answers naming you that day`}
               <span style={{ display: "flex", gap: "3px" }} aria-hidden="true">
                 {[0, 15, 30, 45, 60].map((p) => (

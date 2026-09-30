@@ -1663,5 +1663,8 @@ html[data-motion="on"] .res-dial { animation: resDial 1.4s .3s cubic-bezier(.2,.
      name (R122); on a phone the lede needs the width, so it drops below. */
   .app-chart-head { flex-wrap: wrap; gap: 12px !important; }
   .app-chart-head > :first-child { flex-basis: 100% !important; }
+  /* Mobile.dc.html: no page title, the date button spans the column. */
+  .app-date { flex: 1 1 100%; }
+  .app-headline { padding: 22px 20px !important; gap: 12px !important; }
   .app-brand { grid-template-columns: 20px minmax(0, 1fr) 40px 70px !important; padding: 10px 16px !important; }
 }
