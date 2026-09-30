@@ -47,6 +47,8 @@ export function neverNamedFacts(p: {
 /** alwayscited: cluster keywords whose latest reading is #11 to #20, of the cluster keywords read. */
 export function offPageOneFacts(cards: ClusterCard[]): NonNullable<Facts["offPageOne"]> {
   const read = tracked(cards).filter((c) => c.keyword !== null && c.position !== null);
-  const off = read.map((c) => c.position as number).filter((n) => n >= 11 && n <= 20);
-  return { keywords: off.length, of: read.length, best: off.length ? Math.min(...off) : 0, worst: off.length ? Math.max(...off) : 0 };
+  const offCards = read.filter((c) => (c.position as number) >= 11 && (c.position as number) <= 20);
+  const off = offCards.map((c) => c.position as number);
+  const ids = offCards.map((c) => c.keywordId).filter((id): id is string => id !== null);
+  return { keywords: off.length, of: read.length, best: off.length ? Math.min(...off) : 0, worst: off.length ? Math.max(...off) : 0, ids };
 }

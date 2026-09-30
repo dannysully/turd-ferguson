@@ -15,7 +15,7 @@ import type { Compare, OverviewData } from "@/lib/tracking/overview-data";
 
 import type { TierKey } from "@/components/TierName";
 import type { UpsellMode } from "@/lib/tracking/ask";
-import { neverNamedFacts } from "@/lib/tracking/upgrade-facts";
+import { neverNamedFacts, offPageOneFacts } from "@/lib/tracking/upgrade-facts";
 import { type Facts, type PromptCta, pickPrompt, promptCopy } from "@/lib/tracking/upgrade-prompts";
 
 import { Chip } from "./Overview";
@@ -113,12 +113,19 @@ export default function Clusters({
   ];
   const engineNames = engines.map((e) => ENGINE_SPECS[e].label);
   const since = before ? formatDay(addDaysBack(range.from)) : null;
-  // T11: the never filter carries the alwaysmentioned prompt, when its rules allow (upgrade-prompts.ts).
+  // T11: the never filter carries the alwaysmentioned prompt; the unfiltered list, which is the
+  // cluster layout's Google keywords panel (each row's position), carries alwayscited. Each only
+  // when its rules allow (upgrade-prompts.ts), and each screen is judged on its own panel's facts.
+  const state = shown.length === 0 ? "empty" : data.lastRun?.status === "partial" ? "partial" : "ok";
   const facts: Facts | null =
     upgrade && filter === "never"
-      ? { ...upgrade, today, state: shown.length === 0 ? "empty" : data.lastRun?.status === "partial" ? "partial" : "ok", neverNamed: neverNamedFacts({ cards, answers: data.answers, range, domain: upgrade.domain }) }
-      : null;
-  const prompt = facts && pickPrompt(facts) === "mentioned" ? promptCopy("mentioned", facts) : null;
+      ? { ...upgrade, today, state, neverNamed: neverNamedFacts({ cards, answers: data.answers, range, domain: upgrade.domain }) }
+      : upgrade && filter === "all" && !q.trim()
+        ? { ...upgrade, today, state, offPageOne: offPageOneFacts(cards) }
+        : null;
+  const cta = facts ? pickPrompt(facts) : null;
+  const prompt = facts && (cta === "mentioned" || cta === "cited") ? promptCopy(cta, facts) : null;
+  const items = cta === "mentioned" ? (facts?.neverNamed?.ids ?? []) : cta === "cited" ? (facts?.offPageOne?.ids ?? []) : [];
 
   return (
     <div className="app-col" style={{ display: "flex", flexDirection: "column", gap: "20px", minWidth: 0 }}>
@@ -226,7 +233,7 @@ export default function Clusters({
             {q.trim() ? `Nothing matches “${q.trim()}”. Clear the search to see every cluster.` : cards.length ? "No clusters match this filter." : "No clusters yet. nomada digital sets up your first one when tracking starts."}
           </div>
         ) : null}
-        {prompt ? <UpgradePrompt copy={prompt} cta="mentioned" slug={slug} items={facts?.neverNamed?.ids ?? []} /> : null}
+        {prompt && cta ? <UpgradePrompt copy={prompt} cta={cta} slug={slug} items={items} /> : null}
       </section>
       <p style={{ margin: 0, fontSize: "13px", lineHeight: 1.5, color: T.soft, maxWidth: "820px" }}>
         The number beside each engine is the days it named {brand} for that prompt, out of the days checked. Stopping a prompt or a cluster keeps its history in your reports. A new prompt or cluster starts at the next daily check.

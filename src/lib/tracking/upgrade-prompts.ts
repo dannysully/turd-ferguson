@@ -50,7 +50,7 @@ export type Facts = {
   /** alwaysmentioned: prompts that named the client in no answer this period. */
   neverNamed?: { prompts: number; of: number; answers: number; hosts: string[]; /** the prompts, for "Ask about these". */ ids?: string[] };
   /** alwayscited: keywords at #11-#20 today. */
-  offPageOne?: { keywords: number; of: number; best: number; worst: number };
+  offPageOne?: { keywords: number; of: number; best: number; worst: number; /** the keywords, for "Ask about these". */ ids?: string[] };
   /** alwayseverywhere: the top competitor's news/trade citations against the client's. */
   trade?: { brand: string; share: number; theirs: number; ours: number; subject: string };
   /** Tracking pack: at the prompt or keyword limit. */

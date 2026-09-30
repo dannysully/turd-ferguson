@@ -52,6 +52,8 @@ export type ClusterPrompt = {
 export type ClusterCard = {
   id: string;
   name: string;
+  /** The tracked_keywords id, for T11's "Ask about these" on the alwayscited prompt. */
+  keywordId: string | null;
   keyword: string | null;
   volume: number | null;
   intent: string | null;
@@ -248,6 +250,7 @@ export function clusterCards(input: ClusterInput): ClusterCard[] {
       return {
         id: c.id,
         name: c.name,
+        keywordId: kw?.id ?? null,
         keyword: kw?.keyword ?? null,
         volume: kw?.search_volume ?? null,
         intent: kw?.intent ?? null,

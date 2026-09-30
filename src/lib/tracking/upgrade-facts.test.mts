@@ -10,6 +10,7 @@ const prompt = (id: string, num: number, den: number, stoppedOn: string | null =
 const card = (id: string, over: Partial<ClusterCard>): ClusterCard => ({
   id,
   name: id,
+  keywordId: `k-${id}`,
   keyword: id,
   volume: null,
   intent: null,
@@ -70,8 +71,9 @@ test("off page 1: cluster keywords whose latest reading is #11 to #20, of the ke
     card("f", { keyword: null, position: null }),
     card("g", { position: 12, stoppedOn: "2026-09-20" }),
   ];
-  assert.deepEqual(offPageOneFacts(cards), { keywords: 2, of: 4, best: 11, worst: 14 });
-  assert.deepEqual(offPageOneFacts([card("x", { position: 30 })]), { keywords: 0, of: 1, best: 0, worst: 0 });
+  // ids: what "Ask about these 2" sends - the off-page-1 keywords, in card order.
+  assert.deepEqual(offPageOneFacts(cards), { keywords: 2, of: 4, best: 11, worst: 14, ids: ["k-a", "k-b"] });
+  assert.deepEqual(offPageOneFacts([card("x", { position: 30 })]), { keywords: 0, of: 1, best: 0, worst: 0, ids: [] });
 });
 
 test("the facts feed the rules: a tracked client with 3 never-named prompts is offered alwaysmentioned", () => {
