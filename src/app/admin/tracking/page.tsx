@@ -214,7 +214,10 @@ function ClusterAdmin({ client, clusters, prompts, keywords }: { client: string;
       {ungroupedQ.map((q) => (
         <label key={q.id as string} style={{ fontSize: "13px" }}>
           <input type="checkbox" name="prompt" value={q.id as string} maxLength={ADMIN_LIMITS.id} /> {q.text as string}
-          <span style={{ color: T.soft }}>{angleShort(q.angle)}</span>
+          <span style={{ color: T.soft }}>
+            {" "}
+            ({q.source as string}, from {q.added_on as string}){angleShort(q.angle)}
+          </span>
         </label>
       ))}
     </div>
@@ -231,7 +234,7 @@ function ClusterAdmin({ client, clusters, prompts, keywords }: { client: string;
           <div key={c.id as string} style={{ borderLeft: `3px solid ${T.line}`, padding: "4px 0 4px 10px", margin: "8px 0" }}>
             <strong>{c.name as string}</strong>{" "}
             <span style={{ color: T.soft }}>
-              - keyword {kw ? (kw.keyword as string) : "none"} - {qs.length}/{PROMPTS_PER_CLUSTER} prompts - from {c.started_on as string}
+              - keyword {kw ? `${kw.keyword as string} (from ${kw.added_on as string})` : "none"} -{qs.length}/{PROMPTS_PER_CLUSTER} prompts - from {c.started_on as string}
             </span>
             <ol style={{ margin: "4px 0", paddingLeft: "20px" }}>
               {qs.map((q) => (
@@ -254,7 +257,7 @@ function ClusterAdmin({ client, clusters, prompts, keywords }: { client: string;
       <div style={{ margin: "8px 0" }}>
         <strong style={{ fontSize: "13px" }}>Ungrouped</strong>{" "}
         <span style={{ color: T.soft, fontSize: "13px" }}>
-          Still read daily; admin only.{ungroupedK.length ? ` Keywords: ${ungroupedK.map((k) => k.keyword as string).join(", ")}.` : ""}
+          Still read daily; admin only.{ungroupedK.length ? ` Keywords: ${ungroupedK.map((k) => `${k.keyword as string} (from ${k.added_on as string})`).join(", ")}.` : ""}
         </span>
         {ungroupedQ.length ? (
           <ActionForm action={groupCluster} submit="New cluster">
