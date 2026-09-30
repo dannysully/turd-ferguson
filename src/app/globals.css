@@ -1659,5 +1659,9 @@ html[data-motion="on"] .res-dial { animation: resDial 1.4s .3s cubic-bezier(.2,.
   .app-figures > :nth-child(even) { border-left: 1px solid var(--line) !important; }
   .app-hide-sm { display: none !important; }
   .app-show-sm { display: block !important; }
+  /* Main.dc.html keeps the Previous period toggle level with the cluster
+     name (R122); on a phone the lede needs the width, so it drops below. */
+  .app-chart-head { flex-wrap: wrap; gap: 12px !important; }
+  .app-chart-head > :first-child { flex-basis: 100% !important; }
   .app-brand { grid-template-columns: 20px minmax(0, 1fr) 40px 70px !important; padding: 10px 16px !important; }
 }

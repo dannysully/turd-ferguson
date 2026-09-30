@@ -99,8 +99,8 @@ export default function ClusterChart({ data }: { data: ClusterChartData }) {
 
   return (
     <section id="cluster-chart" aria-labelledby="ch-h" style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: "18px", padding: "24px 27px 20px", display: "flex", flexDirection: "column", gap: "16px", minWidth: 0 }}>
-      <div className="app-chart-head" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "24px", flexWrap: "wrap" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: "4px", flex: "1 1 320px", minWidth: 0 }}>
+      <div className="app-chart-head" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "24px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "4px", flex: "1 1 0", minWidth: 0 }}>
           <h2 id="ch-h" style={{ margin: 0, fontSize: "19px", fontWeight: 700, letterSpacing: "-0.022em", color: T.ink }}>
             {data.keyword}
           </h2>
