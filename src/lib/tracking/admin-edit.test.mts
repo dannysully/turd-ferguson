@@ -89,7 +89,7 @@ test("edit fixes a typo while there is no reading, and only the text changes", a
   assert.equal(w.tracked_keywords[0].keyword, "invoicing software");
 });
 
-test("edit is refused once a reading exists, for another client's row and for a branded prompt", async () => {
+test("edit is refused once a reading exists and for another client's row; a branded prompt is saved", async () => {
   const w = world();
   const db = fakeDb(w);
   const read = await adminEdit(db, { kind: "prompt", clientId: C, id: "q2", text: "Which bookkeeping apps do accountants use?" });
@@ -100,7 +100,10 @@ test("edit is refused once a reading exists, for another client's row and for a 
   assert.match((await adminEdit(db, { kind: "keyword", clientId: C, id: "k1", text: "invoicing software" })).message, /already has readings/);
   assert.match((await adminEdit(db, { kind: "prompt", clientId: C, id: "q9", text: "A rewrite of someone else's" })).message, /not on this client/);
   assert.equal(w.tracked_questions[2].text, "Someone else's prompt here");
-  assert.equal((await adminEdit(db, { kind: "prompt", clientId: C, id: "q1", text: "Is Tallyroo a good invoicing app?" })).ok, false);
+  // R133 (Danny, 30 Sep 2026, danny.md line 118): branded prompts are the client's choice, so this
+  // edit went from refused to saved. /admin/tracking flags it ("names the brand"; branded.test.mts).
+  assert.equal((await adminEdit(db, { kind: "prompt", clientId: C, id: "q1", text: "Is Tallyroo a good invoicing app?" })).ok, true);
+  assert.equal(w.tracked_questions[0].text, "Is Tallyroo a good invoicing app?");
 });
 
 test("stop sets tomorrow and keeps the row and its readings; a second stop is refused", async () => {

@@ -120,8 +120,9 @@ export async function createClientFromScan(_prev: AdminResult | null, form: Form
   const room = await readPromptRoom(db, client.id as string, null);
   if (typeof room === "string") return { ok: false, message: room };
   // Each prompt keeps its scan kind as its angle (BRIEF-3 C3).
-  // A scan prompt that names the brand is left behind: it would always name
-  // the client (limits.ts BRANDED_PROMPT), and insertPrompts refuses the batch.
+  // A scan prompt that names the brand is left behind. This is a copy of the
+  // scan, and the scan measures unprompted naming (R133, 30 Sep 2026). A prompt
+  // an admin types in is kept and flagged instead (limits.ts BRANDED_CHIP).
   const subject = await readSubject(db, client.id as string);
   if (typeof subject === "string") return { ok: false, message: subject };
   const rows = (sq ?? [])

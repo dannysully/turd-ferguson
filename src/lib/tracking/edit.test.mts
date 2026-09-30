@@ -4,7 +4,7 @@ import { test } from "node:test";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { editPrompts, readEdits, refuseEdits } from "./edit.ts";
-import { BRANDED_PROMPT } from "./limits.ts";
+import { namesBrandIn } from "./limits.ts";
 
 // BRIEF-3 T6 part 2d (30 Sep 2026): the pending cluster editor. The form read,
 // the text rules, and the writer refusing before any write, against a stand-in.
@@ -38,7 +38,7 @@ function recording(p: { cluster: { stopped_on: string | null } | null; readings:
         eq: () => b,
         is: () => b,
         maybeSingle: async () => ({ data: name === "tracked_clusters" ? p.cluster : null, error: null }),
-        // The subject read the branded-prompt guard makes (30 Sep 2026). Tallyroo is the fixture's made-up client.
+        // A client row, should anything read it (the branded guard did until R133, 30 Sep 2026). Tallyroo is the fixture's made-up client.
         single: async () => ({ data: name === "client_domains" ? { domain: "tallyroo.com", brand_name: "Tallyroo", brand_aliases: [] } : null, error: null }),
         update: () => {
           writes.push(name);
@@ -76,9 +76,13 @@ test("a prompt with no reading is rewritten in place", async () => {
   assert.deepEqual(writes, ["tracked_questions"]);
 });
 
-test("an edit that names the brand is refused before any write (30 Sep 2026)", async () => {
+// R133 (Danny, 30 Sep 2026, danny.md line 118): branded prompts are the
+// client's choice. This test asserted a refusal until then. The page puts the
+// "Names the brand" chip on the prompt instead (branded.test.mts).
+test("an edit that names the brand is saved: tracking it is the client's choice", async () => {
   const { db, writes } = recording({ cluster: { stopped_on: null }, readings: 0 });
   const r = await editPrompts(db, { clientId: "c", clusterId: "k", edits: [{ id: "a", text: "What does Tallyroo charge a studio?" }], role: "editor" });
-  assert.deepEqual(r, { ok: false, message: BRANDED_PROMPT });
-  assert.deepEqual(writes, []);
+  assert.deepEqual(r, { ok: true, changed: 1 });
+  assert.deepEqual(writes, ["tracked_questions"]);
+  assert.ok(namesBrandIn("What does Tallyroo charge a studio?", { brand: "Tallyroo", domain: "tallyroo.com" }), "and it is one the chip flags");
 });

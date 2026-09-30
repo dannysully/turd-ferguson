@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { ADMIN_LIMITS } from "./decide.ts";
-import { readSubject, readingsFor, refuseBranded, refuseEdit } from "./limits.ts";
+import { readingsFor, refuseEdit } from "./limits.ts";
 import { refuseSlotText } from "./slot.ts";
 import { refuseStop, stopDay } from "./stop.ts";
 
@@ -52,12 +52,6 @@ export async function adminEdit(db: SupabaseClient, p: { kind: AdminKind; client
   if (typeof n === "string") return { ok: false, message: n };
   const fixed = refuseEdit(n);
   if (fixed) return { ok: false, message: fixed };
-  if (p.kind === "prompt") {
-    const subject = await readSubject(db, p.clientId);
-    if (typeof subject === "string") return { ok: false, message: subject };
-    const branded = refuseBranded([text], subject);
-    if (branded) return { ok: false, message: branded };
-  }
   const { error } = await db.from(TABLE[p.kind]).update({ [COLUMN[p.kind]]: text }).eq("id", p.id).eq("client_domain_id", p.clientId).is("stopped_on", null);
   return error ? { ok: false, message: `Could not save it: ${error.message}` } : { ok: true, message: `Saved: ${text}` };
 }

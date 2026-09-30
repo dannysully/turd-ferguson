@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { readSubject, readingsFor, refuseBranded, refuseEdit } from "./limits.ts";
+import { readingsFor, refuseEdit } from "./limits.ts";
 import { refuseSlotText } from "./slot.ts";
 import { refuseRole } from "./stop.ts";
 
@@ -65,10 +65,6 @@ export async function editPrompts(db: SupabaseClient, p: { clientId: string; clu
   if (lErr) return { ok: false, message: `Could not read its prompts: ${lErr.message}` };
   const verdict = refuseEdits(p.edits, new Map((live ?? []).map((q) => [q.id as string, q.text as string])));
   if (typeof verdict === "string") return { ok: false, message: verdict };
-  const subject = await readSubject(db, p.clientId);
-  if (typeof subject === "string") return { ok: false, message: subject };
-  const branded = refuseBranded(verdict.changed.map((e) => e.text), subject);
-  if (branded) return { ok: false, message: branded };
   for (const e of verdict.changed) {
     const n = await readingsFor(db, "prompt", e.id);
     if (typeof n === "string") return { ok: false, message: n };

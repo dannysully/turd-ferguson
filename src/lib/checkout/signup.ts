@@ -94,7 +94,7 @@ async function clientFromScan(db: SupabaseClient, o: CompletedOrder): Promise<{ 
   // Each prompt keeps its scan kind as its angle (BRIEF-3 C3).
   const rows = (sq ?? [])
     .map((q) => ({ text: String(q.question).trim(), angle: angleFor(q.kind) }))
-    // A scan prompt naming the brand is left behind (limits.ts BRANDED_PROMPT).
+    // A scan prompt naming the brand is left behind: this copies the scan, which measures unprompted naming (R133, limits.ts).
     .filter((q) => q.text.length >= 8 && q.text.length <= 300 && !namesBrandIn(q.text, { brand: scan.brand_name as string | null, domain: scan.domain as string }))
     .slice(0, PROMPTS_PER_CLUSTER)
     .map((q) => ({ text: q.text, angle: q.angle, source: "scan", added_on: startedOn, added_by: "nomada" }));

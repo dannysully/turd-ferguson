@@ -76,6 +76,7 @@ export default async function ClientClusters({
       <div className="app-main" style={{ flex: "1 1 480px", minWidth: 0, padding: "36px 40px 48px", background: T.bg }}>
         <Clusters
           brand={client.brand ?? client.domain}
+          subject={{ brand: client.brand, domain: client.domain }}
           engines={engines}
           today={today}
           range={range}

@@ -4,13 +4,21 @@ import { join, relative } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { BRANDED_PROMPT, namesBrandIn, refuseBranded, type Subject } from "./limits.ts";
+import { BRANDED_CHIP, namesBrandIn, type Subject } from "./limits.ts";
 
 /**
- * Branded prompts (30 Sep 2026). Two of the Nomada pilot's live prompts named
- * Nomada Digital, and a prompt that names the brand always names it. Every
- * prompt writer refuses one; scan copies leave them behind; nothing already
- * stored is touched - /admin/tracking flags it instead.
+ * Branded prompts.
+ *
+ * 30 Sep 2026 (9fde8d4): two of the Nomada pilot's live prompts named Nomada
+ * Digital, and a prompt that names the brand nearly always names it. Every
+ * prompt writer refused one.
+ *
+ * R133 (Danny, 30 Sep 2026, danny.md line 118) replaces that: branded prompts
+ * are the client's choice. No writer refuses one. The dashboard's Clusters
+ * page and /admin/tracking put a warning chip on it instead. The scan copies
+ * still leave them behind, because the free scan measures unprompted naming
+ * and generateQuestions drops them (src/lib/scan/branded-questions.test.mts,
+ * unchanged).
  */
 
 // Tallyroo is the fixture's made-up client (privacy.test.mts); no real client is named here.
@@ -25,16 +33,11 @@ test("a prompt naming the brand, its domain or an alias is branded; a buyer's pr
   assert.equal(namesBrandIn("what does it cost", { brand: null, domain: "tallyroo.com" }), false, "no brand: the domain stands in");
 });
 
-test("the refusal is the one message, and a clean batch passes", () => {
-  assert.equal(
-    BRANDED_PROMPT,
-    "This prompt names the brand, so it will always name you. Ask it the way a buyer would, without the name.",
-  );
-  assert.equal(refuseBranded(["best invoicing software for freelancers", "what does Tallyroo do"], TALLYROO), BRANDED_PROMPT);
-  assert.equal(refuseBranded(["best invoicing software for freelancers"], TALLYROO), null);
+test("the chip is the one label", () => {
+  assert.equal(BRANDED_CHIP, "Names the brand");
 });
 
-// ---- The census: every prompt writer refuses a branded prompt. ----
+// ---- The census: prompt writers keep a branded prompt, and the pages flag it. ----
 
 const ROOT = join(fileURLToPath(import.meta.url), "..", "..", "..", "..");
 const read = (f: string) => readFileSync(join(ROOT, f), "utf8");
@@ -52,9 +55,9 @@ export function textWrites(source: string): string[] {
   return out;
 }
 
-/** Does a function body judge its texts with refuseBranded before its first write? */
-export function guardedBeforeWrite(body: string): boolean {
-  const guard = body.indexOf("refuseBranded(");
+/** Does a function body judge its texts as branded before its first write? */
+export function brandCheckedBeforeWrite(body: string): boolean {
+  const guard = body.search(/namesBrandIn\(|refuseBranded\(|BRANDED_PROMPT/);
   const write = body.search(/\.(insert|update)\(/);
   return guard !== -1 && write !== -1 && guard < write;
 }
@@ -66,17 +69,20 @@ function bodyOf(source: string, name: string): string {
   return source.slice(at, next === -1 ? undefined : next);
 }
 
-test("census: prompt text is written in exactly two places, and both refuse a branded prompt first", () => {
+test("census: prompt text is written in exactly two places, and neither refuses a branded prompt (R133)", () => {
   const files = walk(join(ROOT, "src")).filter((f) => /\.(ts|tsx)$/.test(f) && !/\.test\.m?ts$/.test(f));
   // 30 Sep 2026: 248 source files walked. The floor sits below it so new files never trip it, and a walk that stops matching does.
   assert.ok(files.length >= 220, `walked ${files.length} source files - the walk has stopped matching`);
   const writers = files.flatMap((f) => textWrites(readFileSync(f, "utf8")).map(() => relative(ROOT, f)));
   assert.deepEqual([...new Set(writers)].sort(), ["src/lib/tracking/edit.ts", "src/lib/tracking/limits.ts"]);
-  assert.ok(guardedBeforeWrite(bodyOf(read("src/lib/tracking/limits.ts"), "insertPrompts")), "insertPrompts: admin add, /app add-a-cluster, free slot and the webhook signup all come through here");
-  assert.ok(guardedBeforeWrite(bodyOf(read("src/lib/tracking/edit.ts"), "editPrompts")), "editPrompts: an edit before the first reading");
+  assert.equal(brandCheckedBeforeWrite(bodyOf(read("src/lib/tracking/limits.ts"), "insertPrompts")), false, "insertPrompts: admin add, /app add-a-cluster, free slot and the webhook signup all come through here");
+  assert.equal(brandCheckedBeforeWrite(bodyOf(read("src/lib/tracking/edit.ts"), "editPrompts")), false, "editPrompts: an edit before the first reading");
+  assert.equal(brandCheckedBeforeWrite(bodyOf(read("src/lib/tracking/admin-edit.ts"), "adminEdit")), false, "adminEdit: /admin/tracking's fix-a-typo");
+  const refusal = files.filter((f) => /refuseBranded|BRANDED_PROMPT/.test(readFileSync(f, "utf8"))).map((f) => relative(ROOT, f));
+  assert.deepEqual(refusal, [], "the refusal is gone from every source file");
 });
 
-test("census: the two scan copies leave branded prompts behind rather than failing the whole batch", () => {
+test("census: the two scan copies leave branded prompts behind (the scan measures unprompted naming)", () => {
   assert.match(read("src/app/admin/tracking/actions.ts"), /!namesBrandIn\(q\.text, subject\)/, "admin: create a client from a scan");
   assert.match(read("src/lib/checkout/signup.ts"), /!namesBrandIn\(q\.text, \{ brand: scan\.brand_name/, "webhook signup");
 });
@@ -87,11 +93,19 @@ test("census: /admin/tracking flags a live branded prompt in both lists", () => 
   assert.match(page, /names the brand/);
 });
 
-test("census probe: an unguarded insert, a text update and a guard after the write each fire", () => {
+test("census: the Clusters page chips a branded prompt in its list and in the pending editor (R133)", () => {
+  const src = read("src/components/app/Clusters.tsx");
+  const chips = [...src.matchAll(/subject && namesBrandIn\(p\.text, subject\) \? <BrandedChip \/> : null/g)].length;
+  assert.equal(chips, 2, `${chips} chip sites; the prompt rows and the pending editor`);
+  assert.match(src, /\{BRANDED_CHIP\}/, "the label comes from limits.ts");
+  assert.match(read("src/app/app/[client]/clusters/page.tsx"), /subject=\{\{ brand: client\.brand, domain: client\.domain \}\}/, "the page hands the Clusters list the brand");
+});
+
+test("census probe: a text write, a brand check before a write and one after each read as they should", () => {
   assert.deepEqual(textWrites(`await db.from("tracked_questions").insert(rows);`).length, 1);
   assert.deepEqual(textWrites(`await db.from("tracked_questions").update({ text: e.text }).eq("id", id);`).length, 1);
   assert.deepEqual(textWrites(`await db.from("tracked_questions").update({ stopped_on: day }).eq("id", id);`).length, 0, "a stop is not a text write");
-  assert.equal(guardedBeforeWrite(`await db.from("t").insert(rows); refuseBranded(texts, s);`), false);
-  assert.equal(guardedBeforeWrite(`const b = refuseBranded(texts, s); await db.from("t").insert(rows);`), true);
-  assert.equal(guardedBeforeWrite(`await db.from("t").insert(rows);`), false);
+  assert.equal(brandCheckedBeforeWrite(`await db.from("t").insert(rows); namesBrandIn(t, s);`), false);
+  assert.equal(brandCheckedBeforeWrite(`if (namesBrandIn(t, s)) return; await db.from("t").insert(rows);`), true);
+  assert.equal(brandCheckedBeforeWrite(`await db.from("t").insert(rows);`), false);
 });

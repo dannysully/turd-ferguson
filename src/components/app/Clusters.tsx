@@ -10,7 +10,7 @@ import { ENGINE_SPECS, type Engine } from "@/lib/scan/engines";
 import { type ClusterCard, type ClusterFilter as Filter, clusterCards, filterClusters, namedCount, neverCount } from "@/lib/tracking/cluster-figures";
 import { type Range, comparisonRange, daysIn, formatDay } from "@/lib/tracking/figures";
 import { type KeywordCheck, draftPrompts } from "@/lib/tracking/add-cluster";
-import { ANGLES } from "@/lib/tracking/limits";
+import { ANGLES, BRANDED_CHIP, BRANDED_NOTE, type Subject, namesBrandIn } from "@/lib/tracking/limits";
 import type { Compare, OverviewData } from "@/lib/tracking/overview-data";
 
 import type { TierKey } from "@/components/TierName";
@@ -43,6 +43,15 @@ export type StopToast = { done: "stopped" | "undone" | "added" | "saved" | "refu
 
 const short = (t: string) => (t.length > 52 ? `${t.slice(0, 50)}…` : t);
 
+/** R133: the warning on a prompt that names the client's brand. It warns only; tracking one is the client's choice. */
+function BrandedChip() {
+  return (
+    <span title={BRANDED_NOTE} style={{ flexShrink: 0, padding: "2px 8px", borderRadius: "999px", background: T.warnBg, color: T.warnFg, fontSize: "11px", fontWeight: 700, whiteSpace: "nowrap" }}>
+      {BRANDED_CHIP}
+    </span>
+  );
+}
+
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const pctText = (p: number | null) => (p === null ? "-" : `${p}%`);
@@ -70,8 +79,11 @@ export default function Clusters({
   askSent = false,
   packPrice = "",
   upgrade = null,
+  subject = null,
 }: {
   brand: string;
+  /** R133: the client's brand and domain, so a prompt that names them carries the "Names the brand" chip. */
+  subject?: Subject | null;
   engines: readonly Engine[];
   today: string;
   range: Range;
@@ -226,7 +238,7 @@ export default function Clusters({
           <span style={{ ...HEAD, textAlign: "right" }}>{since ? `Position, vs ${since}` : "Position"}</span>
         </div>
         {shown.map((c) => (
-          <ClusterRow key={c.id} c={c} brand={brand} open={c.id === openId} toggle={href({ open: c.id === openId ? "" : c.id })} since={since} act={act} refill={toast?.done === "stopped" && toast.kind === "prompt" ? toast.id : null} openHref={`/app/${encodeURIComponent(slug)}/clusters/${encodeURIComponent(c.id)}?${new URLSearchParams(base)}`} />
+          <ClusterRow key={c.id} c={c} brand={brand} subject={subject} open={c.id === openId} toggle={href({ open: c.id === openId ? "" : c.id })} since={since} act={act} refill={toast?.done === "stopped" && toast.kind === "prompt" ? toast.id : null} openHref={`/app/${encodeURIComponent(slug)}/clusters/${encodeURIComponent(c.id)}?${new URLSearchParams(base)}`} />
         ))}
         {shown.length === 0 ? (
           <div style={{ padding: "32px 24px", borderTop: `1px solid ${T.line}`, fontSize: "14px", color: T.soft }}>
@@ -416,7 +428,7 @@ function Toast({ t, cards, act, dismiss }: { t: StopToast; cards: ClusterCard[];
  * stopped today is never read. Two sibling forms, the Save button joined to its
  * form by `form=`, so neither nests and both post with JS off.
  */
-function PendingEditor({ c, kw, lead, act }: { c: ClusterCard; kw: string; lead: string; act: NonNullable<Act> }) {
+function PendingEditor({ c, kw, lead, act, subject }: { c: ClusterCard; kw: string; lead: string; act: NonNullable<Act>; subject: Subject | null }) {
   const formId = `edit-${c.id}`;
   const live = c.prompts.filter((p) => p.stoppedOn === null);
   return (
@@ -445,9 +457,12 @@ function PendingEditor({ c, kw, lead, act }: { c: ClusterCard; kw: string; lead:
       <form id={formId} method="post" action={`${act.action.replace(/\/stop$/, "/edit")}?${new URLSearchParams({ ...act.keep, kind: "cluster", id: c.id })}`} style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
         {live.map((p) => (
           <div key={p.id} className="app-cl-edit" style={{ display: "grid", gridTemplateColumns: "120px minmax(0, 1fr)", alignItems: "center", gap: "12px" }}>
-            <label htmlFor={`${formId}-${p.id}`} style={{ fontSize: "12px", fontWeight: 700, letterSpacing: ".02em", textTransform: "uppercase", color: T.soft }}>
-              {p.angle ?? "Prompt"}
-            </label>
+            <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "4px" }}>
+              <label htmlFor={`${formId}-${p.id}`} style={{ fontSize: "12px", fontWeight: 700, letterSpacing: ".02em", textTransform: "uppercase", color: T.soft }}>
+                {p.angle ?? "Prompt"}
+              </label>
+              {subject && namesBrandIn(p.text, subject) ? <BrandedChip /> : null}
+            </span>
             <input id={`${formId}-${p.id}`} name={`p-${p.id}`} defaultValue={p.text} required minLength={PROMPT_MIN} maxLength={ADMIN_LIMITS.question} style={{ height: "44px", boxSizing: "border-box", padding: "0 12px", border: `1px solid ${T.line}`, borderRadius: "10px", fontFamily: "inherit", fontSize: "14px", color: T.ink, background: T.surface, minWidth: 0 }} />
           </div>
         ))}
@@ -470,7 +485,7 @@ function PendingEditor({ c, kw, lead, act }: { c: ClusterCard; kw: string; lead:
  * stop frees its slot at once, and that slot opens with the old text in it to
  * edit, as a new row with its own history.
  */
-function ClusterRow({ c, brand, open, toggle, since, act, refill, openHref }: { c: ClusterCard; brand: string; open: boolean; toggle: string; since: string | null; act: Act; refill: string | null; openHref: string }) {
+function ClusterRow({ c, brand, subject, open, toggle, since, act, refill, openHref }: { c: ClusterCard; brand: string; subject: Subject | null; open: boolean; toggle: string; since: string | null; act: Act; refill: string | null; openHref: string }) {
   const pending = c.status === "pending";
   // A stop made today shows until tomorrow's check, with Undo; the slot is already free.
   const stopped = c.stoppedOn !== null;
@@ -529,7 +544,7 @@ function ClusterRow({ c, brand, open, toggle, since, act, refill, openHref }: { 
       </Link>
 
       {open && pending && act && !stopped ? (
-        <PendingEditor c={c} kw={kw} lead={lead} act={act} />
+        <PendingEditor c={c} kw={kw} lead={lead} act={act} subject={subject} />
       ) : open ? (
         <div style={{ display: "flex", flexDirection: "column", gap: "14px", padding: "4px 24px 22px" }}>
           <div className="app-cl-body" style={{ display: "flex", alignItems: "center" }}>
@@ -554,6 +569,7 @@ function ClusterRow({ c, brand, open, toggle, since, act, refill, openHref }: { 
                       <span title={p.text} className="app-cl-text" style={{ fontSize: "14px", fontWeight: 600, color: T.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {p.text}
                       </span>
+                      {subject && namesBrandIn(p.text, subject) ? <BrandedChip /> : null}
                     </div>
                     {p.stoppedOn !== null && !stopped ? (
                       <span style={{ fontSize: "12px", color: T.soft, fontWeight: 600 }}>{`Stopped from ${formatDay(p.stoppedOn)}. Its history stays in your reports.`}</span>
