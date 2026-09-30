@@ -1,5 +1,6 @@
 import type { Day } from "./figures.ts";
 import type { ClusterNote, OverviewData } from "./overview-data.ts";
+import type { PlacementRow } from "./placement-figures.ts";
 
 /**
  * The T9 fixture switch (R93, 29 Sep 2026; BRIEF-2 T9). `TRACKING_FIXTURE=1`
@@ -29,7 +30,12 @@ export type Fixture = {
   texts: Record<string, string>;
   /** T7 part 4a: notes on prompts, as the board's "Notes on this cluster" draws them. */
   clusterNotes: ClusterNote[];
+  /** T13 (R97 part 3): placements on cluster c1, after boards-3/Placements.dc.html (docs/parity/T13/add-placements.py). */
+  placements: FixturePlacement[];
 };
+
+/** A placement as fixture.json stores it; url_key is computed on read, as the admin writer computes it. */
+export type FixturePlacement = Omit<PlacementRow, "url_key"> & { cluster_id: string };
 
 type RawAnswer = [Day, string, string, 0 | 1, string[], string[]];
 
@@ -41,6 +47,7 @@ export function expandFixture(raw: {
   data: Omit<OverviewData, "answers"> & { answers: RawAnswer[] };
   texts?: Record<string, string>;
   clusterNotes?: ClusterNote[];
+  placements?: FixturePlacement[];
 }): Fixture {
   return {
     client: { ...raw.client, id: "fixture" },
@@ -48,6 +55,7 @@ export function expandFixture(raw: {
     today: raw.today,
     texts: raw.texts ?? {},
     clusterNotes: raw.clusterNotes ?? [],
+    placements: raw.placements ?? [],
     data: {
       ...raw.data,
       answers: raw.data.answers.map(([run_date, question_id, engine, named, brands, urls]) => ({

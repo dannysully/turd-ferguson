@@ -36,9 +36,12 @@ const ROUTES = walk(CLIENT)
   .map((segs) => (segs.length ? "/" + segs.join("/") : ""));
 const STATIC = ROUTES.filter((r) => !r.includes("[]"));
 
-/** Floors, 30 Sep 2026: 3 routes (overview, clusters, one cluster), 8 distinct nav and tab items (the 7 nav plus the phone's Keywords). */
-const ROUTE_FLOOR = 3;
-const ITEM_FLOOR = 8;
+/**
+ * Floors, 30 Sep 2026: 3 routes (overview, clusters, one cluster), 8 distinct nav and tab items (the 7 nav plus the phone's Keywords).
+ * Raised 30 Sep 2026 (R97 part 3, T13): 4 routes (placements) and 9 items (Placements, cluster nav only).
+ */
+const ROUTE_FLOOR = 4;
+const ITEM_FLOOR = 9;
 
 const ITEMS = [...new Set<string>([...NAV, ...TABS, ...CLUSTER_NAV, ...CLUSTER_TABS])];
 

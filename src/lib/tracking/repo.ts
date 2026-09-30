@@ -9,6 +9,7 @@ import { expandFixture, fixtureMode, type Fixture } from "./fixture-mode.ts";
 import { type MemberClient, clientsFor, sessionEmail } from "./member.ts";
 import type { LatestAnswers } from "./latest-answers.ts";
 import type { PlacementRow } from "./placement-figures.ts";
+import { urlKey } from "./placements.ts";
 import { loadPlacements } from "./placements-data.ts";
 import { type UpgradeContext, loadUpgradeContext } from "./upgrade-context.ts";
 import { type ClusterNote, type Compare, type OverviewData, loadClusterNotes, loadLatestAnswers, loadOverview } from "./overview-data.ts";
@@ -83,9 +84,9 @@ const fixtureRepo: TrackingRepo = {
     // The fixture's account is ours, and nobody has hidden a prompt.
     return { mode: "nomada", hidden: new Set() };
   },
-  async placements() {
-    // None in the fixture until the screen's own rows are added with its route (R97).
-    return [];
+  async placements(clientId) {
+    const f = fixture();
+    return clientId === f.client.id ? f.placements.map((p) => ({ ...p, url_key: urlKey(p.url) ?? "" })) : [];
   },
   today() {
     return fixture().today;

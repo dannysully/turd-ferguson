@@ -3,7 +3,7 @@ import { test } from "node:test";
 
 import type { ClusterChart } from "./cluster-figures.ts";
 import { rate } from "./figures.ts";
-import { type CiteRow, citeRows, type PlacementRow, PLACEMENTS_FOOTNOTE, placementsView, shortDay, spanText, weeklyPoints } from "./placement-figures.ts";
+import { type CiteRow, citeRows, pageParts, pickCluster, placedTier, type PlacementRow, PLACEMENTS_FOOTNOTE, placementsView, shortDay, spanText, weeklyPoints } from "./placement-figures.ts";
 
 // R97 part 1 / BRIEF-2 T13 (30 Sep 2026). Made-up rows only (privacy.test.mts).
 
@@ -78,4 +78,23 @@ test("citeRows: one row per cited URL of an answered read, none from a URL-less 
 test("the footnote is the board's, word for word, and a day reads as the board writes it", () => {
   assert.match(PLACEMENTS_FOOTNOTE, /^"At go-live to now" is where the cluster stood the week a page went live, and where it stands today\. It includes everything else that happened in that time\./);
   assert.equal(shortDay("2026-09-05"), "5 Sep");
+});
+
+test("R97 part 3: the Page column splits host and path as the board does", () => {
+  assert.deepEqual(pageParts("https://www.example.com/guides/one/?a=1"), { host: "example.com", path: "/guides/one" });
+  assert.deepEqual(pageParts("https://example.com/"), { host: "example.com", path: "" });
+  assert.deepEqual(pageParts("not a url"), { host: "not a url", path: "" });
+});
+
+test("R97 part 3: the screen opens ?cluster= if it is the client's, else the first placed cluster, else the first", () => {
+  const clusters = [{ id: "c1" }, { id: "c2" }];
+  const rows = [{ cluster_id: "c1", status: "removed" }, { cluster_id: "c2", status: "writing" }];
+  assert.equal(pickCluster(clusters, rows, "c1"), "c1");
+  assert.equal(pickCluster(clusters, rows, "someone-elses"), "c2");
+  assert.equal(pickCluster(clusters, [], null), "c1");
+  assert.equal(pickCluster([], rows, "c2"), null);
+});
+
+test("R97 part 3: Placements is in the nav for mentioned, cited and everywhere only", () => {
+  assert.deepEqual(["tracked", "mentioned", "cited", "everywhere"].map(placedTier), [false, true, true, true]);
 });

@@ -13,6 +13,7 @@ import { ASK_ITEMS_MAX, askToast } from "@/lib/tracking/ask";
 import { clusterSearch } from "@/lib/tracking/cluster-figures";
 import { CLUSTER_BASE } from "@/lib/tracking/limits";
 import { rangeFrom } from "@/lib/tracking/overview-data";
+import { placedTier } from "@/lib/tracking/placement-figures";
 import { trackingRepo } from "@/lib/tracking/repo";
 import { refuseRole } from "@/lib/tracking/stop";
 
@@ -72,7 +73,7 @@ export default async function ClientClusters({
 
   return (
     <div className="app-shell" style={{ display: "flex", flexWrap: "wrap", minHeight: "100vh", color: T.ink }}>
-      <Sidebar client={client} others={clients.filter((c) => c.slug !== slug)} email={email} role={client.role} tier={tier} engines={engines} clusters current="Clusters" clusterLimit={client.cluster_limit ?? CLUSTER_BASE} packPrice={packPrice} upsell={upgrade.mode === "nomada"} />
+      <Sidebar client={client} others={clients.filter((c) => c.slug !== slug)} email={email} role={client.role} tier={tier} engines={engines} clusters current="Clusters" placements={placedTier(tier)} clusterLimit={client.cluster_limit ?? CLUSTER_BASE} packPrice={packPrice} upsell={upgrade.mode === "nomada"} />
       <div className="app-main" style={{ flex: "1 1 480px", minWidth: 0, padding: "36px 40px 48px", background: T.bg }}>
         <Clusters
           brand={client.brand ?? client.domain}

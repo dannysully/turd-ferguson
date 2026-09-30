@@ -15,12 +15,17 @@ export const TABS = ["Overview", "Clusters", "Keywords", "Reports"] as const;
 // R121 (30 Sep 2026): on a client with cluster rows the Google keyword lives on
 // its cluster card, so there is no keywords tab - boards-3/Main.dc.html's nav
 // and boards-3/Mobile.dc.html's four tabs. A flat client keeps the T3 lists.
-export const CLUSTER_NAV = NAV.filter((n) => n !== "Google keywords");
+// R97 part 3 (30 Sep 2026; BRIEF-2 T13): Placements sits after Clusters, as
+// boards-3/Placements.dc.html's nav draws it, and only on a client with a
+// placed cluster - the Sidebar drops it otherwise (PLACEMENTS_ITEM).
+export const PLACEMENTS_ITEM = "Placements";
+export const CLUSTER_NAV = ["Overview", "Clusters", PLACEMENTS_ITEM, ...NAV.filter((n) => n !== "Overview" && n !== "Clusters" && n !== "Google keywords")] as const;
 export const CLUSTER_TABS = ["Overview", "Clusters", "Reports", "Settings"] as const;
 
 export const NAV_TARGET: Record<string, string | typeof SOON | undefined> = {
   Overview: "",
   Clusters: "/clusters",
+  Placements: "/placements",
   "Google keywords": SOON,
   Keywords: SOON,
   "Who is named": SOON,

@@ -59,6 +59,8 @@ const CLOSED_ON_PURPOSE: Record<string, string> = {
   "/app/[client]/clusters": "one client's tracked clusters and prompts; private, same membership 404 as the overview",
   // 30 Sep 2026, T7 part 2b.
   "/app/[client]/clusters/[cluster]": "one tracked cluster's figures and prompts; private, same membership 404, and a 404 for a cluster not the client's",
+  // 30 Sep 2026, R97 part 3 (T13).
+  "/app/[client]/placements": "one client's placements and where the cluster stood; private, same membership 404, and a 404 for a client with no placed tier and no placement",
   "/app/auth": "where a single-use login link lands; the token in its URL is private",
   "/app/login": "the dashboard login form; nothing on it is meant to be found by search",
   // T4, 29 Sep 2026: renders only in a local checkout that has generated the

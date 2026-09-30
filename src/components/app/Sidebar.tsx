@@ -8,7 +8,7 @@ import { T } from "@/config/tokens";
 import { ENGINE_SPECS, type Engine } from "@/lib/scan/engines";
 import { KEYWORDS_PER_CLUSTER, PROMPTS_PER_CLUSTER } from "@/lib/tracking/limits";
 
-import { CLUSTER_NAV, CLUSTER_TABS, NAV, TABS, navHref } from "./nav";
+import { CLUSTER_NAV, CLUSTER_TABS, NAV, PLACEMENTS_ITEM, TABS, navHref } from "./nav";
 
 const WORDS = ["no", "one", "two", "three", "four", "five"];
 
@@ -74,6 +74,8 @@ const ICONS: Record<string, ReactNode> = {
   ),
 };
 ICONS.Keywords = ICONS["Google keywords"];
+// boards-3/Placements.dc.html draws Placements with the link mark.
+ICONS[PLACEMENTS_ITEM] = ICONS["Cited pages"];
 
 function NavIcon({ item, size }: { item: string; size: number }) {
   return (
@@ -114,6 +116,7 @@ export default function Sidebar({
   clusterLimit,
   packPrice = null,
   upsell = false,
+  placements = false,
 }: {
   client: Client;
   others: Client[];
@@ -131,8 +134,10 @@ export default function Sidebar({
   packPrice?: string | null;
   /** upsell_mode is nomada: the plan card may name the next tier and the pack. */
   upsell?: boolean;
+  /** A cluster is placed (mentioned or above) or has placements: the nav shows Placements (T13). */
+  placements?: boolean;
 }) {
-  const nav: readonly string[] = clusters ? CLUSTER_NAV : NAV;
+  const nav: readonly string[] = (clusters ? CLUSTER_NAV : NAV).filter((n) => placements || n !== PLACEMENTS_ITEM);
   const tabs: readonly string[] = clusters ? CLUSTER_TABS : TABS;
   const name = client.brand ?? client.domain;
   // R130 (30 Sep 2026): a built screen is a link; an unbuilt one is drawn

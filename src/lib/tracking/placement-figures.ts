@@ -22,6 +22,29 @@ export const PLACEMENTS_FOOTNOTE =
 
 export const WEEKLY_OVER_DAYS = 35;
 
+/** The tiers that buy placements; the nav shows Placements for these (BRIEF-2 T13: mentioned, cited, everywhere). */
+export const PLACED_TIERS = ["mentioned", "cited", "everywhere"] as const;
+export const placedTier = (tier: string) => (PLACED_TIERS as readonly string[]).includes(tier);
+
+export const KIND_WORDS: Record<PlacementKind, string> = { guest_post: "Guest post", link_insertion: "Link insertion", on_site: "On-site", coverage: "Coverage" };
+
+/** "thesmallbizstack.com" and "/best-accounting-apps", as the board's Page column splits a URL. */
+export function pageParts(url: string): { host: string; path: string } {
+  try {
+    const u = new URL(url);
+    return { host: u.hostname.replace(/^www\./, ""), path: u.pathname === "/" ? "" : u.pathname.replace(/\/$/, "") };
+  } catch {
+    return { host: url, path: "" };
+  }
+}
+
+/** The cluster the screen opens: `?cluster=` when it is one of the client's, else the first with a placement, else the first. */
+export function pickCluster(clusters: readonly { id: string }[], placements: readonly { cluster_id: string; status: string }[], asked: string | null): string | null {
+  if (asked && clusters.some((c) => c.id === asked)) return asked;
+  const placed = clusters.find((c) => placements.some((p) => p.cluster_id === c.id && p.status !== "removed"));
+  return (placed ?? clusters[0])?.id ?? null;
+}
+
 export type PlacementRow = { id: string; kind: PlacementKind; url: string; url_key: string; status: PlacementStatus; scheduled_on: Day | null; live_on: Day | null };
 /** One citation URL in one answer. */
 export type CiteRow = { run_date: Day; question_id: string; engine: string; url: string };
@@ -31,6 +54,7 @@ export type Span<T> = { from: T | null; to: T | null };
 export type PlacementLine = {
   id: string;
   kind: PlacementKind;
+  url: string;
   url_key: string;
   live: boolean;
   /** The live date, or the status in words for a row not live. */
@@ -98,6 +122,7 @@ export function placementsView(input: { chart: ClusterChart; questionIds: readon
       return {
         id: p.id,
         kind: p.kind,
+        url: p.url,
         url_key: p.url_key,
         live: isLive,
         when: isLive ? shortDay(p.live_on!) : p.status === "scheduled" && p.scheduled_on ? `Scheduled ${shortDay(p.scheduled_on)}` : STATUS_WORDS[p.status],
@@ -114,7 +139,8 @@ export function placementsView(input: { chart: ClusterChart; questionIds: readon
   return {
     live: live.length,
     inProgress: input.placements.filter((p) => p.status === "pitched" || p.status === "writing" || p.status === "scheduled").length,
-    whole: { from: chart.days[0] ?? null, named: spanFrom(chart.days, pct, null), google: spanFrom(chart.days, chart.google, null), cited: citingAny.size },
+    // "Since 4 Jul" is the first day with a reading, not the range's first day.
+    whole: { from: chart.days.find((_, i) => chart.named[i] !== null || chart.google[i] !== null) ?? chart.days[0] ?? null, named: spanFrom(chart.days, pct, null), google: spanFrom(chart.days, chart.google, null), cited: citingAny.size },
     rows,
     weekly: isWeekly(chart.days.length),
   };
