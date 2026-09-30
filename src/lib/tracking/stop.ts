@@ -1,0 +1,130 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+import { readClusterRefusal, readPromptRoom, refusePrompts } from "./limits.ts";
+
+/**
+ * Stop and Undo on the Clusters page - BRIEF-3 T6 part 2a (30 Sep 2026;
+ * decisions 6 and 7 of docs/tracked-dashboard-2026-09-29/BRIEF-3-clusters.md).
+ *
+ * A stop never deletes. It sets `stopped_on` to tomorrow: today's 06:00 check
+ * has already read the row, so today's readings stay in the figures, and
+ * `liveOn()` drops the row from the next check. The slot frees at once,
+ * because limits.ts counts only rows whose `stopped_on` is null.
+ *
+ * Undo clears `stopped_on` again, but only while the stop has not taken
+ * effect (`stopped_on` still after today). After that the history is fixed;
+ * the prompt is added again as a new row, so two questions never share one.
+ *
+ * Stopping a cluster stops its keyword and every live prompt in it on the same
+ * day (decision 7). Undoing it restores the rows that carry that day, so a
+ * prompt stopped on its own on an earlier day stays stopped.
+ *
+ * An undo takes a slot back, so it asks limits.ts first: a prompt whose slot
+ * has since been filled, or a cluster when the client is at its limit, is
+ * refused. A prompt inside a stopped cluster comes back only with the cluster.
+ *
+ * Owners and editors only; a viewer is refused here as well as in the UI. Pure
+ * rules first so the tests run each one; the writers are the network half.
+ */
+
+export type StopKind = "prompt" | "cluster";
+export type Stoppable = { stopped_on: string | null };
+
+const ROLES_THAT_WRITE = new Set(["owner", "editor"]);
+
+/** A viewer, or a role we do not know, may not stop or undo. */
+export function refuseRole(role: string): string | null {
+  return ROLES_THAT_WRITE.has(role) ? null : "Only owners and editors can change what is tracked.";
+}
+
+/** The day a stop made today takes effect: tomorrow's check is the first to skip it. */
+export function stopDay(today: string): string {
+  return new Date(Date.parse(`${today}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
+}
+
+export function refuseStop(row: Stoppable | null): string | null {
+  if (!row) return "Nothing to stop: it is not on this client.";
+  return row.stopped_on === null ? null : "It is already stopped.";
+}
+
+/** Undo only while the stop is still pending - its `stopped_on` is after today. */
+export function refuseUndo(row: Stoppable | null, today: string): string | null {
+  if (!row) return "Nothing to undo: it is not on this client.";
+  if (row.stopped_on === null) return "It is not stopped.";
+  if (row.stopped_on <= today) return "That stop has taken effect. Add it again as a new one.";
+  return null;
+}
+
+// ---- The writers. Each reads the row on this client, asks the rule, then writes. ----
+
+export type Stopped = { ok: true; stoppedOn: string | null } | { ok: false; message: string };
+
+type Row = Stoppable & { keyword_id?: string | null; cluster_id?: string | null };
+
+async function readRow(db: SupabaseClient, kind: StopKind, clientId: string, id: string): Promise<Row | null | string> {
+  const table = kind === "prompt" ? "tracked_questions" : "tracked_clusters";
+  const cols = kind === "prompt" ? "stopped_on, cluster_id" : "stopped_on, keyword_id";
+  const { data, error } = await db.from(table).select(cols).eq("id", id).eq("client_domain_id", clientId).maybeSingle();
+  if (error) return `Could not read it: ${error.message}`;
+  return (data as Row | null) ?? null;
+}
+
+/** Whether the undo would take back a slot that is no longer free. */
+async function refuseRoom(db: SupabaseClient, kind: StopKind, clientId: string, row: Row): Promise<string | null> {
+  if (kind === "cluster") return readClusterRefusal(db, clientId);
+  if (row.cluster_id) {
+    const cluster = await readRow(db, "cluster", clientId, row.cluster_id);
+    if (typeof cluster === "string") return cluster;
+    if (cluster && cluster.stopped_on !== null) return "Its cluster is stopped. Undo the cluster instead.";
+  }
+  const room = await readPromptRoom(db, clientId, row.cluster_id ?? null);
+  return typeof room === "string" ? room : refusePrompts(room.limits);
+}
+
+/** Stop one prompt, or a cluster with its keyword and live prompts, from tomorrow. */
+export async function stop(db: SupabaseClient, p: { kind: StopKind; clientId: string; id: string; today: string; by: string; role: string }): Promise<Stopped> {
+  const r = refuseRole(p.role);
+  if (r) return { ok: false, message: r };
+  const row = await readRow(db, p.kind, p.clientId, p.id);
+  if (typeof row === "string") return { ok: false, message: row };
+  const refused = refuseStop(row);
+  if (refused) return { ok: false, message: refused };
+  const day = stopDay(p.today);
+  if (p.kind === "prompt") {
+    const { error } = await db.from("tracked_questions").update({ stopped_on: day, stopped_by: p.by }).eq("id", p.id).eq("client_domain_id", p.clientId).is("stopped_on", null);
+    return error ? { ok: false, message: `Could not stop it: ${error.message}` } : { ok: true, stoppedOn: day };
+  }
+  const { error: qErr } = await db.from("tracked_questions").update({ stopped_on: day, stopped_by: p.by }).eq("cluster_id", p.id).eq("client_domain_id", p.clientId).is("stopped_on", null);
+  if (qErr) return { ok: false, message: `Could not stop its prompts: ${qErr.message}` };
+  if (row!.keyword_id) {
+    const { error: kErr } = await db.from("tracked_keywords").update({ stopped_on: day, stopped_by: p.by }).eq("id", row!.keyword_id).eq("client_domain_id", p.clientId).is("stopped_on", null);
+    if (kErr) return { ok: false, message: `Could not stop its keyword: ${kErr.message}` };
+  }
+  const { error: cErr } = await db.from("tracked_clusters").update({ stopped_on: day }).eq("id", p.id).eq("client_domain_id", p.clientId).is("stopped_on", null);
+  return cErr ? { ok: false, message: `Could not stop the cluster: ${cErr.message}` } : { ok: true, stoppedOn: day };
+}
+
+/** Undo a stop that has not yet taken effect. A cluster restores the rows stopped with it, on its day. */
+export async function undoStop(db: SupabaseClient, p: { kind: StopKind; clientId: string; id: string; today: string; role: string }): Promise<Stopped> {
+  const r = refuseRole(p.role);
+  if (r) return { ok: false, message: r };
+  const row = await readRow(db, p.kind, p.clientId, p.id);
+  if (typeof row === "string") return { ok: false, message: row };
+  const refused = refuseUndo(row, p.today) ?? (await refuseRoom(db, p.kind, p.clientId, row!));
+  if (refused) return { ok: false, message: refused };
+  const day = row!.stopped_on!;
+  const clear = { stopped_on: null, stopped_by: null };
+  if (p.kind === "prompt") {
+    const { error } = await db.from("tracked_questions").update(clear).eq("id", p.id).eq("client_domain_id", p.clientId).eq("stopped_on", day);
+    return error ? { ok: false, message: `Could not undo it: ${error.message}` } : { ok: true, stoppedOn: null };
+  }
+  // The cluster first: its keyword's one-live index would refuse a keyword coming back beside a live twin.
+  const { error: cErr } = await db.from("tracked_clusters").update({ stopped_on: null }).eq("id", p.id).eq("client_domain_id", p.clientId).eq("stopped_on", day);
+  if (cErr) return { ok: false, message: `Could not undo the cluster: ${cErr.message}` };
+  if (row!.keyword_id) {
+    const { error: kErr } = await db.from("tracked_keywords").update(clear).eq("id", row!.keyword_id).eq("client_domain_id", p.clientId).eq("stopped_on", day);
+    if (kErr) return { ok: false, message: `Could not undo its keyword: ${kErr.message}` };
+  }
+  const { error: qErr } = await db.from("tracked_questions").update(clear).eq("cluster_id", p.id).eq("client_domain_id", p.clientId).eq("stopped_on", day);
+  return qErr ? { ok: false, message: `Could not undo its prompts: ${qErr.message}` } : { ok: true, stoppedOn: null };
+}

@@ -103,6 +103,15 @@ export async function readPromptRoom(db: SupabaseClient, clientId: string, clust
   return { room: promptRoom(limits), limits };
 }
 
+/** Whether one more live cluster fits: refuseCluster()'s message, null when it does. Undoing a cluster stop asks this (stop.ts). */
+export async function readClusterRefusal(db: SupabaseClient, clientId: string): Promise<string | null> {
+  const clusterLimit = await clusterLimitOf(db, clientId);
+  if (typeof clusterLimit === "string") return clusterLimit;
+  const live = await liveCount(db, "tracked_clusters", "client_domain_id", clientId);
+  if (typeof live === "string") return live;
+  return refuseCluster(live, clusterLimit);
+}
+
 export type PromptRow = { text: string; source: string; added_on: string; added_by: string; angle?: string | null };
 
 /** Insert prompts into a client (and a cluster, or ungrouped). The whole batch is refused if it does not fit. */
