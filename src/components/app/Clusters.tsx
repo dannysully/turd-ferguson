@@ -226,7 +226,7 @@ export default function Clusters({
           <span style={{ ...HEAD, textAlign: "right" }}>{since ? `Position, vs ${since}` : "Position"}</span>
         </div>
         {shown.map((c) => (
-          <ClusterRow key={c.id} c={c} brand={brand} open={c.id === openId} toggle={href({ open: c.id === openId ? "" : c.id })} since={since} act={act} openHref={`/app/${encodeURIComponent(slug)}/clusters/${encodeURIComponent(c.id)}?${new URLSearchParams(base)}`} />
+          <ClusterRow key={c.id} c={c} brand={brand} open={c.id === openId} toggle={href({ open: c.id === openId ? "" : c.id })} since={since} act={act} refill={toast?.done === "stopped" && toast.kind === "prompt" ? toast.id : null} openHref={`/app/${encodeURIComponent(slug)}/clusters/${encodeURIComponent(c.id)}?${new URLSearchParams(base)}`} />
         ))}
         {shown.length === 0 ? (
           <div style={{ padding: "32px 24px", borderTop: `1px solid ${T.line}`, fontSize: "14px", color: T.soft }}>
@@ -464,7 +464,13 @@ function PendingEditor({ c, kw, lead, act }: { c: ClusterCard; kw: string; lead:
   );
 }
 
-function ClusterRow({ c, brand, open, toggle, since, act, openHref }: { c: ClusterCard; brand: string; open: boolean; toggle: string; since: string | null; act: Act; openHref: string }) {
+/**
+ * `refill` (R103, 30 Sep 2026): the prompt just stopped. Once a prompt has a
+ * reading its text is fixed, so a rewording is "Stop and add a new one": the
+ * stop frees its slot at once, and that slot opens with the old text in it to
+ * edit, as a new row with its own history.
+ */
+function ClusterRow({ c, brand, open, toggle, since, act, refill, openHref }: { c: ClusterCard; brand: string; open: boolean; toggle: string; since: string | null; act: Act; refill: string | null; openHref: string }) {
   const pending = c.status === "pending";
   // A stop made today shows until tomorrow's check, with Undo; the slot is already free.
   const stopped = c.stoppedOn !== null;
@@ -533,7 +539,7 @@ function ClusterRow({ c, brand, open, toggle, since, act, openHref }: { c: Clust
                   <form method="post" action={`${act.action.replace(/\/stop$/, "/prompt")}?${new URLSearchParams({ ...act.keep, kind: "cluster", id: c.id, ...(p.angle ? { angle: p.angle } : {}) })}`} style={{ display: "flex", alignItems: "center", gap: "10px", width: "100%", flexWrap: "wrap" }}>
                     <span style={{ flexShrink: 0, padding: "2px 8px", borderRadius: "6px", background: T.chip, color: T.soft, fontSize: "11px", fontWeight: 700, letterSpacing: ".02em", textTransform: "uppercase" }}>{p.angle ?? "Prompt"}</span>
                     <label htmlFor={`slot-${p.id}`} className="sr-only">{`A new ${p.angle ? `${p.angle} ` : ""}prompt about ${kw}`}</label>
-                    <input id={`slot-${p.id}`} name="text" required minLength={PROMPT_MIN} maxLength={ADMIN_LIMITS.question} placeholder={`A new ${p.angle ? `${p.angle} ` : ""}prompt about “${kw}”`} style={{ flex: "1 1 200px", minWidth: 0, height: "40px", boxSizing: "border-box", padding: "0 12px", border: `1px solid ${T.line}`, borderRadius: "10px", fontFamily: "inherit", fontSize: "14px", color: T.ink, background: T.surface }} />
+                    <input id={`slot-${p.id}`} name="text" defaultValue={p.id === refill ? p.text : undefined} required minLength={PROMPT_MIN} maxLength={ADMIN_LIMITS.question} placeholder={`A new ${p.angle ? `${p.angle} ` : ""}prompt about “${kw}”`} style={{ flex: "1 1 200px", minWidth: 0, height: "40px", boxSizing: "border-box", padding: "0 12px", border: `1px solid ${T.line}`, borderRadius: "10px", fontFamily: "inherit", fontSize: "14px", color: T.ink, background: T.surface }} />
                     <button type="submit" style={{ flexShrink: 0, height: "40px", padding: "0 14px", border: 0, borderRadius: "10px", background: T.accent, color: T.surface, fontFamily: "inherit", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>
                       {/* The board's word here is the alwaystracked CTA's label, which only pricing.ts may type (tier-action.test.mts); a slot is not a sign-up. */}
                       Track this prompt
@@ -573,7 +579,7 @@ function ClusterRow({ c, brand, open, toggle, since, act, openHref }: { c: Clust
                   </span>
                   {act ? (
                     !stopped && p.stoppedOn === null ? (
-                      <StopForm act={act} kind="prompt" id={p.id} label={`Stop tracking: ${p.text}`} style={SQUARE}>
+                      <StopForm act={act} kind="prompt" id={p.id} label={p.now.den > 0 ? `Stop and add a new one: ${p.text}` : `Stop tracking: ${p.text}`} style={SQUARE}>
                         {STOP_ICON}
                       </StopForm>
                     ) : !stopped && p.stoppedOn !== null && p.stoppedOn > act.today ? (
