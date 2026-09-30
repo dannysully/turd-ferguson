@@ -209,6 +209,17 @@ const EXEMPT: Record<string, Exemption> = {
       },
     ]),
   ),
+  // T11 /ask (30 Sep 2026): "Ask us to pick one" carries the refused keyword
+  // back as a hidden field. The ask route trims it and clamps it to
+  // ADMIN_LIMITS.question in readAskKeyword before it goes in the mail.
+  "ask-keyword": {
+    why: [
+      "Ask us to pick one's hidden keyword, the one Check keyword just refused.",
+      "type=hidden, which maxLength does not apply to and nobody types in. ask.ts",
+      "readAskKeyword clamps it to ADMIN_LIMITS.question on the server.",
+    ].join(" "),
+    holds: [{ file: "lib/tracking/ask.ts", needs: ".slice(0, ADMIN_LIMITS.question)" }],
+  },
   "cc-coverage": {
     why: [
       "type=file, which maxLength does not apply to at all. It is bounded by bytes",

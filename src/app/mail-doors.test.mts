@@ -107,7 +107,7 @@ const files = sourceFiles(SRC).map((f) => ({
 const SENDERS: Record<
   string,
   {
-    reach: "anonymous" | "behind the ceilings" | "open, limited per caller" | "signed by Stripe";
+    reach: "anonymous" | "behind the ceilings" | "open, limited per caller" | "signed by Stripe" | "signed-in member, limited per member";
     bound: string;
     evidence: RegExp;
     where: string;
@@ -181,6 +181,21 @@ const SENDERS: Record<
       "checkout; a replay is a 200 that sends nothing.",
     evidence: /if \(!verifyStripeSignature\(raw, signature, secret, nowS\)\) return/,
     where: "src/lib/checkout/webhook.ts",
+  },
+  /**
+   * 30 Sep 2026, BRIEF-2 T11 /ask: a member's ask. Only a signed-in member of
+   * the client can post it; it mails us or the account's agency contact
+   * (never an address the request carries), and is capped per member a day,
+   * counted off cta_events `asked` rows before anything is sent.
+   */
+  "src/lib/tracking/ask-mail.ts": {
+    reach: "signed-in member, limited per member",
+    bound:
+      "Needs a dashboard session and membership of the client. Mails only our contact destination " +
+      "or accounts.upsell_contact_email (written only in /admin/tracking), member as reply-to. At most " +
+      "ASKS_PER_MEMBER_PER_DAY asks a member a day, counted off cta_events before the send; off mode sends none.",
+    evidence: /export const ASKS_PER_MEMBER_PER_DAY = \d+/,
+    where: "src/lib/tracking/ask.ts",
   },
   "src/app/contact/actions.ts": {
     reach: "anonymous",

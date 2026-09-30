@@ -263,6 +263,13 @@ const NO_CALLER: { route: string; method: string; why: string; earns: () => bool
     earns: () => readFileSync(join(ROOT, "src/app/app/[client]/clusters/[cluster]/page.tsx"), "utf8").includes("noteAction={`/api/app/${encodeURIComponent(slug)}/note`}"),
   },
   {
+    route: "/api/app/[client]/ask",
+    method: "POST",
+    // BRIEF-2 T11 /ask, 30 Sep 2026: first caller is Add a cluster's "Ask us to pick one".
+    why: "Posted by the plain HTML Ask us to pick one form in the Clusters page's Add panel, which the fetch scanner does not read.",
+    earns: () => readFileSync(join(ROOT, "src/components/app/Clusters.tsx"), "utf8").includes("action={`/api/app/${encodeURIComponent(slug)}/ask`}"),
+  },
+  {
     route: "/api/app/[client]/check",
     method: "POST",
     // BRIEF-3 T6 part 3b, 30 Sep 2026: Check keyword in Add a cluster.

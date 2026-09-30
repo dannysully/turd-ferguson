@@ -226,6 +226,11 @@ const SENDERS: { file: string; sends: number; why: string }[] = [
     sends: 1,
     why: "the order email, 30 Sep 2026 (BRIEF-3 C4, pricing spec section 5) - to us at the contact destination, only from the signed Stripe webhook, once per event id",
   },
+  {
+    file: "src/lib/tracking/ask-mail.ts",
+    sends: 1,
+    why: "a signed-in member's ask, 30 Sep 2026 (BRIEF-2 T11 /ask) - to us, or to the account's agency contact in agency mode, member as reply-to, 3 per member a day",
+  },
 ];
 
 test("the send census still finds every sender, and the right number in each", () => {
@@ -245,8 +250,9 @@ test("every send takes its From from the one reader", () => {
   // A reader that has stopped matching returns a clean list, which is the
   // state every sweep in this tree has been caught in at least once.
   // 5 since 29 Sep 2026: the dashboard login link (T3). 6 since 30 Sep 2026:
-  // the order email from the Stripe webhook (C4).
-  assert.equal(all.length, 6, `expected 6 sends, the walk found ${all.length}`);
+  // the order email from the Stripe webhook (C4). 7 since 30 Sep 2026: a
+  // member's ask from the dashboard (T11 /ask).
+  assert.equal(all.length, 7, `expected 7 sends, the walk found ${all.length}`);
 
   for (const s of all) {
     assert.equal(s.from, "mailFrom()", `${s.file} sets its own From: ${s.from}`);
@@ -298,6 +304,10 @@ const RECIPIENTS: { to: string; why: string }[] = [
     why: "the visitor's own address, for their own scan - the verification mail proves it and the report mail is sent after it was proved. Not a third party's under any branch: nothing else writes that field",
   },
   {
+    to: "input.agencyContact ?? process.env.CONTACT_EMAIL_DESTINATION ?? CONTACT_EMAIL",
+    why: "us, or the account's agency contact (T11 /ask, 30 Sep 2026) - accounts.upsell_contact_email, which only Nomada writes through /admin/tracking setUpsell; the /ask route reads it from the member's own account, never from the request",
+  },
+  {
     to: "input.memberEmail",
     why: "a dashboard member's stored address (T3, 29 Sep 2026) - the login route reads it back from dashboard_members, which only Nomada writes through /admin/tracking, and passes that rather than the typed one",
   },
@@ -306,8 +316,9 @@ const RECIPIENTS: { to: string; why: string }[] = [
 test("every send is addressed to somebody we are allowed to write to", () => {
   const all = sends();
   // 5 since 29 Sep 2026: the dashboard login link (T3). 6 since 30 Sep 2026:
-  // the order email from the Stripe webhook (C4).
-  assert.equal(all.length, 6, `expected 6 sends, the walk found ${all.length}`);
+  // the order email from the Stripe webhook (C4). 7 since 30 Sep 2026: a
+  // member's ask from the dashboard (T11 /ask).
+  assert.equal(all.length, 7, `expected 7 sends, the walk found ${all.length}`);
 
   const allowed = new Map(RECIPIENTS.map((r) => [r.to, r.why]));
   for (const s of all) {

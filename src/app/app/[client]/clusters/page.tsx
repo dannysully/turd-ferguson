@@ -9,6 +9,7 @@ import { T } from "@/config/tokens";
 import { MARKETS, isMarket } from "@/lib/scan/domain";
 import { keywordForm } from "@/lib/scan/dataforseo-request";
 import { verdictFromQuery } from "@/lib/tracking/add-cluster";
+import { askToast } from "@/lib/tracking/ask";
 import { clusterSearch } from "@/lib/tracking/cluster-figures";
 import { CLUSTER_BASE } from "@/lib/tracking/limits";
 import { rangeFrom } from "@/lib/tracking/overview-data";
@@ -61,6 +62,9 @@ export default async function ClientClusters({
   const kw = (one("kw") ?? "").slice(0, 200);
   const market = MARKETS[isMarket(client.market) ? client.market : "US"].label;
   const adding = one("add") === "1" ? { kw, check: verdictFromQuery(one, keywordForm(kw), `the ${market}`), sig: (one("sig") ?? "").slice(0, 64) } : null;
+  // "Ask us to pick one" (T11 /ask): the 303 carries one word; the line is built here.
+  const ask = one("ask");
+  const asked = ask === "sent" ? askToast(one("to") === "agency" ? "your account contact" : "nomada digital", email) : ask === "refused" ? "That ask did not send. Try again later." : null;
 
   return (
     <div className="app-shell" style={{ display: "flex", flexWrap: "wrap", minHeight: "100vh", color: T.ink }}>
@@ -81,6 +85,7 @@ export default async function ClientClusters({
           canWrite={refuseRole(client.role) === null}
           toast={toast}
           adding={adding}
+          asked={asked}
           packPrice={client.market === "UK" ? `£${TRACKING_PACK_PRICE.uk}` : `$${TRACKING_PACK_PRICE.us}`}
         />
       </div>

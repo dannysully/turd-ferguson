@@ -146,6 +146,10 @@ function selectsIn({ file, src }: Source): Select[] {
  * keep the suite green is an entry nobody re-reads.
  */
 const RECORDED: Record<string, string> = {
+  // 30 Sep 2026, T11 /ask: the member's own client, already membership-checked;
+  // the id picks the account's recipient and is not in the 303.
+  "src/app/api/app/[client]/ask/route.ts :: account_id":
+    "the ask route's recipient lookup; the redirect carries only sent|refused and us|agency.",
   // 29 Sep 2026, T2. Both render only on /admin/tracking, behind the /admin
   // Basic auth; the requester is Nomada, and the id is used only to group
   // members and post it back as a hidden field to the admin's own action.
@@ -184,6 +188,10 @@ const MENTIONED: Record<string, string> = {
     "Admin-only, behind the /admin Basic auth.",
   "src/lib/tracking/member.ts":
     "T3: reads the column to join a signed-in member to their clients; returns none of it.",
+  "src/app/api/app/[client]/ask/route.ts":
+    "T11 /ask (30 Sep 2026): reads the member's own client's account_id to find its upsell mode " +
+    "and agency contact. Used only to pick the recipient; the route answers with a 303 carrying " +
+    "sent|refused and us|agency, never the id.",
   "src/lib/checkout/signup.ts":
     "C4 (30 Sep 2026): writes the column on client_domains and dashboard_members when a " +
     "paid checkout from a scan becomes a client. Writes, behind the Stripe signature; " +

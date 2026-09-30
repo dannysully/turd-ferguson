@@ -60,6 +60,7 @@ export default function Clusters({
   canWrite,
   toast,
   adding = null,
+  asked = null,
   packPrice = "",
 }: {
   brand: string;
@@ -76,6 +77,8 @@ export default function Clusters({
   canWrite: boolean;
   toast: StopToast | null;
   adding?: Adding | null;
+  /** The /ask confirmation or refusal, built by the page from the 303's one word. */
+  asked?: string | null;
   packPrice?: string;
 }) {
   const before = comparisonRange(range, compareMode);
@@ -169,6 +172,12 @@ export default function Clusters({
         </div>
       </div>
 
+      {asked ? (
+        <p role="status" style={{ margin: 0, padding: "12px 16px", borderRadius: "12px", background: T.wash, border: `1px solid ${T.washLine}`, fontSize: "14px", color: T.ink }}>
+          {asked}
+        </p>
+      ) : null}
+
       {canWrite && adding ? <AddPanel slug={slug} adding={adding} full={full} clusterLimit={clusterLimit} packPrice={packPrice} close={href({})} /> : null}
 
       <section aria-label="Clusters" style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: "18px", overflow: "hidden" }}>
@@ -205,8 +214,8 @@ export type Adding = { kw: string; check: KeywordCheck | null; sig: string };
  * a plain POST to /check that 303s back with the verdict, rebuilt from fixed
  * words (add-cluster.ts). At the limit it is the +5 clusters offer instead.
  * On a signed pass, step 2 (part 3c): the five drafted prompts, editable, and
- * "Start tracking this cluster", a POST to /cluster. "Ask us to pick one"
- * comes with T11's /ask route.
+ * "Start tracking this cluster", a POST to /cluster. On a refusal that
+ * allows it, "Ask us to pick one", a POST to T11's /ask (ask.ts).
  */
 function AddPanel({ slug, adding, full, clusterLimit, packPrice, close }: { slug: string; adding: Adding; full: boolean; clusterLimit: number; packPrice: string; close: string }) {
   const ck = adding.check;
@@ -251,6 +260,14 @@ function AddPanel({ slug, adding, full, clusterLimit, packPrice, close }: { slug
           </p>
         </form>
       )}
+      {!full && ck && !ck.ok && ck.ask && adding.kw ? (
+        <form method="post" action={`/api/app/${encodeURIComponent(slug)}/ask`}>
+          <input id="ask-keyword" type="hidden" name="keyword" value={adding.kw} />
+          <button type="submit" style={{ height: "40px", padding: "0 14px", border: `1px solid ${T.line}`, borderRadius: "10px", background: T.surface, color: T.ink, fontFamily: "inherit", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>
+            Ask us to pick one
+          </button>
+        </form>
+      ) : null}
       {!full && ck?.ok && adding.sig ? (
         <form method="post" action={`/api/app/${encodeURIComponent(slug)}/cluster`} style={{ display: "flex", flexDirection: "column", gap: "10px", borderTop: `1px solid ${T.line}` }}>
           <input id="nc-keyword" type="hidden" name="keyword" value={ck.keyword} />

@@ -237,6 +237,18 @@ const EXEMPT: Record<string, { why: string; evidence: RegExp; where: string }> =
     where: "src/lib/tracking/session.ts",
   },
   /**
+   * 30 September 2026, BRIEF-2 T11 /ask: a member's ask - one Resend message,
+   * to us or the account's agency contact, and no scan.
+   */
+  "app/[client]/ask": {
+    why:
+      "Sends one ask for a signed-in member of the client, to our contact destination or the account's " +
+      "agency contact, and starts no scan. At most ASKS_PER_MEMBER_PER_DAY a member a day, counted off " +
+      "cta_events asked rows before the send; off mode sends none.",
+    evidence: /export const ASKS_PER_MEMBER_PER_DAY = \d+/,
+    where: "src/lib/tracking/ask.ts",
+  },
+  /**
    * 30 September 2026, BRIEF-3 T6 part 3b: "Check keyword" on the Clusters
    * page. Not a visitor's scan, so checkCeilings is the wrong guard.
    */
@@ -523,8 +535,12 @@ test("the kill switch is read in one place, so its reach is exactly the guarded 
      * cluster (BRIEF-3 T6 part 3b). Two DataForSEO reads for a signed-in
      * member, bounded per client per day; it starts no scan, so
      * `scans_enabled` has nothing to refuse.
+     *
+     * Ten the same day: `app/[client]/ask`, a member's ask (BRIEF-2 T11). One
+     * Resend message to us or the account's agency contact, three a member a
+     * day; it starts no scan, so the decision is not moved.
      */
-    9,
+    10,
     "the number of spending doors the kill switch does not reach has changed - see docs/blocked.md",
   );
 });
