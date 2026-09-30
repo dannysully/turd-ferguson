@@ -448,6 +448,20 @@ export function clusterRank(r: Pick<RunScanResponse, "cluster_keyword">): string
 }
 
 /**
+ * The drawer head's keyword note: the board's "keyword at Google #9", and
+ * "keyword not in Google's top 20" where it does not rank, which read
+ * "keyword at Google Not in top 20" when it borrowed the tile's figure
+ * (live on 00862d12, 30 Sep).
+ */
+export function drawerKeywordLine(r: Pick<RunScanResponse, "cluster_keyword">): string {
+  const state = clusterState(r);
+  if (state === null) return "";
+  if (state === "none") return "no keyword yet";
+  const rank = r.cluster_keyword?.rank;
+  return typeof rank === "number" ? "keyword at Google #" + rank : "keyword not in Google's top " + SERP_DEPTH;
+}
+
+/**
  * The board's link from each prompt to the keyword node: solid where at
  * least one engine named the brand on that prompt, dashed where none did.
  * The row's verdict pill says the same in words, so the line is decoration.

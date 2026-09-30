@@ -16,6 +16,7 @@ import {
   PLAN_ORDER,
   SOV_ROWS,
   clusterLinks,
+  drawerKeywordLine,
   clusterRank,
   clusterState,
   engineLabel,
@@ -438,7 +439,7 @@ function AnswerDrawer(p: {
   // before C1 keeps "Question N of M" and the row's own Google line.
   const cluster = clusterState(p.r);
   const noun = cluster ? "prompt" : "question";
-  const rank = cluster === "chosen" ? "keyword at Google " + clusterRank(p.r) : cluster === "none" ? "no keyword yet" : googleLine(q);
+  const rank = cluster ? drawerKeywordLine(p.r) : googleLine(q);
   const step = (d: number) => {
     const next = qs[at + d];
     if (next) p.onMove(next.idx);

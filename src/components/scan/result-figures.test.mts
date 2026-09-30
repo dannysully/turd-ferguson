@@ -9,6 +9,7 @@ import {
   SOV_ROWS,
   clusterLinks,
   clusterRank,
+  drawerKeywordLine,
   clusterState,
   engineLabel,
   fmtDate,
@@ -520,4 +521,12 @@ test("S1: a prompt links solid to the keyword when any engine named the brand, d
     { named: false },
     { named: false },
   ]);
+});
+
+test("S1 drawer head: the keyword's Google figure reads as a phrase, ranked or not", () => {
+  const c = { status: "chosen" as const, keyword: "bookkeeping services small business", volume: 3600, intent: "commercial", rank: 9 };
+  assert.equal(drawerKeywordLine({ cluster_keyword: c }), "keyword at Google #9");
+  assert.equal(drawerKeywordLine({ cluster_keyword: { ...c, rank: null } }), "keyword not in Google's top 20");
+  assert.equal(drawerKeywordLine({ cluster_keyword: { ...c, status: "none_qualified", keyword: null } }), "no keyword yet");
+  assert.equal(drawerKeywordLine({ cluster_keyword: null }), "");
 });
