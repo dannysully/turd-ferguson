@@ -633,6 +633,13 @@ function ClusterRow({ c, brand, subject, open, toggle, since, act, refill, openH
                   {c.volume !== null ? <span style={{ padding: "3px 9px", borderRadius: "999px", background: T.chip, color: T.ink, fontSize: "12px", fontWeight: 600 }}>{`${c.volume.toLocaleString("en-GB")} a month`}</span> : null}
                 </span>
               ) : null}
+              {/* R90 sweep: Questions.dc.html closes the card on the ranking page, as OneCluster does. */}
+              {!pending && subject ? (
+                <span style={{ display: "flex", flexDirection: "column", gap: "2px", borderTop: `1px solid ${T.line}` }}>
+                  <span style={{ fontSize: "12px", color: T.soft, paddingTop: "10px" }}>Your ranking page</span>
+                  <span style={{ fontSize: "13px", fontWeight: 500 }}>{c.position === null ? "None in the top 20" : subject.domain}</span>
+                </span>
+              ) : null}
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px", flexWrap: "wrap" }}>

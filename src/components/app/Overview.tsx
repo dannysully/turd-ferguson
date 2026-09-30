@@ -180,7 +180,8 @@ export default function Overview({
 
   const header = (
     <header style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "24px", flexWrap: "wrap" }}>
-      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }} className={cards ? "app-hide-sm" : undefined}>
+      {/* R90 sweep: the lede wraps before the controls do, so the date and Download report stay on the title's row as on Main.dc.html. */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "4px", flex: "1 1 320px", minWidth: 0 }} className={cards ? "app-hide-sm" : undefined}>
         <h1 style={{ margin: 0, fontSize: "28px", fontWeight: 700, letterSpacing: "-0.03em", color: T.ink }}>Overview</h1>
         <p style={{ margin: 0, fontSize: "14px", color: T.soft }}>
           {brand} in {where}. {cards ? `${cards.length} cluster${cards.length === 1 ? "" : "s"} on ` : ""}
@@ -189,17 +190,9 @@ export default function Overview({
       </div>
       <div className={cards ? "app-date" : undefined} style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
       {report ? (
-        <span className="app-hide-sm" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <a href={report("keywords")} download style={{ fontSize: "13px", fontWeight: 600, color: T.accent, textDecoration: "none" }}>
-            Keywords CSV
-          </a>
-          <a href={report("answers")} download style={{ display: "inline-flex", alignItems: "center", gap: "8px", height: "48px", padding: "0 16px", boxSizing: "border-box", border: `1px solid ${T.line}`, borderRadius: "12px", background: T.surface, color: T.ink, fontSize: "14px", fontWeight: 600, textDecoration: "none" }}>
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={T.ink} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M12 4v11M7 10l5 5 5-5M5 20h14" />
-            </svg>
-            Download report
-          </a>
-        </span>
+        <a className="app-hide-sm" href={report("keywords")} download style={{ fontSize: "13px", fontWeight: 600, color: T.accent, textDecoration: "none" }}>
+          Keywords CSV
+        </a>
       ) : null}
       <div style={{ display: "flex", flex: "1 1 auto", alignItems: "center", gap: "12px", height: "48px", padding: "0 14px", border: `1px solid ${T.line}`, borderRadius: "12px", background: T.surface, color: T.ink }}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={T.ink} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -221,6 +214,15 @@ export default function Overview({
           </span>
         </span>
       </div>
+      {/* Main.dc.html: the dark "Download report" after the date. */}
+      {report ? (
+        <a className="app-hide-sm" href={report("answers")} download style={{ display: "inline-flex", alignItems: "center", gap: "8px", height: "48px", padding: "0 18px", boxSizing: "border-box", borderRadius: "12px", background: T.ink, color: T.surface, fontSize: "14px", fontWeight: 600, textDecoration: "none" }}>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={T.surface} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M12 4v11M7 10l5 5 5-5M5 20h14" />
+          </svg>
+          Download report
+        </a>
+      ) : null}
       </div>
     </header>
   );

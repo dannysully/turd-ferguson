@@ -267,7 +267,7 @@ export default function OneCluster({
             })}
             <circle cx={CONN_W - 3} cy={mid} r={4} fill={T.accent} />
           </svg>
-          <div className="app-cl-kw" style={{ width: "256px", flexShrink: 0, boxSizing: "border-box", padding: "18px", borderRadius: "14px", border: `1px solid ${T.washLine}`, background: T.bg, display: "flex", flexDirection: "column", gap: "10px" }}>
+          <div className="app-cl-kw" style={{ width: "256px", flexShrink: 0, boxSizing: "border-box", padding: "18px", borderRadius: "14px", border: `1px solid ${T.washLine}`, background: T.surface, display: "flex", flexDirection: "column", gap: "10px" }}>
             <span style={{ fontSize: "12px", fontWeight: 600, color: T.soft }}>Google keyword</span>
             <span style={{ fontSize: "16px", fontWeight: 700, lineHeight: 1.3 }}>{kw}</span>
             <span style={{ display: "flex", alignItems: "baseline", gap: "10px" }}>
