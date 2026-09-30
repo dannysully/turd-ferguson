@@ -1659,6 +1659,8 @@ html[data-motion="on"] .res-dial { animation: resDial 1.4s .3s cubic-bezier(.2,.
   .app-figures > :nth-child(even) { border-left: 1px solid var(--line) !important; }
   .app-hide-sm { display: none !important; }
   .app-show-sm { display: block !important; }
+  /* Mobile.dc.html spaces the cluster overview's sections 14px apart. */
+  .app-col { gap: 14px !important; }
   /* Main.dc.html keeps the Previous period toggle level with the cluster
      name (R122); on a phone the lede needs the width, so it drops below. */
   .app-chart-head { flex-wrap: wrap; gap: 12px !important; }

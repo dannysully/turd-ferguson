@@ -387,7 +387,7 @@ export default function Overview({
   );
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "24px", minWidth: 0 }}>
+    <div className={cs ? "app-col" : undefined} style={{ display: "flex", flexDirection: "column", gap: "24px", minWidth: 0 }}>
       {header}
 
       <section aria-label="Headline" className="on-dark app-headline" style={{ position: "relative", display: "flex", flexWrap: "wrap", gap: cs ? "40px" : "48px", padding: cs ? "34px 36px" : "36px 40px", borderRadius: "18px", background: `${CLOSE_WASH}, ${D.ground}`, color: T.surface, overflow: "hidden" }}>
@@ -632,6 +632,7 @@ export default function Overview({
       ) : null}
 
       {cards ? <ClusterCards cards={cards} engines={engines} picked={picked?.id ?? null} href={clusterHref} /> : null}
+      {cards ? <ClusterRows cards={cards} picked={picked?.id ?? null} href={clusterHref} /> : null}
 
       {picked && pickedChart ? (
         <ClusterChart
@@ -693,12 +694,12 @@ export default function Overview({
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 /** A change chip in the cards' 12px size, or the grey word when there is no change to show. */
-function Chip({ value, unit, none }: { value: number | null; unit: string; none: string }) {
-  if (value === null || value === 0) return <span style={{ fontSize: "12px", fontWeight: 600, color: T.soft, whiteSpace: "nowrap" }}>{value === 0 ? "No change" : none}</span>;
+function Chip({ value, unit, none, size = 12 }: { value: number | null; unit: string; none: string; size?: number }) {
+  if (value === null || value === 0) return <span style={{ fontSize: `${size}px`, fontWeight: 600, color: T.soft, whiteSpace: "nowrap" }}>{value === 0 ? "No change" : none}</span>;
   const up = value > 0;
   const fg = up ? T.goodFg : T.badFg;
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: "2px", padding: "2px 8px 2px 5px", borderRadius: "999px", background: up ? T.goodBg : T.badBg, color: fg, fontSize: "12px", fontWeight: 600, whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
+    <span style={{ display: "inline-flex", alignItems: "center", gap: "2px", padding: "2px 8px 2px 5px", borderRadius: "999px", background: up ? T.goodBg : T.badBg, color: fg, fontSize: `${size}px`, fontWeight: 600, whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={fg} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d={up ? "M6 15l6-6 6 6" : "M6 9l6 6 6-6"} />
       </svg>
@@ -720,7 +721,7 @@ so picking works with JS off (T4b part 5b).
  */
 function ClusterCards({ cards, engines, picked, href }: { cards: ClusterCard[]; engines: readonly Engine[]; picked: string | null; href: (id: string) => string }) {
   return (
-    <section aria-labelledby="cl-h" style={{ ...CARD, padding: "22px 24px 24px", display: "flex", flexDirection: "column", gap: "18px" }}>
+    <section aria-labelledby="cl-h" className="app-hide-sm" style={{ ...CARD, padding: "22px 24px 24px", display: "flex", flexDirection: "column", gap: "18px" }}>
       <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
         <h2 id="cl-h" style={H2}>
           Your clusters
@@ -807,6 +808,71 @@ function ClusterCards({ cards, engines, picked, href }: { cards: ClusterCard[]; 
           );
         })}
       </div>
+    </section>
+  );
+}
+
+/**
+ * The phone's "Your clusters" (T4b mobile part 4, 30 Sep 2026;
+ * boards-3/Mobile.dc.html): one compact row per cluster in place of the
+ * desktop cards - a dot per prompt (filled where it named the client this
+ * period) joined to the Google node, the keyword and its prompt count, the
+ * rate and its change. Swapped by CSS, so it stands with JS off; each row
+ * picks the chart below, as the cards do. The board's "Manage" link waits
+ * for T6: there is no clusters screen to send it to yet.
+ */
+function ClusterRows({ cards, picked, href }: { cards: ClusterCard[]; picked: string | null; href: (id: string) => string }) {
+  return (
+    <section aria-labelledby="cl-h-sm" className="app-show-sm" style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: "16px", paddingTop: "14px" }}>
+      <h2 id="cl-h-sm" style={{ margin: "0 16px 10px", fontSize: "16px", fontWeight: 700, color: T.ink }}>
+        Your clusters
+      </h2>
+      <p style={{ margin: "0 16px 10px", fontSize: "12px", lineHeight: 1.5, color: T.soft }}>Each keyword and its 5 prompts. A filled dot is a prompt that named you this period.</p>
+      {cards.map((c) => {
+        const pending = c.status === "pending";
+        const h = Math.max(1, c.prompts.length) * 9 + 1;
+        const mid = h / 2;
+        return (
+          <Link key={c.id} href={href(c.id)} scroll={false} aria-current={c.id === picked ? "true" : undefined} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "12px 16px", borderTop: `1px solid ${T.hair}`, color: T.ink, textDecoration: "none" }}>
+            <svg width="36" height={h} viewBox={`0 0 36 ${h}`} aria-hidden="true" style={{ flexShrink: 0 }}>
+              {c.prompts.map((r, i) => {
+                const y = 5 + i * 9;
+                const named = !pending && r.now.num > 0;
+                return (
+                  <g key={r.id}>
+                    <circle cx={5} cy={y} r={3.5} fill={pending ? T.wash : named ? T.accent : T.line} />
+                    <path d={`M9,${y} C22,${y} 20,${mid} 34,${mid}`} fill="none" stroke={named ? T.washLine : T.line} strokeWidth={1.4} />
+                  </g>
+                );
+              })}
+            </svg>
+            <span style={{ width: "44px", height: "40px", flexShrink: 0, boxSizing: "border-box", borderRadius: "10px", border: `1px solid ${pending ? T.line : T.washLine}`, background: T.surface, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+              <span style={{ fontSize: "9px", fontWeight: 600, color: T.soft }}>Google</span>
+              <span style={{ fontSize: "14px", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{c.position === null ? "-" : `#${c.position}`}</span>
+            </span>
+            <span style={{ display: "flex", flexDirection: "column", gap: "3px", flexGrow: 1, minWidth: 0 }}>
+              <span style={{ fontSize: "14px", fontWeight: 600, lineHeight: 1.3 }}>{c.keyword ?? c.name}</span>
+              <span style={{ fontSize: "12px", color: T.soft }}>
+                {pending ? (c.intent ? `${cap(c.intent)}, no readings yet` : "No readings yet") : `${c.promptsNamed.num} of ${c.promptsNamed.den} prompts name you`}
+              </span>
+            </span>
+            {pending ? (
+              <span style={{ fontSize: "12px", color: T.soft, textAlign: "right", flexShrink: 0 }}>
+                First check
+                <br />
+                tomorrow, 06:00
+              </span>
+            ) : (
+              <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px", flexShrink: 0 }}>
+                <span style={{ fontSize: "16px", fontWeight: 700, fontVariantNumeric: "tabular-nums" }} title={`${c.now.num} of ${c.now.den} answers`}>
+                  {pct(c.now)}
+                </span>
+                <Chip value={c.delta} unit=" pts" none="New" size={11} />
+              </span>
+            )}
+          </Link>
+        );
+      })}
     </section>
   );
 }
