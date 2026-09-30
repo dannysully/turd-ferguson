@@ -1,0 +1,61 @@
+import { keywordForm } from "../scan/dataforseo-request.ts";
+import type { ClusterKeywordPick } from "../scan/target-keyword.ts";
+
+/**
+ * "Add a cluster" on the Clusters page - BRIEF-3 T6 part 3a (30 Sep 2026;
+ * boards-3/Questions.dc.html "Check keyword"). Pure and unwired.
+ *
+ * The check has two halves. `precheckKeyword` is free and runs first, so a
+ * keyword that can never pass - already tracked, the client's own brand,
+ * informational, or one word - spends nothing. Only a keyword that stands
+ * goes to C1's paid reads (volume and intent, then `pickClusterKeyword`), and
+ * `checkVerdict` turns that pick into the board's words. The route that makes
+ * those reads is a spender and comes with its own cap and census entries.
+ */
+
+export type KeywordCheck =
+  | { ok: true; keyword: string; volume: number; intent: "commercial" | "transactional"; message: string }
+  | { ok: false; reason: "tracked" | "own_brand" | "informational" | "too_broad" | "no_volume" | "read_failed"; ask: boolean; message: string };
+
+export type Refused = Extract<KeywordCheck, { ok: false }>;
+
+const MESSAGES: Record<Refused["reason"], string> = {
+  tracked: "You already track this keyword.",
+  own_brand: "That is your own brand, so it only finds people who already know you. Pick a term buyers search before they do.",
+  informational: "This reads as informational: people searching it want an explanation, not a supplier. Placements link on the keyword, so it has to be one buyers search.",
+  too_broad: "Too broad to place against on its own. Add what it is for, for example “invoicing software for agencies”.",
+  no_volume: "Google shows no measured searches for this. Placements link on the keyword, so it has to be one buyers search.",
+  read_failed: "We could not read this keyword just now. Try again, or ask us to pick one.",
+};
+
+const refused = (reason: Refused["reason"]): Refused => ({ ok: false, reason, ask: reason !== "tracked", message: MESSAGES[reason] });
+
+// The board's rule for a keyword that asks for an explanation rather than a supplier.
+const QUESTION_START = /^(how|what|why|when|who|is|are|can|does|do)\b/;
+const EXPLAINER = /\b(meaning|definition|examples|guide|tutorial|template|jobs|salary|course)\b/;
+
+/** The free checks, before any read. `brands` are the client's own names and domain stems. */
+export function precheckKeyword(raw: string, p: { tracked: readonly string[]; brands: readonly string[] }): { ok: true; keyword: string } | Refused {
+  const k = keywordForm(raw);
+  if (p.tracked.some((t) => keywordForm(t) === k)) return refused("tracked");
+  const bare = k.replace(/[^a-z0-9]/g, "");
+  if (p.brands.some((b) => {
+    const s = keywordForm(b).replace(/\.[a-z.]+$/, "").replace(/[^a-z0-9]/g, "");
+    return s.length >= 3 && bare.includes(s);
+  })) return refused("own_brand");
+  if (QUESTION_START.test(k) || EXPLAINER.test(k)) return refused("informational");
+  if (k.split(" ").filter(Boolean).length < 2) return refused("too_broad");
+  return { ok: true, keyword: k };
+}
+
+/** C1's pick for the one typed keyword, in the board's words. `where` is the market, e.g. "the United States". */
+export function checkVerdict(pick: ClusterKeywordPick | "read_failed", where: string): KeywordCheck {
+  if (pick === "read_failed") return refused("read_failed");
+  if ("none" in pick) return refused(pick.none === "no_intent" ? "informational" : pick.none === "no_volume" ? "no_volume" : "too_broad");
+  return { ok: true, ...pick, message: `${pick.volume.toLocaleString("en-GB")} searches a month in ${where}, ${pick.intent} intent. Good to track.` };
+}
+
+/** At the limit the panel offers the pack instead of the check. */
+export function addPanelState(used: number, clusterLimit: number): "open" | "full" {
+  return used >= clusterLimit ? "full" : "open";
+}
