@@ -193,7 +193,15 @@ const OFF_PALETTE: Record<string, Entry> = {
       // question table's header row went) and 2 -> 0 in Q10 (the placement
       // table's header and the answer cards' head band are white on
       // ScanResult.dc.html).
+      // ResultView.tsx back on 30 Sep 2026 (R114 S1): the alwaystracked band
+      // at the foot of "Your first cluster", ScanCluster.dc.html.
+      "src/components/scan/ResultView.tsx": 1,
     },
+  },
+  "#fcfbff": {
+    why: "the chosen keyword node's ground on the scan result's first cluster, ScanCluster.dc.html (30 Sep 2026, R114 S1) - a hair off white with a purple cast, under #c4b5fd. `T.wash` is too strong a tint for a 300px card holding a 44px figure. The count is from docs/site-boards-2026-09-29 and docs/boards-2026-09-25, not docs/design.",
+    boards: 2,
+    sites: { "src/components/scan/ResultView.tsx": 1 },
   },
   "#3f4451": {
     why: "body prose on the two long-form templates, drawn by BlogPost.dc.html and CaseStudy.dc.html - the two boards whose pages these are. Darker than `T.soft` because long-form body text is, at 9.74 on white against soft's 4.68.",
@@ -237,7 +245,10 @@ const OFF_PALETTE: Record<string, Entry> = {
     // dark.ts since 25 Sep 2026: the header mark and the h1 accent on the
     // homepage's dark hero, which are not lockups and so cannot reach it
     // through `.on-dark`.
-    sites: { "src/app/globals.css": 1, "src/components/home/dark.ts": 1 },
+    // ResultView.tsx since 30 Sep 2026 (R114 S1): the solid link from a
+    // prompt an engine named you on to the keyword node, ScanCluster.dc.html.
+    // A non-text mark on white; the row's pill carries the fact.
+    sites: { "src/app/globals.css": 1, "src/components/home/dark.ts": 1, "src/components/scan/ResultView.tsx": 1 },
   },
 
   // The homepage's dark hero, from Main.dc.html (25 Sep 2026, Q02). All of
@@ -289,12 +300,17 @@ const OFF_PALETTE: Record<string, Entry> = {
   "#d4d4d8": {
     why: "the engine name on a dark demo card; 11.97 on #17181f.",
     boards: 3,
-    sites: { "src/components/home/dark.ts": 1 },
+    // ResultView.tsx since 30 Sep 2026 (R114 S1): the dashed link from a
+    // prompt no engine named you on, ScanCluster.dc.html. A non-text mark.
+    sites: { "src/components/home/dark.ts": 1, "src/components/scan/ResultView.tsx": 1 },
   },
   "#c4b5fd": {
     why: "the typing caret in the demo question - a non-text mark.",
     boards: 4,
-    sites: { "src/components/home/dark.ts": 1 },
+    // ResultView.tsx since 30 Sep 2026 (R114 S1): the keyword node's border,
+    // solid when a keyword was picked and dashed when none was,
+    // ScanCluster.dc.html. A non-text mark.
+    sites: { "src/components/home/dark.ts": 1, "src/components/scan/ResultView.tsx": 2 },
   },
   "#fca5a5": {
     why: "the 'not named' pill text on a dark card, and the field's error line on the dark hero; 9.32 on #17181f. `T.badFg` is for light grounds.",

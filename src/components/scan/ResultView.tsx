@@ -3,7 +3,7 @@
 import EngineLogo from "@/components/EngineLogo";
 import TierName from "@/components/TierName";
 import { D, TRACKED_WASH } from "@/components/home/dark";
-import { TIERS, TRACKED_BASIS } from "@/config/pricing";
+import { TIERS, TRACKED_BASIS, TRACKED_CLUSTERS, TRACKED_KEYWORDS, TRACKED_PROMPTS } from "@/config/pricing";
 import { count } from "@/lib/plural";
 import { SCAN_LIMITS } from "@/config/contact";
 import { track } from "@/lib/analytics";
@@ -14,6 +14,7 @@ import { ENGINE_SPECS, isEngine } from "@/lib/scan/engines";
 import {
   PLAN_ORDER,
   SOV_ROWS,
+  clusterLinks,
   clusterRank,
   clusterState,
   engineLabel,
@@ -133,10 +134,11 @@ function answerState(a: EngineAnswer): "named" | "not named" | "no answer" {
  * the brand, faded where it did not, dashed where it gave no answer. The pill
  * beside them says the same thing in words, so nothing here rests on colour.
  */
-function EngineMarks(p: { answers: EngineAnswer[] }) {
+function EngineMarks(p: { answers: EngineAnswer[]; size?: number }) {
   if (!p.answers.length) return null;
+  const size = p.size ?? 26;
   return (
-    <div style={{ display: "flex", gap: "8px" }}>
+    <div style={{ display: "flex", gap: size < 26 ? "6px" : "8px" }}>
       {p.answers.map((a) => {
         const state = answerState(a);
         return (
@@ -144,8 +146,8 @@ function EngineMarks(p: { answers: EngineAnswer[] }) {
             key={a.engine}
             title={engineLabel(a.engine) + ": " + state}
             style={{
-              width: "26px",
-              height: "26px",
+              width: size + "px",
+              height: size + "px",
               borderRadius: "7px",
               display: "grid",
               placeItems: "center",
@@ -217,6 +219,177 @@ function QuestionTable(p: { r: RunScanResponse; onOpen: (idx: number) => void })
             </button>
           );
         })}
+      </div>
+    </section>
+  );
+}
+
+/* ── Your first cluster (ScanCluster.dc.html, S1) ── */
+
+const KIND: Record<string, string> = {
+  category: "Category",
+  positioning: "Positioning",
+  sector: "Sector",
+  outcome: "Outcome",
+  comparison: "Comparison",
+};
+
+const KEYWORD_INTENT: Record<string, string> = {
+  commercial: "Commercial",
+  transactional: "Transactional",
+  informational: "Informational",
+  navigational: "Navigational",
+};
+
+const WORDS = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
+const word = (n: number) => WORDS[n] ?? String(n);
+
+/** The board's row: 62px tall, 6px apart. The link lines are drawn off these. */
+const ROW_H = 62;
+const ROW_GAP = 6;
+
+/**
+ * One line from each prompt row to the keyword node, as the board draws them:
+ * solid purple where an engine named the brand on that prompt, dashed grey
+ * where none did. Decoration: the row's pill says the same in words.
+ */
+function ClusterLinks(p: { links: { named: boolean }[] }) {
+  const n = p.links.length;
+  const h = n * ROW_H + (n - 1) * ROW_GAP;
+  const mid = h / 2;
+  return (
+    <svg className="clu-links" width="92" height={h} viewBox={"0 0 92 " + h} aria-hidden="true" style={{ flexShrink: 0 }}>
+      {p.links.map((l, i) => {
+        const y = ROW_H / 2 + i * (ROW_H + ROW_GAP);
+        return (
+          <path
+            key={i}
+            className={l.named ? "clu-link" : undefined}
+            d={"M0," + y + " C51," + y + " 41," + mid + " 92," + mid}
+            fill="none"
+            stroke={l.named ? "#a78bfa" : "#d4d4d8"}
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeDasharray={l.named ? undefined : "3 4"}
+          />
+        );
+      })}
+      <circle cx="89" cy={mid} r="4" fill={T.accent} />
+    </svg>
+  );
+}
+
+function KeywordNode(p: { r: RunScanResponse; chosen: boolean }) {
+  const c = p.r.cluster_keyword;
+  const head = <span style={{ fontSize: "12px", fontWeight: 600, color: T.soft }}>The Google keyword</span>;
+  const box: React.CSSProperties = {
+    boxSizing: "border-box",
+    padding: "22px",
+    borderRadius: "16px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "10px",
+  };
+  if (!p.chosen || !c?.keyword) {
+    return (
+      <div className="clu-node" data-figure="cluster-keyword" style={{ ...box, border: "1.5px dashed #c4b5fd", background: T.surface }}>
+        {head}
+        <span style={{ fontSize: "19px", fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.25, color: T.ink }}>Not picked yet</span>
+        <span style={{ fontSize: "14px", lineHeight: 1.55, color: T.ink }}>
+          {c?.status === "read_failed"
+            ? "We couldn't check Google search volume when this scan ran. The prompts are written on the category, and nomada digital picks the keyword when you start tracking."
+            : "We couldn't find a commercial Google term with search volume for this. The prompts are written on the category, and nomada digital picks the keyword when you start tracking."}
+        </span>
+        <span style={{ fontSize: "13px", color: T.soft }}>We never guess one.</span>
+      </div>
+    );
+  }
+  const chip = (bg: string, fg: string): React.CSSProperties => ({ fontSize: "12px", fontWeight: 600, color: fg, background: bg, borderRadius: "999px", padding: "3px 10px" });
+  return (
+    <div className="clu-node" data-figure="cluster-keyword" style={{ ...box, border: "1px solid #c4b5fd", background: "#fcfbff" }}>
+      {head}
+      <span style={{ fontSize: "19px", fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.25, color: T.ink }}>{c.keyword}</span>
+      <span style={{ display: "flex", alignItems: "baseline", gap: "10px", flexWrap: "wrap" }}>
+        <span style={{ fontSize: "44px", fontWeight: 700, letterSpacing: "-0.04em", lineHeight: 1.1, color: T.ink }}>{clusterRank(p.r)}</span>
+        <span style={{ fontSize: "13px", color: T.soft }}>{"on Google, in the " + p.r.market}</span>
+      </span>
+      {c.intent || c.volume != null ? (
+        <span style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+          {c.intent ? <span style={chip(T.wash, T.accentHover)}>{(KEYWORD_INTENT[c.intent] ?? c.intent) + " intent"}</span> : null}
+          {c.volume != null ? (
+            <span style={chip(T.chip, T.ink)}>{(c.volume < 10 ? "Under 10" : c.volume.toLocaleString("en-GB")) + " searches a month"}</span>
+          ) : null}
+        </span>
+      ) : null}
+      <span style={{ fontSize: "13px", lineHeight: 1.5, color: T.soft, paddingTop: "10px", borderTop: "1px solid " + T.line }}>
+        This is the term placements link on, so it has to be one buyers search.
+      </span>
+    </div>
+  );
+}
+
+/**
+ * The scan as the visitor's first cluster: one Google keyword joined to the
+ * five prompts written on it, each row opening the same answer drawer the
+ * question table did. Only drawn on a scan from C1 on (`clusterState` not
+ * null); an older scan keeps `QuestionTable`.
+ */
+function ClusterSection(p: { r: RunScanResponse; chosen: boolean; onOpen: (idx: number) => void }) {
+  const qs = p.r.questions ?? [];
+  if (!qs.length) return null;
+  const cols = "96px minmax(0, 1fr) 128px 104px";
+  return (
+    <section style={{ marginTop: "38px" }}>
+      <Head title="Your first cluster">
+        One keyword buyers search, and the five prompts they ask AI about it. Open a prompt to read what each engine said.
+      </Head>
+      <div className="clu-card" style={{ ...CARD, borderRadius: "18px", padding: "24px 24px 0" }}>
+        <div className="clu-head" style={{ display: "grid", gridTemplateColumns: cols, gap: "14px", padding: "0 14px 10px", marginRight: "392px", fontSize: "12px", fontWeight: 600, color: T.soft }}>
+          <span>Angle</span>
+          <span>Prompt</span>
+          <span>Engines naming you</span>
+          <span style={{ textAlign: "right" }}>Verdict</span>
+        </div>
+        <div className="clu-body" style={{ display: "flex", alignItems: "center" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: ROW_GAP + "px", flexGrow: 1, minWidth: 0 }}>
+            {qs.map((q) => {
+              const label = questionPill(q);
+              const hit = label !== "not named" && label !== "no answer";
+              const answers = q.answers ?? [];
+              return (
+                <button
+                  key={q.idx}
+                  type="button"
+                  className="clu-row res-qbtn"
+                  disabled={!answers.length}
+                  onClick={() => p.onOpen(q.idx)}
+                  aria-haspopup="dialog"
+                  style={{ gridTemplateColumns: cols }}
+                >
+                  <span style={{ justifySelf: "start", fontSize: "11px", fontWeight: 700, letterSpacing: ".03em", textTransform: "uppercase", color: T.soft, background: T.chip, borderRadius: "6px", padding: "3px 8px" }}>
+                    {KIND[q.kind] ?? "Own"}
+                  </span>
+                  <span style={{ fontSize: "14.5px", fontWeight: 600, lineHeight: 1.35, color: T.ink }}>{q.question}</span>
+                  <EngineMarks answers={answers} size={24} />
+                  <span style={{ justifySelf: "end" }}>
+                    <span style={{ ...(hit ? ROW_NAMED : QUIET), fontSize: "12px", padding: "3px 10px" }}>{hit ? "Named " + label : label[0].toUpperCase() + label.slice(1)}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <ClusterLinks links={clusterLinks(qs)} />
+          <KeywordNode r={p.r} chosen={p.chosen} />
+        </div>
+        <div className="clu-foot" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px 24px", margin: "24px -24px 0", padding: "16px 24px", borderTop: "1px solid " + T.hair, background: "#fbfbfc", borderRadius: "0 0 18px 18px" }}>
+          <span style={{ fontSize: "14px", lineHeight: 1.5, color: T.ink }}>
+            <TierName tier="tracked" />
+            {" checks this cluster every morning, and " + word(TRACKED_CLUSTERS - 1) + " more like it: " + TRACKED_PROMPTS + " prompts and " + TRACKED_KEYWORDS + " keywords, on the same " + word(p.r.engines.length) + " engines and Google."}
+          </span>
+          <a href="#tracked" style={{ flexShrink: 0, fontSize: "14px", fontWeight: 600, color: T.accent, textDecoration: "none" }}>
+            See what it tracks
+          </a>
+        </div>
       </div>
     </section>
   );
@@ -874,7 +1047,7 @@ export default function ResultView(p: {
         </div>
       </div>
 
-      <QuestionTable r={r} onOpen={setOpenIdx} />
+      {cluster ? <ClusterSection r={r} chosen={cluster === "chosen"} onOpen={setOpenIdx} /> : <QuestionTable r={r} onOpen={setOpenIdx} />}
 
       {/* Where to get placed - the sources, cut down to the ones worth acting on. */}
       {/* 72px between sections on the board: the page's 26px gap plus 46. */}

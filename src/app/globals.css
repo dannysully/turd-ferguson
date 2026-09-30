@@ -1342,6 +1342,39 @@ details > summary { list-style: none; }
 .res-qbtn:disabled { cursor: default; }
 .res-qbtn:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 
+/* ── Result: your first cluster (ScanCluster.dc.html, S1, 30 Sep 2026) ── */
+/* Five bordered prompt rows, the link lines, the 300px keyword node. */
+.clu-row.res-qbtn {
+  display: grid; align-items: center; column-gap: 14px;
+  min-height: 62px; box-sizing: border-box; padding: 0 14px;
+  border: 1px solid var(--hair); border-radius: 12px;
+}
+.clu-node { width: 300px; flex-shrink: 0; }
+.clu-link { stroke-dasharray: 140; animation: clu-draw 1.1s .25s cubic-bezier(.2,.7,.2,1) both; }
+.clu-node { animation: clu-pop .5s 1.1s cubic-bezier(.2,.7,.2,1) both; }
+@keyframes clu-draw { from { stroke-dashoffset: 140; } to { stroke-dashoffset: 0; } }
+@keyframes clu-pop { from { opacity: 0; transform: translateY(8px); } }
+@media (prefers-reduced-motion: reduce) {
+  .clu-link, .clu-node { animation: none; }
+}
+@media (max-width: 860px) {
+  /* A phone: no column heads or link lines; the node under the rows. */
+  .clu-card { padding: 16px 16px 0 !important; }
+  .clu-head, .clu-links { display: none !important; }
+  .clu-body { flex-direction: column; align-items: stretch !important; gap: 14px; }
+  .clu-node { width: auto; }
+  .clu-row.res-qbtn {
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    grid-template-areas: "a v" "q q" "m m";
+    row-gap: 8px; padding: 12px 14px;
+  }
+  .clu-row > :nth-child(1) { grid-area: a; }
+  .clu-row > :nth-child(2) { grid-area: q; }
+  .clu-row > :nth-child(3) { grid-area: m; }
+  .clu-row > :nth-child(4) { grid-area: v; }
+  .clu-foot { flex-direction: column; align-items: flex-start !important; margin: 18px -16px 0 !important; padding: 14px 16px !important; }
+}
+
 .ans-backdrop { position: fixed; inset: 0; background: var(--ink); opacity: 0.28; z-index: 60; }
 /* ScanResult.dc.html's sidebar (Q10): 540px, no rule under the head, 44px
    bordered paging buttons. */
