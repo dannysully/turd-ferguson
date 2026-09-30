@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import EngineLogo from "@/components/EngineLogo";
 import { CLOSE_WASH, D } from "@/components/home/dark";
 import { T } from "@/config/tokens";
@@ -18,9 +20,10 @@ import {
   pointsDelta,
   sparkPoints,
 } from "@/lib/tracking/figures";
-import { type ClusterCard, clusterCards, clusterSummary } from "@/lib/tracking/cluster-figures";
+import { type ClusterCard, clusterCards, clusterChart, clusterSummary } from "@/lib/tracking/cluster-figures";
 import type { Compare, OverviewData } from "@/lib/tracking/overview-data";
 
+import ClusterChart from "./ClusterChart";
 import OverviewChart, { type ChartDay } from "./OverviewChart";
 
 /**
@@ -90,6 +93,7 @@ export default function Overview({
   range,
   compareMode,
   data,
+  selected,
 }: {
   brand: string;
   domain: string;
@@ -100,6 +104,8 @@ export default function Overview({
   range: Range;
   compareMode: Compare;
   data: OverviewData;
+  /** The cluster the chart shows, from `?cluster=`. */
+  selected?: string;
 }) {
   const where = market === "UK" ? "the United Kingdom" : "the United States";
   const o = overview({ range, compare: compareMode, startedOn, engines, questions: data.questions, answers: data.answers, serp: data.serp, keywordCount: data.keywords.filter((k) => k.stopped_on === null).length });
@@ -107,10 +113,15 @@ export default function Overview({
   // read by cluster (boards-3/Main.dc.html). A client with no cluster rows yet
   // keeps the flat T4 reading rather than print 0 of 0. `?.` because
   // /app/parity reads docs/parity/T4/fixture.json, generated before clusters.
-  const cards = data.clusters?.length
-    ? clusterCards({ clusters: data.clusters, questions: data.questions, keywords: data.keywords, answers: data.answers, serp: data.serp, range, before: o.compare, today, engines })
+  const clusterInput = data.clusters?.length
+    ? { clusters: data.clusters, questions: data.questions, keywords: data.keywords, answers: data.answers, serp: data.serp, range, before: o.compare, today, engines }
     : null;
+  const cards = clusterInput ? clusterCards(clusterInput) : null;
   const cs = cards ? clusterSummary(cards) : null;
+  // T4b part 5b: the picked card (?cluster=) sets the chart; the first card by default, as the board opens on c1.
+  const picked = cards ? (cards.find((c) => c.id === selected) ?? cards[0]!) : null;
+  const pickedChart = clusterInput && picked ? clusterChart(clusterInput, picked.id) : null;
+  const clusterHref = (id: string) => `?${new URLSearchParams({ from: range.from, to: range.to, ...(compareMode === "prev" ? {} : { compare: compareMode }), cluster: id })}`;
   const heatRows = cards ? cards.filter((c) => c.status !== "pending") : [];
   const pendingKeywords = cards ? cards.filter((c) => c.status === "pending" && c.keyword).length : 0;
   const liveQuestions = data.questions.filter((q) => q.stopped_on === null && q.added_on <= today).length;
@@ -565,8 +576,28 @@ export default function Overview({
         ))}
       </section>
 
-      {cards ? <ClusterCards cards={cards} engines={engines} /> : null}
+      {cards ? <ClusterCards cards={cards} engines={engines} picked={picked?.id ?? null} href={clusterHref} /> : null}
 
+      {picked && pickedChart ? (
+        <ClusterChart
+          data={{
+            keyword: picked.keyword ?? picked.name,
+            site: domain,
+            brand,
+            days: pickedChart.days.map((d, i) => (i === pickedChart.days.length - 1 && d === today ? "Today" : formatDay(d))),
+            dayLabels: pickedChart.days.map((d) => formatDay(d, true)),
+            named: pickedChart.named,
+            google: pickedChart.google,
+            prevLabels: o.compare ? daysIn(o.compare).map((d) => formatDay(d)) : null,
+            namedBefore: pickedChart.namedBefore,
+            googleBefore: pickedChart.googleBefore,
+            beforeLabel: o.compare ? span(o.compare) : null,
+            answersPerDay: picked.prompts.length * engines.length,
+            pending: picked.status === "pending",
+            note: picked.status !== "pending" && !pickedChart.namedBefore?.some((p) => p !== null) ? `Tracked from ${formatDay(picked.started_on)}. No earlier period to compare yet.` : null,
+          }}
+        />
+      ) : (
       <OverviewChart
         data={{
           engines: [...engines],
@@ -581,6 +612,7 @@ export default function Overview({
           questions: questionsAnswered,
         }}
       />
+      )}
 
       {cards ? (
         <div className="app-pair" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: "24px" }}>
@@ -628,9 +660,10 @@ function Chip({ value, unit, none }: { value: number | null; unit: string; none:
  * rate and change, one row per angle with the engines that named the client
  * and a rate bar, lines joining each row to the Google node. Purple for a
  * prompt named in range, grey dashed for one that never was. Static until the
- * cluster chart lands: picking a card to set it comes with that part.
+ * chart below is set by the picked card: each card is a link to `?cluster=`,
+so picking works with JS off (T4b part 5b).
  */
-function ClusterCards({ cards, engines }: { cards: ClusterCard[]; engines: readonly Engine[] }) {
+function ClusterCards({ cards, engines, picked, href }: { cards: ClusterCard[]; engines: readonly Engine[]; picked: string | null; href: (id: string) => string }) {
   return (
     <section aria-labelledby="cl-h" style={{ ...CARD, padding: "22px 24px 24px", display: "flex", flexDirection: "column", gap: "18px" }}>
       <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
@@ -638,7 +671,7 @@ function ClusterCards({ cards, engines }: { cards: ClusterCard[]; engines: reado
           Your clusters
         </h2>
         <p style={{ margin: 0, fontSize: "14px", lineHeight: 1.5, color: T.soft, maxWidth: "760px" }}>
-          Each cluster is one Google keyword and the 5 prompts about it. An engine mark is full where that engine named you at least once this period.
+          Each cluster is one Google keyword and the 5 prompts about it. An engine mark is full where that engine named you at least once this period. Pick a cluster to chart it below.
         </p>
       </div>
       <div className="app-pair" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "16px" }}>
@@ -652,8 +685,9 @@ function ClusterCards({ cards, engines }: { cards: ClusterCard[]; engines: reado
           const rowY = (i: number) => 11 + i * 26;
           const h = Math.max(1, c.prompts.length) * 26 - 4;
           const mid = h / 2;
+          const on = c.id === picked;
           return (
-            <article key={c.id} aria-label={c.keyword ?? c.name} style={{ display: "flex", flexDirection: "column", gap: "12px", padding: "16px 18px 14px", border: `1px solid ${T.line}`, borderRadius: "16px", background: T.surface, minWidth: 0 }}>
+            <Link key={c.id} href={href(c.id)} scroll={false} aria-current={on ? "true" : undefined} style={{ display: "flex", flexDirection: "column", gap: "12px", padding: "16px 18px 14px", border: `1px solid ${on ? T.accent : T.line}`, borderRadius: "16px", background: T.surface, boxShadow: on ? `0 0 0 3px ${T.wash}` : "none", color: T.ink, textDecoration: "none", minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px" }}>
                 <div style={{ display: "flex", flexDirection: "column", gap: "3px", minWidth: 0 }}>
                   <h3 style={{ margin: 0, fontSize: "15px", fontWeight: 700, letterSpacing: "-0.01em", color: T.ink }}>{c.keyword ?? c.name}</h3>
@@ -707,14 +741,14 @@ function ClusterCards({ cards, engines }: { cards: ClusterCard[]; engines: reado
                   ))}
                   <circle cx={54} cy={mid} r={3} fill={pending ? T.line : T.accent} />
                 </svg>
-                <div style={{ width: "108px", flexShrink: 0, boxSizing: "border-box", padding: "10px 12px", borderRadius: "12px", border: `1px solid ${T.line}`, background: T.bg, display: "flex", flexDirection: "column", gap: "4px", alignItems: "flex-start" }}>
+                <div style={{ width: "108px", flexShrink: 0, boxSizing: "border-box", padding: "10px 12px", borderRadius: "12px", border: `1px solid ${on ? T.washLine : T.line}`, background: T.bg, display: "flex", flexDirection: "column", gap: "4px", alignItems: "flex-start" }}>
                   <span style={{ fontSize: "11px", fontWeight: 600, color: T.soft }}>Google</span>
                   <span style={{ fontSize: "24px", fontWeight: 700, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }}>{c.position === null ? "-" : `#${c.position}`}</span>
                   <Chip value={c.positionChange} unit="" none={pending ? "Tomorrow" : "New"} />
                 </div>
               </div>
               <span style={{ fontSize: "12px", color: T.soft }}>{foot}</span>
-            </article>
+            </Link>
           );
         })}
       </div>

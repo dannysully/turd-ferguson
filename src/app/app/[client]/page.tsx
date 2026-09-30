@@ -43,7 +43,8 @@ export default async function ClientDashboard({
   const tier = (client.tier as TierKey) ?? "tracked";
   const engines = enginesFor(tier);
   const today = repo.today();
-  const { range, compare } = rangeFrom(await searchParams, today);
+  const sp = await searchParams;
+  const { range, compare } = rangeFrom(sp, today);
   const data = await repo.loadOverview(client.id, range, compare);
 
   return (
@@ -60,6 +61,7 @@ export default async function ClientDashboard({
           range={range}
           compareMode={compare}
           data={data}
+          selected={typeof sp.cluster === "string" ? sp.cluster : undefined}
         />
       </div>
     </div>
