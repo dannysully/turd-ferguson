@@ -21,10 +21,12 @@ import {
   sparkPoints,
 } from "@/lib/tracking/figures";
 import { type ClusterCard, clusterCards, clusterChart, clusterSummary } from "@/lib/tracking/cluster-figures";
+import { rangeLabel } from "@/lib/tracking/date-range";
 import type { Compare, OverviewData } from "@/lib/tracking/overview-data";
 import { type PlacementRow, chartMarkers } from "@/lib/tracking/placement-figures";
 
 import ClusterChart from "./ClusterChart";
+import DatePicker from "./DatePicker";
 import OverviewChart, { type ChartDay } from "./OverviewChart";
 import { SEE_ALL, navFrom } from "./nav";
 
@@ -200,7 +202,8 @@ export default function Overview({
           Keywords CSV
         </a>
       ) : null}
-      <div style={{ display: "flex", flex: "1 1 auto", alignItems: "center", gap: "12px", height: "48px", padding: "0 14px", border: `1px solid ${T.line}`, borderRadius: "12px", background: T.surface, color: T.ink }}>
+      {/* T5 (30 Sep 2026): the face is drawn here, on the server, so JS off still shows the range; DatePicker opens boards/DatePicker.dc.html on it. */}
+      <DatePicker range={range} compare={compareMode} today={today} startedOn={startedOn}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={T.ink} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <rect x="3" y="5" width="18" height="16" rx="2" />
           <path d="M3 10h18M8 3v4M16 3v4" />
@@ -208,18 +211,18 @@ export default function Overview({
         {/* Mobile.dc.html: one line, "Last 28 days 2 - 29 Sep", no comparison range. */}
         {cards ? (
           <span className="app-show-sm" style={{ fontSize: "14px" }}>
-            <strong>{daysIn(range).length === 28 && range.to === today ? "Last 28 days" : `${daysIn(range).length} days`}</strong>{" "}
+            <strong>{rangeLabel(range, today, startedOn)}</strong>{" "}
             <span style={{ color: T.soft }}>{span(range)}</span>
           </span>
         ) : null}
         <span className={cards ? "app-hide-sm" : undefined} style={{ display: "flex", flexDirection: "column", lineHeight: 1.25 }}>
-          <span style={{ fontSize: "14px", fontWeight: 700 }}>{daysIn(range).length === 28 && range.to === today ? "Last 28 days" : `${daysIn(range).length} days`}</span>
+          <span style={{ fontSize: "14px", fontWeight: 700 }}>{rangeLabel(range, today, startedOn)}</span>
           <span style={{ fontSize: "12px", color: T.soft }}>
             {span(range, true)}
             {o.compare ? `, vs ${span(o.compare)}` : ""}
           </span>
         </span>
-      </div>
+      </DatePicker>
       {/* Main.dc.html: the dark "Download report" after the date. */}
       {report ? (
         <a className="app-hide-sm" href={report("answers")} download style={{ display: "inline-flex", alignItems: "center", gap: "8px", height: "48px", padding: "0 18px", boxSizing: "border-box", borderRadius: "12px", background: T.ink, color: T.surface, fontSize: "14px", fontWeight: 600, textDecoration: "none" }}>

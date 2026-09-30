@@ -13,7 +13,8 @@ import { type AnswerRow, type CitationRow, type Day, type Range, type SerpRow, a
  * four engines over two 28-day periods is 4,480 answers.
  */
 
-export type Compare = "prev" | "month" | "none";
+import type { Compare } from "./date-range.ts";
+export type { Compare };
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
