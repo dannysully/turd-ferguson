@@ -32,6 +32,9 @@ const DOMAINS = new Set([
   "softwarecritic.com",
   "freelancefieldnotes.com",
   "ownerledger.co",
+  // The company's own domain, never a tracked client: the link check's polite
+  // user agent carries it as its contact URL (R96, 30 Sep 2026).
+  "alwayscited.com",
 ]);
 /** Walked files, this one excluded. 29 Sep 2026: 25. */
 const FLOOR = 25;
