@@ -46,7 +46,8 @@ test("a field is quoted when it must be, and a formula lead is defused", () => {
 test("answers: one row per prompt, engine and day in range, sorted, with the cluster and angle", () => {
   const csv = answersCsv(
     {
-      clusters: [{ id: "c1", name: "invoicing app", keyword_id: null, tier: "alwaystracked", started_on: "2026-09-01", stopped_on: null }],
+      clusters: [{ id: "c1", name: "invoicing app", keyword_id: "k1", tier: "alwaystracked", started_on: "2026-09-01", stopped_on: null }],
+      keywords: [{ id: "k1", keyword: "invoicing app for studios", added_on: "2026-09-01", stopped_on: null, search_volume: 480, intent: "commercial" }],
       questions: [{ id: "q1", text: "Which invoicing app is best, for a studio?", added_on: "2026-09-01", stopped_on: null, cluster_id: "c1", angle: "category" }],
       answers: [
         { run_date: "2026-09-03", question_id: "q1", engine: "gemini", answered: true, named: false, brands: ["Ledgerline"], citations: [] },
@@ -58,25 +59,54 @@ test("answers: one row per prompt, engine and day in range, sorted, with the clu
     R,
   );
   const lines = csv.trimEnd().split("\r\n");
-  assert.equal(lines[0], "date,cluster,angle,prompt,engine,answered,named you,brands named,pages cited");
+  assert.equal(lines[0], "date,cluster,cluster keyword,angle,prompt,engine,answered,named you,brands named,pages cited");
   assert.equal(lines.length, 4, "the 1 Sep reading is outside the range");
-  assert.equal(lines[1], '2026-09-03,invoicing app,category,"Which invoicing app is best, for a studio?",chatgpt,yes,yes,,https://tallyroo.com/a');
-  assert.equal(lines[2], '2026-09-03,invoicing app,category,"Which invoicing app is best, for a studio?",gemini,yes,no,Ledgerline,');
-  assert.equal(lines[3], '2026-09-04,invoicing app,category,"Which invoicing app is best, for a studio?",claude,no,,,', "no answer: named is blank, not no");
+  assert.equal(lines[1], '2026-09-03,invoicing app,invoicing app for studios,category,"Which invoicing app is best, for a studio?",chatgpt,yes,yes,,https://tallyroo.com/a');
+  assert.equal(lines[2], '2026-09-03,invoicing app,invoicing app for studios,category,"Which invoicing app is best, for a studio?",gemini,yes,no,Ledgerline,');
+  assert.equal(lines[3], '2026-09-04,invoicing app,invoicing app for studios,category,"Which invoicing app is best, for a studio?",claude,no,,,', "no answer: named is blank, not no");
 });
 
-test("keywords: one row per keyword and day, a blank position outside the top 20", () => {
-  const csv = keywordsCsv(
+test("BRIEF-3 T8: a prompt outside any cluster, or a cluster with no keyword, leaves those cells blank", () => {
+  const csv = answersCsv(
     {
-      keywords: [{ id: "k1", keyword: "invoicing software", added_on: "2026-09-01", stopped_on: null, search_volume: null, intent: null }],
-      serp: [
-        { run_date: "2026-09-05", keyword_id: "k1", position: null },
-        { run_date: "2026-09-04", keyword_id: "k1", position: 7 },
+      clusters: [{ id: "c1", name: "invoicing app", keyword_id: null, tier: "alwaystracked", started_on: "2026-09-01", stopped_on: null }],
+      keywords: [],
+      questions: [
+        { id: "q1", text: "one", added_on: "2026-09-01", stopped_on: null, cluster_id: "c1", angle: "category" },
+        { id: "q2", text: "two", added_on: "2026-09-01", stopped_on: null, cluster_id: null, angle: null },
+      ],
+      answers: [
+        { run_date: "2026-09-03", question_id: "q1", engine: "chatgpt", answered: true, named: true, brands: [], citations: [] },
+        { run_date: "2026-09-03", question_id: "q2", engine: "chatgpt", answered: true, named: true, brands: [], citations: [] },
       ],
     },
     R,
   );
-  assert.deepEqual(csv.trimEnd().split("\r\n"), ["date,keyword,google position (blank: not in top 20)", "2026-09-04,invoicing software,7", "2026-09-05,invoicing software,"]);
+  assert.deepEqual(csv.trimEnd().split("\r\n").slice(1), ["2026-09-03,invoicing app,,category,one,chatgpt,yes,yes,,", "2026-09-03,,,,two,chatgpt,yes,yes,,"]);
+});
+
+test("keywords: one row per keyword and day, the cluster it heads, a blank position outside the top 20", () => {
+  const csv = keywordsCsv(
+    {
+      clusters: [{ id: "c1", name: "invoicing app", keyword_id: "k1", tier: "alwaystracked", started_on: "2026-09-01", stopped_on: null }],
+      keywords: [
+        { id: "k1", keyword: "invoicing software", added_on: "2026-09-01", stopped_on: null, search_volume: null, intent: null },
+        { id: "k2", keyword: "loose keyword", added_on: "2026-09-01", stopped_on: null, search_volume: null, intent: null },
+      ],
+      serp: [
+        { run_date: "2026-09-05", keyword_id: "k1", position: null },
+        { run_date: "2026-09-04", keyword_id: "k1", position: 7 },
+        { run_date: "2026-09-04", keyword_id: "k2", position: 3 },
+      ],
+    },
+    R,
+  );
+  assert.deepEqual(csv.trimEnd().split("\r\n"), [
+    "date,cluster,keyword,google position (blank: not in top 20)",
+    "2026-09-04,invoicing app,invoicing software,7",
+    "2026-09-04,,loose keyword,3",
+    "2026-09-05,invoicing app,invoicing software,",
+  ]);
 });
 
 test("the kind is one of two words, and the filename carries slug, kind and range", () => {

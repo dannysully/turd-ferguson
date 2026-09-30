@@ -25,26 +25,32 @@ export function csvField(v: string | number | boolean | null): string {
 const line = (cells: (string | number | boolean | null)[]) => cells.map(csvField).join(",");
 const within = (d: string, r: Range) => d >= r.from && d <= r.to;
 
-export function answersCsv(data: Pick<OverviewData, "answers" | "questions" | "clusters">, range: Range): string {
+// BRIEF-3 T8 (R106 step 10, 30 Sep 2026): the answers file carries the cluster's
+// keyword beside its name and the prompt's angle, joined through keyword_id; the
+// keywords file names the cluster each keyword heads. Rows are unchanged.
+export function answersCsv(data: Pick<OverviewData, "answers" | "questions" | "clusters" | "keywords">, range: Range): string {
   const q = new Map(data.questions.map((x) => [x.id, x]));
-  const cluster = new Map((data.clusters ?? []).map((c) => [c.id, c.name]));
+  const k = new Map((data.keywords ?? []).map((x) => [x.id, x.keyword]));
+  const cluster = new Map((data.clusters ?? []).map((c) => [c.id, c]));
   const rows = data.answers
     .filter((a) => within(a.run_date, range))
     .sort((a, b) => a.run_date.localeCompare(b.run_date) || a.question_id.localeCompare(b.question_id) || a.engine.localeCompare(b.engine))
     .map((a) => {
       const p = q.get(a.question_id);
-      return line([a.run_date, (p?.cluster_id && cluster.get(p.cluster_id)) || null, p?.angle ?? null, p?.text ?? null, a.engine, a.answered ? "yes" : "no", a.answered ? (a.named ? "yes" : "no") : null, a.brands.join("; ") || null, a.citations.map((c) => c.url || c.source_domain).filter(Boolean).join(" ") || null]);
+      const c = p?.cluster_id ? cluster.get(p.cluster_id) : undefined;
+      return line([a.run_date, c?.name || null, (c?.keyword_id && k.get(c.keyword_id)) || null, p?.angle ?? null, p?.text ?? null, a.engine, a.answered ? "yes" : "no", a.answered ? (a.named ? "yes" : "no") : null, a.brands.join("; ") || null, a.citations.map((x) => x.url || x.source_domain).filter(Boolean).join(" ") || null]);
     });
-  return [line(["date", "cluster", "angle", "prompt", "engine", "answered", "named you", "brands named", "pages cited"]), ...rows].join("\r\n") + "\r\n";
+  return [line(["date", "cluster", "cluster keyword", "angle", "prompt", "engine", "answered", "named you", "brands named", "pages cited"]), ...rows].join("\r\n") + "\r\n";
 }
 
-export function keywordsCsv(data: Pick<OverviewData, "serp" | "keywords">, range: Range): string {
+export function keywordsCsv(data: Pick<OverviewData, "serp" | "keywords" | "clusters">, range: Range): string {
   const k = new Map(data.keywords.map((x) => [x.id, x.keyword]));
+  const cluster = new Map((data.clusters ?? []).filter((c) => c.keyword_id).map((c) => [c.keyword_id, c.name]));
   const rows = data.serp
     .filter((s) => within(s.run_date, range))
     .sort((a, b) => a.run_date.localeCompare(b.run_date) || a.keyword_id.localeCompare(b.keyword_id))
-    .map((s) => line([s.run_date, k.get(s.keyword_id) ?? null, s.position]));
-  return [line(["date", "keyword", "google position (blank: not in top 20)"]), ...rows].join("\r\n") + "\r\n";
+    .map((s) => line([s.run_date, cluster.get(s.keyword_id) ?? null, k.get(s.keyword_id) ?? null, s.position]));
+  return [line(["date", "cluster", "keyword", "google position (blank: not in top 20)"]), ...rows].join("\r\n") + "\r\n";
 }
 
 /**
