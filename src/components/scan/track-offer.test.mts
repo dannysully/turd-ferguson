@@ -20,6 +20,7 @@ test("a UK scan shows the GBP price, plus VAT, and its link carries market=uk", 
   assert.equal(o.price, "£99");
   assert.equal(o.vat, true);
   assert.equal(o.href, "/checkout?tier=alwaystracked&market=uk&scan=abc");
+  assert.equal(o.line, "From £99/mo plus VAT");
 });
 
 test("a US scan is unchanged: USD, no VAT, no market in the link", () => {
@@ -28,6 +29,7 @@ test("a US scan is unchanged: USD, no VAT, no market in the link", () => {
   assert.equal(o.price, "$129");
   assert.equal(o.vat, false);
   assert.equal(o.href, "/checkout?tier=alwaystracked&scan=a%20b");
+  assert.equal(o.line, null, "a US scan keeps pricing.ts's priceLabel");
 });
 
 test("the card reads its price from pricing.ts and its link from trackOffer, never a literal", () => {
@@ -35,5 +37,6 @@ test("the card reads its price from pricing.ts and its link from trackOffer, nev
   assert.match(src, /trackOffer\(p\.r\.market, TRACKED_PRICE, checkoutUrlFor\("tracked"\), p\.token\)/);
   assert.match(src, /href=\{offer\.href\}/);
   assert.match(src, /\{offer\.price\}/);
+  assert.match(src, /offer\.line \?\? tracked\.priceLabel/, "the line under the tiles follows the scan market (30 Sep 2026)");
   assert.doesNotMatch(src, /TRACKED_PRICE\.us/, "the card no longer prints the US price for every market");
 });

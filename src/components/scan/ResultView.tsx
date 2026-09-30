@@ -976,7 +976,7 @@ function TrackedSection(p: { token: string; r: RunScanResponse; cluster: ReturnT
         )}
         {tracked ? (
           <div style={{ fontSize: "13px", color: D.muted, marginTop: "18px" }}>
-            {tracked.priceLabel[0].toUpperCase() + tracked.priceLabel.slice(1) + ", " + (p.cluster ? TRACKED_CLUSTERS + " clusters checked daily" : TRACKED_BASIS) + "."}
+            {(offer.line ?? tracked.priceLabel[0].toUpperCase() + tracked.priceLabel.slice(1)) + ", " + (p.cluster ? TRACKED_CLUSTERS + " clusters checked daily" : TRACKED_BASIS) + "."}
           </div>
         ) : null}
       </div>
