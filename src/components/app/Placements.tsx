@@ -10,8 +10,9 @@ import type { PlacementKind } from "@/lib/tracking/placements";
  * boards-3/Placements.dc.html): header with the cluster picker, the four
  * summary figures, the table with its Whole-cluster row, and the board's
  * footnote word for word. Server-drawn, so it reads the same with JS off.
- * Still to come (part 4): the two stacked panels with a line per live
- * placement, the type filters, selection synced with the table, the CSV.
+ * Download CSV is the table as a file (part 4, report-csv.ts). Still to
+ * come: the two stacked panels with a line per live placement, the type
+ * filters, selection synced with the table.
  *
  * Nothing here says a placement moved a figure: every span is where the
  * cluster stood at go-live and where it stands now (causal-copy.test.mts).
@@ -56,6 +57,7 @@ export default function Placements({
   keyword,
   prompts,
   view,
+  csvHref,
 }: {
   brand: string;
   engines: readonly Engine[];
@@ -66,6 +68,8 @@ export default function Placements({
   keyword: string | null;
   prompts: number;
   view: PlacementsView;
+  /** GET /api/app/[client]/report?kind=placements for this cluster and range. */
+  csvHref: string;
 }) {
   const since = view.whole.from ? shortDay(view.whole.from) : shortDay(range.from);
   const cell: React.CSSProperties = { display: "grid", gridTemplateColumns: COLS, alignItems: "center", gap: "16px", padding: "12px 24px" };
@@ -130,6 +134,12 @@ export default function Placements({
           <h2 id="tb-h" style={H2}>
             Every placement, and where the cluster stood
           </h2>
+          <a href={csvHref} download style={{ display: "flex", alignItems: "center", gap: "6px", height: "36px", padding: "0 12px", border: `1px solid ${T.line}`, borderRadius: "10px", background: T.surface, color: T.ink, fontSize: "13px", fontWeight: 600, textDecoration: "none", boxSizing: "border-box" }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={T.ink} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 4v11M7 10l5 5 5-5M5 20h14" />
+            </svg>
+            Download CSV
+          </a>
         </div>
         <div className="app-scroll-x" style={{ overflowX: "auto" }}>
           <div style={{ minWidth: "980px" }}>

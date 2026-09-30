@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 
 import { rangeFrom } from "@/lib/tracking/overview-data";
-import { answersCsv, isReportKind, keywordsCsv, reportFilename } from "@/lib/tracking/report-csv";
+import { PLACEMENTS_FOOTNOTE } from "@/lib/tracking/placement-figures";
+import { placementsScreen } from "@/lib/tracking/placements-screen";
+import { answersCsv, isReportKind, keywordsCsv, placementsCsv, reportFilename } from "@/lib/tracking/report-csv";
 import { trackingRepo } from "@/lib/tracking/repo";
 
 export const runtime = "nodejs";
@@ -19,7 +21,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ client: string 
   const { client: slug } = await ctx.params;
   const sp = new URL(req.url).searchParams;
   const kind = sp.get("kind");
-  if (!isReportKind(kind)) return NextResponse.json({ error: "kind is answers or keywords." }, { status: 400 });
+  if (!isReportKind(kind)) return NextResponse.json({ error: "kind is answers, keywords or placements." }, { status: 400 });
 
   const repo = trackingRepo();
   const email = await repo.sessionEmail();
@@ -27,9 +29,18 @@ export async function GET(req: Request, ctx: { params: Promise<{ client: string 
   const client = (await repo.clientsFor(email)).find((c) => c.slug === slug);
   if (!client) return NextResponse.json({ error: "Not found." }, { status: 404 });
 
-  const { range } = rangeFrom(Object.fromEntries(sp), repo.today());
-  const data = await repo.loadOverview(client.id, range, "none");
-  const body = kind === "answers" ? answersCsv(data, range) : keywordsCsv(data, range);
+  let range = rangeFrom(Object.fromEntries(sp), repo.today()).range;
+  let body: string;
+  if (kind === "placements") {
+    // The placements screen's own read (placements-screen.ts), so the file is the table on the page.
+    const screen = await placementsScreen(repo, client, Object.fromEntries(sp), repo.today());
+    if (!screen) return NextResponse.json({ error: "Not found." }, { status: 404 });
+    range = screen.range;
+    body = placementsCsv(screen.view, screen.keyword ?? screen.cluster.name, PLACEMENTS_FOOTNOTE);
+  } else {
+    const data = await repo.loadOverview(client.id, range, "none");
+    body = kind === "answers" ? answersCsv(data, range) : keywordsCsv(data, range);
+  }
   return new NextResponse(body, {
     headers: {
       "content-type": "text/csv; charset=utf-8",

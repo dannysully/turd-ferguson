@@ -1,7 +1,34 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { answersCsv, csvField, isReportKind, keywordsCsv, reportFilename } from "./report-csv.ts";
+import type { PlacementsView } from "./placement-figures.ts";
+import { answersCsv, csvField, isReportKind, keywordsCsv, placementsCsv, reportFilename } from "./report-csv.ts";
+
+test("R97 part 4: the placements CSV is the table, Whole cluster first, blanks for a row not live, footnote last", () => {
+  const view: PlacementsView = {
+    live: 1,
+    inProgress: 1,
+    weekly: false,
+    whole: { from: "2026-08-05", named: { from: 30, to: 50 }, google: { from: 10, to: 4 }, cited: 3 },
+    rows: [
+      { id: "a", kind: "guest_post", url: "https://example.com/one", url_key: "example.com/one", live: true, when: "12 Aug", liveOn: "2026-08-12", cited: 3, citedBy: ["chatgpt", "claude"], named: { from: 30, to: 50 }, google: { from: 9, to: 4 } },
+      { id: "b", kind: "link_insertion", url: "https://example.com/two", url_key: "example.com/two", live: false, when: "Writing", liveOn: null, cited: 0, citedBy: [], named: { from: null, to: null }, google: { from: null, to: null } },
+    ],
+  };
+  assert.equal(
+    placementsCsv(view, "accounting app", "Footnote, quoted."),
+    [
+      "cluster,page,type,status,live on,answers citing it,engines citing it,named % at go-live,named % now,google at go-live,google now",
+      "accounting app,Whole cluster,,1 live,2026-08-05,3,,30,50,10,4",
+      "accounting app,https://example.com/one,Guest post,Live,2026-08-12,3,chatgpt claude,30,50,9,4",
+      "accounting app,https://example.com/two,Link insertion,Writing,,,,,,,",
+      "",
+      '"Footnote, quoted."',
+      "",
+    ].join("\r\n"),
+  );
+  assert.equal(isReportKind("placements"), true);
+});
 
 // R90 T8 v1 (30 Sep 2026): the two CSVs. Tallyroo is the fixture's made-up client.
 

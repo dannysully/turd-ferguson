@@ -1,5 +1,6 @@
 import type { Range } from "./figures.ts";
 import type { OverviewData } from "./overview-data.ts";
+import { KIND_WORDS, type PlacementsView } from "./placement-figures.ts";
 
 /**
  * T8 "Download report", v1 (R90, Danny, 29 Sep 2026, danny.md line 84): two
@@ -9,8 +10,9 @@ import type { OverviewData } from "./overview-data.ts";
  * node --test can load it.
  */
 
-export type ReportKind = "answers" | "keywords";
-export const isReportKind = (v: string | null): v is ReportKind => v === "answers" || v === "keywords";
+// "placements" (R97 part 4, 30 Sep 2026; BRIEF-2 T13): the placements table as a file.
+export type ReportKind = "answers" | "keywords" | "placements";
+export const isReportKind = (v: string | null): v is ReportKind => v === "answers" || v === "keywords" || v === "placements";
 
 /** One CSV field: quoted when it holds a comma, quote or line break; a leading = + - @ is defused so a spreadsheet does not run it. */
 export function csvField(v: string | number | boolean | null): string {
@@ -43,6 +45,22 @@ export function keywordsCsv(data: Pick<OverviewData, "serp" | "keywords">, range
     .sort((a, b) => a.run_date.localeCompare(b.run_date) || a.keyword_id.localeCompare(b.keyword_id))
     .map((s) => line([s.run_date, k.get(s.keyword_id) ?? null, s.position]));
   return [line(["date", "keyword", "google position (blank: not in top 20)"]), ...rows].join("\r\n") + "\r\n";
+}
+
+/**
+ * The placements screen's table, row for row: the Whole-cluster row, then one
+ * per placement. Spans are the table's at-go-live and now readings, split in
+ * two columns; a not-live row leaves them blank and says its status. The
+ * footnote travels as the last line, since the file is read without the page.
+ */
+export function placementsCsv(view: PlacementsView, cluster: string, footnote: string): string {
+  const w = view.whole;
+  const rows = [
+    line([cluster, "Whole cluster", null, `${view.live} live`, w.from, w.cited, null, w.named.from, w.named.to, w.google.from, w.google.to]),
+    ...view.rows.map((r) => line([cluster, r.url, KIND_WORDS[r.kind], r.live ? "Live" : r.when, r.liveOn, r.live ? r.cited : null, r.citedBy.join(" ") || null, r.named.from, r.named.to, r.google.from, r.google.to])),
+  ];
+  const head = line(["cluster", "page", "type", "status", "live on", "answers citing it", "engines citing it", "named % at go-live", "named % now", "google at go-live", "google now"]);
+  return [head, ...rows, "", line([footnote])].join("\r\n") + "\r\n";
 }
 
 /** The file's name: the client's slug, the kind and the range, e.g. tallyroo-answers-2026-09-02-to-2026-09-29.csv. */

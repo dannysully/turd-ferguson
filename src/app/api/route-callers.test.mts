@@ -266,7 +266,8 @@ const NO_CALLER: { route: string; method: string; why: string; earns: () => bool
     route: "/api/app/[client]/report",
     method: "GET",
     // R90 T8 v1, 30 Sep 2026: Download report, two CSVs of the range.
-    why: "Opened by the Overview's Download report and Keywords CSV links (plain <a download>), which the fetch scanner does not read.",
+    // R97 part 4, 30 Sep 2026: also the placements screen's Download CSV (?kind=placements).
+    why: "Opened by the Overview's Download report and Keywords CSV links and the placements screen's Download CSV (plain <a download>), which the fetch scanner does not read.",
     earns: () =>
       readFileSync(join(ROOT, "src/app/app/[client]/page.tsx"), "utf8").includes("reportPath={`/api/app/${encodeURIComponent(slug)}/report`}") &&
       readFileSync(join(ROOT, "src/components/app/Overview.tsx"), "utf8").includes('href={report("answers")} download'),
