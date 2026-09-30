@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
-import { clusterCards, clusterSummary } from "./cluster-figures.ts";
+import { clusterCards, clusterChart, clusterSummary } from "./cluster-figures.ts";
 import { comparisonRange } from "./figures.ts";
 import { expandFixture } from "./fixture-mode.ts";
 
@@ -112,6 +112,23 @@ test("the headline and four figures by cluster match dataset.py's summary (T4b p
   // The board averages 9.7 with c9 at #23; the fixture keeps #23 unranked, so the eight ranked average 8.
   assert.equal(s.page1.avg, 8);
   assert.deepEqual(s.offPage1, ["invoicing software", "bookkeeping software", "cloud accounting software"]);
+});
+
+test("the cluster chart counts what the card and heat row count (T4b part 5a)", () => {
+  const input = { ...fx.data, range, before: comparisonRange(range, "prev"), today: fx.today, engines: ["google_aio", "chatgpt", "gemini", "perplexity"] };
+  const first = clusterChart(input, "c1")!;
+  const card1 = cards.find((c) => c.id === "c1")!;
+  assert.equal(first.days.length, 28);
+  assert.deepEqual(first.named, card1.heat, "top panel and heat row agree day for day");
+  assert.equal(first.named.reduce((s, r) => s + (r?.num ?? 0), 0), card1.now.num);
+  assert.equal([...first.google].reverse().find((p) => p !== null), card1.position, "last Google reading is the card's position");
+  assert.equal(first.namedBefore?.length, 28, "a live cluster has a previous period");
+  const added = clusterChart(input, "c9")!;
+  assert.equal(added.namedBefore, null, "a cluster added mid-range has no previous period");
+  assert.equal(added.named[0], null, "before its first check a day is a gap, not a zero");
+  const pending = clusterChart(input, "c10")!;
+  assert.ok(pending.named.every((r) => r === null), "a pending cluster has no readings");
+  assert.equal(clusterChart(input, "nope"), null);
 });
 
 test("summary with no comparison has no like-for-like change or 'was' figures", () => {

@@ -150,6 +150,48 @@ export function clusterSummary(cards: ClusterCard[]): ClusterSummary {
   };
 }
 
+export type ClusterChart = {
+  days: Day[];
+  /** The cluster's share of answers naming the client each day; null is a gap (no reading), never a zero. */
+  named: (Rate | null)[];
+  /** The keyword's Google position each day; null where it was not read or not ranked. */
+  google: (number | null)[];
+  /** The same, day for day, over the comparison range; null when there is none or the cluster was not live through it. */
+  namedBefore: (Rate | null)[] | null;
+  googleBefore: (number | null)[] | null;
+};
+
+/**
+ * One cluster's chart (T4b part 5a, 30 Sep 2026; BRIEF-3 T4b step 4 against
+ * boards-3/Main.dc.html): two panels on one time axis, AI above and Google
+ * below, the previous period dashed behind them. Pure; the heat row and this
+ * top panel count the same answers.
+ */
+export function clusterChart(input: ClusterInput, clusterId: string): ClusterChart | null {
+  const c = input.clusters.find((x) => x.id === clusterId);
+  if (!c) return null;
+  const ids = new Set(input.questions.filter((q) => q.cluster_id === c.id && (q.stopped_on === null || q.stopped_on > input.range.from)).map((q) => q.id));
+  const namedFor = (r: Range) =>
+    daysIn(r).map((d) => {
+      const t = tally(input.answers, ids, { from: d, to: d });
+      return t.den ? t : null;
+    });
+  const googleFor = (r: Range) =>
+    daysIn(r).map((d) => {
+      const s = c.keyword_id ? input.serp.find((x) => x.keyword_id === c.keyword_id && x.run_date === d) : undefined;
+      return s?.position ?? null;
+    });
+  const earliest = input.before && input.before.from < input.range.from ? input.before.from : input.range.from;
+  const live = c.started_on <= earliest;
+  return {
+    days: daysIn(input.range),
+    named: namedFor(input.range),
+    google: googleFor(input.range),
+    namedBefore: input.before && live ? namedFor(input.before) : null,
+    googleBefore: input.before && live ? googleFor(input.before) : null,
+  };
+}
+
 export function clusterCards(input: ClusterInput): ClusterCard[] {
   const { range, before, today, engines } = input;
   const days = daysIn(range);
