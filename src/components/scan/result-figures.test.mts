@@ -530,3 +530,10 @@ test("S1 drawer head: the keyword's Google figure reads as a phrase, ranked or n
   assert.equal(drawerKeywordLine({ cluster_keyword: { ...c, status: "none_qualified", keyword: null } }), "no keyword yet");
   assert.equal(drawerKeywordLine({ cluster_keyword: null }), "");
 });
+
+test("S1: the empty placements line says prompts on a cluster scan, questions on an older one", () => {
+  assert.ok(placementCopy([], "prompts").includes("for these prompts,"));
+  assert.ok(placementCopy([]).includes("for these questions,"));
+  const sorted = [source("a.com", "competitor")];
+  assert.ok(placementCopy(sorted, "prompts").includes("cited for these prompts either"));
+});

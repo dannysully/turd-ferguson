@@ -268,11 +268,15 @@ export function placementVerdict(sources: readonly SourceEntry[]): PlacementVerd
   return "none-qualified";
 }
 
-export function placementCopy(sources: readonly SourceEntry[]): string {
+/**
+ * `noun` is "prompts" on a scan from C1 on (a cluster), "questions" on an
+ * older one, which was run and is drawn as questions (7453059).
+ */
+export function placementCopy(sources: readonly SourceEntry[], noun: "prompts" | "questions" = "questions"): string {
   const verdict = placementVerdict(sources);
   if (verdict === "none-cited") {
     return (
-      "The engines cited no pages at all for these questions, so there was nothing to build this list from." +
+      "The engines cited no pages at all for these " + noun + ", so there was nothing to build this list from." +
       " That is a gap in the scan rather than a finding."
     );
   }
@@ -296,7 +300,7 @@ export function placementCopy(sources: readonly SourceEntry[]): string {
     );
   }
   return (
-    "None this time. Every page the engines cited for these questions either already names you, is a" +
+    "None this time. Every page the engines cited for these " + noun + " either already names you, is a" +
     " competitor own site, or is somewhere an article cannot run. That is a finding, not a gap in the scan."
   );
 }

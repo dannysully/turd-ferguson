@@ -836,10 +836,10 @@ function HardOnes(p: { r: RunScanResponse }) {
  * There are four ways to reach zero and only one of them is a finding, which
  * is `placementVerdict`'s whole subject - read it there. This is the painting.
  */
-function NoPlacements(p: { sources: readonly SourceEntry[] }) {
+function NoPlacements(p: { sources: readonly SourceEntry[]; cluster: boolean }) {
   return (
     <div style={{ ...CARD, padding: "22px 26px" }}>
-      <p style={{ margin: 0, fontSize: "14px", lineHeight: 1.65, color: T.soft }}>{placementCopy(p.sources)}</p>
+      <p style={{ margin: 0, fontSize: "14px", lineHeight: 1.65, color: T.soft }}>{placementCopy(p.sources, p.cluster ? "prompts" : "questions")}</p>
     </div>
   );
 }
@@ -1114,7 +1114,7 @@ export default function ResultView(p: {
             <HardOnes r={r} />
           </div>
         ) : (
-          <NoPlacements sources={r.sources} />
+          <NoPlacements sources={r.sources} cluster={clusterState(r) !== null} />
         )}
       </section>
 
