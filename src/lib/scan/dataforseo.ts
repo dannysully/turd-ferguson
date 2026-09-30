@@ -3,6 +3,9 @@ import "server-only";
 import {
   budgetFor,
   firstTask,
+  type Intent,
+  keywordIntentRequest,
+  keywordIntents,
   keywordRankRequest,
   keywordVolumeRequest,
   keywordVolumes,
@@ -147,6 +150,20 @@ export async function readKeywordVolumes(
   const { path, body, timeoutMs } = keywordVolumeRequest(keywords, market);
   const task = firstTask(await post(path, body, budgetFor(timeoutMs, budgetMs)));
   return { volumes: keywordVolumes(task), cost: taskCost(task) };
+}
+
+/**
+ * The primary search intent of each candidate cluster keyword (BRIEF-3 C1,
+ * decision 3). One batched task; no location. Not yet called - C1's
+ * `/api/scan/[token]/questions` change wires it, as a registered paid door.
+ */
+export async function readKeywordIntents(
+  keywords: readonly string[],
+  budgetMs?: number,
+): Promise<{ intents: Map<string, Intent | null>; cost: number }> {
+  const { path, body, timeoutMs } = keywordIntentRequest(keywords);
+  const task = firstTask(await post(path, body, budgetFor(timeoutMs, budgetMs)));
+  return { intents: keywordIntents(task), cost: taskCost(task) };
 }
 
 /**

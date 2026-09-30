@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { normaliseCandidate, pickKeyword, stripFiller } from "./target-keyword.ts";
+import type { Intent } from "./dataforseo-request.ts";
+import { normaliseCandidate, pickClusterKeyword, pickKeyword, stripFiller } from "./target-keyword.ts";
 
 const CAT = "business cash flow finance";
 const NOUN = "providers";
@@ -44,4 +45,35 @@ test("all zero: the shortest standing candidate", () => {
 
 test("nothing stands: null, not a guess", () => {
   assert.equal(pickKeyword(["best", "top uk 2026"], CAT, NOUN, new Map()), null);
+});
+
+// C1 of BRIEF-3 (Danny, 29 Sep 2026): the cluster keyword never guesses.
+const vols = (o: Record<string, number | null>) => new Map(Object.entries(o));
+const ints = (o: Record<string, Intent | null>) => new Map(Object.entries(o));
+
+test("cluster keyword: a zero-volume set returns none, not the shortest", () => {
+  const got = pickClusterKeyword(["seo agencies", "b2b seo agency"], vols({ "seo agencies": 0, "b2b seo agency": 0 }), ints({ "seo agencies": "commercial", "b2b seo agency": "commercial" }));
+  assert.deepEqual(got, { none: "no_volume" });
+});
+
+test("cluster keyword: a null volume never qualifies", () => {
+  assert.deepEqual(pickClusterKeyword(["retail pos system"], vols({ "retail pos system": null }), ints({ "retail pos system": "commercial" })), { none: "no_volume" });
+  assert.deepEqual(pickClusterKeyword(["retail pos system"], vols({}), ints({ "retail pos system": "commercial" })), { none: "no_volume" }, "not read at all");
+});
+
+test("cluster keyword: informational at 90k loses to commercial at 400", () => {
+  const got = pickClusterKeyword(["what is pos", "retail pos system"], vols({ "what is pos": 90_000, "retail pos system": 400 }), ints({ "what is pos": "informational", "retail pos system": "commercial" }));
+  assert.deepEqual(got, { keyword: "retail pos system", volume: 400, intent: "commercial" });
+});
+
+test("cluster keyword: navigational never qualifies; volume without the intent says no_intent", () => {
+  assert.deepEqual(pickClusterKeyword(["shopify pos"], vols({ "shopify pos": 50_000 }), ints({ "shopify pos": "navigational" })), { none: "no_intent" });
+  assert.deepEqual(pickClusterKeyword(["pos"], vols({ pos: 10 }), ints({ pos: null })), { none: "no_intent" }, "intent not read");
+});
+
+test("cluster keyword: highest qualifying volume wins, ties to the model's order, transactional counts, no candidate is none", () => {
+  const i = ints({ a1: "commercial", b2: "transactional", c3: "commercial" });
+  assert.deepEqual(pickClusterKeyword(["a1", "b2", "c3"], vols({ a1: 100, b2: 300, c3: 300 }), i), { keyword: "b2", volume: 300, intent: "transactional" });
+  assert.deepEqual(pickClusterKeyword(["B2 "], vols({ b2: 300 }), i), { keyword: "b2", volume: 300, intent: "transactional" }, "read in keywordForm");
+  assert.deepEqual(pickClusterKeyword([], vols({}), ints({})), { none: "no_candidate" });
 });

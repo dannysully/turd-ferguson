@@ -11,6 +11,8 @@
  * not a buyer choosing someone.
  */
 
+import { type Intent, keywordForm } from "./dataforseo-request.ts";
+
 /** Words that say "choose" without saying what. Taken out, never kept. */
 const FILLER = new Set([
   "best", "top", "which", "who", "offers", "offer", "the", "a", "an", "for", "in", "of", "are", "is",
@@ -76,4 +78,41 @@ export function pickKeyword(
   const top = standing.reduce((a, b) => (vol(b) > vol(a) ? b : a));
   if (vol(top) > 0) return top;
   return standing.reduce((a, b) => (b.length < a.length ? b : a));
+}
+
+/**
+ * The cluster keyword - C1 of docs/tracked-dashboard-2026-09-29/BRIEF-3-clusters.md
+ * (Danny, 29 Sep 2026). It is the term placements link on, so it must have a
+ * measured Google volume above zero (null is not measured and never qualifies,
+ * nor does 0) and a primary intent of commercial or transactional. Highest
+ * volume among the qualifying wins; ties go to the model's order. There is no
+ * shortest fallback - that is `pickKeyword`'s guess, and here a failed check
+ * says so and Nomada picks.
+ *
+ * `none` says why: no candidate at all, none with volume, or volume but never
+ * the intent. Pure; not yet called - C1's route change wires it.
+ */
+export type ClusterKeywordPick =
+  | { keyword: string; volume: number; intent: "commercial" | "transactional" }
+  | { none: "no_volume" | "no_intent" | "no_candidate" };
+
+const QUALIFYING = new Set(["commercial", "transactional"]);
+
+export function pickClusterKeyword(
+  candidates: readonly string[],
+  volumes: ReadonlyMap<string, number | null>,
+  intents: ReadonlyMap<string, Intent | null>,
+): ClusterKeywordPick {
+  const unique = [...new Set(candidates.map(keywordForm).filter(Boolean))];
+  if (!unique.length) return { none: "no_candidate" };
+  const measured = (k: string) => {
+    const v = volumes.get(k);
+    return typeof v === "number" && Number.isFinite(v) && v > 0 ? v : null;
+  };
+  const withVolume = unique.filter((k) => measured(k) !== null);
+  if (!withVolume.length) return { none: "no_volume" };
+  const qualifying = withVolume.filter((k) => QUALIFYING.has(String(intents.get(k))));
+  if (!qualifying.length) return { none: "no_intent" };
+  const top = qualifying.reduce((a, b) => (measured(b)! > measured(a)! ? b : a));
+  return { keyword: top, volume: measured(top)!, intent: intents.get(top) as "commercial" | "transactional" };
 }

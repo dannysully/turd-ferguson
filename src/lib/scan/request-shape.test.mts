@@ -11,8 +11,11 @@ import {
   SERP_DEPTH,
   TASK_OK,
   budgetFor,
+  KEYWORD_INTENT_PATH,
   KEYWORD_VOLUME_PATH,
   firstTask,
+  keywordIntentRequest,
+  keywordIntents,
   keywordForm,
   keywordRankRequest,
   keywordVolumeRequest,
@@ -335,6 +338,54 @@ test("the keyword volume and keyword rank reads are each sent from one door, cal
     readKeywordVolumes: ["src/lib/scan/pipeline.ts"],
     readKeywordRank: ["src/lib/scan/pipeline.ts"],
   });
+});
+
+/**
+ * The cluster keyword's intent read (BRIEF-3 C1, 30 Sep 2026): built in one
+ * module, sent from one door, and until C1's route change, called from none.
+ * An exact list, so the sweep is its own floor.
+ */
+test("the keyword intent endpoint is built in one module, sent from one door, not yet called", () => {
+  const files: string[] = [];
+  const senders: Record<string, string[]> = { keywordIntentRequest: [], readKeywordIntents: [] };
+  for (const file of sourceFiles(ROOT)) {
+    const src = code(readFileSync(join(ROOT, file), "utf8"));
+    if (src.includes("dataforseo_labs/google/search_intent")) files.push(file);
+    for (const name of Object.keys(senders)) if (new RegExp("(?<![\\w.])(?<!function\\s+)" + name + "\\(").test(src)) senders[name].push(file);
+  }
+  assert.deepEqual(files, ["src/lib/scan/dataforseo-request.ts"]);
+  assert.deepEqual(senders, { keywordIntentRequest: ["src/lib/scan/dataforseo.ts"], readKeywordIntents: [] });
+});
+
+test("keyword intent request (C1): one task, keywords in the echoed form, a language and no location", () => {
+  const req = keywordIntentRequest(["Retail POS System", "retail pos system ", "b2b seo agency"]);
+  assert.equal(req.path, KEYWORD_INTENT_PATH);
+  assert.deepEqual(req.body, [{ keywords: ["retail pos system", "b2b seo agency"], language_code: "en" }]);
+  assert.throws(() => keywordIntentRequest(Array.from({ length: 1001 }, (_, i) => "k" + i)));
+});
+
+test("keyword intents (C1): the primary label from DataForSEO's documented shape; secondary ignored, unknown is null", () => {
+  // The documented response: result[0].items[], each keyword_intent { label, probability }.
+  const got = keywordIntents({
+    status_code: TASK_OK,
+    result: [
+      {
+        language_code: "en",
+        items_count: 4,
+        items: [
+          { keyword: "retail pos system", keyword_intent: { label: "commercial", probability: 0.83 }, secondary_keyword_intents: [{ label: "transactional", probability: 0.4 }] },
+          { keyword: "what is a pos system", keyword_intent: { label: "informational", probability: 0.97 }, secondary_keyword_intents: null },
+          { keyword: "odd", keyword_intent: { label: "local", probability: 0.5 } },
+          { keyword: "none", keyword_intent: null },
+        ],
+      },
+    ],
+  });
+  assert.equal(got.get("retail pos system"), "commercial");
+  assert.equal(got.get("what is a pos system"), "informational");
+  assert.equal(got.get("odd"), null);
+  assert.equal(got.get("none"), null);
+  assert.equal(keywordIntents({ status_code: TASK_OK, result: null }).size, 0);
 });
 
 test("keyword volume request (R39): one batched task, deduplicated in the form DataForSEO echoes", () => {

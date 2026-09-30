@@ -290,3 +290,46 @@ export function keywordVolumes(task: Task): Map<string, number | null> {
   }
   return out;
 }
+
+/**
+ * The cluster keyword's intent - C1 of
+ * docs/tracked-dashboard-2026-09-29/BRIEF-3-clusters.md (Danny, 29 Sep 2026,
+ * decision 3). DataForSEO Labs' search intent read takes keywords and a
+ * language and no location. Only the primary `keyword_intent.label` is read;
+ * secondary intents are ignored. Documented example cost $0.0014 for 4
+ * keywords - to be measured on the first real scan (docs/scan-setup.md).
+ *
+ * Built and parsed here, sent from `readKeywordIntents` in `dataforseo.ts`,
+ * and not yet called: C1's route change wires it.
+ */
+export const KEYWORD_INTENT_PATH = "/v3/dataforseo_labs/google/search_intent/live";
+
+/** The endpoint's own per-task keyword ceiling. */
+export const KEYWORD_INTENT_MAX = 1000;
+
+export const INTENTS = ["informational", "navigational", "commercial", "transactional"] as const;
+export type Intent = (typeof INTENTS)[number];
+
+export function keywordIntentRequest(keywords: readonly string[]): EngineRequest {
+  const unique = [...new Set(keywords.map(keywordForm).filter(Boolean))];
+  if (unique.length > KEYWORD_INTENT_MAX) throw new Error(`${unique.length} keywords is over the ${KEYWORD_INTENT_MAX} one task takes`);
+  return { path: KEYWORD_INTENT_PATH, timeoutMs: 30_000, body: [{ keywords: unique, language_code: "en" }] };
+}
+
+/**
+ * Keyword -> primary intent, keyed in `keywordForm`. The task's result is one
+ * row holding `items`, each `{ keyword, keyword_intent: { label, probability } }`.
+ * A label outside the four is null (not read), never a guess.
+ */
+export function keywordIntents(task: Task): Map<string, Intent | null> {
+  const out = new Map<string, Intent | null>();
+  for (const row of task.result ?? []) {
+    const items = (row as { items?: unknown }).items;
+    for (const item of Array.isArray(items) ? (items as Record<string, unknown>[]) : []) {
+      if (typeof item.keyword !== "string") continue;
+      const label = (item.keyword_intent as { label?: unknown } | null | undefined)?.label;
+      out.set(keywordForm(item.keyword), (INTENTS as readonly string[]).includes(String(label)) ? (label as Intent) : null);
+    }
+  }
+  return out;
+}
