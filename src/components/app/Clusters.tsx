@@ -13,7 +13,13 @@ import { type KeywordCheck, draftPrompts } from "@/lib/tracking/add-cluster";
 import { ANGLES } from "@/lib/tracking/limits";
 import type { Compare, OverviewData } from "@/lib/tracking/overview-data";
 
+import type { TierKey } from "@/components/TierName";
+import type { UpsellMode } from "@/lib/tracking/ask";
+import { neverNamedFacts } from "@/lib/tracking/upgrade-facts";
+import { type Facts, type PromptCta, pickPrompt, promptCopy } from "@/lib/tracking/upgrade-prompts";
+
 import { Chip } from "./Overview";
+import UpgradePrompt from "./UpgradePrompt";
 
 /**
  * The Clusters page (BRIEF-3 T6 part 1, 30 Sep 2026; boards-3/Questions.dc.html):
@@ -62,6 +68,7 @@ export default function Clusters({
   adding = null,
   asked = null,
   packPrice = "",
+  upgrade = null,
 }: {
   brand: string;
   engines: readonly Engine[];
@@ -80,6 +87,8 @@ export default function Clusters({
   /** The /ask confirmation or refusal, built by the page from the 303's one word. */
   asked?: string | null;
   packPrice?: string;
+  /** T11: what the never filter's alwaysmentioned prompt is judged on beyond the cards. */
+  upgrade?: { tier: TierKey; mode: UpsellMode; hidden: ReadonlySet<PromptCta>; startedOn: string; domain: string } | null;
 }) {
   const before = comparisonRange(range, compareMode);
   const cards = clusterCards({ clusters: data.clusters ?? [], questions: data.questions, keywords: data.keywords, answers: data.answers, serp: data.serp, range, before, today, engines });
@@ -101,6 +110,12 @@ export default function Clusters({
   ];
   const engineNames = engines.map((e) => ENGINE_SPECS[e].label);
   const since = before ? formatDay(addDaysBack(range.from)) : null;
+  // T11: the never filter carries the alwaysmentioned prompt, when its rules allow (upgrade-prompts.ts).
+  const facts: Facts | null =
+    upgrade && filter === "never"
+      ? { ...upgrade, today, state: shown.length === 0 ? "empty" : data.lastRun?.status === "partial" ? "partial" : "ok", neverNamed: neverNamedFacts({ cards, answers: data.answers, range, domain: upgrade.domain }) }
+      : null;
+  const prompt = facts && pickPrompt(facts) === "mentioned" ? promptCopy("mentioned", facts) : null;
 
   return (
     <div className="app-col" style={{ display: "flex", flexDirection: "column", gap: "20px", minWidth: 0 }}>
@@ -196,6 +211,7 @@ export default function Clusters({
             {q.trim() ? `Nothing matches “${q.trim()}”. Clear the search to see every cluster.` : cards.length ? "No clusters match this filter." : "No clusters yet. nomada digital sets up your first one when tracking starts."}
           </div>
         ) : null}
+        {prompt ? <UpgradePrompt copy={prompt} /> : null}
       </section>
       <p style={{ margin: 0, fontSize: "13px", lineHeight: 1.5, color: T.soft, maxWidth: "820px" }}>
         The number beside each engine is the days it named {brand} for that prompt, out of the days checked. Stopping a prompt or a cluster keeps its history in your reports. A new prompt or cluster starts at the next daily check.

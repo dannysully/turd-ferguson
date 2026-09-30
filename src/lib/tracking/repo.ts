@@ -8,6 +8,7 @@ import type { Day, Range } from "./figures.ts";
 import { expandFixture, fixtureMode, type Fixture } from "./fixture-mode.ts";
 import { type MemberClient, clientsFor, sessionEmail } from "./member.ts";
 import type { LatestAnswers } from "./latest-answers.ts";
+import { type UpgradeContext, loadUpgradeContext } from "./upgrade-context.ts";
 import { type ClusterNote, type Compare, type OverviewData, loadClusterNotes, loadLatestAnswers, loadOverview } from "./overview-data.ts";
 
 /**
@@ -28,11 +29,13 @@ export interface TrackingRepo {
   latestAnswers(clientId: string, questionId: string, to: Day): Promise<LatestAnswers>;
   /** Notes on these prompts, any date, newest first (T7 part 4a). */
   clusterNotes(clientId: string, questionIds: string[]): Promise<ClusterNote[]>;
+  /** The upsell mode and this member's hidden prompts (T11 part 4). */
+  upgradeContext(clientId: string, email: string, today: Day): Promise<UpgradeContext>;
   /** The tracking day the dashboard treats as today. */
   today(): Day;
 }
 
-const supabaseRepo: TrackingRepo = { sessionEmail, clientsFor, loadOverview, latestAnswers: loadLatestAnswers, clusterNotes: loadClusterNotes, today: () => trackingDay() };
+const supabaseRepo: TrackingRepo = { sessionEmail, clientsFor, loadOverview, latestAnswers: loadLatestAnswers, clusterNotes: loadClusterNotes, upgradeContext: loadUpgradeContext, today: () => trackingDay() };
 
 let cached: Fixture | null = null;
 function fixture(): Fixture {
@@ -71,6 +74,10 @@ const fixtureRepo: TrackingRepo = {
     const f = fixture();
     if (clientId !== f.client.id) return [];
     return f.clusterNotes.filter((n) => questionIds.includes(n.question_id)).sort((a, b) => b.note_date.localeCompare(a.note_date));
+  },
+  async upgradeContext() {
+    // The fixture's account is ours, and nobody has hidden a prompt.
+    return { mode: "nomada", hidden: new Set() };
   },
   today() {
     return fixture().today;

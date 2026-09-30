@@ -49,7 +49,7 @@ export default async function ClientClusters({
   const today = repo.today();
   const sp = await searchParams;
   const { range, compare } = rangeFrom(sp, today);
-  const data = await repo.loadOverview(client.id, range, compare);
+  const [data, upgrade] = await Promise.all([repo.loadOverview(client.id, range, compare), repo.upgradeContext(client.id, email, today)]);
   const one = (k: string) => (typeof sp[k] === "string" ? (sp[k] as string) : null);
   const f = one("filter");
   const done = one("done");
@@ -87,6 +87,7 @@ export default async function ClientClusters({
           adding={adding}
           asked={asked}
           packPrice={client.market === "UK" ? `£${TRACKING_PACK_PRICE.uk}` : `$${TRACKING_PACK_PRICE.us}`}
+          upgrade={{ tier, mode: upgrade.mode, hidden: upgrade.hidden, startedOn: client.started_on ?? today, domain: client.domain }}
         />
       </div>
     </div>
