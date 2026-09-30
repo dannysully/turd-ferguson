@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
-import { clusterCards, clusterChart, clusterDetail, clusterSearch, clusterSummary, filterClusters } from "./cluster-figures.ts";
+import { clusterCards, clusterChart, clusterDetail, clusterSearch, clusterSummary, filterClusters, promptStrip } from "./cluster-figures.ts";
 import { comparisonRange } from "./figures.ts";
 import { expandFixture } from "./fixture-mode.ts";
 
@@ -184,4 +184,19 @@ test("T7 summary: cluster 1's most reliable engine and its earlier Google readin
   // A pending cluster has no readings, so no engine to name.
   const pending = cards.find((c) => c.status === "pending")!;
   assert.equal(clusterDetail(input, pending.id)!.reliable, null);
+});
+
+test("T7 strip: cluster 1's second prompt, day by day per engine, matches detail.py", () => {
+  // dataset.py, 30 Sep 2026: c1 prompt 2, days[engine][day] over 28 days; h = [13, 18, 14, 18] of 28.
+  const board = ["0110010110101010110101000001", "0110010101110101101110111101", "1100100001000010111101001111", "1101010011011110100110101111"];
+  const engines = ["google_aio", "chatgpt", "gemini", "perplexity"];
+  const prompt = by("c1").prompts[1]!;
+  const rows = promptStrip({ answers: fx.data.answers, range, engines }, prompt.id);
+  assert.deepEqual(rows.map((r) => r.engine), engines);
+  assert.deepEqual(rows.map((r) => r.cells.map((c) => (c ? "1" : "0")).join("")), board);
+  assert.deepEqual(rows.map((r) => [r.named, r.answered]), [[13, 28], [18, 28], [14, 28], [18, 28]]);
+  // The strip's totals are T6's day counts for the same prompt.
+  assert.deepEqual(rows.map((r) => r.named), prompt.daysNamed.map((d) => d.days));
+  // A prompt with no answers draws empty cells, never "not named".
+  assert.ok(promptStrip({ answers: [], range, engines }, prompt.id).every((r) => r.cells.every((c) => c === null) && r.answered === 0));
 });

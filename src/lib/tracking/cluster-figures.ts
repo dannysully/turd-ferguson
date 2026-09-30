@@ -323,6 +323,34 @@ export function clusterDetail(input: ClusterInput, clusterId: string): ClusterDe
   return { card, reliable, positionBeforeOn };
 }
 
+export type StripRow = {
+  engine: string;
+  /** One cell a day in range: named, not named, or null where that engine gave no answer. */
+  cells: (boolean | null)[];
+  /** "13 of 28": days named, of days answered. */
+  named: number;
+  answered: number;
+};
+
+/**
+ * "Every check, day by day" for one prompt (T7 part 2a, 30 Sep 2026;
+ * boards-3/QuestionDetail.dc.html): a row per engine in the tier's order, a
+ * cell per day in range. Pure; its totals are the T6 day counts.
+ */
+export function promptStrip(input: Pick<ClusterInput, "answers" | "range" | "engines">, promptId: string): StripRow[] {
+  const days = daysIn(input.range);
+  const at = new Map<string, boolean>();
+  for (const a of input.answers) {
+    if (a.question_id !== promptId || !a.answered || !within(a.run_date, input.range)) continue;
+    const key = `${a.engine} ${a.run_date}`;
+    at.set(key, (at.get(key) ?? false) || a.named);
+  }
+  return input.engines.map((engine) => {
+    const cells = days.map((d) => at.get(`${engine} ${d}`) ?? null);
+    return { engine, cells, named: cells.filter((c) => c === true).length, answered: cells.filter((c) => c !== null).length };
+  });
+}
+
 export type ClusterFilter = "all" | "named" | "never";
 
 /** Prompts with at least one named answer in range. */
