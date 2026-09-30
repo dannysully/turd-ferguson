@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { checkoutRequest } from "./session.ts";
-import { completedOrder, handleWebhook, orderEmailText, packsOn, signStripePayload, subscriptionScanToken, verifyStripeSignature, type WebhookDeps } from "./webhook.ts";
+import { completedOrder, handleWebhook, orderEmailText, orderRow, packsOn, signStripePayload, subscriptionScanToken, verifyStripeSignature, type WebhookDeps } from "./webhook.ts";
 
 /**
  * BRIEF-3 C4 (30 Sep 2026): the webhook's rules against recorded fixtures.
@@ -123,6 +123,44 @@ test("the Session's order: email lowercased, scan token only when it is one", ()
   assert.equal(o.scanToken, TOKEN);
   assert.equal(o.subscriptionId, "sub_fixture");
   assert.equal(completedOrder({ ...completed.data.object, metadata: { scan_token: "../etc" } }).scanToken, null);
+});
+
+test("a completed Session becomes one orders row that meets the table's checks", () => {
+  const o = completedOrder({ ...completed.data.object, customer: "cus_fixture" });
+  assert.deepEqual(orderRow(o, "client-1").row, {
+    stripe_session_id: "cs_fixture",
+    stripe_customer_id: "cus_fixture",
+    stripe_subscription_id: "sub_fixture",
+    tier: "tracked",
+    sector: null,
+    quantity: 1,
+    market: "us",
+    email: "owner@example.com",
+    keyword: null,
+    scan_token: TOKEN,
+    amount_total: 12900,
+    currency: "usd",
+    client_domain_id: "client-1",
+  });
+  // Each check in 20260930020000_orders.sql refuses here before the database would.
+  const bad = (m: Record<string, string>, extra: Record<string, unknown> = {}) =>
+    orderRow(completedOrder({ ...completed.data.object, ...extra, metadata: { ...completed.data.object.metadata, ...m } }), null);
+  assert.equal(bad({ tier: "everywhere" }).row, null);
+  assert.equal(bad({ market: "de" }).row, null);
+  assert.equal(bad({ quantity: "101" }).row, null);
+  assert.equal(bad({}, { customer_details: {}, customer_email: "" }).row, null);
+  assert.equal(bad({}, { currency: "eur" }).row?.currency, null);
+});
+
+test("signup writes the orders row keyed on the Session id, and every column exists", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const src = await readFile(new URL("./signup.ts", import.meta.url), "utf8");
+  assert.ok(src.includes(`from("orders").upsert(built.row, { onConflict: "stripe_session_id", ignoreDuplicates: true })`), "signup.ts no longer upserts orders on the Session id");
+  const sql = await readFile(new URL("../../../supabase/migrations/20260930020000_orders.sql", import.meta.url), "utf8");
+  assert.ok(sql.includes("stripe_session_id text not null unique"));
+  const cols = Object.keys(orderRow(completedOrder(completed.data.object), null).row ?? {});
+  assert.equal(cols.length, 13);
+  for (const col of cols) assert.ok(sql.includes(`\n  ${col} `), `orders has no ${col} column`);
 });
 
 test("packs count only items marked as a pack", () => {

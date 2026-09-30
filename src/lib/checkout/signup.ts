@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { siteUrl } from "@/lib/scan/verify-email";
 import { sendOrderEmail } from "@/lib/checkout/order-mail";
-import { orderEmailText, packsOn, subscriptionScanToken, type CompletedOrder } from "@/lib/checkout/webhook";
+import { orderEmailText, orderRow, packsOn, subscriptionScanToken, type CompletedOrder } from "@/lib/checkout/webhook";
 import { dayAfter, slugFor, trackingDay } from "@/lib/tracking/decide";
 import { angleFor, clusterLimitFor, insertCluster, insertKeyword, insertPrompts, PROMPTS_PER_CLUSTER } from "@/lib/tracking/limits";
 import { sendLoginLink } from "@/lib/tracking/login-mail";
@@ -18,7 +18,10 @@ import { LOGIN_TTL_MS, hashToken, newToken } from "@/lib/tracking/session";
  * keyword and its first five prompts (or "Needs a keyword" when the scan chose
  * none, R117), the buyer as owner, and a login link. Without a scan there is
  * no domain to track, so nothing is created and the order email says so.
- * The order email goes to Danny either way (pricing spec section 5).
+ * One public.orders row per Session either way, keyed on its id so a replay
+ * writes nothing; a refused row is logged and named in the order email, never
+ * a retry, because the client above is already made. The order email goes to
+ * Danny either way (pricing spec section 5).
  */
 
 export const NEEDS_A_KEYWORD = "Needs a keyword";
@@ -128,9 +131,23 @@ export async function onCheckoutCompleted(db: SupabaseClient, o: CompletedOrder,
     const { error } = await db.from("stripe_events").update({ client_domain_id: r.clientId }).eq("id", eventId);
     if (error) console.warn(`[stripe] event ${eventId} not linked to its client: ${error.message}`);
   }
-  const mail = orderEmailText(o, r.outcome, siteUrl());
+  const mail = orderEmailText(o, `${r.outcome} Order row: ${await writeOrder(db, o, r.clientId ?? null)}.`, siteUrl());
   await sendOrderEmail({ ...mail, replyTo: o.email });
   return true;
+}
+
+async function writeOrder(db: SupabaseClient, o: CompletedOrder, clientId: string | null): Promise<string> {
+  const built = orderRow(o, clientId);
+  if (!built.row) {
+    console.error(`[stripe] order row not written for ${o.sessionId}: ${built.reason}`);
+    return `not written (${built.reason})`;
+  }
+  const { error } = await db.from("orders").upsert(built.row, { onConflict: "stripe_session_id", ignoreDuplicates: true });
+  if (error) {
+    console.error(`[stripe] order row not written for ${o.sessionId}: ${error.message}`);
+    return `NOT written (${error.message})`;
+  }
+  return "written";
 }
 
 async function clientOfSubscription(db: SupabaseClient, sub: Record<string, unknown>): Promise<string | null | false> {

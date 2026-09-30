@@ -1,6 +1,7 @@
 -- 30 Sep 2026. Additive only. Pricing spec section 5 (R91): "Before payment: keyword target, sector, quantity,
 -- work email. Stored as Stripe metadata and in a new orders table (additive migration, RLS on with no policies,
--- the service role writes)." NOT YET APPLIED: no code reads or writes this table until it is applied and read back.
+-- the service role writes)." Applied by Danny and read back 30 Sep (R126): 15 columns, RLS on, 0 policies,
+-- 8 constraints, 0 rows. Do not re-apply. Written by lib/checkout/signup.ts writeOrder (R91).
 -- One row per completed Checkout Session, written by the webhook (checkout.session.completed), keyed on the Session id
 -- so a replayed event cannot write a second row.
 create table if not exists public.orders (

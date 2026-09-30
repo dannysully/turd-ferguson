@@ -259,6 +259,10 @@ test("the four sites are the ones we think they are", () => {
       "dashboard_members:account_id,email",
       "dashboard_members:account_id,email",
       "dashboard_members:account_id,email",
+      // 30 Sep 2026, R91: the Stripe webhook's one orders row per completed
+      // Session (checkout/signup.ts writeOrder), on the unique column in
+      // 20260930020000_orders.sql, so a replayed event writes nothing.
+      "orders:stripe_session_id",
         "scan_answers:engine,question_id",
       "scan_brands:brand,engine,scan_id",
       "scan_sources:domain,scan_id",

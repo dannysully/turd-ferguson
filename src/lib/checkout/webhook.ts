@@ -58,6 +58,7 @@ export type CompletedOrder = {
   keyword: string;
   scanToken: string | null;
   subscriptionId: string | null;
+  customerId: string | null;
   amountTotal: number | null;
   currency: string | null;
 };
@@ -79,8 +80,57 @@ export function completedOrder(session: Record<string, unknown>): CompletedOrder
     keyword: str(m.keyword),
     scanToken: /^[0-9a-f]{32}$/i.test(scan) ? scan.toLowerCase() : null,
     subscriptionId: str(session.subscription) || null,
+    customerId: str(session.customer) || null,
     amountTotal: typeof session.amount_total === "number" ? session.amount_total : null,
     currency: str(session.currency) || null,
+  };
+}
+
+/**
+ * The public.orders row for a completed Session (pricing spec section 5,
+ * migration 20260930020000_orders.sql, applied and read back 30 Sep: R126).
+ * Null, with the reason, when the order breaks one of the table's checks, so
+ * a refused row is named in the order email instead of failing the signup.
+ */
+export type OrderRow = {
+  stripe_session_id: string;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  tier: string;
+  sector: string | null;
+  quantity: number;
+  market: string;
+  email: string;
+  keyword: string | null;
+  scan_token: string | null;
+  amount_total: number | null;
+  currency: string | null;
+  client_domain_id: string | null;
+};
+
+export function orderRow(o: CompletedOrder, clientId: string | null): { row: OrderRow } | { row: null; reason: string } {
+  if (!o.sessionId) return { row: null, reason: "no Session id" };
+  if (!o.email) return { row: null, reason: "no buyer email" };
+  if (!["tracked", "mentioned", "cited"].includes(o.tier)) return { row: null, reason: `unknown tier "${o.tier}"` };
+  if (o.market !== "uk" && o.market !== "us") return { row: null, reason: `unknown market "${o.market}"` };
+  if (!Number.isInteger(o.quantity) || o.quantity < 1 || o.quantity > 100) return { row: null, reason: `quantity ${o.quantity} out of range` };
+  const currency = o.currency?.toLowerCase() ?? null;
+  return {
+    row: {
+      stripe_session_id: o.sessionId,
+      stripe_customer_id: o.customerId,
+      stripe_subscription_id: o.subscriptionId,
+      tier: o.tier,
+      sector: o.sector || null,
+      quantity: o.quantity,
+      market: o.market,
+      email: o.email,
+      keyword: o.keyword || null,
+      scan_token: o.scanToken,
+      amount_total: o.amountTotal !== null && o.amountTotal >= 0 ? o.amountTotal : null,
+      currency: currency === "gbp" || currency === "usd" ? currency : null,
+      client_domain_id: clientId,
+    },
   };
 }
 
