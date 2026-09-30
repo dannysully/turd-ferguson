@@ -130,6 +130,8 @@ type FullPayload = {
     keyword_rank?: number | null;
     engines: EngineAnswer[];
   }[];
+  /** True when the questions' keyword trio is the scan's one cluster keyword (BRIEF-3 C1). */
+  cluster_keyword?: boolean;
   /** The gated finding: pages feeding answers the brand is absent from. */
   opportunities?: ScanOpportunity[];
   gated_engines?: string[];
@@ -332,8 +334,11 @@ function toResult(t: Teaser, domain: string, full: FullPayload | null): RunScanR
       const detail = full?.questions?.find((d) => d.idx === q.idx);
       const google_rank = "google_rank" in q ? (q.google_rank ?? null) : (detail?.google_rank ?? null);
       // The keyword trio (R43) by the same rule: the teaser's key when the RPC
-      // carries it, else the unlock payload's, else absent - the old line.
-      const keyword = "target_keyword" in q
+      // carries it, else the unlock payload's, else absent - the old line. A
+      // scan with a cluster keyword (BRIEF-3 C1) is the exception: the teaser
+      // reads the rows, which carry no keyword on those scans, so the payload's
+      // cluster keyword wins.
+      const keyword = "target_keyword" in q && !(full?.cluster_keyword && detail)
         ? {}
         : detail && "target_keyword" in detail
           ? { target_keyword: detail.target_keyword, search_volume: detail.search_volume, keyword_rank: detail.keyword_rank }

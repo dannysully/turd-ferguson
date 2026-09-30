@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import type { Intent } from "./dataforseo-request.ts";
-import { normaliseCandidate, pickClusterKeyword, pickKeyword, stripFiller } from "./target-keyword.ts";
+import { clusterGoogleTrio, normaliseCandidate, pickClusterKeyword, pickKeyword, stripFiller } from "./target-keyword.ts";
 
 const CAT = "business cash flow finance";
 const NOUN = "providers";
@@ -76,4 +76,32 @@ test("cluster keyword: highest qualifying volume wins, ties to the model's order
   assert.deepEqual(pickClusterKeyword(["a1", "b2", "c3"], vols({ a1: 100, b2: 300, c3: 300 }), i), { keyword: "b2", volume: 300, intent: "transactional" });
   assert.deepEqual(pickClusterKeyword(["B2 "], vols({ b2: 300 }), i), { keyword: "b2", volume: 300, intent: "transactional" }, "read in keywordForm");
   assert.deepEqual(pickClusterKeyword([], vols({}), ints({})), { none: "no_candidate" });
+});
+
+test("clusterGoogleTrio: a scan from before C1 keeps its rows' own keyword", () => {
+  assert.equal(clusterGoogleTrio(null), null);
+  assert.equal(clusterGoogleTrio({ status: null, keyword: null, volume: null, rank: null }), null);
+});
+
+test("clusterGoogleTrio: a chosen keyword is the line every prompt reads, rank null meaning not in the top twenty", () => {
+  assert.deepEqual(clusterGoogleTrio({ status: "chosen", keyword: "invoicing software", volume: 2400, rank: 7 }), {
+    target_keyword: "invoicing software",
+    search_volume: 2400,
+    keyword_rank: 7,
+  });
+  assert.deepEqual(clusterGoogleTrio({ status: "chosen", keyword: "invoicing software", volume: 2400, rank: null }), {
+    target_keyword: "invoicing software",
+    search_volume: 2400,
+    keyword_rank: null,
+  });
+});
+
+test("clusterGoogleTrio: none_qualified and read_failed show no keyword, never one that did not qualify", () => {
+  for (const status of ["none_qualified", "read_failed"] as const) {
+    assert.deepEqual(clusterGoogleTrio({ status, keyword: "stale keyword", volume: 90, rank: 3 }), {
+      target_keyword: null,
+      search_volume: null,
+      keyword_rank: null,
+    });
+  }
 });

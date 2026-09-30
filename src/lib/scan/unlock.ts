@@ -18,6 +18,7 @@ import { spentSince } from "@/lib/scan/spend";
 import { sendReportReadyEmail } from "@/lib/scan/verify-email";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { selectAll } from "@/lib/supabase/page";
+import { clusterGoogleTrio, type StoredClusterKeyword } from "@/lib/scan/target-keyword";
 
 /**
  * What unlocking a scan actually does, in one place.
@@ -86,6 +87,12 @@ export type UnlockPayload = {
       citations: Array<{ domain: string; url: string | null; title: string | null }>;
     }>;
   }>;
+  /**
+   * True when the questions' Google trio above is the scan's one cluster
+   * keyword (BRIEF-3 C1), so it wins over any per-row keyword the teaser
+   * carries. False on scans from before C1.
+   */
+  cluster_keyword: boolean;
   /**
    * Pages that fed answers the brand was absent from and that a client could
    * realistically be placed into, most valuable first. This is the gated
@@ -254,6 +261,7 @@ export async function buildUnlockPayload(scanId: string): Promise<UnlockPayload>
     { data: questions, error: questionsErr },
     { data: answers, error: answersErr },
     kinds,
+    { data: clusterRow, error: clusterErr },
   ] = await Promise.all([
     selectAll<EngineBrandRow>((from, to) =>
       db
@@ -292,6 +300,11 @@ export async function buildUnlockPayload(scanId: string): Promise<UnlockPayload>
         .order("id", { ascending: true })
         .range(from, to),
     ),
+    db
+      .from("scans")
+      .select("cluster_keyword, cluster_keyword_volume, cluster_keyword_rank, cluster_keyword_status")
+      .eq("id", scanId)
+      .maybeSingle(),
   ]);
 
   /**
@@ -317,6 +330,26 @@ export async function buildUnlockPayload(scanId: string): Promise<UnlockPayload>
   if (answersErr) {
     throw new Error("could not read the answers for the report: " + answersErr.message);
   }
+  // Thrown for the reason above: a scan with a cluster keyword read as one
+  // without would put the old per-prompt keyword back on its Google line.
+  if (clusterErr) {
+    throw new Error("could not read the cluster keyword for the report: " + clusterErr.message);
+  }
+  /**
+   * BRIEF-3 C1 step 8: a scan with a cluster keyword status reads its Google
+   * line off the one cluster keyword; `target_keyword` on the rows stays for
+   * scans from before C1. Null here is the old meaning.
+   */
+  const clusterTrio = clusterGoogleTrio(
+    clusterRow
+      ? {
+          status: (clusterRow.cluster_keyword_status ?? null) as StoredClusterKeyword["status"],
+          keyword: (clusterRow.cluster_keyword ?? null) as string | null,
+          volume: (clusterRow.cluster_keyword_volume ?? null) as number | null,
+          rank: (clusterRow.cluster_keyword_rank ?? null) as number | null,
+        }
+      : null,
+  );
 
   const brandRows = brands;
   const overall = new Map<string, { brand: string; mentions: number; is_subject: boolean; engines: string[] }>();
@@ -401,6 +434,7 @@ export async function buildUnlockPayload(scanId: string): Promise<UnlockPayload>
     target_keyword: (q.target_keyword ?? null) as string | null,
     search_volume: (q.search_volume ?? null) as number | null,
     keyword_rank: (q.keyword_rank ?? null) as number | null,
+    ...clusterTrio,
     engines: answerRows
       .filter((a) => a.question_id === q.id)
       .map((a) => ({
@@ -434,6 +468,7 @@ export async function buildUnlockPayload(scanId: string): Promise<UnlockPayload>
     brands_by_engine: brandRows,
     sources: fullSources,
     questions: questionDetail,
+    cluster_keyword: clusterTrio !== null,
     opportunities,
   };
 }

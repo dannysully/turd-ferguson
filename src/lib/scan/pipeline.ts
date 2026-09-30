@@ -81,6 +81,9 @@ export type ScanRow = {
   gated_engines: string[] | null;
   /** { services, industries } from the site read. Null on rows before 20260924000000. */
   site_facts?: unknown;
+  /** BRIEF-3 C1, picked on the confirm screen. Null status: a scan from before C1. */
+  cluster_keyword?: string | null;
+  cluster_keyword_status?: string | null;
 };
 
 async function mapWithConcurrency<T, R>(
@@ -1011,6 +1014,41 @@ async function deriveKeywords(input: {
   }
 }
 
+/**
+ * BRIEF-3 C1 step 8 (30 Sep 2026): a scan whose confirm screen picked a cluster
+ * keyword takes one organic SERP read for it, onto `scans.cluster_keyword_rank`,
+ * in place of `deriveKeywords` - the keyword and its volume were already read
+ * and billed at confirm. No keyword (none_qualified, read_failed) is no read:
+ * the result's Google line falls back to the rank for the prompt text.
+ * `scan_questions.target_keyword` is left empty on these scans; it stays for
+ * scans from before C1.
+ *
+ * Never fatal, for deriveKeywords' reason, and warned on every exit. Null is
+ * what a failed read stores too: "not in top 20" (Danny, 27 Sep).
+ */
+async function rankClusterKeyword(input: {
+  scanId: string;
+  domain: string;
+  keyword: string | null;
+  market: Market;
+  spend: Spend;
+  remainingMs: () => number;
+}): Promise<void> {
+  const { scanId, domain, keyword, market, spend, remainingMs } = input;
+  if (!keyword?.trim()) return;
+  let rank: number | null = null;
+  try {
+    spend.dfsCalls += 1;
+    const read = await readKeywordRank(keyword, domain, market, remainingMs());
+    spend.dfsCost += read.cost;
+    rank = read.rank ?? null;
+  } catch (err) {
+    console.warn(`[scan] cluster keyword rank read failed for ${scanId} (${keyword}): ${err instanceof Error ? err.message : String(err)}`);
+  }
+  const { error } = await supabaseAdmin().from("scans").update({ cluster_keyword_rank: rank }).eq("id", scanId);
+  if (error) console.warn(`[scan] could not store the cluster keyword rank for ${scanId}: ${error.message}`);
+}
+
 export async function runScan(scanId: string): Promise<void> {
   const db = supabaseAdmin();
   const deadline = Date.now() + RUN_TIMEOUT_MS;
@@ -1032,7 +1070,7 @@ export async function runScan(scanId: string): Promise<void> {
   try {
     const { data: scan, error } = await db
       .from("scans")
-      .select("id, domain, brand_name, positioning, topic, topic_variants, market, engines, gated_engines, site_facts")
+      .select("id, domain, brand_name, positioning, topic, topic_variants, market, engines, gated_engines, site_facts, cluster_keyword, cluster_keyword_status")
       .eq("id", scanId)
       .single<ScanRow>();
     if (error || !scan) throw new Error(`scan ${scanId} not found`);
@@ -1157,7 +1195,9 @@ export async function runScan(scanId: string): Promise<void> {
     // outside the closure for the narrowing reason given above.
     const category = scan.topic;
     const keywords = timed(timings, "keywords", () =>
-      deriveKeywords({ scanId, domain: scan.domain, category, market, questions: ordered, spend, remainingMs }),
+      scan.cluster_keyword_status
+        ? rankClusterKeyword({ scanId, domain: scan.domain, keyword: scan.cluster_keyword ?? null, market, spend, remainingMs })
+        : deriveKeywords({ scanId, domain: scan.domain, category, market, questions: ordered, spend, remainingMs }),
     );
 
     // --- Step 2: "Reading what the engines answered" ---

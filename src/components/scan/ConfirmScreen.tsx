@@ -360,14 +360,16 @@ export default function ConfirmScreen(p: {
         ? "Write the prompts"
         : "Run " + kept.length + (kept.length === 1 ? " prompt" : " prompts");
 
-  // The per-prompt Google keyword is still what the paid pass reads until C1's
-  // paid-pass step moves it onto the cluster keyword; this line says what the
-  // report does today, not what it will.
+  // What the report's Google line reads (pipeline rankClusterKeyword): the
+  // cluster keyword's rank when one was chosen, else the rank for each
+  // prompt's own text.
   const footerText =
     kept.length +
     " of a possible " +
     MAX_QUESTIONS +
-    ". Each also gets a Google keyword, its monthly searches and where you rank for it, in the report.";
+    (keyword?.status === "chosen" && keyword.keyword
+      ? ". The report shows where you rank on Google for " + keyword.keyword + " beside what the engines said."
+      : ". The report shows where you rank on Google for each one beside what the engines said.");
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "26px" }}>

@@ -116,3 +116,27 @@ export function pickClusterKeyword(
   const top = qualifying.reduce((a, b) => (measured(b)! > measured(a)! ? b : a));
   return { keyword: top, volume: measured(top)!, intent: intents.get(top) as "commercial" | "transactional" };
 }
+
+/** The scan's cluster keyword as stored on `scans` (BRIEF-3 C1). */
+export type StoredClusterKeyword = {
+  status: "chosen" | "none_qualified" | "read_failed" | null;
+  keyword: string | null;
+  volume: number | null;
+  rank: number | null;
+};
+
+/**
+ * The Google trio a result row reads, for a scan with a cluster keyword
+ * (BRIEF-3 C1 step 8, 30 Sep 2026). A null status is a scan from before C1:
+ * null back, and the row keeps its own `target_keyword`, which stays for old
+ * scans only. A chosen keyword is the one line every prompt reads. Any other
+ * status has no keyword, so the trio is empty and `googleLine` falls back to
+ * the rank for the prompt text - never a keyword that did not qualify.
+ */
+export function clusterGoogleTrio(
+  c: StoredClusterKeyword | null,
+): { target_keyword: string | null; search_volume: number | null; keyword_rank: number | null } | null {
+  if (!c?.status) return null;
+  if (c.status !== "chosen" || !c.keyword?.trim()) return { target_keyword: null, search_volume: null, keyword_rank: null };
+  return { target_keyword: c.keyword, search_volume: c.volume, keyword_rank: c.rank };
+}
