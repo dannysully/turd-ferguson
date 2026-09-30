@@ -12,16 +12,15 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { selectAll } from "@/lib/supabase/page";
 
 import {
-  RUN_SIGNATURE_HEADER,
   TRACKING_STALL_MS,
   liveOn,
   readTrackingSettings,
   refuseRun,
   runOutcome,
   shouldTrack,
-  signRun,
   trackingDay,
 } from "./decide.ts";
+import { dispatchRun } from "./dispatch.ts";
 
 /**
  * The daily alwaystracked runner - T1 of
@@ -86,30 +85,36 @@ async function trackingSettings() {
   return readTrackingSettings((data ?? []) as { key: string; value: unknown }[]);
 }
 
-/** Fire one run's invocation and do not wait for it. Also the admin "Run now" path (T2). */
-export async function dispatchTrackingRun(runId: string, origin: string): Promise<void> {
+/**
+ * Write why a dispatch failed onto the run, leaving it queued so "Run now"
+ * can post it again. Only a queued row: a run already claimed keeps its own.
+ */
+async function recordDispatchFailure(runId: string, reason: string): Promise<void> {
+  const { error } = await supabaseAdmin().from("tracking_runs").update({ error: reason }).eq("id", runId).eq("status", "queued");
+  if (error) throw new Error(error.message);
+}
+
+/**
+ * Fire one run's invocation and do not wait for it. Also the admin "Run now" path (T2).
+ *
+ * Always to the canonical origin (dispatch.ts) - the 30 Sep cron dispatched
+ * to its own req.url origin and neither pilot's run was ever claimed. The run
+ * route answers 202 at once and does the work after its response, in its own
+ * invocation, so this await is a handshake, not the run. Awaited because a
+ * fire-and-forget fetch can be frozen with this function before it leaves. A
+ * dispatch that fails writes its reason on the row, which stays queued.
+ */
+export async function dispatchTrackingRun(runId: string): Promise<void> {
   const secret = process.env.CRON_SECRET;
   if (!secret) throw new Error("CRON_SECRET is not set");
-  const body = JSON.stringify({ runId });
-  // The run route answers 202 at once and does the work after its response, in
-  // its own invocation, so this await is a handshake, not the run. Awaited
-  // because a fire-and-forget fetch can be frozen with this function before it
-  // leaves. A dispatch that never lands leaves the row queued; "Run now" (T2)
-  // posts it again.
-  const res = await fetch(`${origin}/api/track/run`, {
-    method: "POST",
-    headers: { "content-type": "application/json", [RUN_SIGNATURE_HEADER]: signRun(body, secret) },
-    body,
-    signal: AbortSignal.timeout(15_000),
-  });
-  if (res.status !== 202) throw new Error(`the run route answered ${res.status} for run ${runId}`);
+  await dispatchRun(runId, secret, fetch, recordDispatchFailure);
 }
 
 /**
  * Insert today's run row for every client that should be tracked, and hand
  * each one to its own invocation. Returns how many were dispatched.
  */
-export async function dispatchTrackingRuns(origin: string, now: Date = new Date()): Promise<{
+export async function dispatchTrackingRuns(now: Date = new Date()): Promise<{
   day: string;
   dispatched: number;
   skipped: number;
@@ -168,7 +173,7 @@ export async function dispatchTrackingRuns(origin: string, now: Date = new Date(
     const runId = inserted?.[0]?.id as string | undefined;
     if (!runId) continue;
     try {
-      await dispatchTrackingRun(runId, origin);
+      await dispatchTrackingRun(runId);
       dispatched += 1;
     } catch (err) {
       console.warn(`[track] could not dispatch run ${runId}: ${message(err)}`);

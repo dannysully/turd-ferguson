@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { T } from "@/config/tokens";
 import { supabaseAdmin, supabaseConfigured } from "@/lib/supabase/admin";
 import { ADMIN_LIMITS, UPSELL_MODES, trackingDay } from "@/lib/tracking/decide";
+import { runIsStuck } from "@/lib/tracking/dispatch";
 import { PROMPTS_PER_CLUSTER, trackingCounts } from "@/lib/tracking/limits";
 
 import { ActionForm } from "./ActionForm";
@@ -67,7 +68,7 @@ export default async function TrackingAdmin() {
     db.from("tracked_keywords").select("id, client_domain_id, keyword, added_on, stopped_on").in("client_domain_id", ids),
     db
       .from("tracking_runs")
-      .select("client_domain_id, run_date, status, dfs_cost, model_calls, error, finished_at")
+      .select("client_domain_id, run_date, status, dfs_cost, model_calls, error, created_at, started_at, finished_at")
       .in("client_domain_id", ids)
       .gte("run_date", since)
       .order("run_date", { ascending: false }),
@@ -136,6 +137,12 @@ export default async function TrackingAdmin() {
             <ActionForm action={runNow} submit="Run now">
               <input type="hidden" name="client" value={id} maxLength={ADMIN_LIMITS.id} />
               <span style={{ fontSize: "12.5px", color: T.soft }}>The only manual spend.</span>
+              {todayRun && runIsStuck(todayRun as { status: string; created_at: string | null; started_at: string | null }) ? (
+                <span style={{ fontSize: "12.5px", color: T.ink, fontWeight: 700 }}>
+                  stuck - queued since {String(todayRun.created_at).slice(11, 16)}Z and never claimed:{" "}
+                  {(todayRun.error as string | null) ?? "no dispatch error recorded"}
+                </span>
+              ) : null}
             </ActionForm>
             <ActionForm action={addTracked} submit="Add prompt">
               <input type="hidden" name="client" value={id} maxLength={ADMIN_LIMITS.id} />

@@ -32,7 +32,10 @@ export async function GET(req: Request) {
   }
 
   try {
-    const out = await dispatchTrackingRuns(new URL(req.url).origin);
+    // Dispatched to the canonical origin, never this request's own host: under
+    // Vercel Cron that is not necessarily alwayscited.com, and on 30 Sep no run
+    // dispatched from it was ever claimed (lib/tracking/dispatch.ts).
+    const out = await dispatchTrackingRuns();
     if (out.refused) console.warn(`[track] daily check refused: ${out.refused}`);
     return NextResponse.json({ ok: true, ...out });
   } catch (err) {

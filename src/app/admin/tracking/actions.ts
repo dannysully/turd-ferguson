@@ -349,11 +349,8 @@ export async function runNow(_prev: AdminResult | null, form: FormData): Promise
   if (rErr) return { ok: false, message: `Could not read today's run: ${rErr.message}` };
   if (run.status !== "queued") return { ok: false, message: `Today's run is already ${run.status}.` };
 
-  const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host");
-  const proto = h.get("x-forwarded-proto") ?? "https";
   try {
-    await dispatchTrackingRun(run.id as string, `${proto}://${host}`);
+    await dispatchTrackingRun(run.id as string);
   } catch (err) {
     return { ok: false, message: `Dispatch failed: ${err instanceof Error ? err.message : String(err)}` };
   }
