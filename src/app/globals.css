@@ -1651,10 +1651,13 @@ html[data-motion="on"] .res-dial { animation: resDial 1.4s .3s cubic-bezier(.2,.
 }
 /* Mobile.dc.html: the key figures two by two; the bars, engine marks and
    sparklines give way so the words and numbers keep their width. */
+/* Shown only on a phone: the compact cluster chart (T4b mobile, Mobile.dc.html). */
+.app-show-sm { display: none; }
 @media (max-width: 560px) {
   .app-figures { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
   .app-figures > * { padding: 16px !important; }
   .app-figures > :nth-child(even) { border-left: 1px solid var(--line) !important; }
   .app-hide-sm { display: none !important; }
+  .app-show-sm { display: block !important; }
   .app-brand { grid-template-columns: 20px minmax(0, 1fr) 40px 70px !important; padding: 10px 16px !important; }
 }

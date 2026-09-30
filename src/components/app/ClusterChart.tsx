@@ -122,7 +122,9 @@ export default function ClusterChart({ data }: { data: ClusterChartData }) {
         </button>
       </div>
 
-      <div style={{ position: "relative", width: "100%", maxWidth: `${W}px` }} onMouseLeave={() => setHover(null)}>
+      <Compact data={data} showPrev={showPrev} />
+
+      <div className="app-hide-sm" style={{ position: "relative", width: "100%", maxWidth: `${W}px` }} onMouseLeave={() => setHover(null)}>
         <svg width="100%" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={summary} style={{ display: "block", overflow: "visible" }}>
           {[0, 50, 100].map((v) => (
             <g key={`a${v}`}>
@@ -232,5 +234,76 @@ export default function ClusterChart({ data }: { data: ClusterChartData }) {
         {data.note ? <span>{data.note}</span> : null}
       </div>
     </section>
+  );
+}
+
+/**
+ * The phone's chart (T4b mobile, 30 Sep 2026): boards-3/Mobile.dc.html draws
+ * its own 326x222 compact version - no Page 1 line, #1/#10/#20, three date
+ * labels - rather than the desktop chart scaled to unreadable type. Swapped in
+ * by CSS below 560px, so it stands with JS off. Still, no hover: the day
+ * readout is the desktop's.
+ */
+function Compact({ data, showPrev }: { data: ClusterChartData; showPrev: boolean }) {
+  const CW = 326;
+  const x0 = 30;
+  const x1 = 320;
+  const n = data.days.length;
+  const step = n > 1 ? (x1 - x0) / (n - 1) : 0;
+  const xAt = (i: number) => x0 + i * step;
+  const ya2 = (v: number) => 86 - Math.min(v, 100) * 0.7;
+  const yb2 = (p: number) => 132 + ((Math.min(p, 30) - 1) * 70) / 29;
+  const named = data.named.map((p) => (p ? p.pct : null));
+  const namedBefore = (data.namedBefore ?? []).slice(0, n).map((p) => (p ? p.pct : null));
+  const googleBefore = (data.googleBefore ?? []).slice(0, n);
+  const mid = Math.round((n - 1) / 2);
+  return (
+    <div className="app-show-sm" style={{ position: "relative" }}>
+      <svg width="100%" viewBox={`0 0 ${CW} 222`} role="img" aria-label={`Answers naming ${data.brand} for ${data.keyword}, above its Google position, ${data.dayLabels[0]} to ${data.dayLabels[n - 1]}`} style={{ display: "block" }}>
+        <text x={x0} y={10} fontSize={11} fontWeight={700} fill={T.ink}>
+          AI answers naming you
+        </text>
+        <text x={x0} y={118} fontSize={11} fontWeight={700} fill={T.ink}>
+          Google position
+        </text>
+        {[0, 50, 100].map((v) => (
+          <g key={`a${v}`}>
+            <line x1={x0} x2={x1} y1={ya2(v)} y2={ya2(v)} stroke={T.hair} />
+            <text x={x0 - 5} y={ya2(v) + 4} textAnchor="end" fontSize={10} fill={T.soft}>
+              {v}%
+            </text>
+          </g>
+        ))}
+        {[1, 10, 20].map((p) => (
+          <g key={`b${p}`}>
+            <line x1={x0} x2={x1} y1={yb2(p)} y2={yb2(p)} stroke={T.hair} />
+            <text x={x0 - 5} y={yb2(p) + 4} textAnchor="end" fontSize={10} fill={T.soft}>
+              {`#${p}`}
+            </text>
+          </g>
+        ))}
+        {showPrev ? <path d={line(runs(namedBefore, xAt, ya2))} fill="none" stroke={T.accent} strokeWidth={1.4} strokeDasharray="3 4" opacity={0.5} /> : null}
+        <path d={line(runs(named, xAt, ya2))} fill="none" stroke={T.accent} strokeWidth={2.4} strokeLinejoin="round" strokeLinecap="round" />
+        {showPrev ? <path d={line(runs(googleBefore, xAt, yb2))} fill="none" stroke={T.ink} strokeWidth={1.4} strokeDasharray="3 4" opacity={0.4} /> : null}
+        <path d={line(runs(data.google, xAt, yb2))} fill="none" stroke={T.ink} strokeWidth={2.2} strokeLinejoin="round" strokeLinecap="round" />
+        <text x={x0} y={218} textAnchor="middle" fontSize={10} fill={T.soft}>
+          {data.days[0]}
+        </text>
+        {n > 2 ? (
+          <text x={xAt(mid)} y={218} textAnchor="middle" fontSize={10} fill={T.soft}>
+            {data.days[mid]}
+          </text>
+        ) : null}
+        <text x={x1} y={218} textAnchor="end" fontSize={10} fill={T.soft}>
+          {data.days[n - 1]}
+        </text>
+      </svg>
+      {data.pending ? (
+        <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "6px", textAlign: "center", background: `color-mix(in srgb, ${T.surface} 86%, transparent)` }}>
+          <span style={{ fontSize: "15px", fontWeight: 700, color: T.ink }}>No readings yet</span>
+          <span style={{ fontSize: "13px", color: T.soft }}>First check tomorrow at 06:00.</span>
+        </div>
+      ) : null}
+    </div>
   );
 }
