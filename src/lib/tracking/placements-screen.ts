@@ -6,7 +6,7 @@ import type { TierKey } from "@/components/TierName";
 import { clusterChart } from "./cluster-figures.ts";
 import { type Day, type Range, addDays } from "./figures.ts";
 import { rangeFrom } from "./overview-data.ts";
-import { type PlacementsView, citeRows, pickCluster, placedTier, placementsView } from "./placement-figures.ts";
+import { type PlacementsView, chartSeries, citeRows, pickCluster, placedTier, placementsView } from "./placement-figures.ts";
 import type { TrackingRepo } from "./repo.ts";
 
 /** The longest "since it started" the screen reads in one go. */
@@ -21,6 +21,8 @@ export type PlacementsScreen = {
   keyword: string | null;
   prompts: number;
   view: PlacementsView;
+  /** The two panels (part 4b): weekly over 35 days, daily otherwise. */
+  series: ReturnType<typeof chartSeries>;
 };
 
 /**
@@ -59,5 +61,6 @@ export async function placementsScreen(
     keyword: data.keywords.find((k) => k.id === cluster.keyword_id)?.keyword ?? null,
     prompts: questionIds.length,
     view: placementsView({ chart, questionIds, placements: rows.filter((p) => p.cluster_id === cluster.id), cites: citeRows(data.answers), engines }),
+    series: chartSeries(chart),
   };
 }

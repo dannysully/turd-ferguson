@@ -3,7 +3,7 @@ import { test } from "node:test";
 
 import type { ClusterChart } from "./cluster-figures.ts";
 import { rate } from "./figures.ts";
-import { type CiteRow, citeRows, pageParts, pickCluster, placedTier, type PlacementRow, PLACEMENTS_FOOTNOTE, placementsView, shortDay, spanText, weeklyPoints } from "./placement-figures.ts";
+import { axisAt, chartSeries, type CiteRow, citeRows, kindFilters, pageParts, pickKind, pickCluster, placedTier, type PlacementRow, PLACEMENTS_FOOTNOTE, placementsView, shortDay, spanText, weeklyPoints } from "./placement-figures.ts";
 
 // R97 part 1 / BRIEF-2 T13 (30 Sep 2026). Made-up rows only (privacy.test.mts).
 
@@ -97,4 +97,38 @@ test("R97 part 3: the screen opens ?cluster= if it is the client's, else the fir
 
 test("R97 part 3: Placements is in the nav for mentioned, cited and everywhere only", () => {
   assert.deepEqual(["tracked", "mentioned", "cited", "everywhere"].map(placedTier), [false, true, true, true]);
+});
+
+test("R97 part 4b: chartSeries is daily up to 35 days and weekly over it, as whole percentages", () => {
+  const d = chartSeries(chart);
+  assert.equal(d.weekly, false);
+  assert.deepEqual(d.days, days);
+  assert.deepEqual(d.named, [10, null, 20, 30, 40]);
+  const n = 36;
+  const long: ClusterChart = { days: Array.from({ length: n }, (_, i) => `2026-07-${String(i + 1).padStart(2, "0")}`), named: Array.from({ length: n }, () => rate(1, 4)), google: Array.from({ length: n }, () => 7), namedBefore: null, googleBefore: null };
+  const w = chartSeries(long);
+  assert.equal(w.weekly, true);
+  assert.equal(w.days.length, 6);
+  assert.deepEqual(w.named, [25, 25, 25, 25, 25, 25]);
+  // Days before the first reading are not drawn.
+  const late = chartSeries({ ...chart, named: [null, null, rate(2, 10), null, rate(4, 10)], google: [null, null, null, 9, 4] });
+  assert.deepEqual(late.days, days.slice(2));
+  assert.deepEqual(late.named, [20, null, 40]);
+  assert.deepEqual(late.google, [null, 9, 4]);
+});
+
+test("R97 part 4b: pickKind, kindFilters and axisAt", () => {
+  assert.equal(pickKind("guest_post"), "guest_post");
+  assert.equal(pickKind("toString"), null);
+  assert.equal(pickKind(undefined), null);
+  assert.deepEqual(kindFilters(placements.filter((p) => p.status !== "removed")), [
+    { kind: null, label: "All 4" },
+    { kind: "guest_post", label: "Guest posts 2" },
+    { kind: "link_insertion", label: "Link insertions 1" },
+    { kind: "on_site", label: "On-site 1" },
+  ]);
+  assert.equal(axisAt("2026-07-04", "2026-07-04", "2026-07-08"), 0);
+  assert.equal(axisAt("2026-07-06", "2026-07-04", "2026-07-08"), 0.5);
+  assert.equal(axisAt("2026-08-01", "2026-07-04", "2026-07-08"), 1);
+  assert.equal(axisAt("2026-07-06", "2026-07-06", "2026-07-06"), 0);
 });

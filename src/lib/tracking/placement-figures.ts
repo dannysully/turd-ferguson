@@ -179,3 +179,36 @@ export function weeklyPoints(chart: ClusterChart): { days: Day[]; named: (Rate |
   }
   return out;
 }
+
+/**
+ * The two panels' series (R97 part 4b): weekly points over 35 days, daily
+ * otherwise, the named rate as a whole percentage. The axis starts at the
+ * first reading, as the strip's "since" does, not at a range start before it.
+ */
+export function chartSeries(input: ClusterChart): { days: Day[]; named: (number | null)[]; google: (number | null)[]; weekly: boolean } {
+  const start = Math.max(0, input.days.findIndex((_, i) => input.named[i] !== null || input.google[i] !== null));
+  const chart = { ...input, days: input.days.slice(start), named: input.named.slice(start), google: input.google.slice(start) };
+  const weekly = isWeekly(chart.days.length);
+  const s = weekly ? weeklyPoints(chart) : chart;
+  return { days: s.days, named: s.named.map((r) => (r ? r.pct : null)), google: s.google, weekly };
+}
+
+/** The table's and the chart's type filter: `?type=` when it is a kind, else every kind. */
+export function pickKind(asked: string | null | undefined): PlacementKind | null {
+  return asked && Object.hasOwn(KIND_WORDS, asked) ? (asked as PlacementKind) : null;
+}
+
+const KIND_PLURAL: Record<PlacementKind, string> = { guest_post: "Guest posts", link_insertion: "Link insertions", on_site: "On-site", coverage: "Coverage" };
+
+/** The board's filter pills: "All 18", then one per kind the cluster has, in KIND_WORDS order. */
+export function kindFilters(rows: readonly { kind: PlacementKind }[]): { kind: PlacementKind | null; label: string }[] {
+  const kinds = (Object.keys(KIND_WORDS) as PlacementKind[]).filter((k) => rows.some((r) => r.kind === k));
+  return [{ kind: null, label: `All ${rows.length}` }, ...kinds.map((k) => ({ kind: k, label: `${KIND_PLURAL[k]} ${rows.filter((r) => r.kind === k).length}` }))];
+}
+
+/** Where a day falls along an axis from `first` to `last`, 0 to 1, clamped. */
+export function axisAt(d: Day, first: Day, last: Day): number {
+  const span = Date.parse(last) - Date.parse(first);
+  if (span <= 0) return 0;
+  return Math.min(1, Math.max(0, (Date.parse(d) - Date.parse(first)) / span));
+}

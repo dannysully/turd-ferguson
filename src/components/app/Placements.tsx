@@ -2,17 +2,19 @@ import EngineLogo from "@/components/EngineLogo";
 import { T } from "@/config/tokens";
 import { ENGINE_SPECS, type Engine } from "@/lib/scan/engines";
 import { type Day, type Range, formatDay } from "@/lib/tracking/figures";
-import { KIND_WORDS, PLACEMENTS_FOOTNOTE, type PlacementsView, type Span, pageParts, shortDay, spanText } from "@/lib/tracking/placement-figures";
+import { KIND_WORDS, PLACEMENTS_FOOTNOTE, type PlacementsView, type Span, kindFilters, pageParts, shortDay, spanText } from "@/lib/tracking/placement-figures";
 import type { PlacementKind } from "@/lib/tracking/placements";
+
+import PlacementsChart from "./PlacementsChart";
 
 /**
  * The placements screen (T13, R97 part 3, 30 Sep 2026; BRIEF-2 T13 against
  * boards-3/Placements.dc.html): header with the cluster picker, the four
  * summary figures, the table with its Whole-cluster row, and the board's
  * footnote word for word. Server-drawn, so it reads the same with JS off.
- * Download CSV is the table as a file (part 4, report-csv.ts). Still to
- * come: the two stacked panels with a line per live placement, the type
- * filters, selection synced with the table.
+ * Download CSV is the table as a file (part 4, report-csv.ts). The chart
+ * (part 4b, PlacementsChart.tsx) and the table share ?type= and ?sel=: a
+ * type filter narrows both, and picking a line or a row selects it in both.
  *
  * Nothing here says a placement moved a figure: every span is where the
  * cluster stood at go-live and where it stands now (causal-copy.test.mts).
@@ -57,6 +59,11 @@ export default function Placements({
   keyword,
   prompts,
   view,
+  series,
+  kind,
+  sel,
+  query,
+  path,
   csvHref,
 }: {
   brand: string;
@@ -68,9 +75,20 @@ export default function Placements({
   keyword: string | null;
   prompts: number;
   view: PlacementsView;
+  series: React.ComponentProps<typeof PlacementsChart>["series"];
+  /** ?type= - null is every kind. */
+  kind: PlacementKind | null;
+  /** ?sel= - the selected placement, if any. */
+  sel: string | null;
+  /** The page's own query (cluster, and from/to when stated), kept by every filter and selection link. */
+  query: Record<string, string>;
+  path: string;
   /** GET /api/app/[client]/report?kind=placements for this cluster and range. */
   csvHref: string;
 }) {
+  const link = (k: PlacementKind | null, id: string | null, hash: string) => `${path}?${new URLSearchParams({ ...query, ...(k ? { type: k } : {}), ...(id ? { sel: id } : {}) })}${hash}`;
+  const rows = view.rows.filter((r) => kind === null || r.kind === kind);
+  const filters = kindFilters(view.rows).map((f) => ({ ...f, href: link(f.kind, sel, "#placements-chart") }));
   const since = view.whole.from ? shortDay(view.whole.from) : shortDay(range.from);
   const cell: React.CSSProperties = { display: "grid", gridTemplateColumns: COLS, alignItems: "center", gap: "16px", padding: "12px 24px" };
   const fig = (label: string, figure: string, big: string, sub: string, first = false) => (
@@ -129,6 +147,8 @@ export default function Placements({
         {fig("Answers citing your placements", "placements-cited", String(view.whole.cited), "An engine cited the placement page itself")}
       </section>
 
+      <PlacementsChart brand={brand} series={series} rows={rows} filters={filters} kind={kind} sel={sel} hrefFor={(id) => link(kind, id, "#placements-chart")} keyword={keyword} />
+
       <section aria-labelledby="tb-h" style={{ ...CARD, padding: "22px 0 8px" }}>
         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "0 24px 14px" }}>
           <h2 id="tb-h" style={H2}>
@@ -169,15 +189,16 @@ export default function Placements({
                 <Up s={view.whole.google} unit="rank" arrow />
               </span>
             </div>
-            {view.rows.map((r) => {
-              const { host, path } = pageParts(r.url);
+            {rows.map((r) => {
+              const { host, path: page } = pageParts(r.url);
               const pill = KIND_PILL[r.kind];
+              const on = r.id === sel;
               return (
-                <div key={r.id} data-placement={r.id} style={{ ...cell, borderTop: `1px solid ${T.hair}` }}>
-                  <span style={{ display: "flex", flexDirection: "column", gap: "2px", minWidth: 0 }}>
+                <div key={r.id} id={`p-${r.id}`} data-placement={r.id} aria-current={on ? "true" : undefined} style={{ ...cell, borderTop: `1px solid ${T.hair}`, background: on ? T.wash : undefined }}>
+                  <a href={link(kind, on ? null : r.id, `#p-${r.id}`)} style={{ display: "flex", flexDirection: "column", gap: "2px", minWidth: 0, color: T.ink, textDecoration: "none" }}>
                     <span style={{ fontSize: "14px", fontWeight: 700 }}>{host}</span>
-                    <span style={{ fontSize: "12px", color: T.soft, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{path}</span>
-                  </span>
+                    <span style={{ fontSize: "12px", color: T.soft, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{page}</span>
+                  </a>
                   <span style={{ justifySelf: "start", padding: "3px 9px", borderRadius: "999px", background: pill.bg, color: pill.fg, fontSize: "12px", fontWeight: 600, whiteSpace: "nowrap" }}>{KIND_WORDS[r.kind]}</span>
                   <span style={{ fontSize: "13px", fontWeight: r.live ? 500 : 600, color: r.live ? T.ink : T.warnFg }}>{r.when}</span>
                   <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -199,7 +220,7 @@ export default function Placements({
                 </div>
               );
             })}
-            {view.rows.length === 0 ? <p style={{ margin: 0, padding: "14px 24px", borderTop: `1px solid ${T.hair}`, fontSize: "14px", color: T.soft }}>Nothing placed on this cluster yet.</p> : null}
+            {rows.length === 0 ? <p style={{ margin: 0, padding: "14px 24px", borderTop: `1px solid ${T.hair}`, fontSize: "14px", color: T.soft }}>Nothing placed on this cluster yet.</p> : null}
           </div>
         </div>
         <p style={{ margin: "14px 24px 8px", fontSize: "13px", lineHeight: 1.5, color: T.soft, maxWidth: "820px" }}>{PLACEMENTS_FOOTNOTE}</p>

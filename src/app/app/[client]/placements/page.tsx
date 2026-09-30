@@ -7,6 +7,7 @@ import type { TierKey } from "@/components/TierName";
 import { enginesFor, trackingPackPrice } from "@/config/pricing";
 import { T } from "@/config/tokens";
 import { CLUSTER_BASE } from "@/lib/tracking/limits";
+import { pickKind } from "@/lib/tracking/placement-figures";
 import { placementsScreen } from "@/lib/tracking/placements-screen";
 import { trackingRepo } from "@/lib/tracking/repo";
 
@@ -64,6 +65,11 @@ export default async function ClientPlacements({
           keyword={screen.keyword}
           prompts={screen.prompts}
           view={screen.view}
+          series={screen.series}
+          kind={pickKind(typeof sp.type === "string" ? sp.type : null)}
+          sel={typeof sp.sel === "string" && screen.view.rows.some((r) => r.id === sp.sel) ? sp.sel : null}
+          query={{ cluster: screen.cluster.id, ...keep }}
+          path={`/app/${slug}/placements`}
           csvHref={csvHref}
         />
       </div>
