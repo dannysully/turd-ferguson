@@ -10,7 +10,7 @@ import { join, relative } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { clusterLimitFor, promptRoom, refuseCluster, refuseEdit, refuseKeyword, refusePrompts } from "./limits.ts";
+import { ANGLES, angleFor, clusterLimitFor, promptRoom, refuseCluster, refuseEdit, refuseGrouping, refuseKeyword, refusePrompts } from "./limits.ts";
 
 test("clusters: refused at cluster_limit live, allowed under it", () => {
   assert.equal(refuseCluster(9, 10), null);
@@ -44,6 +44,51 @@ test("keywords: refused when the cluster already has one live, or at one per clu
 test("editing: text is refused once any reading exists", () => {
   assert.equal(refuseEdit(0), null);
   assert.match(refuseEdit(1) ?? "", /Stop it and add a new one/);
+});
+
+// C3 grouping, and R111 (Danny, 29 Sep 2026): 14 prompts as 5+5+4, or 5 grouped + 9 ungrouped.
+const fourteen = Array.from({ length: 14 }, (_, i) => `p${i}`);
+
+/** Group in turn, as admin does: each batch is judged against what is still ungrouped. */
+function groupInTurn(batches: string[][]): (string | null)[] {
+  const ungrouped = new Set(fourteen);
+  return batches.map((ids) => {
+    const refused = refuseGrouping({ ids, ungrouped, clusterLive: 0 });
+    if (!refused) ids.forEach((id) => ungrouped.delete(id));
+    return refused;
+  });
+}
+
+test("grouping (R111): 14 prompts as clusters of 5, 5 and 4 with none left over", () => {
+  assert.deepEqual(groupInTurn([fourteen.slice(0, 5), fourteen.slice(5, 10), fourteen.slice(10)]), [null, null, null]);
+});
+
+test("grouping (R111): 5 grouped and 9 left ungrouped is allowed, and the 9 still fit the client's allowance", () => {
+  assert.deepEqual(groupInTurn([fourteen.slice(0, 5)]), [null]);
+  assert.equal(refusePrompts({ clientLive: 14, clusterLive: null, clusterLimit: 10 }), null, "the ungrouped 9 are live prompts, counted, not refused");
+});
+
+test("grouping: refused past 5 in a cluster, for a prompt already grouped, twice, or none", () => {
+  const ungrouped = new Set(fourteen);
+  assert.match(refuseGrouping({ ids: fourteen.slice(0, 6), ungrouped, clusterLive: 0 }) ?? "", /pass 5/);
+  assert.match(refuseGrouping({ ids: ["p0", "p1"], ungrouped, clusterLive: 4 }) ?? "", /has 4 live/);
+  assert.match(refuseGrouping({ ids: ["elsewhere"], ungrouped, clusterLive: 0 }) ?? "", /ungrouped/);
+  assert.match(refuseGrouping({ ids: ["p0", "p0"], ungrouped, clusterLive: 0 }) ?? "", /twice/);
+  assert.match(refuseGrouping({ ids: [], ungrouped, clusterLive: 0 }) ?? "", /at least one/);
+  assert.match(groupInTurn([fourteen.slice(0, 5), fourteen.slice(3, 8)])[1] ?? "", /ungrouped/, "a prompt in one cluster is not grouped again");
+});
+
+test("grouping (R111): the daily runner reads prompts by client, never by cluster, so ungrouped ones still get readings", () => {
+  const runner = readFileSync(fileURLToPath(new URL("./runner.ts", import.meta.url)), "utf8");
+  const reads = [...runner.matchAll(/\.from\("tracked_questions"\)[^;]*/g)].map((m) => m[0]);
+  assert.ok(reads.length >= 2, `found ${reads.length} tracked_questions reads in runner.ts, floor 2`);
+  for (const r of reads) assert.doesNotMatch(r, /cluster_id/, r);
+});
+
+test("angles: a scan kind is its angle, anything else is none", () => {
+  for (const a of ANGLES) assert.equal(angleFor(a), a);
+  assert.equal(angleFor("informational"), null);
+  assert.equal(angleFor(null), null);
 });
 
 test("the pack: cluster_limit = 10 + 5 per pack", () => {

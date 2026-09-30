@@ -9,7 +9,8 @@ import { constantTimeEqual, decodeBasicAuth } from "@/lib/constant-time";
 import { isPlausibleEmail } from "@/lib/email-address";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { ADMIN_LIMITS, dayAfter, liveOn, slugFor, trackingDay, upsellSetting } from "@/lib/tracking/decide";
-import { insertKeyword, insertPrompts, readPromptRoom } from "@/lib/tracking/limits";
+import { NEEDS_A_KEYWORD } from "@/lib/checkout/signup";
+import { type Angle, angleFor, groupPrompts, insertCluster, insertKeyword, insertPrompts, linkKeyword, PROMPTS_PER_CLUSTER, readPromptRoom, refuseGrouping } from "@/lib/tracking/limits";
 import { dispatchTrackingRun } from "@/lib/tracking/runner";
 
 /**
@@ -59,7 +60,7 @@ export async function createClientFromScan(_prev: AdminResult | null, form: Form
   const db = supabaseAdmin();
   const { data: scan, error: sErr } = await db
     .from("scans")
-    .select("id, domain, brand_name, topic, market, status")
+    .select("id, domain, brand_name, topic, market, status, cluster_keyword, cluster_keyword_volume, cluster_keyword_intent, cluster_keyword_status")
     .eq("public_token", token)
     .maybeSingle();
   if (sErr) return { ok: false, message: `Could not read the scan: ${sErr.message}` };
@@ -111,18 +112,42 @@ export async function createClientFromScan(_prev: AdminResult | null, form: Form
 
   const { data: sq, error: qErr } = await db
     .from("scan_questions")
-    .select("idx, question")
+    .select("idx, question, kind")
     .eq("scan_id", scan.id)
     .order("idx", { ascending: true });
   if (qErr) return { ok: false, message: `Could not read the scan's questions: ${qErr.message}` };
   const room = await readPromptRoom(db, client.id as string, null);
   if (typeof room === "string") return { ok: false, message: room };
+  // Each prompt keeps its scan kind as its angle (BRIEF-3 C3).
   const rows = (sq ?? [])
-    .map((q) => String(q.question).trim())
-    .filter((q) => q.length >= 8 && q.length <= 300 && !have.has(q.toLowerCase()))
+    .map((q) => ({ text: String(q.question).trim(), angle: angleFor(q.kind) }))
+    .filter((q) => q.text.length >= 8 && q.text.length <= 300 && !have.has(q.text.toLowerCase()))
     .slice(0, room.room)
-    .map((q) => ({ text: q, source: "scan", added_on: startedOn, added_by: "nomada" }));
-  const copied = await insertPrompts(db, client.id as string, null, rows);
+    .map((q) => ({ text: q.text, angle: q.angle, source: "scan", added_on: startedOn, added_by: "nomada" }));
+
+  // A scan made since C1 carries its cluster keyword (or says none qualified):
+  // its first 5 prompts become the first cluster, as signup does. An older
+  // scan (status null) has no cluster; its prompts stay ungrouped for grouping below.
+  let clustered = 0;
+  if (scan.cluster_keyword_status && rows.length && have.size === 0) {
+    const chosen = scan.cluster_keyword_status === "chosen" && typeof scan.cluster_keyword === "string" && scan.cluster_keyword.trim();
+    const cluster = await insertCluster(db, client.id as string, { name: chosen ? (scan.cluster_keyword as string).trim() : NEEDS_A_KEYWORD, tier, started_on: startedOn });
+    if (!cluster.ok) return { ok: false, message: `Client made, cluster refused: ${cluster.message}` };
+    if (chosen) {
+      const kw = await insertKeyword(db, client.id as string, cluster.ids[0]!, {
+        keyword: (scan.cluster_keyword as string).trim(),
+        added_on: startedOn,
+        added_by: "nomada",
+        search_volume: (scan.cluster_keyword_volume as number | null) ?? null,
+        intent: (scan.cluster_keyword_intent as string | null) ?? null,
+      });
+      if (!kw.ok) return { ok: false, message: `Cluster made, keyword refused: ${kw.message}` };
+    }
+    const first = await insertPrompts(db, client.id as string, cluster.ids[0]!, rows.slice(0, PROMPTS_PER_CLUSTER));
+    if (!first.ok) return { ok: false, message: `Cluster made, prompts refused: ${first.message}` };
+    clustered = Math.min(rows.length, PROMPTS_PER_CLUSTER);
+  }
+  const copied = await insertPrompts(db, client.id as string, null, rows.slice(clustered));
   if (!copied.ok) return { ok: false, message: `Could not copy the questions: ${copied.message}` };
 
   const { error: memErr } = await db
@@ -131,7 +156,7 @@ export async function createClientFromScan(_prev: AdminResult | null, form: Form
   if (memErr) return { ok: false, message: `Client made, but the owner could not be added: ${memErr.message}` };
 
   revalidatePath("/admin/tracking");
-  return { ok: true, message: `${scan.domain} set up: ${rows.length} scan question(s), first check ${startedOn}.` };
+  return { ok: true, message: `${scan.domain} set up: ${rows.length} scan prompt(s), first check ${startedOn}.` };
 }
 
 /** Add a Nomada question or a keyword, up to the client's allowance (limits.ts). */
@@ -142,7 +167,7 @@ export async function addTracked(_prev: AdminResult | null, form: FormData): Pro
   const kind = text(form, "kind");
   const value = text(form, "value");
   if (kind !== "question" && kind !== "keyword") return { ok: false, message: "Unknown kind." };
-  if (kind === "question" && (value.length < 8 || value.length > 300)) return { ok: false, message: "A question is 8 to 300 characters." };
+  if (kind === "question" && (value.length < 8 || value.length > 300)) return { ok: false, message: "A prompt is 8 to 300 characters." };
   if (kind === "keyword" && (value.length < 2 || value.length > 120)) return { ok: false, message: "A keyword is 2 to 120 characters." };
 
   const db = supabaseAdmin();
@@ -168,6 +193,85 @@ export async function addTracked(_prev: AdminResult | null, form: FormData): Pro
   if (!written.ok) return { ok: false, message: written.message };
   revalidatePath("/admin/tracking");
   return { ok: true, message: `Added; first check ${addedOn}.` };
+}
+
+/**
+ * Group prompts into a cluster - BRIEF-3 C3 (Danny, 29 Sep 2026). With no
+ * cluster named, makes a new one on the keyword typed; with one named, adds
+ * prompts to it and, if it has none, its keyword. The keyword is an existing
+ * ungrouped one when the text matches, else a new row. Each prompt without an
+ * angle takes its scan kind, matched by text on the client's source scan.
+ * Nothing is re-created or re-run: readings stay on the same rows.
+ *
+ * The keyword is not yet run through C1's volume and intent check; that check
+ * is built with C1 and this form calls it then. Until then Nomada types it.
+ */
+export async function groupCluster(_prev: AdminResult | null, form: FormData): Promise<AdminResult> {
+  const refused = await refuseUnlessAdmin();
+  if (refused) return refused;
+  const clientId = text(form, "client");
+  const clusterIdIn = text(form, "cluster");
+  const keyword = text(form, "keyword");
+  const ids = form.getAll("prompt").map((v) => String(v)).filter(Boolean);
+  if (keyword && (keyword.length < 2 || keyword.length > 120)) return { ok: false, message: "A keyword is 2 to 120 characters." };
+  if (!clusterIdIn && !keyword) return { ok: false, message: "A new cluster needs its keyword." };
+  if (!clusterIdIn && !ids.length) return { ok: false, message: "Pick the prompts that go in it." };
+
+  const db = supabaseAdmin();
+  const { data: client, error: cErr } = await db.from("client_domains").select("id, tier, source_scan_id").eq("id", clientId).single();
+  if (cErr) return { ok: false, message: `Could not read the client: ${cErr.message}` };
+  const { data: live, error: qErr } = await db
+    .from("tracked_questions")
+    .select("id, text, added_on")
+    .eq("client_domain_id", clientId)
+    .is("cluster_id", null)
+    .is("stopped_on", null);
+  if (qErr) return { ok: false, message: `Could not read the ungrouped prompts: ${qErr.message}` };
+  const picked = (live ?? []).filter((q) => ids.includes(q.id as string));
+  if (ids.length) {
+    // Judged before anything is written, so a refused batch leaves no empty cluster behind.
+    const early = refuseGrouping({ ids, ungrouped: new Set((live ?? []).map((q) => q.id as string)), clusterLive: 0 });
+    if (early) return { ok: false, message: early };
+  }
+
+  // Angles from the source scan's kinds, by text.
+  const angles = new Map<string, Angle | null>();
+  if (client.source_scan_id && picked.length) {
+    const { data: sq, error: sErr } = await db.from("scan_questions").select("question, kind").eq("scan_id", client.source_scan_id as string);
+    if (sErr) return { ok: false, message: `Could not read the scan's kinds: ${sErr.message}` };
+    const kinds = new Map((sq ?? []).map((q) => [String(q.question).trim().toLowerCase(), angleFor(q.kind)]));
+    for (const q of picked) angles.set(q.id as string, kinds.get(String(q.text).trim().toLowerCase()) ?? null);
+  }
+
+  let clusterId = clusterIdIn;
+  if (!clusterId) {
+    // The cluster started when its oldest prompt did, so its history reads from day one.
+    const startedOn = picked.map((q) => q.added_on as string).sort()[0] ?? dayAfter(trackingDay());
+    const made = await insertCluster(db, clientId, { name: keyword, tier: client.tier as string, started_on: startedOn });
+    if (!made.ok) return { ok: false, message: made.message };
+    clusterId = made.ids[0]!;
+  }
+
+  if (keyword) {
+    const { data: ks, error: kErr } = await db.from("tracked_keywords").select("id, keyword").eq("client_domain_id", clientId).is("stopped_on", null);
+    if (kErr) return { ok: false, message: `Could not read the keywords: ${kErr.message}` };
+    const same = (ks ?? []).find((k) => String(k.keyword).toLowerCase() === keyword.toLowerCase());
+    const kw = same
+      ? await linkKeyword(db, clientId, clusterId, same.id as string)
+      : await insertKeyword(db, clientId, clusterId, { keyword, added_on: dayAfter(trackingDay()), added_by: "nomada" });
+    if (!kw.ok) return { ok: false, message: kw.message };
+    if (clusterIdIn) {
+      const { error: nErr } = await db.from("tracked_clusters").update({ name: keyword }).eq("id", clusterId).eq("name", NEEDS_A_KEYWORD);
+      if (nErr) return { ok: false, message: `Keyword linked, name not updated: ${nErr.message}` };
+    }
+  }
+
+  if (ids.length) {
+    const grouped = await groupPrompts(db, clientId, clusterId, ids, angles);
+    if (!grouped.ok) return { ok: false, message: grouped.message };
+  }
+  revalidatePath("/admin/tracking");
+  return { ok: true, message: `${clusterIdIn ? "Cluster updated" : `Cluster "${keyword}" made`}: ${ids.length} prompt(s) grouped${keyword ? `, keyword ${keyword}` : ""}.` };
 }
 
 /** Add or remove a dashboard member on an account. */
@@ -228,7 +332,7 @@ export async function runNow(_prev: AdminResult | null, form: FormData): Promise
     .eq("client_domain_id", clientId);
   if (qErr) return { ok: false, message: `Could not read the questions: ${qErr.message}` };
   if (!(qs ?? []).some((q) => liveOn(q as { added_on: string; stopped_on: string | null }, day))) {
-    return { ok: false, message: "No question is live today - new questions start at the next daily check." };
+    return { ok: false, message: "No prompt is live today - new prompts start at the next daily check." };
   }
 
   const engines = [...enginesFor((client.tier as TierKey) ?? "tracked")];

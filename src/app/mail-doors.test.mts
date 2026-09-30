@@ -218,7 +218,10 @@ const ACTIONS: Record<string, string[]> = {
   // id is answered on any path and the /admin proxy covers only /admin.
   // setUpsell, 29 Sep 2026 (R94): writes accounts.upsell_mode and the agency
   // contact, sends nothing, same admin check first.
-  "src/app/admin/tracking/actions.ts": ["addTracked", "createClientFromScan", "runNow", "setMember", "setUpsell"],
+  // groupCluster, 30 Sep 2026 (BRIEF-3 C3, R111): makes a cluster or adds to
+  // one, moving ungrouped prompts and keywords in through limits.ts. Sends
+  // nothing, spends nothing, same admin check first.
+  "src/app/admin/tracking/actions.ts": ["addTracked", "createClientFromScan", "groupCluster", "runNow", "setMember", "setUpsell"],
 };
 
 // --------------------------------------------------------------- the tests

@@ -6,7 +6,7 @@ import { ADMIN_LIMITS, UPSELL_MODES, liveOn, trackingDay } from "@/lib/tracking/
 import { PROMPTS_PER_CLUSTER } from "@/lib/tracking/limits";
 
 import { ActionForm } from "./ActionForm";
-import { addTracked, createClientFromScan, runNow, setMember, setUpsell } from "./actions";
+import { addTracked, createClientFromScan, groupCluster, runNow, setMember, setUpsell } from "./actions";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -61,9 +61,10 @@ export default async function TrackingAdmin() {
     { data: runs, error: rErr },
     { data: members, error: mErr },
     { data: accountRows, error: acErr },
+    { data: clusters, error: clErr },
   ] = await Promise.all([
-    db.from("tracked_questions").select("client_domain_id, text, source, added_on, stopped_on").in("client_domain_id", ids),
-    db.from("tracked_keywords").select("client_domain_id, keyword, added_on, stopped_on").in("client_domain_id", ids),
+    db.from("tracked_questions").select("id, client_domain_id, cluster_id, angle, text, source, added_on, stopped_on").in("client_domain_id", ids),
+    db.from("tracked_keywords").select("id, client_domain_id, keyword, added_on, stopped_on").in("client_domain_id", ids),
     db
       .from("tracking_runs")
       .select("client_domain_id, run_date, status, dfs_cost, model_calls, error, finished_at")
@@ -72,12 +73,19 @@ export default async function TrackingAdmin() {
       .order("run_date", { ascending: false }),
     db.from("dashboard_members").select("account_id, email, role").in("account_id", accounts),
     db.from("accounts").select("id, upsell_mode, upsell_contact_email").in("id", accounts),
+    db
+      .from("tracked_clusters")
+      .select("id, client_domain_id, name, keyword_id, tier, started_on, stopped_on")
+      .in("client_domain_id", ids)
+      .is("stopped_on", null)
+      .order("created_at", { ascending: true }),
   ]);
   if (qErr) throw new Error(`could not read tracked questions: ${qErr.message}`);
   if (kErr) throw new Error(`could not read tracked keywords: ${kErr.message}`);
   if (rErr) throw new Error(`could not read tracking runs: ${rErr.message}`);
   if (mErr) throw new Error(`could not read dashboard members: ${mErr.message}`);
   if (acErr) throw new Error(`could not read accounts: ${acErr.message}`);
+  if (clErr) throw new Error(`could not read clusters: ${clErr.message}`);
 
   const of = (rows: Row[] | null, id: string, key = "client_domain_id") => (rows ?? []).filter((r) => r[key] === id);
 
@@ -129,27 +137,22 @@ export default async function TrackingAdmin() {
               <input type="hidden" name="client" value={id} maxLength={ADMIN_LIMITS.id} />
               <span style={{ fontSize: "12.5px", color: T.soft }}>The only manual spend.</span>
             </ActionForm>
-            <ActionForm action={addTracked} submit="Add question">
+            <ActionForm action={addTracked} submit="Add prompt">
               <input type="hidden" name="client" value={id} maxLength={ADMIN_LIMITS.id} />
               <input type="hidden" name="kind" value="question" maxLength={ADMIN_LIMITS.id} />
-              <input name="value" maxLength={ADMIN_LIMITS.question} placeholder="A buyer question" style={{ ...input, width: "480px" }} aria-label="Question" />
+              <input name="value" maxLength={ADMIN_LIMITS.question} placeholder="A buyer prompt, ungrouped" style={{ ...input, width: "480px" }} aria-label="Prompt" />
             </ActionForm>
             <ActionForm action={addTracked} submit="Add keyword">
               <input type="hidden" name="client" value={id} maxLength={ADMIN_LIMITS.id} />
               <input type="hidden" name="kind" value="keyword" maxLength={ADMIN_LIMITS.id} />
               <input name="value" maxLength={ADMIN_LIMITS.keyword} placeholder="A Google keyword" style={{ ...input, width: "280px" }} aria-label="Keyword" />
             </ActionForm>
-            <details style={{ margin: "8px 0" }}>
-              <summary>Questions and keywords</summary>
-              <ol style={{ margin: "6px 0", paddingLeft: "20px" }}>
-                {liveQ.map((q, i) => (
-                  <li key={i}>
-                    {q.text as string} <span style={{ color: T.soft }}>({q.source as string}, from {q.added_on as string})</span>
-                  </li>
-                ))}
-              </ol>
-              <p style={{ margin: "4px 0" }}>{liveK.map((k) => k.keyword as string).join(", ") || "No keywords yet."}</p>
-            </details>
+            <ClusterAdmin
+              client={id}
+              clusters={of(clusters, id)}
+              prompts={liveQ}
+              keywords={liveK}
+            />
             <div>
               <strong style={{ fontSize: "13px" }}>Members</strong>{" "}
               {ms.map((m) => `${m.email as string} (${m.role as string})`).join(", ") || "none"}
@@ -191,5 +194,79 @@ export default async function TrackingAdmin() {
         );
       })}
     </main>
+  );
+}
+
+const angleShort = (a: unknown) => (a ? ` [${String(a)}]` : "");
+
+/**
+ * The cluster list and "Ungrouped" - BRIEF-3 C3 (Danny, 29 Sep 2026). A
+ * cluster is one keyword and up to 5 prompts; ungrouped prompts and keywords
+ * are still read daily and shown here only (R111). Grouping moves the rows,
+ * so readings already taken stay with them.
+ */
+function ClusterAdmin({ client, clusters, prompts, keywords }: { client: string; clusters: Row[]; prompts: Row[]; keywords: Row[] }) {
+  const linked = new Set(clusters.map((c) => c.keyword_id as string | null).filter(Boolean));
+  const ungroupedQ = prompts.filter((q) => q.cluster_id === null);
+  const ungroupedK = keywords.filter((k) => !linked.has(k.id as string));
+  const pick = (
+    <div style={{ display: "grid", gap: "2px", width: "100%" }}>
+      {ungroupedQ.map((q) => (
+        <label key={q.id as string} style={{ fontSize: "13px" }}>
+          <input type="checkbox" name="prompt" value={q.id as string} maxLength={ADMIN_LIMITS.id} /> {q.text as string}
+          <span style={{ color: T.soft }}>{angleShort(q.angle)}</span>
+        </label>
+      ))}
+    </div>
+  );
+  return (
+    <details style={{ margin: "8px 0" }} open={ungroupedQ.length > 0}>
+      <summary>
+        Clusters {clusters.length} - prompts {prompts.length} ({ungroupedQ.length} ungrouped) - keywords {keywords.length} ({ungroupedK.length} ungrouped)
+      </summary>
+      {clusters.map((c) => {
+        const qs = prompts.filter((q) => q.cluster_id === c.id);
+        const kw = keywords.find((k) => k.id === c.keyword_id);
+        return (
+          <div key={c.id as string} style={{ borderLeft: `3px solid ${T.line}`, padding: "4px 0 4px 10px", margin: "8px 0" }}>
+            <strong>{c.name as string}</strong>{" "}
+            <span style={{ color: T.soft }}>
+              - keyword {kw ? (kw.keyword as string) : "none"} - {qs.length}/{PROMPTS_PER_CLUSTER} prompts - from {c.started_on as string}
+            </span>
+            <ol style={{ margin: "4px 0", paddingLeft: "20px" }}>
+              {qs.map((q) => (
+                <li key={q.id as string}>
+                  {q.text as string} <span style={{ color: T.soft }}>({q.source as string}, from {q.added_on as string}){angleShort(q.angle)}</span>
+                </li>
+              ))}
+            </ol>
+            {(!kw || qs.length < PROMPTS_PER_CLUSTER) && (ungroupedQ.length > 0 || !kw) ? (
+              <ActionForm action={groupCluster} submit="Add to this cluster">
+                <input type="hidden" name="client" value={client} maxLength={ADMIN_LIMITS.id} />
+                <input type="hidden" name="cluster" value={c.id as string} maxLength={ADMIN_LIMITS.id} />
+                {!kw ? <input name="keyword" maxLength={ADMIN_LIMITS.keyword} placeholder="Its Google keyword" style={{ ...input, width: "280px" }} aria-label="Cluster keyword" /> : null}
+                {qs.length < PROMPTS_PER_CLUSTER ? pick : null}
+              </ActionForm>
+            ) : null}
+          </div>
+        );
+      })}
+      <div style={{ margin: "8px 0" }}>
+        <strong style={{ fontSize: "13px" }}>Ungrouped</strong>{" "}
+        <span style={{ color: T.soft, fontSize: "13px" }}>
+          Still read daily; admin only.{ungroupedK.length ? ` Keywords: ${ungroupedK.map((k) => k.keyword as string).join(", ")}.` : ""}
+        </span>
+        {ungroupedQ.length ? (
+          <ActionForm action={groupCluster} submit="New cluster">
+            <input type="hidden" name="client" value={client} maxLength={ADMIN_LIMITS.id} />
+            <input name="keyword" maxLength={ADMIN_LIMITS.keyword} placeholder="Its Google keyword" style={{ ...input, width: "280px" }} aria-label="New cluster keyword" />
+            <span style={{ fontSize: "12.5px", color: T.soft }}>Pick up to {PROMPTS_PER_CLUSTER}; the rest stay ungrouped and running.</span>
+            {pick}
+          </ActionForm>
+        ) : (
+          <p style={{ margin: "4px 0", color: T.soft, fontSize: "13px" }}>No ungrouped prompts.</p>
+        )}
+      </div>
+    </details>
   );
 }

@@ -5,7 +5,7 @@ import { siteUrl } from "@/lib/scan/verify-email";
 import { sendOrderEmail } from "@/lib/checkout/order-mail";
 import { orderEmailText, packsOn, subscriptionScanToken, type CompletedOrder } from "@/lib/checkout/webhook";
 import { dayAfter, slugFor, trackingDay } from "@/lib/tracking/decide";
-import { clusterLimitFor, insertCluster, insertKeyword, insertPrompts, PROMPTS_PER_CLUSTER } from "@/lib/tracking/limits";
+import { angleFor, clusterLimitFor, insertCluster, insertKeyword, insertPrompts, PROMPTS_PER_CLUSTER } from "@/lib/tracking/limits";
 import { sendLoginLink } from "@/lib/tracking/login-mail";
 import { LOGIN_TTL_MS, hashToken, newToken } from "@/lib/tracking/session";
 
@@ -86,13 +86,14 @@ async function clientFromScan(db: SupabaseClient, o: CompletedOrder): Promise<{ 
     if (!kw.ok) return { ok: false, outcome: `cluster made, keyword refused: ${kw.message}`, clientId };
   }
 
-  const { data: sq, error: qErr } = await db.from("scan_questions").select("idx, question").eq("scan_id", scan.id).order("idx", { ascending: true });
+  const { data: sq, error: qErr } = await db.from("scan_questions").select("idx, question, kind").eq("scan_id", scan.id).order("idx", { ascending: true });
   if (qErr) return { ok: false, outcome: `could not read the scan's prompts: ${qErr.message}`, clientId };
+  // Each prompt keeps its scan kind as its angle (BRIEF-3 C3).
   const rows = (sq ?? [])
-    .map((q) => String(q.question).trim())
-    .filter((q) => q.length >= 8 && q.length <= 300)
+    .map((q) => ({ text: String(q.question).trim(), angle: angleFor(q.kind) }))
+    .filter((q) => q.text.length >= 8 && q.text.length <= 300)
     .slice(0, PROMPTS_PER_CLUSTER)
-    .map((q) => ({ text: q, source: "scan", added_on: startedOn, added_by: "nomada" }));
+    .map((q) => ({ text: q.text, angle: q.angle, source: "scan", added_on: startedOn, added_by: "nomada" }));
   const prompts = await insertPrompts(db, clientId, clusterId, rows);
   if (!prompts.ok) return { ok: false, outcome: `cluster made, prompts refused: ${prompts.message}`, clientId };
 

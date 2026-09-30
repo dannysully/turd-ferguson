@@ -165,6 +165,68 @@ export async function insertCluster(db: SupabaseClient, clientId: string, row: C
   return { ok: true, ids: [data.id as string] };
 }
 
+// ---- Grouping (BRIEF-3 C3). Prompts and keywords move into a cluster; nothing is re-created. ----
+
+/** The five angles, one per scan question kind (`anthropic.ts` QuestionKind, migration 3's check). */
+export const ANGLES = ["category", "positioning", "sector", "outcome", "comparison"] as const;
+export type Angle = (typeof ANGLES)[number];
+
+/** A scan question's kind is its angle; anything else is none. */
+export function angleFor(kind: unknown): Angle | null {
+  return (ANGLES as readonly string[]).includes(String(kind)) ? (kind as Angle) : null;
+}
+
+/**
+ * Which of `ids` may be grouped into a cluster that already has `clusterLive`
+ * live prompts: all of them, or a refusal. Each id must be a live, ungrouped
+ * prompt of this client - a prompt is in one cluster, and moving it out of
+ * another one is not grouping. Clusters of fewer than 5 are allowed (R111: 5,
+ * 5 and 4), and what is not picked stays ungrouped and still read daily.
+ */
+export function refuseGrouping(p: { ids: string[]; ungrouped: ReadonlySet<string>; clusterLive: number }): string | null {
+  if (!p.ids.length) return "Pick at least one prompt.";
+  if (new Set(p.ids).size !== p.ids.length) return "A prompt was picked twice.";
+  if (p.ids.some((id) => !p.ungrouped.has(id))) return "Only this client's live ungrouped prompts can be grouped.";
+  if (p.clusterLive + p.ids.length > PROMPTS_PER_CLUSTER) {
+    return `That cluster has ${p.clusterLive} live prompts; ${p.ids.length} more would pass ${PROMPTS_PER_CLUSTER}.`;
+  }
+  return null;
+}
+
+/** Move live ungrouped prompts into a cluster, setting an angle where one is known and none is set. */
+export async function groupPrompts(db: SupabaseClient, clientId: string, clusterId: string, ids: string[], angles: ReadonlyMap<string, Angle | null> = new Map()): Promise<Written> {
+  const { data: live, error } = await db.from("tracked_questions").select("id, angle").eq("client_domain_id", clientId).is("cluster_id", null).is("stopped_on", null);
+  if (error) return { ok: false, message: `Could not read the ungrouped prompts: ${error.message}` };
+  const clusterLive = await liveCount(db, "tracked_questions", "cluster_id", clusterId);
+  if (typeof clusterLive === "string") return { ok: false, message: clusterLive };
+  const refused = refuseGrouping({ ids, ungrouped: new Set((live ?? []).map((r) => r.id as string)), clusterLive });
+  if (refused) return { ok: false, message: refused };
+  for (const id of ids) {
+    const had = (live ?? []).find((r) => r.id === id)?.angle ?? null;
+    const angle = had ?? angles.get(id) ?? null;
+    const { error: uErr } = await db.from("tracked_questions").update({ cluster_id: clusterId, angle }).eq("id", id).is("cluster_id", null);
+    if (uErr) return { ok: false, message: `Could not group a prompt: ${uErr.message}` };
+  }
+  return { ok: true, ids };
+}
+
+/** Make a live ungrouped keyword a cluster's one keyword. Refused if the cluster has a live one already. */
+export async function linkKeyword(db: SupabaseClient, clientId: string, clusterId: string, keywordId: string): Promise<Written> {
+  const { data: c, error } = await db.from("tracked_clusters").select("keyword_id").eq("id", clusterId).eq("client_domain_id", clientId).single();
+  if (error) return { ok: false, message: `Could not read the cluster: ${error.message}` };
+  if (c.keyword_id) {
+    const { data: k, error: kErr } = await db.from("tracked_keywords").select("stopped_on").eq("id", c.keyword_id as string).maybeSingle();
+    if (kErr) return { ok: false, message: `Could not read the cluster's keyword: ${kErr.message}` };
+    if (k && k.stopped_on === null) return { ok: false, message: "That cluster already has its keyword." };
+  }
+  const { data: taken, error: tErr } = await db.from("tracked_clusters").select("id").eq("keyword_id", keywordId).is("stopped_on", null);
+  if (tErr) return { ok: false, message: `Could not check the keyword: ${tErr.message}` };
+  if ((taken ?? []).length) return { ok: false, message: "That keyword is already another cluster's." };
+  const { error: lErr } = await db.from("tracked_clusters").update({ keyword_id: keywordId }).eq("id", clusterId);
+  if (lErr) return { ok: false, message: `Could not link the keyword: ${lErr.message}` };
+  return { ok: true, ids: [keywordId] };
+}
+
 /** Readings a prompt or keyword has; any at all fixes its text (see `refuseEdit`). */
 export async function readingsFor(db: SupabaseClient, kind: "prompt" | "keyword", id: string): Promise<number | string> {
   const [table, column] = kind === "prompt" ? ["tracking_answers", "question_id"] : ["tracking_serp", "keyword_id"];
