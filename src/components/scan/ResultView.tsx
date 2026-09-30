@@ -3,7 +3,8 @@
 import EngineLogo from "@/components/EngineLogo";
 import TierName from "@/components/TierName";
 import { D, TRACKED_WASH } from "@/components/home/dark";
-import { TIERS, TRACKED_BASIS, TRACKED_CLUSTERS, TRACKED_KEYWORDS, TRACKED_PROMPTS } from "@/config/pricing";
+import { TIERS, TRACKED_BASIS, TRACKED_CLUSTERS, TRACKED_KEYWORDS, TRACKED_PRICE, TRACKED_PROMPTS, checkoutUrlFor } from "@/config/pricing";
+import { formatPrice } from "@/config/sector-pricing";
 import { count } from "@/lib/plural";
 import { SCAN_LIMITS } from "@/config/contact";
 import { track } from "@/lib/analytics";
@@ -924,8 +925,12 @@ function PlanCards(p: { r: RunScanResponse; rows: RunScanResponse["opportunities
  * question count, never typed here - the tracked tier is a floor, and "from"
  * travels with the figure.
  */
-function TrackedSection(p: { token: string }) {
+function TrackedSection(p: { token: string; r: RunScanResponse; cluster: ReturnType<typeof clusterState> }) {
   const tracked = TIERS.find((t) => t.id === "tracked");
+  // ScanCluster.dc.html's cta=checkout: a cluster scan buys the cluster it
+  // just read, now checkout and the webhook are live (R117). A UK scan keeps
+  // the walkthrough - no VAT is added at checkout yet (blocked.md, R91).
+  const buy = p.cluster && p.r.market === "US";
   const tile = (title: string, body: React.ReactNode) => (
     <div style={{ background: D.card, border: "1px solid " + D.cardLine, borderRadius: "14px", padding: "14px 16px" }}>
       <div style={{ fontSize: "14px", fontWeight: 700, color: T.surface }}>{title}</div>
@@ -939,29 +944,65 @@ function TrackedSection(p: { token: string }) {
           <TierName tier="tracked" />
         </div>
         <h2 style={{ margin: "10px 0 0", fontSize: "38px", fontWeight: 700, letterSpacing: "-0.035em", lineHeight: 1.08, color: T.surface }} className="res-tracked-h">
-          This was one reading. See it every day.
+          {p.cluster ? "This was one reading of one cluster. See " + word(TRACKED_CLUSTERS) + " of them every day." : "This was one reading. See it every day."}
         </h2>
-        <div className="res-tiles">
-          {tile("Daily, not once", TRACKED_BASIS + ".")}
-          {tile("Your own questions", "The ones your buyers actually ask, not ours.")}
-          {tile("Adjacent openings", "Pages not cited yet, of the kind these engines reach for.")}
-          {tile(
-            "Reporting only",
-            <>
-              Winning the placements is <TierName tier="mentioned" />.
-            </>,
-          )}
-        </div>
+        {p.cluster ? (
+          <div className="res-tiles">
+            {tile("Daily, not once", TRACKED_PROMPTS + " prompts on " + word(p.r.engines.length) + " engines, every morning.")}
+            {tile(word(TRACKED_CLUSTERS)[0].toUpperCase() + word(TRACKED_CLUSTERS).slice(1) + " clusters", word(TRACKED_KEYWORDS)[0].toUpperCase() + word(TRACKED_KEYWORDS).slice(1) + " keywords on Google, each joined to its five prompts.")}
+            {tile("Your own keywords", "The terms your buyers search, checked for volume and intent.")}
+            {tile(
+              "Reporting only",
+              <>
+                Winning the placements is <TierName tier="mentioned" />, one cluster at a time.
+              </>,
+            )}
+          </div>
+        ) : (
+          <div className="res-tiles">
+            {tile("Daily, not once", TRACKED_BASIS + ".")}
+            {tile("Your own questions", "The ones your buyers actually ask, not ours.")}
+            {tile("Adjacent openings", "Pages not cited yet, of the kind these engines reach for.")}
+            {tile(
+              "Reporting only",
+              <>
+                Winning the placements is <TierName tier="mentioned" />.
+              </>,
+            )}
+          </div>
+        )}
         {tracked ? (
           <div style={{ fontSize: "13px", color: D.muted, marginTop: "18px" }}>
-            {tracked.priceLabel[0].toUpperCase() + tracked.priceLabel.slice(1) + ", " + TRACKED_BASIS + "."}
+            {tracked.priceLabel[0].toUpperCase() + tracked.priceLabel.slice(1) + ", " + (p.cluster ? TRACKED_CLUSTERS + " clusters checked daily" : TRACKED_BASIS) + "."}
           </div>
         ) : null}
       </div>
-      <div style={{ background: T.surface, color: T.ink, borderRadius: "18px", padding: "24px", minWidth: 0 }}>
-        <div style={{ fontSize: "17px", fontWeight: 700, marginBottom: "16px" }}>See it on your own report</div>
-        <WalkthroughForm token={p.token} />
-      </div>
+      {buy ? (
+        <div data-figure="tracked-checkout" style={{ background: T.surface, color: T.ink, borderRadius: "18px", padding: "24px", minWidth: 0, display: "flex", flexDirection: "column", gap: "14px" }}>
+          <div style={{ fontSize: "17px", fontWeight: 700 }}>Track this cluster from tomorrow</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "4px", padding: "14px 16px", borderRadius: "12px", background: "#fcfbff", border: "1px solid " + T.washLine }}>
+            <span style={{ fontSize: "12px", color: T.soft }}>Your first cluster, set up from this scan</span>
+            <span style={{ fontSize: "15px", fontWeight: 700, overflowWrap: "anywhere" }}>{p.cluster === "chosen" ? p.r.cluster_keyword?.keyword : "Needs a keyword"}</span>
+            <span style={{ fontSize: "13px", color: T.soft }}>{"and its 5 prompts. Add " + (TRACKED_CLUSTERS - 1) + " more whenever you like."}</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "baseline", gap: "8px", flexWrap: "wrap" }}>
+            <span style={{ fontSize: "30px", fontWeight: 700, letterSpacing: "-0.03em" }}>{formatPrice(TRACKED_PRICE.us, "us")}</span>
+            <span style={{ fontSize: "14px", color: T.soft }}>{"a month, " + TRACKED_CLUSTERS + " clusters checked daily"}</span>
+          </div>
+          <a
+            href={checkoutUrlFor("tracked") + "&scan=" + encodeURIComponent(p.token)}
+            style={{ display: "flex", alignItems: "center", justifyContent: "center", background: T.accent, color: T.surface, fontSize: "15px", fontWeight: 600, borderRadius: "12px", minHeight: "48px", textDecoration: "none" }}
+          >
+            Track this cluster
+          </a>
+          <div style={{ fontSize: "12px", lineHeight: 1.5, color: T.soft }}>Monthly, 30 days&apos; notice to cancel. The dashboard login arrives by email.</div>
+        </div>
+      ) : (
+        <div style={{ background: T.surface, color: T.ink, borderRadius: "18px", padding: "24px", minWidth: 0 }}>
+          <div style={{ fontSize: "17px", fontWeight: 700, marginBottom: "16px" }}>{p.cluster ? "See it on your own cluster" : "See it on your own report"}</div>
+          <WalkthroughForm token={p.token} />
+        </div>
+      )}
     </section>
   );
 }
@@ -1081,7 +1122,7 @@ export default function ResultView(p: {
       </div>
 
       <div style={{ marginTop: "46px" }}>
-        <TrackedSection token={p.token} />
+        <TrackedSection token={p.token} r={r} cluster={cluster} />
       </div>
 
       <AnswerDrawer r={r} idx={openIdx} onClose={close} onMove={setOpenIdx} />

@@ -201,7 +201,10 @@ const OFF_PALETTE: Record<string, Entry> = {
   "#fcfbff": {
     why: "the chosen keyword node's ground on the scan result's first cluster, ScanCluster.dc.html (30 Sep 2026, R114 S1) - a hair off white with a purple cast, under #c4b5fd. `T.wash` is too strong a tint for a 300px card holding a 44px figure. The count is from docs/site-boards-2026-09-29 and docs/boards-2026-09-25, not docs/design.",
     boards: 2,
-    sites: { "src/components/scan/ResultView.tsx": 1 },
+    // Second ResultView site on 30 Sep 2026 (R114 S1, cta=checkout): the
+    // "Your first cluster, set up from this scan" box in the checkout card,
+    // the same ground under the same keyword.
+    sites: { "src/components/scan/ResultView.tsx": 2 },
   },
   "#3f4451": {
     why: "body prose on the two long-form templates, drawn by BlogPost.dc.html and CaseStudy.dc.html - the two boards whose pages these are. Darker than `T.soft` because long-form body text is, at 9.74 on white against soft's 4.68.",
