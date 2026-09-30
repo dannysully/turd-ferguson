@@ -39,6 +39,20 @@ test("every Session allows promotion codes, is monthly, and returns to alwayscit
   }
 });
 
+test("every Session charges tax through Stripe Tax on a tax-exclusive price (R129, 30 Sep 2026)", () => {
+  for (const tier of ["tracked", "mentioned", "cited"]) {
+    for (const market of ["uk", "us"]) {
+      const r = checkoutRequest(order({ tier, market }), ctx);
+      assert.equal(r.kind, "session");
+      if (r.kind !== "session") continue;
+      assert.equal(r.form.get("automatic_tax[enabled]"), "true");
+      assert.equal(r.form.get("tax_id_collection[enabled]"), "true");
+      assert.equal(r.form.get("billing_address_collection"), "required");
+      assert.equal(r.form.get("line_items[0][price_data][tax_behavior]"), "exclusive", "prices are before VAT");
+    }
+  }
+});
+
 test("alwaystracked is one subscription at the configured price per market", () => {
   const r = checkoutRequest(order({ tier: "tracked", market: "uk", quantity: 4, sector: "", keyword: "" }), ctx);
   assert.equal(r.kind, "session");

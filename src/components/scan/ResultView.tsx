@@ -930,7 +930,9 @@ function TrackedSection(p: { token: string; r: RunScanResponse; cluster: ReturnT
   const tracked = TIERS.find((t) => t.id === "tracked");
   // ScanCluster.dc.html's cta=checkout: a cluster scan buys the cluster it
   // just read, now checkout and the webhook are live (R117). A UK scan keeps
-  // the walkthrough - no VAT is added at checkout yet (blocked.md, R91).
+  // the walkthrough: checkout adds VAT since R129 (30 Sep 2026), but this card
+  // prints the US price and its link carries no market, so UK needs its own
+  // GBP "plus VAT" card before it can buy here.
   const buy = p.cluster && p.r.market === "US";
   const tile = (title: string, body: React.ReactNode) => (
     <div style={{ background: D.card, border: "1px solid " + D.cardLine, borderRadius: "14px", padding: "14px 16px" }}>

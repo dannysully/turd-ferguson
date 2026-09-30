@@ -76,7 +76,14 @@ export function checkoutRequest(order: Order, ctx: CheckoutContext): CheckoutReq
     f.set(`metadata[${k}]`, v);
     f.set(`subscription_data[metadata][${k}]`, v);
   }
-  // UK VAT at checkout (spec section 2) needs Stripe Tax or a tax rate on the
-  // account - not set here until that exists; see docs/blocked.md.
+  // VAT through Stripe Tax (R129, Danny, 30 Sep 2026, danny.md 116-117): live
+  // on the account, UK VAT registered since Nov 2025, prices tax-exclusive.
+  // tax_behavior is set on the price itself: left unset, Stripe falls back to
+  // the account default, which can read a GBP price as VAT-inclusive. Stripe
+  // needs the billing address to place the tax; a business may add a VAT id.
+  f.set("line_items[0][price_data][tax_behavior]", "exclusive");
+  f.set("automatic_tax[enabled]", "true");
+  f.set("tax_id_collection[enabled]", "true");
+  f.set("billing_address_collection", "required");
   return { kind: "session", form: f, amount: unit * quantity, currency };
 }

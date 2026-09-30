@@ -66,12 +66,14 @@ export default async function Checkout({ searchParams }: { searchParams: Promise
 
   let price: string | null = null;
   let call = false;
-  if (!perCluster) price = `${formatPrice(TRACKED_PRICE[sel.market], sel.market)}/mo`;
+  // UK prices are before VAT, which Stripe Tax adds on its page (R129, 30 Sep 2026).
+  const vat = sel.market === "uk" ? " plus VAT" : "";
+  if (!perCluster) price = `${formatPrice(TRACKED_PRICE[sel.market], sel.market)}/mo${vat}`;
   else if (sel.qty > MAX_CLUSTERS) call = true;
   else if (sel.sector) {
     const quote = quoteFor(sel.sector, sel.market, tier, sel.qty);
     if (quote.kind === "call") call = true;
-    else price = `${formatPrice(quote.amount, sel.market)}/mo`;
+    else price = `${formatPrice(quote.amount, sel.market)}/mo${vat}`;
   }
   const error = q.error ? ERRORS[q.error] : undefined;
   // The free scan this order came from, carried to the Session for the webhook (BRIEF-3 C4).
