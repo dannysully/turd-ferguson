@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
-import { expandFixture, fixtureMode } from "./fixture-mode.ts";
+import { expandFixture, fixtureMode, fixtureState } from "./fixture-mode.ts";
 import { overview } from "./figures.ts";
 import { ANGLES } from "./limits.ts";
 
@@ -77,4 +77,15 @@ test("the fixture names only the made-up brands and domains", () => {
   assert.deepEqual([...brands].sort(), ["Brightbook", "Countwise", "Ledgerline", "Sumly", "Tallyroo"]);
   assert.equal(fx.client.domain, "tallyroo.com");
   assert.match(fx.member.email, /@example\.com$/);
+});
+
+test("R138: TRACKING_FIXTURE_STATE=ungrouped serves the client with no clusters and no prompt in one; unset changes nothing", () => {
+  assert.equal(fixtureState(fx, {}), fx);
+  assert.equal(fixtureState(fx, { TRACKING_FIXTURE_STATE: "other" }), fx);
+  const u = fixtureState(fx, { TRACKING_FIXTURE_STATE: "ungrouped" });
+  assert.equal(u.data.clusters.length, 0);
+  assert.equal(u.data.questions.length, fx.data.questions.length);
+  assert.ok(u.data.questions.every((q) => q.cluster_id === null));
+  assert.equal(u.placements.length, 0);
+  assert.ok(fx.data.questions.some((q) => q.cluster_id), "the default fixture is untouched");
 });

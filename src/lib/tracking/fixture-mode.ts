@@ -37,6 +37,16 @@ export type Fixture = {
 /** A placement as fixture.json stores it; url_key is computed on read, as the admin writer computes it. */
 export type FixturePlacement = Omit<PlacementRow, "url_key"> & { cluster_id: string };
 
+/**
+ * R138 (30 Sep 2026): `TRACKING_FIXTURE_STATE=ungrouped` serves the same
+ * client with no cluster rows and no prompt in a cluster - the Overview's
+ * "Ungrouped prompts" state. Placements hang off clusters, so they go too.
+ */
+export function fixtureState(f: Fixture, env: Record<string, string | undefined> = process.env): Fixture {
+  if (env.TRACKING_FIXTURE_STATE !== "ungrouped") return f;
+  return { ...f, placements: [], data: { ...f.data, clusters: [], questions: f.data.questions.map((q) => ({ ...q, cluster_id: null })) } };
+}
+
 type RawAnswer = [Day, string, string, 0 | 1, string[], string[]];
 
 /** The committed file stores answers as tuples to stay small; this restores the rows the overview reads. */

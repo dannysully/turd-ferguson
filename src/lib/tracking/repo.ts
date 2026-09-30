@@ -5,7 +5,7 @@ import { join } from "node:path";
 
 import { trackingDay } from "./decide.ts";
 import type { Day, Range } from "./figures.ts";
-import { expandFixture, fixtureMode, type Fixture } from "./fixture-mode.ts";
+import { expandFixture, fixtureMode, fixtureState, type Fixture } from "./fixture-mode.ts";
 import { type MemberClient, clientsFor, sessionEmail } from "./member.ts";
 import type { LatestAnswers } from "./latest-answers.ts";
 import type { PlacementRow } from "./placement-figures.ts";
@@ -45,7 +45,7 @@ const supabaseRepo: TrackingRepo = { sessionEmail, clientsFor, loadOverview, lat
 let cached: Fixture | null = null;
 function fixture(): Fixture {
   // A constant path, so the build traces this one file.
-  cached ??= expandFixture(JSON.parse(readFileSync(join(process.cwd(), "src", "lib", "tracking", "fixture.json"), "utf8")));
+  cached ??= fixtureState(expandFixture(JSON.parse(readFileSync(join(process.cwd(), "src", "lib", "tracking", "fixture.json"), "utf8"))));
   return cached;
 }
 

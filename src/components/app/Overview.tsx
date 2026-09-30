@@ -49,7 +49,8 @@ function SeeAll({ card, clientPath }: { card: keyof typeof SEE_ALL; clientPath: 
  * The alwaystracked overview (T4, 29 Sep 2026), in the order
  * boards/Main.dc.html draws it: the dark headline card and the check grid,
  * the four key figures, the chart, biggest movers and who is named instead,
- * then Google keywords and the pages the engines cite most. Since T4b part 3
+ * then Google keywords and the pages the engines cite most (biggest movers
+ * became R138's "Ungrouped prompts" card, 30 Sep 2026). Since T4b part 3
  * (30 Sep 2026) the headline, heat map and key figures read by cluster, as
  * boards-3/Main.dc.html draws them, from `cluster-figures.ts`.
  *
@@ -144,7 +145,8 @@ export default function Overview({
   // read by cluster (boards-3/Main.dc.html). A client with no cluster rows yet
   // keeps the flat T4 reading rather than print 0 of 0. `?.` because
   // /app/parity reads docs/parity/T4/fixture.json, generated before clusters.
-  const clusterInput = data.clusters?.length
+  // R138: cluster rows with no prompt in any of them are still the ungrouped state.
+  const clusterInput = data.clusters?.length && data.questions.some((q) => q.cluster_id)
     ? { clusters: data.clusters, questions: data.questions, keywords: data.keywords, answers: data.answers, serp: data.serp, range, before: o.compare, today, engines }
     : null;
   const cards = clusterInput ? clusterCards(clusterInput) : null;
@@ -292,8 +294,7 @@ export default function Overview({
     .filter((n) => n.index >= 0);
 
   // ---- 4 and 5 ----
-  const text = new Map(data.questions.map((q) => [q.id, q.text]));
-  const moved = movers(data.answers, range, o.compare).slice(0, 6);
+  const moved = movers(data.answers, range, o.compare);
   const board = brandBoard(data.answers, range, o.compare, brand);
   const top = board.slice(0, 5);
   const rest = board.slice(5);
@@ -302,47 +303,74 @@ export default function Overview({
   const kwRows = keywordRows(data.serp, { from: addDays(range.to, -27) < range.from ? range.from : addDays(range.to, -27), to: range.to });
   const pages = citedPages(data.answers, range, domain);
 
-  // The four lower cards; the cluster layout keeps two of them (boards-3/Main.dc.html).
-  const moversCard = (
-    <section aria-labelledby="movers-h" tabIndex={0} style={{ ...CARD, paddingTop: "22px", minWidth: 0, overflowX: "auto" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "0 24px 14px" }}>
-            <h2 id="movers-h" style={H2}>
-              Biggest movers
+  // The lower cards; the cluster layout keeps two of them (boards-3/Main.dc.html).
+  // R138 (Danny, 30 Sep 2026, danny.md 126): a client with no prompt in a cluster gets one
+  // "Ungrouped prompts" card in place of the old flat Biggest movers list. No board draws it,
+  // so it is the Overview board's cluster card - same card, same type scale - with a row per prompt.
+  const ungroupedCard = (() => {
+    const live = data.questions.filter((q) => q.stopped_on === null && q.added_on <= today);
+    const rate = new Map(moved.map((m) => [m.id, m]));
+    return (
+      <section aria-labelledby="ug-h" style={{ ...CARD, padding: "22px 24px 24px", display: "flex", flexDirection: "column", gap: "14px" }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "3px", minWidth: 0 }}>
+            <h2 id="ug-h" style={H2}>
+              Ungrouped prompts
             </h2>
-            <span style={{ fontSize: "13px", color: T.soft }}>{`All ${questionsAnswered} prompts`}</span>
+            <span style={{ fontSize: "12px", color: T.soft }}>{`${live.length} prompt${live.length === 1 ? "" : "s"}, not yet in a cluster`}</span>
           </div>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr>
-                <th style={TH}>Prompt</th>
-                <th style={TH} className="app-hide-sm">Named by</th>
-                <th style={{ ...TH, textAlign: "right" }}>Rate</th>
-                <th style={{ ...TH, textAlign: "right" }}>Change</th>
-              </tr>
-            </thead>
-            <tbody>
-              {moved.map((m) => (
-                <tr key={m.id}>
-                  <td style={TD_WIDE}>{text.get(m.id) ?? "A prompt no longer tracked"}</td>
-                  <td style={TD} className="app-hide-sm">
-                    <span style={{ display: "flex", gap: "4px" }}>
-                      {engines.map((e) => (
-                        <span key={e} style={{ opacity: m.engines.includes(e) ? 1 : 0.25 }}>
-                          <EngineLogo engine={e} size={16} title={`${ENGINE_SPECS[e].label}${m.engines.includes(e) ? " named you" : " did not name you"}`} />
-                        </span>
-                      ))}
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
+            <span style={{ fontSize: "20px", fontWeight: 700, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }} title={`${o.named.num} of ${o.named.den} answers`}>
+              {pct(o.named)}
+            </span>
+            <Chip value={pointsDelta(o.named, o.namedBefore)} unit=" pts" none="New" />
+          </div>
+        </div>
+        <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "4px" }}>
+          {live.map((q) => {
+            const m = rate.get(q.id);
+            return (
+              <li key={q.id} style={{ display: "flex", alignItems: "center", gap: "8px", minHeight: "22px" }}>
+                <span style={{ flex: "1 1 auto", minWidth: 0, fontSize: "12px", lineHeight: 1.35, fontWeight: 600, color: T.ink, overflowWrap: "anywhere" }}>
+                  {q.text}
+                </span>
+                <span style={{ display: "flex", gap: "3px", flexShrink: 0 }}>
+                  {engines.map((e) => (
+                    <span key={e} style={{ display: "inline-flex", opacity: m?.engines.includes(e) ? 1 : 0.22 }}>
+                      <EngineLogo engine={e} size={16} title={`${ENGINE_SPECS[e].label}${m?.engines.includes(e) ? " named you" : " did not name you"}: ${q.text}`} />
                     </span>
-                  </td>
-                  <td style={{ ...TD, textAlign: "right", fontWeight: 600, fontVariantNumeric: "tabular-nums" }} title={`${m.now.num} of ${m.now.den} answers`}>
-                    {pct(m.now)}
-                  </td>
-                  <td style={{ ...TD, textAlign: "right" }}>{m.delta === null ? <span style={{ fontSize: "13px", color: T.soft }}>New</span> : <Delta value={m.delta} />}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
-  );
+                  ))}
+                </span>
+                <span aria-hidden="true" className="app-hide-sm" style={{ width: "120px", flexShrink: 0, height: "6px", borderRadius: "3px", background: T.hair, overflow: "hidden" }}>
+                  <span style={{ display: "block", height: "100%", width: `${Math.min(100, (m?.now.pct ?? 0) * 1.6)}%`, borderRadius: "3px", background: m?.now.num ? T.accent : T.line }} />
+                </span>
+                <span style={{ width: "34px", flexShrink: 0, textAlign: "right", fontSize: "12px", fontWeight: 700, fontVariantNumeric: "tabular-nums" }} title={m ? `${m.now.num} of ${m.now.den} answers` : undefined}>
+                  {m ? pct(m.now) : "-"}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+        <p style={{ margin: 0, fontSize: "13px", lineHeight: 1.5, color: T.soft }}>
+          {clustersPath ? (
+            <>
+              {"Group these into clusters on the "}
+              <Link href={clustersPath} style={{ fontWeight: 600, color: T.accent, textDecoration: "none" }}>
+                Clusters
+              </Link>
+              {" page. Nomada staff group them from "}
+              <Link href="/admin/tracking" style={{ fontWeight: 600, color: T.accent, textDecoration: "none" }}>
+                /admin/tracking
+              </Link>
+              .
+            </>
+          ) : (
+            "Group these into clusters on the Clusters page. Nomada staff group them from /admin/tracking."
+          )}
+        </p>
+      </section>
+    );
+  })();
   const whoNamed = (
     <section aria-labelledby="lb-h" style={{ ...CARD, paddingTop: "22px", minWidth: 0 }}>
           <div style={{ display: "flex", flexDirection: "column", gap: "4px", padding: "0 24px 14px" }}>
@@ -708,7 +736,7 @@ export default function Overview({
         </section>
       ) : null}
 
-      {cards ? <ClusterCards cards={cards} engines={engines} picked={picked?.id ?? null} href={clusterHref} detail={detailHref} manage={manage} /> : null}
+      {cards ? <ClusterCards cards={cards} engines={engines} picked={picked?.id ?? null} href={clusterHref} detail={detailHref} manage={manage} /> : ungroupedCard}
       {cards ? <ClusterRows cards={cards} picked={detailHref ? null : (picked?.id ?? null)} href={detailHref ?? clusterHref} opens={!!detailHref} manage={manage} /> : null}
 
       {picked && pickedChart ? (
@@ -759,13 +787,10 @@ export default function Overview({
       ) : (
         <>
           <div className="app-pair" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.35fr) minmax(0, 1fr)", gap: "24px" }}>
-            {moversCard}
+            {keywordsCard}
             {whoNamed}
           </div>
-          <div className="app-pair" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.35fr) minmax(0, 1fr)", gap: "24px" }}>
-            {keywordsCard}
-            {citedCard}
-          </div>
+          {citedCard}
         </>
       )}
     </div>
