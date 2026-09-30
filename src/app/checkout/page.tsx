@@ -118,6 +118,14 @@ export default async function Checkout({ searchParams }: { searchParams: Promise
                     </option>
                   ))}
                 </select>
+                {/* The spec's "more on a call" at checkout (R50 section 8). */}
+                <span style={{ display: "block", marginTop: "6px", fontSize: "13px", fontWeight: 400, letterSpacing: 0, textTransform: "none", color: T.soft }}>
+                  More than {MAX_CLUSTERS}?{" "}
+                  <a href={withSelection(contactUrlFor(tier), sel)} style={{ color: T.accent }}>
+                    We set that up on a call
+                  </a>
+                  .
+                </span>
               </label>
             </>
           ) : null}

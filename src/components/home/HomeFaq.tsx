@@ -1,8 +1,8 @@
 import { ALWAYS_ON, ALWAYS_ON_SUPPORT } from "@/config/always-on";
 import { WAITLIST_LIMITS } from "@/config/contact";
 import { FREE_ENGINE_COUNT, QUESTIONS } from "@/config/scan-shape";
-import { TRACKED_CLUSTERS, TRACKED_PROMPTS } from "@/config/pricing";
-import { PROMPTS_PER_CLUSTER } from "@/lib/tracking/limits";
+import { PACK_CLUSTERS, PACK_KEYWORDS, PACK_PROMPTS, TRACKED_CLUSTERS, TRACKED_PROMPTS, TRACKING_PACK_PRICE } from "@/config/pricing";
+import { MAX_CLUSTERS } from "@/config/sector-pricing";import { PROMPTS_PER_CLUSTER } from "@/lib/tracking/limits";
 import { word } from "./EngineDemo";
 import { CARD, GRID12, H2, MICRO, SHELL, T } from "@/config/tokens";
 import { ORG_REF, SITE_REF, ld } from "@/config/schema";
@@ -73,7 +73,10 @@ export const FAQS: Faq[] = [
     // Added 29 Sep 2026 (R115, danny.md line 107): tracking is sold as clusters.
     q: "What's a cluster?",
     hint: "One keyword and the prompts around it",
-    a: `One Google keyword your buyers search, joined to the ${PROMPTS_PER_CLUSTER} prompts they ask AI about it - the category, your positioning, your sector, the outcome they want and a comparison. Every day we check the prompts on each engine and the keyword's Google position, side by side and never averaged. The tracking plan covers ${TRACKED_CLUSTERS} clusters, ${TRACKED_PROMPTS} prompts in all. The placement tiers are sold per cluster, and the cluster you track is the one you upgrade.`,
+    a: `One Google keyword your buyers search, joined to the ${PROMPTS_PER_CLUSTER} prompts they ask AI about it - the category, your positioning, your sector, the outcome they want and a comparison. Every day we check the prompts on each engine and the keyword's Google position, side by side and never averaged. The tracking plan covers ${TRACKED_CLUSTERS} clusters, ${TRACKED_PROMPTS} prompts in all. The placement tiers are sold per cluster, and the cluster you track is the one you upgrade: up to ${MAX_CLUSTERS} clusters at checkout, more on a call. An extra tracking pack adds ${PACK_CLUSTERS} clusters (${PACK_PROMPTS} prompts, ${PACK_KEYWORDS} keywords) for $${TRACKING_PACK_PRICE.us} a month, or £${TRACKING_PACK_PRICE.uk} plus VAT in the UK.`,
+    // The last two sentences added 30 Sep 2026 (R50, pricing spec section 8:
+    // "say that more can be added" on the FAQ), folded in here rather than a
+    // new entry, which would take the FAQ's .ac-row group past its stagger cap.
   },
   {
     q: "What if I already pay for a tracking tool?",
