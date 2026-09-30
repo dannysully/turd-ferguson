@@ -236,6 +236,19 @@ const EXEMPT: Record<string, { why: string; evidence: RegExp; where: string }> =
     evidence: /export const LOGIN_PER_EMAIL_PER_HOUR = \d+/,
     where: "src/lib/tracking/session.ts",
   },
+  /**
+   * 30 September 2026, BRIEF-3 T6 part 3b: "Check keyword" on the Clusters
+   * page. Not a visitor's scan, so checkCeilings is the wrong guard.
+   */
+  "app/[client]/check": {
+    why:
+      "Reads one typed keyword's volume and intent (two DataForSEO reads, a few cents) for a signed-in " +
+      "owner or editor. Nothing is read until the free prechecks pass, and a client may make " +
+      "CHECKS_PER_CLIENT_PER_DAY paid checks a day, counted off keyword_checked rows in dashboard_events, " +
+      "written before the reads; an unread count refuses.",
+    evidence: /export const CHECKS_PER_CLIENT_PER_DAY = \d+/,
+    where: "src/lib/tracking/check-keyword.ts",
+  },
 };
 
 /**
@@ -505,8 +518,13 @@ test("the kill switch is read in one place, so its reach is exactly the guarded 
      * Eight the same day: `app/login`, the dashboard login link (T3). One
      * message to a member we already hold; `scans_enabled` stops scans and
      * this starts none.
+     *
+     * Nine on 30 Sep 2026: `app/[client]/check`, Check keyword in Add a
+     * cluster (BRIEF-3 T6 part 3b). Two DataForSEO reads for a signed-in
+     * member, bounded per client per day; it starts no scan, so
+     * `scans_enabled` has nothing to refuse.
      */
-    8,
+    9,
     "the number of spending doors the kill switch does not reach has changed - see docs/blocked.md",
   );
 });

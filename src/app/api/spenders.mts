@@ -104,6 +104,11 @@ export const PAID: Record<string, { module: string; what: string }> = {
     module: "src/lib/scan/report-mail.ts",
     what: "one report message per scan, to an address given while it was still running",
   },
+  /** 30 September 2026, BRIEF-3 T6 part 3b: "Check keyword" in Add a cluster. */
+  checkClusterKeyword: {
+    module: "src/lib/tracking/check-keyword.ts",
+    what: "two DataForSEO reads, volume and intent, for one keyword a member typed",
+  },
 };
 
 /**

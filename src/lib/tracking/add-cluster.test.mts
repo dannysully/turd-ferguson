@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { addPanelState, checkVerdict, precheckKeyword } from "./add-cluster.ts";
+import { addPanelState, checkVerdict, precheckKeyword, verdictFromQuery, verdictQuery } from "./add-cluster.ts";
 
 // BRIEF-3 T6 part 3a (30 Sep 2026): the free checks that stand before any paid
 // read, and C1's pick in the board's words. Made-up Tallyroo, as the fixture.
@@ -34,4 +34,19 @@ test("the panel is full at the limit", () => {
   assert.equal(addPanelState(9, 10), "open");
   assert.equal(addPanelState(10, 10), "full");
   assert.equal(addPanelState(12, 15), "open");
+});
+
+test("the verdict survives the 303 as codes, and URL text is never a message", () => {
+  const where = "the United States";
+  const pass = checkVerdict({ keyword: "accounting software for dentists", volume: 1300, intent: "commercial" }, where);
+  const q = new URLSearchParams(verdictQuery(pass));
+  assert.deepEqual(verdictFromQuery((k) => q.get(k), "accounting software for dentists", where), pass);
+  const fail = new URLSearchParams(verdictQuery(checkVerdict({ none: "no_volume" }, where)));
+  assert.equal(verdictFromQuery((k) => fail.get(k), "x y", where)?.message, checkVerdict({ none: "no_volume" }, where).message);
+  const capped = new URLSearchParams({ ck: "capped" });
+  assert.equal((verdictFromQuery((k) => capped.get(k), "x y", where) as { reason: string }).reason, "capped");
+  for (const bad of [{ ck: "<b>hi</b>", vol: "", intent: "" },{ ck: "ok", vol: "-3", intent: "commercial" }, { ck: "ok", vol: "90", intent: "informational" }, { ck: "toString", vol: "", intent: "" }]) {
+    const b = new URLSearchParams(bad);
+    assert.equal(verdictFromQuery((k) => b.get(k), "x y", where), null, JSON.stringify(bad));
+  }
 });

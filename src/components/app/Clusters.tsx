@@ -4,10 +4,12 @@ import EngineLogo from "@/components/EngineLogo";
 import { APP_LIMITS } from "@/config/contact";
 import { ADMIN_LIMITS } from "@/lib/tracking/decide";
 import { PROMPT_MIN } from "@/lib/tracking/slot";
+import { PACK_CLUSTERS, PACK_KEYWORDS, PACK_PROMPTS } from "@/config/pricing";
 import { T } from "@/config/tokens";
 import { ENGINE_SPECS, type Engine } from "@/lib/scan/engines";
 import { type ClusterCard, type ClusterFilter as Filter, clusterCards, filterClusters, namedCount, neverCount } from "@/lib/tracking/cluster-figures";
 import { type Range, comparisonRange, daysIn, formatDay } from "@/lib/tracking/figures";
+import type { KeywordCheck } from "@/lib/tracking/add-cluster";
 import type { Compare, OverviewData } from "@/lib/tracking/overview-data";
 
 import { Chip } from "./Overview";
@@ -26,8 +28,8 @@ import { Chip } from "./Overview";
  * back here carrying `?done=&kind=&id=`; the toast is drawn from those, never
  * from free text in the URL. Owners and editors see the controls, viewers do
  * not. The free slot (part 2c) posts to /prompt and the pending editor (part
- * 2d) to /edit; "Add a cluster" comes with its route, so it is not drawn as a
- * control that does nothing.
+ * 2d) to /edit. "Add a cluster" (part 3b) is a link to `?add=1`, and its
+ * "Check keyword" form posts to /check, which 303s back with the verdict.
  */
 
 export type StopToast = { done: "stopped" | "undone" | "added" | "saved" | "refused"; kind: "prompt" | "cluster"; id: string };
@@ -56,6 +58,8 @@ export default function Clusters({
   slug,
   canWrite,
   toast,
+  adding = null,
+  packPrice = "",
 }: {
   brand: string;
   engines: readonly Engine[];
@@ -70,6 +74,8 @@ export default function Clusters({
   slug: string;
   canWrite: boolean;
   toast: StopToast | null;
+  adding?: Adding | null;
+  packPrice?: string;
 }) {
   const before = comparisonRange(range, compareMode);
   const cards = clusterCards({ clusters: data.clusters ?? [], questions: data.questions, keywords: data.keywords, answers: data.answers, serp: data.serp, range, before, today, engines });
@@ -144,13 +150,25 @@ export default function Clusters({
             <input id="q-search" name="q" defaultValue={q} maxLength={APP_LIMITS.search} placeholder="Search keywords and prompts" style={{ flexGrow: 1, minWidth: 0, border: 0, outline: 0, fontFamily: "inherit", fontSize: "14px", color: T.ink, background: "transparent" }} />
           </form>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px", width: "200px" }}>
-          <span style={{ fontSize: "13px", fontWeight: 600, color: T.ink }}>{`${used} of ${clusterLimit} clusters in use`}</span>
-          <span aria-hidden="true" style={{ height: "6px", borderRadius: "3px", background: T.hair, overflow: "hidden" }}>
-            <span style={{ display: "block", height: "100%", width: `${Math.min(100, Math.round((100 * used) / clusterLimit))}%`, background: full ? T.warnFg : T.accent, borderRadius: "3px" }} />
-          </span>
+        <div style={{ display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px", width: "200px" }}>
+            <span style={{ fontSize: "13px", fontWeight: 600, color: T.ink }}>{`${used} of ${clusterLimit} clusters in use`}</span>
+            <span aria-hidden="true" style={{ height: "6px", borderRadius: "3px", background: T.hair, overflow: "hidden" }}>
+              <span style={{ display: "block", height: "100%", width: `${Math.min(100, Math.round((100 * used) / clusterLimit))}%`, background: full ? T.warnFg : T.accent, borderRadius: "3px" }} />
+            </span>
+          </div>
+          {canWrite ? (
+            <Link href={href({ add: "1" })} scroll={false} style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", padding: "0 16px", borderRadius: "12px", background: T.accent, color: T.surface, fontSize: "14px", fontWeight: 600, textDecoration: "none" }}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={T.surface} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              Add a cluster
+            </Link>
+          ) : null}
         </div>
       </div>
+
+      {canWrite && adding ? <AddPanel slug={slug} adding={adding} full={full} clusterLimit={clusterLimit} packPrice={packPrice} close={href({})} /> : null}
 
       <section aria-label="Clusters" style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: "18px", overflow: "hidden" }}>
         <div className="app-cl-grid app-hide-sm" style={{ display: "grid", gridTemplateColumns: GRID, gap: "16px", padding: "14px 24px 12px" }}>
@@ -178,6 +196,62 @@ export default function Clusters({
 }
 
 const HEAD: React.CSSProperties = { fontSize: "12px", fontWeight: 600, color: T.soft };
+
+export type Adding = { kw: string; check: KeywordCheck | null };
+
+/**
+ * The board's Add a cluster panel (part 3b): the keyword and "Check keyword",
+ * a plain POST to /check that 303s back with the verdict, rebuilt from fixed
+ * words (add-cluster.ts). At the limit it is the +5 clusters offer instead.
+ * Step 2, the five drafted prompts and "Start tracking this cluster", comes
+ * with its insert route; "Ask us to pick one" comes with T11's /ask route.
+ */
+function AddPanel({ slug, adding, full, clusterLimit, packPrice, close }: { slug: string; adding: Adding; full: boolean; clusterLimit: number; packPrice: string; close: string }) {
+  const ck = adding.check;
+  const msg = ck ? ck.message : "It needs Google search volume and a buying intent, because it is the term placements link on. We check both before anything is tracked.";
+  return (
+    <section aria-label="Add a cluster" style={{ padding: "22px 24px", borderRadius: "18px", background: T.surface, border: `1px solid ${T.washLine}`, boxShadow: `0 0 0 4px ${T.wash}`, display: "flex", flexDirection: "column", gap: "16px" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+          <h2 style={{ margin: 0, fontSize: "17px", fontWeight: 700, color: T.ink }}>Add a cluster</h2>
+          <span style={{ fontSize: "13px", color: T.soft }}>One Google keyword buyers search, and 5 prompts about it.</span>
+        </div>
+        <Link href={close} scroll={false} aria-label="Close" style={{ width: "40px", height: "40px", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={T.ink} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </Link>
+      </div>
+      {full ? (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "24px", flexWrap: "wrap", padding: "16px 18px", borderRadius: "12px", background: T.warnBg }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+            <span style={{ fontSize: "14px", fontWeight: 700, color: T.warnFg }}>{`All ${clusterLimit} clusters are in use`}</span>
+            <span style={{ fontSize: "14px", color: T.ink }}>Stop tracking one below to make room. Its history stays in your reports.</span>
+          </div>
+          <Link href="/contact" style={{ flexShrink: 0, display: "flex", flexDirection: "column", justifyContent: "center", height: "52px", padding: "0 16px", borderRadius: "12px", background: T.ink, color: T.surface, textDecoration: "none" }}>
+            <span style={{ fontSize: "14px", fontWeight: 600 }}>{`Add ${PACK_CLUSTERS} clusters for ${packPrice} a month`}</span>
+            <span style={{ fontSize: "12px", color: T.line }}>{`${PACK_PROMPTS} prompts and ${PACK_KEYWORDS} keywords, checked daily`}</span>
+          </Link>
+        </div>
+      ) : (
+        <form method="post" action={`/api/app/${encodeURIComponent(slug)}/check`} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+          <label htmlFor="kw-draft" style={{ fontSize: "13px", fontWeight: 600, color: T.ink }}>
+            1. The keyword
+          </label>
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+            <input id="kw-draft" name="keyword" defaultValue={adding.kw} required maxLength={ADMIN_LIMITS.question} placeholder="e.g. accounting software for dentists" style={{ flex: "1 1 240px", minWidth: 0, height: "48px", boxSizing: "border-box", padding: "0 14px", border: `1px solid ${T.line}`, borderRadius: "12px", fontFamily: "inherit", fontSize: "15px", color: T.ink, background: T.surface }} />
+            <button type="submit" style={{ height: "48px", padding: "0 18px", border: `1px solid ${T.ink}`, borderRadius: "12px", background: T.surface, color: T.ink, fontFamily: "inherit", fontSize: "14px", fontWeight: 600, cursor: "pointer" }}>
+              Check keyword
+            </button>
+          </div>
+          <p role={ck ? "status" : undefined} style={{ margin: 0, fontSize: "13px", lineHeight: 1.5, color: ck ? (ck.ok ? T.goodFg : T.badFg) : T.soft }}>
+            {msg}
+          </p>
+        </form>
+      )}
+    </section>
+  );
+}
 
 /** The day before a range starts - the board's "vs 1 Sep" for a range from 2 Sep. */
 function addDaysBack(d: string): string {

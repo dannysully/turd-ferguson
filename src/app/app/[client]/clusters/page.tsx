@@ -4,8 +4,11 @@ import { notFound, redirect } from "next/navigation";
 import Clusters, { type StopToast } from "@/components/app/Clusters";
 import Sidebar from "@/components/app/Sidebar";
 import type { TierKey } from "@/components/TierName";
-import { enginesFor } from "@/config/pricing";
+import { TRACKING_PACK_PRICE, enginesFor } from "@/config/pricing";
 import { T } from "@/config/tokens";
+import { MARKETS, isMarket } from "@/lib/scan/domain";
+import { keywordForm } from "@/lib/scan/dataforseo-request";
+import { verdictFromQuery } from "@/lib/tracking/add-cluster";
 import { clusterSearch } from "@/lib/tracking/cluster-figures";
 import { CLUSTER_BASE } from "@/lib/tracking/limits";
 import { rangeFrom } from "@/lib/tracking/overview-data";
@@ -54,6 +57,11 @@ export default async function ClientClusters({
   const toast: StopToast | null =
     (done === "stopped" || done === "undone" || done === "added" || done === "saved" || done === "refused") && (kind === "prompt" || kind === "cluster") && id ? { done, kind, id } : null;
 
+  // Add a cluster (part 3b): `?add=1` opens the panel; the check's 303 adds `kw` and `ck`.
+  const kw = (one("kw") ?? "").slice(0, 200);
+  const market = MARKETS[isMarket(client.market) ? client.market : "US"].label;
+  const adding = one("add") === "1" ? { kw, check: verdictFromQuery(one, keywordForm(kw), `the ${market}`) } : null;
+
   return (
     <div className="app-shell" style={{ display: "flex", flexWrap: "wrap", minHeight: "100vh", color: T.ink }}>
       <Sidebar client={client} others={clients.filter((c) => c.slug !== slug)} email={email} role={client.role} tier={tier} engines={engines} clusters current="Clusters" />
@@ -72,6 +80,8 @@ export default async function ClientClusters({
           slug={slug}
           canWrite={refuseRole(client.role) === null}
           toast={toast}
+          adding={adding}
+          packPrice={client.market === "UK" ? `£${TRACKING_PACK_PRICE.uk}` : `$${TRACKING_PACK_PRICE.us}`}
         />
       </div>
     </div>

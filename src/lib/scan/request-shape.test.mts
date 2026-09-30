@@ -329,7 +329,9 @@ test("the keyword volume endpoint is built in one module and sent from at most o
 // Volume has two callers since 30 Sep 2026 (BRIEF-3 C1): the paid pass's
 // per-question keywords (old scans), and /api/scan/[token]/questions reading
 // the cluster keyword's candidates before the prompts are written, once per
-// topic and market inside that route's CALL_CEILING reservation.
+// topic and market inside that route's CALL_CEILING reservation. And since 30
+// Sep 2026 (BRIEF-3 T6 part 3b) check-keyword.ts, the Clusters page's Check
+// keyword: one typed keyword, under CHECKS_PER_CLIENT_PER_DAY.
 test("the keyword volume and keyword rank reads are each sent from one door, called from the passes named", () => {
   const senders: Record<string, string[]> = { keywordVolumeRequest: [], keywordRankRequest: [], readKeywordVolumes: [], readKeywordRank: [] };
   for (const file of sourceFiles(ROOT)) {
@@ -339,7 +341,7 @@ test("the keyword volume and keyword rank reads are each sent from one door, cal
   assert.deepEqual(senders, {
     keywordVolumeRequest: ["src/lib/scan/dataforseo.ts"],
     keywordRankRequest: ["src/lib/scan/dataforseo.ts"],
-    readKeywordVolumes: ["src/app/api/scan/[token]/questions/route.ts", "src/lib/scan/pipeline.ts"],
+    readKeywordVolumes: ["src/app/api/scan/[token]/questions/route.ts", "src/lib/scan/pipeline.ts", "src/lib/tracking/check-keyword.ts"],
     readKeywordRank: ["src/lib/scan/pipeline.ts"],
   });
 });
@@ -347,8 +349,9 @@ test("the keyword volume and keyword rank reads are each sent from one door, cal
 /**
  * The cluster keyword's intent read (BRIEF-3 C1, 30 Sep 2026): built in one
  * module, sent from one door, called from one route - `/api/scan/[token]/questions`,
- * which picks the cluster keyword before the prompts are written. An exact
- * list, so the sweep is its own floor.
+ * which picks the cluster keyword before the prompts are written - and, since
+ * 30 Sep 2026 (T6 part 3b), check-keyword.ts, which checks one keyword a
+ * member typed in Add a cluster. An exact list, so the sweep is its own floor.
  */
 test("the keyword intent endpoint is built in one module, sent from one door, called from the questions route", () => {
   const files: string[] = [];
@@ -359,7 +362,7 @@ test("the keyword intent endpoint is built in one module, sent from one door, ca
     for (const name of Object.keys(senders)) if (new RegExp("(?<![\\w.])(?<!function\\s+)" + name + "\\(").test(src)) senders[name].push(file);
   }
   assert.deepEqual(files, ["src/lib/scan/dataforseo-request.ts"]);
-  assert.deepEqual(senders, { keywordIntentRequest: ["src/lib/scan/dataforseo.ts"], readKeywordIntents: ["src/app/api/scan/[token]/questions/route.ts"] });
+  assert.deepEqual(senders, { keywordIntentRequest: ["src/lib/scan/dataforseo.ts"], readKeywordIntents: ["src/app/api/scan/[token]/questions/route.ts", "src/lib/tracking/check-keyword.ts"] });
 });
 
 test("keyword intent request (C1): one task, keywords in the echoed form, a language and no location", () => {

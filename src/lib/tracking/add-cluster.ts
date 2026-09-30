@@ -15,7 +15,7 @@ import type { ClusterKeywordPick } from "../scan/target-keyword.ts";
 
 export type KeywordCheck =
   | { ok: true; keyword: string; volume: number; intent: "commercial" | "transactional"; message: string }
-  | { ok: false; reason: "tracked" | "own_brand" | "informational" | "too_broad" | "no_volume" | "read_failed"; ask: boolean; message: string };
+  | { ok: false; reason: "tracked" | "own_brand" | "informational" | "too_broad" | "no_volume" | "read_failed" | "capped"; ask: boolean; message: string };
 
 export type Refused = Extract<KeywordCheck, { ok: false }>;
 
@@ -26,9 +26,10 @@ const MESSAGES: Record<Refused["reason"], string> = {
   too_broad: "Too broad to place against on its own. Add what it is for, for example “invoicing software for agencies”.",
   no_volume: "Google shows no measured searches for this. Placements link on the keyword, so it has to be one buyers search.",
   read_failed: "We could not read this keyword just now. Try again, or ask us to pick one.",
+  capped: "That is today's keyword checks for this account used. Try again tomorrow, or ask us to pick one.",
 };
 
-const refused = (reason: Refused["reason"]): Refused => ({ ok: false, reason, ask: reason !== "tracked", message: MESSAGES[reason] });
+export const refused = (reason: Refused["reason"]): Refused => ({ ok: false, reason, ask: reason !== "tracked", message: MESSAGES[reason] });
 
 // The board's rule for a keyword that asks for an explanation rather than a supplier.
 const QUESTION_START = /^(how|what|why|when|who|is|are|can|does|do)\b/;
@@ -58,4 +59,25 @@ export function checkVerdict(pick: ClusterKeywordPick | "read_failed", where: st
 /** At the limit the panel offers the pack instead of the check. */
 export function addPanelState(used: number, clusterLimit: number): "open" | "full" {
   return used >= clusterLimit ? "full" : "open";
+}
+
+/**
+ * The check travels back to the page in the 303's query string (part 3b):
+ * `ck` is `ok` or a reason, and a pass carries its volume and intent. The page
+ * rebuilds the words from these with `verdictFromQuery`, so nothing typed
+ * into a URL is ever shown as a message - only the keyword, as an input value.
+ */
+export function verdictQuery(c: KeywordCheck): Record<string, string> {
+  return c.ok ? { ck: "ok", vol: String(c.volume), intent: c.intent } : { ck: c.reason };
+}
+
+export function verdictFromQuery(get: (k: string) => string | null, keyword: string, where: string): KeywordCheck | null {
+  const ck = get("ck");
+  if (ck === "ok") {
+    const volume = Number(get("vol"));
+    const intent = get("intent");
+    if (!keyword || !Number.isInteger(volume) || volume <= 0 || (intent !== "commercial" && intent !== "transactional")) return null;
+    return checkVerdict({ keyword, volume, intent }, where);
+  }
+  return ck !== null && Object.hasOwn(MESSAGES, ck) ? refused(ck as Refused["reason"]) : null;
 }
