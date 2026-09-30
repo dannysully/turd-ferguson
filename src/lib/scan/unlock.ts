@@ -19,6 +19,7 @@ import { sendReportReadyEmail } from "@/lib/scan/verify-email";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { selectAll } from "@/lib/supabase/page";
 import { clusterGoogleTrio, type StoredClusterKeyword } from "@/lib/scan/target-keyword";
+import type { ClusterKeywordView } from "@/lib/scan/contract";
 
 /**
  * What unlocking a scan actually does, in one place.
@@ -93,6 +94,8 @@ export type UnlockPayload = {
    * carries. False on scans from before C1.
    */
   cluster_keyword: boolean;
+  /** The cluster keyword itself, for the result's cluster section (S1). Null before C1. */
+  cluster: ClusterKeywordView | null;
   /**
    * Pages that fed answers the brand was absent from and that a client could
    * realistically be placed into, most valuable first. This is the gated
@@ -302,7 +305,7 @@ export async function buildUnlockPayload(scanId: string): Promise<UnlockPayload>
     ),
     db
       .from("scans")
-      .select("cluster_keyword, cluster_keyword_volume, cluster_keyword_rank, cluster_keyword_status")
+      .select("cluster_keyword, cluster_keyword_volume, cluster_keyword_intent, cluster_keyword_rank, cluster_keyword_status")
       .eq("id", scanId)
       .maybeSingle(),
   ]);
@@ -469,6 +472,16 @@ export async function buildUnlockPayload(scanId: string): Promise<UnlockPayload>
     sources: fullSources,
     questions: questionDetail,
     cluster_keyword: clusterTrio !== null,
+    cluster:
+      clusterRow?.cluster_keyword_status
+        ? {
+            status: clusterRow.cluster_keyword_status as ClusterKeywordView["status"],
+            keyword: (clusterRow.cluster_keyword ?? null) as string | null,
+            volume: (clusterRow.cluster_keyword_volume ?? null) as number | null,
+            intent: (clusterRow.cluster_keyword_intent ?? null) as string | null,
+            rank: (clusterRow.cluster_keyword_rank ?? null) as number | null,
+          }
+        : null,
     opportunities,
   };
 }

@@ -155,6 +155,20 @@ export type EngineAnswer = {
   citations?: { domain: string; url: string | null; title: string | null }[];
 };
 
+/**
+ * The scan's one cluster keyword, as the result shows it (BRIEF-3 C1, S1 on
+ * ScanCluster.dc.html). `rank` null is "not in Google's top twenty" or a read
+ * that failed; `status` other than chosen means there is no keyword and the
+ * result says so rather than guessing one.
+ */
+export type ClusterKeywordView = {
+  status: "chosen" | "none_qualified" | "read_failed";
+  keyword: string | null;
+  volume: number | null;
+  intent: string | null;
+  rank: number | null;
+};
+
 export type RunScanResponse = {
   scan_id: string;
   /** Kept for the fixture path. Live results use `engines` instead. */
@@ -192,6 +206,12 @@ export type RunScanResponse = {
    * payload rather than hidden in one.
    */
   opportunities?: ScanOpportunity[];
+  /**
+   * The cluster keyword, on scans whose confirm screen picked one (BRIEF-3
+   * C1). Absent or null on scans from before C1, which keep the old
+   * question-by-question result.
+   */
+  cluster_keyword?: ClusterKeywordView | null;
   gated: boolean;
   /**
    * A model batch failed while the leaderboard was being built, so names are

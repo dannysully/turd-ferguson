@@ -7,6 +7,9 @@ import {
   OVERVIEW_ENGINE,
   PLAN_ORDER,
   SOV_ROWS,
+  clusterLinks,
+  clusterRank,
+  clusterState,
   engineLabel,
   fmtDate,
   googleLine,
@@ -487,4 +490,34 @@ test("googleLine: a single-digit volume is never printed as a measurement (R43)"
     assert.equal(googleLine({ google_rank: null, target_keyword: "seo agencies", search_volume: v, keyword_rank: null }), "seo agencies - under 10/mo - not in top 20");
   }
   assert.equal(googleLine({ google_rank: null, target_keyword: "seo agencies", search_volume: 10, keyword_rank: null }), "seo agencies - 10/mo - not in top 20");
+});
+
+test("S1: a scan from before C1 has no cluster section, and never reads as one that looked and found nothing", () => {
+  assert.equal(clusterState({}), null);
+  assert.equal(clusterState({ cluster_keyword: null }), null);
+  assert.equal(clusterRank({ cluster_keyword: null }), "-");
+});
+
+test("S1: chosen shows the keyword's rank, a missing rank is the depth read's words, never a zero", () => {
+  const c = { status: "chosen" as const, keyword: "invoicing software", volume: 1900, intent: "commercial", rank: 9 };
+  assert.equal(clusterState({ cluster_keyword: c }), "chosen");
+  assert.equal(clusterRank({ cluster_keyword: c }), "#9");
+  assert.match(clusterRank({ cluster_keyword: { ...c, rank: null } }), /^Not in top \d+$/);
+});
+
+test("S1: none_qualified and read_failed draw the dashed node and a dash, whatever keyword text is left on the row", () => {
+  for (const status of ["none_qualified", "read_failed"] as const) {
+    const c = { status, keyword: "leftover", volume: 5, intent: "commercial", rank: 3 };
+    assert.equal(clusterState({ cluster_keyword: c }), "none");
+    assert.equal(clusterRank({ cluster_keyword: c }), "-");
+  }
+  assert.equal(clusterState({ cluster_keyword: { status: "chosen", keyword: " ", volume: null, intent: null, rank: null } }), "none");
+});
+
+test("S1: a prompt links solid to the keyword when any engine named the brand, dashed when none did", () => {
+  assert.deepEqual(clusterLinks([question({ answered: 4, named: 2 }), question({ answered: 4, named: 0 }), question()]), [
+    { named: true },
+    { named: false },
+    { named: false },
+  ]);
 });

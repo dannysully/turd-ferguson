@@ -6,6 +6,7 @@ import { SCAN_LIMITS } from "@/config/contact";
 import { MICRO, SHELL, T } from "@/config/tokens";
 import { track } from "@/lib/analytics";
 import type {
+  ClusterKeywordView,
   EngineAnswer,
   EngineBreakdown,
   Market,
@@ -132,6 +133,8 @@ type FullPayload = {
   }[];
   /** True when the questions' keyword trio is the scan's one cluster keyword (BRIEF-3 C1). */
   cluster_keyword?: boolean;
+  /** The cluster keyword itself (S1). Null before C1. */
+  cluster?: ClusterKeywordView | null;
   /** The gated finding: pages feeding answers the brand is absent from. */
   opportunities?: ScanOpportunity[];
   gated_engines?: string[];
@@ -346,6 +349,7 @@ function toResult(t: Teaser, domain: string, full: FullPayload | null): RunScanR
       return detail ? { ...q, ...keyword, google_rank, answers: detail.engines } : { ...q, ...keyword, google_rank };
     }),
     opportunities: full?.opportunities ?? undefined,
+    cluster_keyword: full?.cluster ?? null,
     gated: !full,
     leaderboard_partial: partial,
     // Every engine answering nothing is a real finding, not an error.

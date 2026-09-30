@@ -418,3 +418,37 @@ export function googleLine(
   parts.push(typeof q.keyword_rank === "number" ? "Google #" + q.keyword_rank : "not in top " + SERP_DEPTH);
   return parts.join(" - ");
 }
+
+/**
+ * Which cluster section a result draws (S1, ScanCluster.dc.html, 30 Sep 2026).
+ * Null is a scan from before C1: no cluster keyword was ever picked, so the
+ * result keeps its question-by-question table rather than claiming one was
+ * looked for and not found. "none" is a scan that looked and found no
+ * qualifying keyword, or could not read one: the board's dashed node, "Not
+ * picked yet", and never a guessed keyword.
+ */
+export function clusterState(r: Pick<RunScanResponse, "cluster_keyword">): "chosen" | "none" | null {
+  const c = r.cluster_keyword;
+  if (!c) return null;
+  return c.status === "chosen" && c.keyword?.trim() ? "chosen" : "none";
+}
+
+/**
+ * The cluster keyword's Google figure: "#9", "Not in top 20" for a chosen
+ * keyword the domain does not rank for in the depth read, "-" when there is
+ * no keyword (the board's `kw.rank`).
+ */
+export function clusterRank(r: Pick<RunScanResponse, "cluster_keyword">): string {
+  if (clusterState(r) !== "chosen") return "-";
+  const rank = r.cluster_keyword?.rank;
+  return typeof rank === "number" ? "#" + rank : "Not in top " + SERP_DEPTH;
+}
+
+/**
+ * The board's link from each prompt to the keyword node: solid where at
+ * least one engine named the brand on that prompt, dashed where none did.
+ * The row's verdict pill says the same in words, so the line is decoration.
+ */
+export function clusterLinks(qs: ScanQuestion[]): { named: boolean }[] {
+  return qs.map((q) => ({ named: questionTally(q).named > 0 }));
+}
