@@ -18,6 +18,7 @@ import {
   pointsDelta,
   sparkPoints,
 } from "@/lib/tracking/figures";
+import { clusterCards, clusterSummary } from "@/lib/tracking/cluster-figures";
 import type { Compare, OverviewData } from "@/lib/tracking/overview-data";
 
 import OverviewChart, { type ChartDay } from "./OverviewChart";
@@ -26,7 +27,9 @@ import OverviewChart, { type ChartDay } from "./OverviewChart";
  * The alwaystracked overview (T4, 29 Sep 2026), in the order
  * boards/Main.dc.html draws it: the dark headline card and the check grid,
  * the four key figures, the chart, biggest movers and who is named instead,
- * then Google keywords and the pages the engines cite most.
+ * then Google keywords and the pages the engines cite most. Since T4b part 3
+ * (30 Sep 2026) the headline, heat map and key figures read by cluster, as
+ * boards-3/Main.dc.html draws them, from `cluster-figures.ts`.
  *
  * Every figure is a count from stored rows (BRIEF decision 10), computed in
  * `figures.ts`, and each rate is shown with its numerator and denominator.
@@ -100,6 +103,16 @@ export default function Overview({
 }) {
   const where = market === "UK" ? "the United Kingdom" : "the United States";
   const o = overview({ range, compare: compareMode, startedOn, engines, questions: data.questions, answers: data.answers, serp: data.serp, keywordCount: data.keywords.filter((k) => k.stopped_on === null).length });
+  // BRIEF-3 T4b part 3 (30 Sep 2026): the headline, heat map and four figures
+  // read by cluster (boards-3/Main.dc.html). A client with no cluster rows yet
+  // keeps the flat T4 reading rather than print 0 of 0. `?.` because
+  // /app/parity reads docs/parity/T4/fixture.json, generated before clusters.
+  const cards = data.clusters?.length
+    ? clusterCards({ clusters: data.clusters, questions: data.questions, keywords: data.keywords, answers: data.answers, serp: data.serp, range, before: o.compare, today, engines })
+    : null;
+  const cs = cards ? clusterSummary(cards) : null;
+  const heatRows = cards ? cards.filter((c) => c.status !== "pending") : [];
+  const pendingKeywords = cards ? cards.filter((c) => c.status === "pending" && c.keyword).length : 0;
   const liveQuestions = data.questions.filter((q) => q.stopped_on === null && q.added_on <= today).length;
   const hasData = o.named.den > 0;
   const beforeRange = !!startedOn && range.to < startedOn;
@@ -109,7 +122,8 @@ export default function Overview({
       <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
         <h1 style={{ margin: 0, fontSize: "28px", fontWeight: 700, letterSpacing: "-0.03em", color: T.ink }}>Overview</h1>
         <p style={{ margin: 0, fontSize: "14px", color: T.soft }}>
-          {brand} in {where}. {enginesSentence(engines)}.
+          {brand} in {where}. {cards ? `${cards.length} cluster${cards.length === 1 ? "" : "s"} on ` : ""}
+          {enginesSentence(engines)}.
         </p>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: "12px", height: "48px", padding: "0 14px", border: `1px solid ${T.line}`, borderRadius: "12px", background: T.surface, color: T.ink }}>
@@ -151,13 +165,21 @@ export default function Overview({
   }
 
   // ---- 1. headline ----
-  const lflDelta = o.lfl ? pointsDelta(o.lfl.now, o.lfl.before) : null;
+  const lflDelta = cs ? cs.lflDelta : o.lfl ? pointsDelta(o.lfl.now, o.lfl.before) : null;
   const gridDays = daysIn(range).slice(-28);
   const gridFrom = daysIn(range).length - gridDays.length;
   const questionsAnswered = o.questions.den;
-  const lflLine =
-    o.lfl && lflDelta !== null
-      ? ` On the ${o.lfl.questions} prompts tracked all period that's ${pct(o.lfl.now)}, ${lflDelta > 0 ? "up from" : lflDelta < 0 ? "down from" : "the same as"} ${pct(o.lfl.before)}.`
+  const direction = (d: number) => (d > 0 ? "up from" : d < 0 ? "down from" : "the same as");
+  const headlineRate = cs ? cs.now : o.named;
+  const subLine = cs
+    ? `${cs.now.num.toLocaleString("en-GB")} of ${cs.now.den.toLocaleString("en-GB")} answers across ${cs.clusters} cluster${cs.clusters === 1 ? "" : "s"}, ${cs.prompts} prompts and ${WORDS[engines.length] ?? engines.length} engines.`
+    : `${o.named.num.toLocaleString("en-GB")} of ${o.named.den.toLocaleString("en-GB")} answers across ${questionsAnswered} prompts and ${WORDS[engines.length] ?? engines.length} engines.`;
+  const lflLine = cs
+    ? cs.lflBefore && lflDelta !== null
+      ? ` On the ${cs.clustersLfl} cluster${cs.clustersLfl === 1 ? "" : "s"} tracked all period that's ${pct(cs.lfl)}, ${direction(lflDelta)} ${pct(cs.lflBefore)}.`
+      : ""
+    : o.lfl && lflDelta !== null
+      ? ` On the ${o.lfl.questions} prompts tracked all period that's ${pct(o.lfl.now)}, ${direction(lflDelta)} ${pct(o.lfl.before)}.`
       : "";
 
   // ---- 3. chart ----
@@ -193,17 +215,17 @@ export default function Overview({
     <div style={{ display: "flex", flexDirection: "column", gap: "24px", minWidth: 0 }}>
       {header}
 
-      <section aria-label="Headline" className="on-dark app-headline" style={{ position: "relative", display: "flex", flexWrap: "wrap", gap: "48px", padding: "36px 40px", borderRadius: "18px", background: `${CLOSE_WASH}, ${D.ground}`, color: T.surface, overflow: "hidden" }}>
+      <section aria-label="Headline" className="on-dark app-headline" style={{ position: "relative", display: "flex", flexWrap: "wrap", gap: cs ? "40px" : "48px", padding: cs ? "34px 36px" : "36px 40px", borderRadius: "18px", background: `${CLOSE_WASH}, ${D.ground}`, color: T.surface, overflow: "hidden" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: "16px", flex: "1 1 320px", minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: D.muted }}>
             <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: D.accent }} />
             {checked}
           </div>
-          <h2 style={{ margin: 0, fontSize: "40px", lineHeight: 1.12, fontWeight: 700, letterSpacing: "-0.03em", maxWidth: "520px" }} className="app-headline-h">
-            {brand} was named in <span data-figure="headline-named">{pct(o.named)}</span> of AI answers
+          <h2 style={{ margin: 0, fontSize: cs ? "36px" : "40px", lineHeight: 1.12, fontWeight: 700, letterSpacing: "-0.03em", maxWidth: "520px" }} className="app-headline-h">
+            {brand} was named in <span data-figure="headline-named">{pct(headlineRate)}</span> of AI answers
           </h2>
-          <p style={{ margin: 0, fontSize: "16px", lineHeight: 1.55, color: D.cardHead, maxWidth: "500px" }}>
-            {o.named.num.toLocaleString("en-GB")} of {o.named.den.toLocaleString("en-GB")} answers across {questionsAnswered} prompts and {WORDS[engines.length] ?? engines.length} engines.
+          <p style={{ margin: 0, fontSize: cs ? "15px" : "16px", lineHeight: 1.55, color: D.cardHead, maxWidth: "500px" }}>
+            {subLine}
             {lflLine}
             {o.compareHidden ? ` ${o.compareHidden}` : ""}
           </p>
@@ -219,6 +241,55 @@ export default function Overview({
           ) : null}
         </div>
 
+        {cs ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px", flex: "0 1 auto", minWidth: 0 }}>
+            <div style={{ fontSize: "13px", fontWeight: 600, color: D.cardHead }}>Every daily check, by cluster</div>
+            <div style={{ display: "flex", gap: "12px", minWidth: 0 }}>
+              <div className="app-heat-labels" style={{ display: "flex", flexDirection: "column", width: "196px", minWidth: 0, flexShrink: 1 }}>
+                {heatRows.map((c) => (
+                  <div key={c.id} style={{ height: "11px", marginBottom: "3px", display: "flex", alignItems: "center", justifyContent: "flex-end", fontSize: "11px", fontWeight: 500, color: D.cardHead, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", lineHeight: 1 }}>
+                    {c.keyword ?? c.name}
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px", minWidth: 0, flex: "0 1 auto" }}>
+                <svg width={gridDays.length * 14 - 3} height={heatRows.length * 14 - 3} viewBox={`0 0 ${gridDays.length * 14 - 3} ${heatRows.length * 14 - 3}`} style={{ maxWidth: "100%", height: "auto" }} role="img" aria-label={`Daily share of answers naming ${brand}, one row per cluster, ${formatDay(gridDays[0]!)} to ${formatDay(gridDays[gridDays.length - 1]!, true)}`}>
+                  {heatRows.map((c, row) =>
+                    gridDays.map((d, col) => {
+                      const cell = c.heat[gridFrom + col] ?? null;
+                      const label = `${c.keyword ?? c.name}, ${formatDay(d)}: ${cell ? `${cell.pct}% (${cell.num} of ${cell.den})` : "not tracked yet"}`;
+                      return cell ? (
+                        <rect key={`${c.id}-${d}`} x={col * 14} y={row * 14} width={11} height={11} rx={3} fill={heat(cell.pct)}>
+                          <title>{label}</title>
+                        </rect>
+                      ) : (
+                        <rect key={`${c.id}-${d}`} x={col * 14 + 0.5} y={row * 14 + 0.5} width={10} height={10} rx={2.5} fill="none" stroke={D.quiet} strokeOpacity={0.45}>
+                          <title>{label}</title>
+                        </rect>
+                      );
+                    }),
+                  )}
+                </svg>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: D.quiet }}>
+                  <span>{formatDay(gridDays[0]!)}</span>
+                  <span>{formatDay(gridDays[Math.floor(gridDays.length / 2)]!)}</span>
+                  <span>{gridDays[gridDays.length - 1] === today ? "Today" : formatDay(gridDays[gridDays.length - 1]!)}</span>
+                </div>
+              </div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", color: D.quiet, flexWrap: "wrap" }}>
+              {`Share of the cluster's ${5 * engines.length} answers naming you that day`}
+              <span style={{ display: "flex", gap: "3px" }} aria-hidden="true">
+                {[0, 15, 30, 45, 60].map((p) => (
+                  <span key={p} style={{ width: "11px", height: "11px", borderRadius: "3px", background: heat(p) }} />
+                ))}
+              </span>
+              0 to 60%+
+              <span aria-hidden="true" style={{ display: "inline-flex", width: "10px", height: "10px", borderRadius: "2.5px", border: `1px solid ${D.quiet}`, opacity: 0.45, marginLeft: "6px" }} />
+              not tracked yet
+            </div>
+          </div>
+        ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "12px", flex: "0 1 auto", minWidth: 0 }}>
           <div style={{ fontSize: "13px", fontWeight: 600, color: D.cardHead }}>Every daily check, by engine</div>
           <div style={{ display: "flex", gap: "12px", minWidth: 0 }}>
@@ -259,10 +330,46 @@ export default function Overview({
             0 to 60%+
           </div>
         </div>
+        )}
       </section>
 
       <section aria-label="Key figures" className="app-figures" style={{ ...CARD, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", overflow: "hidden" }}>
-        {[
+        {(cs
+          ? [
+              {
+                figure: "named",
+                label: "Answers naming you",
+                value: pct(cs.now),
+                delta: <Delta value={cs.lflDelta} />,
+                foot: <span style={{ fontSize: "13px", color: T.soft }}>{`${cs.now.num.toLocaleString("en-GB")} of ${cs.now.den.toLocaleString("en-GB")} answers${cs.lflDelta !== null ? ". Change is like-for-like" : ""}`}</span>,
+              },
+              {
+                figure: "questions",
+                label: "Prompts you are named in",
+                value: `${cs.promptsNamed.num} of ${cs.promptsNamed.den}`,
+                delta: cs.promptsNamedBefore ? <span style={{ fontSize: "13px", color: T.soft }}>{`was ${cs.promptsNamedBefore.num} of ${cs.promptsNamedBefore.den}`}</span> : null,
+                foot: <span style={{ fontSize: "13px", color: T.soft }}>{cs.never.length ? `${cs.never.length} never name you` : "Named in every prompt"}</span>,
+              },
+              {
+                figure: "sov",
+                label: "Share of voice",
+                value: pct(o.sov),
+                delta: <Delta value={pointsDelta(o.sov, o.sovBefore)} />,
+                foot: <span style={{ fontSize: "13px", color: T.soft }}>{o.sov.rank ? `${ordinal(o.sov.rank)} of ${o.sov.brands} brands named` : `Not named; ${o.sov.brands} other brands were`}</span>,
+              },
+              {
+                figure: "keywords",
+                label: "Cluster keywords on page 1",
+                value: `${cs.page1.num} of ${cs.page1.den}`,
+                delta: cs.page1Before !== null ? <Delta value={cs.page1.num - cs.page1Before} unit="" /> : null,
+                foot: (
+                  <span style={{ fontSize: "13px", color: T.soft }}>
+                    {`${cs.page1.avg === null ? "No keyword in the top 20 yet" : `Average position ${cs.page1.avg}`}${pendingKeywords ? `. ${pendingKeywords} more from tomorrow` : ""}`}
+                  </span>
+                ),
+              },
+            ]
+          : [
           {
             figure: "named",
             label: "Answers naming you",
@@ -291,7 +398,7 @@ export default function Overview({
             delta: o.keywordsBefore && o.keywordsBefore.den ? <Delta value={o.keywords.num - o.keywordsBefore.num} unit="" /> : null,
             foot: <span style={{ fontSize: "13px", color: T.soft }}>{o.keywords.avg === null ? "No keyword in the top 20 yet" : `Average position ${o.keywords.avg}`}</span>,
           },
-        ].map((f, i) => (
+        ]).map((f, i) => (
           <div key={f.label} style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "22px 24px", minWidth: 0, borderLeft: i ? `1px solid ${T.line}` : undefined, marginLeft: i ? "-1px" : undefined }}>
             <div style={LABEL}>{f.label}</div>
             <div style={{ display: "flex", alignItems: "baseline", gap: "10px", flexWrap: "wrap" }}>
