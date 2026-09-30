@@ -4,6 +4,7 @@ import { test } from "node:test";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { editPrompts, readEdits, refuseEdits } from "./edit.ts";
+import { BRANDED_PROMPT } from "./limits.ts";
 
 // BRIEF-3 T6 part 2d (30 Sep 2026): the pending cluster editor. The form read,
 // the text rules, and the writer refusing before any write, against a stand-in.
@@ -37,6 +38,8 @@ function recording(p: { cluster: { stopped_on: string | null } | null; readings:
         eq: () => b,
         is: () => b,
         maybeSingle: async () => ({ data: name === "tracked_clusters" ? p.cluster : null, error: null }),
+        // The subject read the branded-prompt guard makes (30 Sep 2026). Tallyroo is the fixture's made-up client.
+        single: async () => ({ data: name === "client_domains" ? { domain: "tallyroo.com", brand_name: "Tallyroo", brand_aliases: [] } : null, error: null }),
         update: () => {
           writes.push(name);
           return b;
@@ -71,4 +74,11 @@ test("a prompt with no reading is rewritten in place", async () => {
   const { db, writes } = recording({ cluster: { stopped_on: null }, readings: 0 });
   assert.deepEqual(await editPrompts(db, { clientId: "c", clusterId: "k", edits: E, role: "editor" }), { ok: true, changed: 1 });
   assert.deepEqual(writes, ["tracked_questions"]);
+});
+
+test("an edit that names the brand is refused before any write (30 Sep 2026)", async () => {
+  const { db, writes } = recording({ cluster: { stopped_on: null }, readings: 0 });
+  const r = await editPrompts(db, { clientId: "c", clusterId: "k", edits: [{ id: "a", text: "What does Tallyroo charge a studio?" }], role: "editor" });
+  assert.deepEqual(r, { ok: false, message: BRANDED_PROMPT });
+  assert.deepEqual(writes, []);
 });

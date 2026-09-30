@@ -158,3 +158,82 @@ export function upsellSetting(mode: string, contact: string): { mode: UpsellMode
 
 /** A `running` tracking run older than this was killed by the platform. */
 export const TRACKING_STALL_MS = 15 * 60 * 1000;
+
+/**
+ * How a tracking read fails, retries and is summed up - 30 Sep 2026, after
+ * both pilots' first real runs came back partial with every failure on
+ * google_aio: rows with no text, cost 0 and no reason anywhere but a log.
+ *
+ * A read that got a SERP with no AI Overview is not in here at all: it is
+ * answered=false with its real cost, a silence rather than a miss, which is
+ * the scan's rule. Only a throw is a failed read.
+ */
+
+/** A read error as the DataForSEO layer throws it: HTTP status, task status and billed cost where known. */
+export type ReadError = { status?: number; taskStatus?: number; cost?: number; name?: string; message?: string };
+
+/** Retries after the first attempt, and the wait before each. */
+export const READ_RETRY_DELAYS_MS = [1_000, 3_000] as const;
+
+/**
+ * The wait before retrying a failed read, or null for no retry. Retried: HTTP
+ * 429 and 5xx, and DataForSEO's server-side task codes (5xxxx). Not retried: a
+ * bad request, auth, a timeout (it already spent its budget), or a retry that
+ * would not leave the read its minimum budget inside the run.
+ */
+export function readRetryDelay(err: unknown, attempt: number, remainingMs: number): number | null {
+  const delay = READ_RETRY_DELAYS_MS[attempt];
+  if (delay === undefined) return null;
+  const e = (err ?? {}) as ReadError;
+  const retryable =
+    (typeof e.status === "number" && (e.status === 429 || e.status >= 500)) ||
+    (typeof e.taskStatus === "number" && e.taskStatus >= 50000);
+  if (!retryable) return null;
+  return remainingMs - delay >= 10_000 ? delay : null;
+}
+
+/** What a failed attempt billed, when DataForSEO said. Never negative, never NaN. */
+export function billedCost(err: unknown): number {
+  const c = ((err ?? {}) as ReadError).cost;
+  return typeof c === "number" && Number.isFinite(c) && c > 0 ? c : 0;
+}
+
+/** The reason a read failed, short enough to group and store: "HTTP 429", "task 50000 Internal Error", "timeout". */
+export function readFailureReason(err: unknown): string {
+  const e = (err ?? {}) as ReadError;
+  if (e.name === "TimeoutError" || e.name === "AbortError") return "timeout";
+  if (typeof e.status === "number") return `HTTP ${e.status}`;
+  const msg = typeof e.message === "string" ? e.message : String(err);
+  const task = /^DataForSEO task (\S+): (.*)$/.exec(msg);
+  if (task) return `task ${task[1]} ${task[2]}`.slice(0, 80);
+  return msg.slice(0, 80);
+}
+
+/**
+ * The run's error line: how many reads failed, then each engine's reasons
+ * with a count - "4 of 21 reads failed - google_aio: 4 x HTTP 429". Null when
+ * nothing failed. Keyword reads are listed as "keyword".
+ */
+export function failureSummary(reads: number, failures: readonly { engine: string; reason: string }[]): string | null {
+  if (!failures.length) return null;
+  const groups = new Map<string, number>();
+  for (const f of failures) {
+    const key = `${f.engine}: ${f.reason}`;
+    groups.set(key, (groups.get(key) ?? 0) + 1);
+  }
+  const parts = [...groups].map(([key, n]) => {
+    const [engine, ...rest] = key.split(": ");
+    return `${engine}: ${n} x ${rest.join(": ")}`;
+  });
+  return `${failures.length} of ${reads} reads failed - ${parts.join("; ")}`.slice(0, 500);
+}
+
+/**
+ * A keyword read's outcome. An empty SERP (no organic results at all) is a
+ * failed read with a reason, never a silent null; null stays "not in the top
+ * SERP_DEPTH", which is a real finding. `rankOf` returns undefined for empty.
+ */
+export function keywordOutcome(rank: number | null | undefined): { failed: false; rank: number | null } | { failed: true; reason: string } {
+  if (rank === undefined) return { failed: true, reason: "empty SERP: no organic results came back" };
+  return { failed: false, rank };
+}

@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { QUESTIONS } from "@/config/scan-shape";
 
+import { brandedQuestions, withoutBrand } from "./brand-name";
 import type { Market } from "./domain";
 import { countingFetch, withRetry } from "./retry-policy";
 import { sourceKindRequest, sourceKindSystem } from "./source-kind-prompt";
@@ -270,6 +271,8 @@ export async function generateQuestions(input: {
    * failed) the questions are written on the category, as before.
    */
   keyword?: string | null;
+  /** The subject's domain, so a question naming it by domain is caught too. */
+  domain?: string | null;
 }, billed: { calls: number } = { calls: 0 }): Promise<{ questions: GeneratedQuestion[]; calls: number }> {
   const marketName = input.market === "UK" ? "the United Kingdom" : "the United States";
   const year = currentYear();
@@ -284,7 +287,7 @@ export async function generateQuestions(input: {
   // result says nothing about how this brand is actually positioned.
   const variants = (input.topicVariants ?? []).filter((v) => v.trim()).slice(0, TOPIC_VARIANT_COUNT);
 
-  const res = await withRetry(() => anthropic(billed).messages.parse({
+  const ask = () => withRetry(() => anthropic(billed).messages.parse({
     model: MODEL,
     max_tokens: 8000,
     output_config: { effort: EFFORT, format: zodOutputFormat(QuestionSet) },
@@ -361,8 +364,15 @@ export async function generateQuestions(input: {
     ],
   }));
 
-  const out = res.parsed_output;
-  if (!out?.questions?.length) throw new Error("could not build the question set");
+  const shape = (res: Awaited<ReturnType<typeof ask>>) => {
+    const out = res.parsed_output;
+    if (!out?.questions?.length) throw new Error("could not build the question set");
+    return out.questions.slice(0, QUESTION_COUNT).map((q) => ({
+      ...q,
+      question: freshenYears(q.question, year),
+      cluster: byKey.get((q.cluster ?? "").trim().toLowerCase()) ?? input.topic,
+    }));
+  };
 
   // Belt and braces: the instruction above is advisory, this is not. The
   // cluster is folded back onto a phrase we supplied, because the confirm
@@ -370,14 +380,20 @@ export async function generateQuestions(input: {
   // render as a chip that matches nothing the buyer recognises.
   const known = [input.topic, ...variants];
   const byKey = new Map(known.map((v) => [v.trim().toLowerCase(), v]));
-  return {
-    questions: out.questions.slice(0, QUESTION_COUNT).map((q) => ({
-      ...q,
-      question: freshenYears(q.question, year),
-      cluster: byKey.get((q.cluster ?? "").trim().toLowerCase()) ?? input.topic,
-    })),
-    calls: billed.calls,
-  };
+
+  // "Do not name the subject brand" above is advisory too (30 Sep 2026). A
+  // question naming the brand always names it: it measures nothing a buyer
+  // does and becomes a tracked prompt that inflates the named rate. One more
+  // set is asked for when any comes back branded; whatever is still branded
+  // after that is dropped rather than asked.
+  let questions = shape(await ask());
+  if (brandedQuestions(questions, input.brand, input.domain).length) {
+    const again = shape(await ask());
+    if (brandedQuestions(again, input.brand, input.domain).length < brandedQuestions(questions, input.brand, input.domain).length) questions = again;
+  }
+  questions = withoutBrand(questions, input.brand, input.domain);
+  if (!questions.length) throw new Error("could not build the question set: every question named the brand");
+  return { questions, calls: billed.calls };
 }
 
 // ---------------------------------------------------------- keyword candidates

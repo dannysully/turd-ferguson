@@ -215,12 +215,21 @@ export type Task = {
 /** DataForSEO's "everything is fine" task status. Anything else is an error. */
 export const TASK_OK = 20000;
 
+/**
+ * The first task, or a throw. The error carries the task's status code and
+ * what it billed (30 Sep 2026): a task DataForSEO failed can still have been
+ * paid for, and the tracking runner retries on the code and records the cost
+ * rather than a zero. The message is unchanged, so the scan's stored errors
+ * read as they always have.
+ */
 export function firstTask(body: Record<string, unknown>): Task {
   const tasks = body.tasks;
   const task = (Array.isArray(tasks) ? (tasks as Task[]) : [])[0];
   if (!task) throw new Error("DataForSEO returned no task");
   if (task.status_code !== TASK_OK) {
-    throw new Error(`DataForSEO task ${task.status_code}: ${task.status_message ?? "unknown"}`);
+    const err = new Error(`DataForSEO task ${task.status_code}: ${task.status_message ?? "unknown"}`);
+    Object.assign(err, { taskStatus: task.status_code, cost: taskCost(task) });
+    throw err;
   }
   return task;
 }

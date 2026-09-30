@@ -10,7 +10,7 @@ import { isPlausibleEmail } from "@/lib/email-address";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { ADMIN_LIMITS, dayAfter, liveOn, slugFor, trackingDay, upsellSetting } from "@/lib/tracking/decide";
 import { NEEDS_A_KEYWORD } from "@/lib/checkout/signup";
-import { type Angle, angleFor, groupPrompts, insertCluster, insertKeyword, insertPrompts, linkKeyword, PROMPTS_PER_CLUSTER, readPromptRoom, refuseGrouping } from "@/lib/tracking/limits";
+import { type Angle, angleFor, groupPrompts, insertCluster, insertKeyword, insertPrompts, linkKeyword, namesBrandIn, PROMPTS_PER_CLUSTER, readPromptRoom, readSubject, refuseGrouping } from "@/lib/tracking/limits";
 import { dispatchTrackingRun } from "@/lib/tracking/runner";
 
 /**
@@ -119,9 +119,13 @@ export async function createClientFromScan(_prev: AdminResult | null, form: Form
   const room = await readPromptRoom(db, client.id as string, null);
   if (typeof room === "string") return { ok: false, message: room };
   // Each prompt keeps its scan kind as its angle (BRIEF-3 C3).
+  // A scan prompt that names the brand is left behind: it would always name
+  // the client (limits.ts BRANDED_PROMPT), and insertPrompts refuses the batch.
+  const subject = await readSubject(db, client.id as string);
+  if (typeof subject === "string") return { ok: false, message: subject };
   const rows = (sq ?? [])
     .map((q) => ({ text: String(q.question).trim(), angle: angleFor(q.kind) }))
-    .filter((q) => q.text.length >= 8 && q.text.length <= 300 && !have.has(q.text.toLowerCase()))
+    .filter((q) => q.text.length >= 8 && q.text.length <= 300 && !have.has(q.text.toLowerCase()) && !namesBrandIn(q.text, subject))
     .slice(0, room.room)
     .map((q) => ({ text: q.text, angle: q.angle, source: "scan", added_on: startedOn, added_by: "nomada" }));
 

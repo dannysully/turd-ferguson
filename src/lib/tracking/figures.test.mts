@@ -158,3 +158,33 @@ test("sparkPoints: one point a week on the keyword's own scale, better positions
   assert.ok(sparkPoints(days([3, 3, 3, 3])).every((p) => p.y === 10), "unchanged draws level through the middle");
   assert.equal(sparkPoints(days([5, null, 6, 4]))[1]!.y, null, "a week outside the top 20 is a gap");
 });
+
+test("a failed google_aio read (stored answered=false) never counts as not named, and leaves like-for-like unchanged (30 Sep 2026)", () => {
+  const questions = [{ id: "q1", added_on: "2026-09-01", stopped_on: null }];
+  const base = {
+    range: { from: "2026-09-29", to: "2026-09-30" },
+    compare: "prev" as const,
+    startedOn: "2026-09-01",
+    engines: ["google_aio", "chatgpt"],
+    questions,
+    serp: [],
+    keywordCount: 0,
+  };
+  const good = [
+    a("2026-09-27", "q1", "chatgpt", true),
+    a("2026-09-28", "q1", "chatgpt", false),
+    a("2026-09-29", "q1", "chatgpt", true),
+    a("2026-09-30", "q1", "chatgpt", true),
+  ];
+  // The runner stores a failed read as answered=false, named=false.
+  const failed = a("2026-09-30", "q1", "google_aio", false, [], false);
+  const clean = overview({ ...base, answers: good });
+  const withFail = overview({ ...base, answers: [...good, failed] });
+  assert.deepEqual(withFail.named, clean.named, "the failed read is not in the denominator");
+  assert.deepEqual(withFail.named, { num: 2, den: 2, pct: 100 });
+  assert.deepEqual(withFail.lfl, clean.lfl, "like-for-like reads the same with or without the failed read");
+  assert.deepEqual(withFail.grid.google_aio, [null, null], "a day with only a failed read shows no check, not a 0%");
+  // Positive control: the same row counted as an answer would have moved the rate.
+  const asAnswer = overview({ ...base, answers: [...good, { ...failed, answered: true }] });
+  assert.notDeepEqual(asAnswer.named, clean.named);
+});

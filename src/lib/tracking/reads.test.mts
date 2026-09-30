@@ -1,0 +1,103 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { test } from "node:test";
+
+import { firstTask, keywordRankRequest, SERP_DEPTH } from "../scan/dataforseo-request.ts";
+import { parseGoogleAio, parseOrganic, rankOf } from "../scan/engines.ts";
+
+import { billedCost, failureSummary, keywordOutcome, readFailureReason, readRetryDelay, runOutcome } from "./decide.ts";
+
+/**
+ * The 30 Sep 2026 re-run: both pilots partial, every failed read google_aio,
+ * each stored with no text, cost 0 and no reason. A failed read is a throw;
+ * these hold what a throw now does (retried where worth it, billed cost kept,
+ * reason recorded) and what is not a failure at all (a SERP with no Overview).
+ */
+
+const runner = readFileSync(new URL("./runner.ts", import.meta.url), "utf8");
+
+test("a SERP with no AI Overview is a silence: answered=false, no throw, and a run of silences is complete", () => {
+  const serp = { item_types: ["organic"], items: [{ type: "organic", rank_group: 3, domain: "example.com", url: "https://example.com/a" }] };
+  const read = parseGoogleAio(serp);
+  assert.equal(read.answered, false);
+  assert.equal(read.organic?.length, 1, "the organic results still come back with it");
+  assert.equal(runOutcome(21, 0), "complete", "silences are not failures, so no partial");
+});
+
+test("retry: 429, 5xx and DataForSEO 5xxxx retry twice with backoff; bad requests, auth and timeouts do not", () => {
+  const plenty = 200_000;
+  assert.equal(readRetryDelay({ status: 429 }, 0, plenty), 1_000);
+  assert.equal(readRetryDelay({ status: 429 }, 1, plenty), 3_000);
+  assert.equal(readRetryDelay({ status: 429 }, 2, plenty), null, "two retries, then stop");
+  assert.equal(readRetryDelay({ status: 503 }, 0, plenty), 1_000);
+  assert.equal(readRetryDelay({ taskStatus: 50000 }, 0, plenty), 1_000);
+  assert.equal(readRetryDelay({ taskStatus: 40501 }, 0, plenty), null, "a bad parameter is not retried");
+  assert.equal(readRetryDelay({ status: 401 }, 0, plenty), null);
+  assert.equal(readRetryDelay({ name: "TimeoutError" }, 0, plenty), null, "a timeout already spent its budget");
+  assert.equal(readRetryDelay({ status: 429 }, 0, 9_000), null, "no retry that would not fit inside the run");
+});
+
+test("a task DataForSEO failed keeps its status, its billed cost and a short reason", () => {
+  let thrown: unknown;
+  try {
+    firstTask({ tasks: [{ status_code: 40501, status_message: "Invalid Field: 'location_code'.", cost: 0.002 }] });
+  } catch (err) {
+    thrown = err;
+  }
+  assert.ok(thrown instanceof Error);
+  assert.equal((thrown as { taskStatus?: number }).taskStatus, 40501);
+  assert.equal(billedCost(thrown), 0.002);
+  assert.equal(readFailureReason(thrown), "task 40501 Invalid Field: 'location_code'.");
+  assert.equal(billedCost({ cost: -1 }), 0);
+  assert.equal(billedCost(new Error("no cost")), 0);
+  assert.equal(readFailureReason(Object.assign(new Error("DataForSEO 429: slow down"), { status: 429 })), "HTTP 429");
+  assert.equal(readFailureReason(Object.assign(new Error("aborted"), { name: "TimeoutError" })), "timeout");
+});
+
+test("the run's error line groups failures by engine and reason", () => {
+  const four = Array.from({ length: 4 }, () => ({ engine: "google_aio", reason: "HTTP 429" }));
+  assert.equal(failureSummary(21, four), "4 of 21 reads failed - google_aio: 4 x HTTP 429");
+  assert.equal(
+    failureSummary(57, [...four, { engine: "google_aio", reason: "timeout" }, { engine: "keyword", reason: "empty SERP: no organic results came back" }]),
+    "6 of 57 reads failed - google_aio: 4 x HTTP 429; google_aio: 1 x timeout; keyword: 1 x empty SERP: no organic results came back",
+  );
+  assert.equal(failureSummary(21, []), null);
+});
+
+test("keyword reads: null is outside the top 20, an empty SERP is a failed read with a reason", () => {
+  assert.deepEqual(keywordOutcome(null), { failed: false, rank: null });
+  assert.deepEqual(keywordOutcome(7), { failed: false, rank: 7 });
+  assert.deepEqual(keywordOutcome(undefined), { failed: true, reason: "empty SERP: no organic results came back" });
+  // The real parser's contract feeding it: no organic results is undefined, results without the domain are null.
+  assert.equal(rankOf(parseOrganic({ items: [] }), "example.com"), undefined);
+  assert.equal(rankOf(parseOrganic({ items: [{ type: "organic", rank_group: 1, domain: "example.com" }] }), "tallyroo.com"), null);
+});
+
+test("keyword reads ask for a full SERP at depth 20 in the client's market", () => {
+  const uk = (keywordRankRequest("bookkeeping services small business", "UK").body as Record<string, unknown>[])[0]!;
+  const us = (keywordRankRequest("bookkeeping services small business", "US").body as Record<string, unknown>[])[0]!;
+  assert.equal(SERP_DEPTH, 20);
+  assert.deepEqual([uk.location_code, uk.language_code, uk.depth], [2826, "en", 20]);
+  assert.deepEqual([us.location_code, us.language_code, us.depth], [2840, "en", 20]);
+});
+
+/** Where runner.ts marks a read failed, and whether it still collapses an empty SERP to null. */
+export function runnerFaults(source: string): { failedMarks: number; silentNull: boolean; zeroCostFailure: boolean } {
+  return {
+    failedMarks: [...source.matchAll(/failed: true/g)].length,
+    silentNull: /rank:\s*read\.rank\s*\?\?\s*null/.test(source),
+    zeroCostFailure: /failed: true[^}]*cost: 0\b|cost: 0,[^}]*failed: true/.test(source),
+  };
+}
+
+test("census: runner marks a read failed only after its retry loop, keeps billed cost, and never nulls an empty SERP", () => {
+  assert.deepEqual(runnerFaults(runner), { failedMarks: 2, silentNull: false, zeroCostFailure: false });
+  assert.match(runner, /failureSummary\(reads, failures\)/, "the run's error line is the grouped summary");
+  assert.match(runner, /readRetryDelay\(err, attempt, remainingMs\(\)\)/);
+});
+
+test("census probe: an extra failure mark, the old silent null and a zero-cost failure each fire", () => {
+  assert.equal(runnerFaults(runner + "\nreturn { failed: true };").failedMarks, 3);
+  assert.equal(runnerFaults("return { k, failed: false, rank: read.rank ?? null, url: read.url };").silentNull, true);
+  assert.equal(runnerFaults("return { ...base, answered: false, response_text: null, cost: 0, failed: true };").zeroCostFailure, true);
+});

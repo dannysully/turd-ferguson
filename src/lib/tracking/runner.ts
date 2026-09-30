@@ -15,6 +15,11 @@ import {
   TRACKING_STALL_MS,
   liveOn,
   readTrackingSettings,
+  billedCost,
+  failureSummary,
+  keywordOutcome,
+  readFailureReason,
+  readRetryDelay,
   refuseRun,
   runOutcome,
   shouldTrack,
@@ -58,10 +63,7 @@ async function mapWithConcurrency<T, R>(items: T[], limit: number, fn: (item: T)
   return out;
 }
 
-function isRetryable(err: unknown): boolean {
-  const status = (err as { status?: number } | null)?.status;
-  return typeof status === "number" && (status === 429 || status >= 500);
-}
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function message(err: unknown): string {
   return err instanceof Error ? err.message.slice(0, 300) : String(err).slice(0, 300);
@@ -191,6 +193,8 @@ type AnswerRow = {
   citations: Citation[];
   cost: number;
   failed: boolean;
+  /** Why a failed read failed, for the run's error line. */
+  reason?: string;
 };
 
 /**
@@ -267,41 +271,85 @@ export async function runTrackingDay(runId: string): Promise<{ status: string; s
       namesSubject(prose, brand, domain) || aliases.some((a) => namesSubject(prose, a));
 
     const jobs = questions.flatMap((q) => engines.map((engine) => ({ q, engine })));
+    // A read that throws is retried where decide.ts says a retry is worth it
+    // (429, 5xx, DataForSEO's 5xxxx), with backoff, inside the run's budget.
+    // Every attempt's billed cost is kept, failed or not. A SERP with no AI
+    // Overview does not throw: it is answered=false with its cost, a silence.
+    // Google claiming an Overview that did not arrive gets the scan's one retry.
     const answers = await mapWithConcurrency(jobs, CONCURRENCY, async ({ q, engine }): Promise<AnswerRow> => {
       const base = { question_id: q.id as string, engine, citations: [] as Citation[] };
-      for (let attempt = 0; attempt < 2; attempt++) {
+      let cost = 0;
+      let reason = "out of time before the read";
+      let claimRetried = false;
+      for (let attempt = 0; ; attempt++) {
         if (remainingMs() < 5000) break;
         try {
           const read = await readEngine(engine, q.text as string, market, remainingMs());
           spend.dfs += read.cost;
+          cost += read.cost;
+          const claimedButAbsent = !read.answered && (read.raw as { claimed_but_absent?: boolean } | null)?.claimed_but_absent;
+          if (claimedButAbsent && !claimRetried && remainingMs() >= 15_000) {
+            claimRetried = true;
+            continue;
+          }
           return {
             ...base,
             answered: read.answered,
             named: read.answered && names(read.prose),
             response_text: read.prose || null,
             citations: read.citations,
-            cost: read.cost,
+            cost,
             failed: false,
           };
         } catch (err) {
-          if (attempt === 0 && isRetryable(err)) continue;
+          const billed = billedCost(err);
+          spend.dfs += billed;
+          cost += billed;
+          reason = readFailureReason(err);
+          const wait = readRetryDelay(err, attempt, remainingMs());
+          if (wait !== null) {
+            await sleep(wait);
+            continue;
+          }
           console.warn(`[track] ${runId} ${engine} read failed: ${message(err)}`);
           break;
         }
       }
-      return { ...base, answered: false, named: false, response_text: null, cost: 0, failed: true };
+      return { ...base, answered: false, named: false, response_text: null, cost, failed: true, reason };
     });
 
+    // A keyword read: null is "not in the top 20", a finding; an empty SERP or
+    // an error is a failed read with its reason, never a silent null.
     const serp = await mapWithConcurrency(keywords, CONCURRENCY, async (k) => {
-      if (remainingMs() < 5000) return { k, failed: true, rank: null, url: null, cost: 0 };
-      try {
-        const read = await readKeywordPosition(k.keyword as string, domain, market, remainingMs());
-        spend.dfs += read.cost;
-        return { k, failed: false, rank: read.rank ?? null, url: read.url, cost: read.cost };
-      } catch (err) {
-        console.warn(`[track] ${runId} keyword read failed: ${message(err)}`);
-        return { k, failed: true, rank: null, url: null, cost: 0 };
+      let cost = 0;
+      let reason = "out of time before the read";
+      for (let attempt = 0; ; attempt++) {
+        if (remainingMs() < 5000) break;
+        try {
+          const read = await readKeywordPosition(k.keyword as string, domain, market, remainingMs());
+          spend.dfs += read.cost;
+          cost += read.cost;
+          const out = keywordOutcome(read.rank);
+          if (out.failed) {
+            reason = out.reason;
+            break;
+          }
+          return { k, failed: false as const, rank: out.rank, url: read.url, cost };
+        } catch (err) {
+          const billed = billedCost(err);
+          spend.dfs += billed;
+          cost += billed;
+          reason = readFailureReason(err);
+          const wait = readRetryDelay(err, attempt, remainingMs());
+          if (wait !== null) {
+            await sleep(wait);
+            continue;
+          }
+          console.warn(`[track] ${runId} keyword read failed: ${message(err)}`);
+          break;
+        }
       }
+      return { k, failed: true as const, rank: null, url: null, cost, reason };
     });
 
     // Who else is named: one extraction per engine over that engine's answers,
@@ -363,9 +411,12 @@ export async function runTrackingDay(runId: string): Promise<{ status: string; s
     }
 
     const reads = answers.length + serp.length;
-    const failed = answers.filter((a) => a.failed).length + serp.filter((s) => s.failed).length;
-    const status = runOutcome(reads, failed);
-    await close({ status, error: failed ? `${failed} of ${reads} reads failed` : null });
+    const failures = [
+      ...answers.flatMap((a) => (a.failed ? [{ engine: a.engine as string, reason: a.reason ?? "unknown" }] : [])),
+      ...serp.flatMap((x) => (x.failed ? [{ engine: "keyword", reason: x.reason ?? "unknown" }] : [])),
+    ];
+    const status = runOutcome(reads, failures.length);
+    await close({ status, error: failureSummary(reads, failures) });
     return { status };
   } catch (err) {
     await close({ status: "failed", error: message(err) });

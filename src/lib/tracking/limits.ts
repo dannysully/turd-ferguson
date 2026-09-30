@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { namesSubject } from "../scan/brand-name.ts";
+
 /**
  * alwaystracked's limits, enforced on the server - C2 of
  * docs/tracked-dashboard-2026-09-29/BRIEF-3-clusters.md (Danny, 29 Sep 2026).
@@ -19,7 +21,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  * keyword per cluster it may have.
  *
  * The refusals are pure so the tests can run each one. The writers below are
- * the only network half; imports are type-only so Node's runner can load this.
+ * the only network half; the one runtime import (brand-name.ts) is relative
+ * and dependency-free, so Node's runner can still load this.
  */
 
 export const CLUSTER_BASE = 10;
@@ -127,11 +130,42 @@ export async function readClusterRefusal(db: SupabaseClient, clientId: string): 
   return refuseCluster(live, clusterLimit);
 }
 
+/**
+ * A branded prompt (30 Sep 2026). A prompt that names the client's own brand
+ * or domain will always name the client, so it inflates the named rate while
+ * measuring nothing a buyer does. One matcher with the runner's "named":
+ * namesSubject on the brand and domain, plus each brand alias.
+ */
+export const BRANDED_PROMPT = "This prompt names the brand, so it will always name you. Ask it the way a buyer would, without the name.";
+
+export type Subject = { brand: string | null; domain: string; aliases?: readonly string[] | null };
+
+export function namesBrandIn(text: string, s: Subject): boolean {
+  const brand = s.brand?.trim() || s.domain;
+  return namesSubject(text, brand, s.domain) || (s.aliases ?? []).filter(Boolean).some((a) => namesSubject(text, a));
+}
+
+/** BRANDED_PROMPT when any of the texts names the subject, null when none does. */
+export function refuseBranded(texts: readonly string[], s: Subject): string | null {
+  return texts.some((t) => namesBrandIn(t, s)) ? BRANDED_PROMPT : null;
+}
+
+/** The client's brand, domain and aliases, for refuseBranded. */
+export async function readSubject(db: SupabaseClient, clientId: string): Promise<Subject | string> {
+  const { data, error } = await db.from("client_domains").select("domain, brand_name, brand_aliases").eq("id", clientId).single();
+  if (error) return `Could not read the client: ${error.message}`;
+  return { brand: (data.brand_name as string | null) ?? null, domain: data.domain as string, aliases: (data.brand_aliases as string[] | null) ?? [] };
+}
+
 export type PromptRow = { text: string; source: string; added_on: string; added_by: string; angle?: string | null };
 
 /** Insert prompts into a client (and a cluster, or ungrouped). The whole batch is refused if it does not fit. */
 export async function insertPrompts(db: SupabaseClient, clientId: string, clusterId: string | null, rows: PromptRow[]): Promise<Written> {
   if (!rows.length) return { ok: true, ids: [] };
+  const subject = await readSubject(db, clientId);
+  if (typeof subject === "string") return { ok: false, message: subject };
+  const branded = refuseBranded(rows.map((r) => r.text), subject);
+  if (branded) return { ok: false, message: branded };
   const read = await readPromptRoom(db, clientId, clusterId);
   if (typeof read === "string") return { ok: false, message: read };
   const refused = refusePrompts(read.limits, rows.length);

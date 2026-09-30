@@ -211,6 +211,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
       topicVariants: variants,
       market,
       brand: scan.brand_name ?? scan.domain,
+      domain: scan.domain,
       positioning: scan.positioning,
       ...siteFacts(scan.site_facts),
       keyword: cluster.keyword,

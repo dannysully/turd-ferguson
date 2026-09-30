@@ -4,7 +4,7 @@ import { T } from "@/config/tokens";
 import { supabaseAdmin, supabaseConfigured } from "@/lib/supabase/admin";
 import { ADMIN_LIMITS, UPSELL_MODES, trackingDay } from "@/lib/tracking/decide";
 import { runIsStuck } from "@/lib/tracking/dispatch";
-import { PROMPTS_PER_CLUSTER, trackingCounts } from "@/lib/tracking/limits";
+import { PROMPTS_PER_CLUSTER, type Subject, namesBrandIn, trackingCounts } from "@/lib/tracking/limits";
 
 import { ActionForm } from "./ActionForm";
 import { addTracked, createClientFromScan, groupCluster, runNow, setMember, setUpsell } from "./actions";
@@ -49,7 +49,7 @@ export default async function TrackingAdmin() {
   const { data: clients, error: cErr } = await db
     .from("client_domains")
     // question_limit and keyword_limit are no longer read: the allowance is cluster_limit (BRIEF-3 C2, limits.ts).
-    .select("id, account_id, domain, market, tier, status, started_on, cluster_limit, slug")
+    .select("id, account_id, domain, brand_name, brand_aliases, market, tier, status, started_on, cluster_limit, slug")
     .not("slug", "is", null)
     .order("created_at", { ascending: true });
   if (cErr) throw new Error(`could not read tracked clients: ${cErr.message}`);
@@ -156,6 +156,7 @@ export default async function TrackingAdmin() {
             </ActionForm>
             <ClusterAdmin
               client={id}
+              subject={{ brand: (c.brand_name as string | null) ?? null, domain: c.domain as string, aliases: (c.brand_aliases as string[] | null) ?? [] }}
               clusters={of(clusters, id)}
               prompts={liveQ}
               keywords={liveK}
@@ -212,7 +213,12 @@ const angleShort = (a: unknown) => (a ? ` [${String(a)}]` : "");
  * are still read daily and shown here only (R111). Grouping moves the rows,
  * so readings already taken stay with them.
  */
-function ClusterAdmin({ client, clusters, prompts, keywords }: { client: string; clusters: Row[]; prompts: Row[]; keywords: Row[] }) {
+/** A live prompt that names the client's brand always names it; Nomada stops it and adds a buyer's version (30 Sep 2026). */
+function BrandFlag({ text, subject }: { text: string; subject: Subject }) {
+  return namesBrandIn(text, subject) ? <strong style={{ color: T.ink }}> - names the brand</strong> : null;
+}
+
+function ClusterAdmin({ client, subject, clusters, prompts, keywords }: { client: string; subject: Subject; clusters: Row[]; prompts: Row[]; keywords: Row[] }) {
   const linked = new Set(clusters.map((c) => c.keyword_id as string | null).filter(Boolean));
   const ungroupedQ = prompts.filter((q) => q.cluster_id === null);
   const ungroupedK = keywords.filter((k) => !linked.has(k.id as string));
@@ -221,6 +227,7 @@ function ClusterAdmin({ client, clusters, prompts, keywords }: { client: string;
       {ungroupedQ.map((q) => (
         <label key={q.id as string} style={{ fontSize: "13px" }}>
           <input type="checkbox" name="prompt" value={q.id as string} maxLength={ADMIN_LIMITS.id} /> {q.text as string}
+          <BrandFlag text={q.text as string} subject={subject} />
           <span style={{ color: T.soft }}>
             {" "}
             ({q.source as string}, from {q.added_on as string}){angleShort(q.angle)}
@@ -247,6 +254,7 @@ function ClusterAdmin({ client, clusters, prompts, keywords }: { client: string;
               {qs.map((q) => (
                 <li key={q.id as string}>
                   {q.text as string} <span style={{ color: T.soft }}>({q.source as string}, from {q.added_on as string}){angleShort(q.angle)}</span>
+                  <BrandFlag text={q.text as string} subject={subject} />
                 </li>
               ))}
             </ol>

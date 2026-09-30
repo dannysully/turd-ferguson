@@ -383,3 +383,17 @@ function namesWithCapital(prose: string, word: string): boolean {
   }
   return false;
 }
+
+/**
+ * The generated questions that name the subject (30 Sep 2026). A question that
+ * names the brand always names it, so it measures nothing a buyer does - and
+ * copied into tracking, it inflates the named rate. The same matcher as
+ * "named"; `generateQuestions` asks again once, then drops what is left.
+ */
+export function brandedQuestions<T extends { question: string }>(questions: readonly T[], brand: string, domain?: string | null): T[] {
+  return questions.filter((q) => namesSubject(q.question, brand, domain));
+}
+
+export function withoutBrand<T extends { question: string }>(questions: readonly T[], brand: string, domain?: string | null): T[] {
+  return questions.filter((q) => !namesSubject(q.question, brand, domain));
+}

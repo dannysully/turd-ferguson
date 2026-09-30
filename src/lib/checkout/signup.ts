@@ -5,7 +5,7 @@ import { siteUrl } from "@/lib/scan/verify-email";
 import { sendOrderEmail } from "@/lib/checkout/order-mail";
 import { orderEmailText, orderRow, packsOn, subscriptionScanToken, type CompletedOrder } from "@/lib/checkout/webhook";
 import { dayAfter, slugFor, trackingDay } from "@/lib/tracking/decide";
-import { angleFor, clusterLimitFor, insertCluster, insertKeyword, insertPrompts, PROMPTS_PER_CLUSTER } from "@/lib/tracking/limits";
+import { angleFor, clusterLimitFor, insertCluster, insertKeyword, insertPrompts, namesBrandIn, PROMPTS_PER_CLUSTER } from "@/lib/tracking/limits";
 import { sendLoginLink } from "@/lib/tracking/login-mail";
 import { LOGIN_TTL_MS, hashToken, newToken } from "@/lib/tracking/session";
 
@@ -94,7 +94,8 @@ async function clientFromScan(db: SupabaseClient, o: CompletedOrder): Promise<{ 
   // Each prompt keeps its scan kind as its angle (BRIEF-3 C3).
   const rows = (sq ?? [])
     .map((q) => ({ text: String(q.question).trim(), angle: angleFor(q.kind) }))
-    .filter((q) => q.text.length >= 8 && q.text.length <= 300)
+    // A scan prompt naming the brand is left behind (limits.ts BRANDED_PROMPT).
+    .filter((q) => q.text.length >= 8 && q.text.length <= 300 && !namesBrandIn(q.text, { brand: scan.brand_name as string | null, domain: scan.domain as string }))
     .slice(0, PROMPTS_PER_CLUSTER)
     .map((q) => ({ text: q.text, angle: q.angle, source: "scan", added_on: startedOn, added_by: "nomada" }));
   const prompts = await insertPrompts(db, clientId, clusterId, rows);

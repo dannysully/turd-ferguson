@@ -156,7 +156,8 @@ const RECORDED: Record<string, string> = {
   "src/app/admin/tracking/page.tsx :: account_id, email, role":
     "admin-only page; groups dashboard members under their client. Never reaches a visitor.",
   // 29 Sep 2026, BRIEF-3 C2: the limit columns became cluster_limit; same read, same reason.
-  "src/app/admin/tracking/page.tsx :: id, account_id, domain, market, tier, status, started_on, cluster_limit, slug":
+  // 30 Sep 2026: brand_name and brand_aliases added, for the "names the brand" flag on live prompts.
+  "src/app/admin/tracking/page.tsx :: id, account_id, domain, brand_name, brand_aliases, market, tier, status, started_on, cluster_limit, slug":
     "admin-only page; the account id goes back only into the admin's own member form.",
   // 29 Sep 2026, T3. The signed-in member's memberships and clients; the
   // account id is used only to join the two and is dropped before return

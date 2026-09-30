@@ -1169,6 +1169,7 @@ export async function runScan(scanId: string): Promise<void> {
             topicVariants: scan.topic_variants ?? [],
             market,
             brand,
+            domain: scan.domain,
             positioning: scan.positioning,
             ...siteFacts(scan.site_facts),
           }, qBilled),
