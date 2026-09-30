@@ -25,11 +25,12 @@ import { Chip } from "./Overview";
  * 2b) are plain POST forms to /api/app/[client]/stop?kind=&id=, which answers with a 303
  * back here carrying `?done=&kind=&id=`; the toast is drawn from those, never
  * from free text in the URL. Owners and editors see the controls, viewers do
- * not. The free slot, the pending editor and "Add a cluster" come with the
- * add routes, so none is drawn as a control that does nothing.
+ * not. The free slot (part 2c) posts to /prompt and the pending editor (part
+ * 2d) to /edit; "Add a cluster" comes with its route, so it is not drawn as a
+ * control that does nothing.
  */
 
-export type StopToast = { done: "stopped" | "undone" | "added" | "refused"; kind: "prompt" | "cluster"; id: string };
+export type StopToast = { done: "stopped" | "undone" | "added" | "saved" | "refused"; kind: "prompt" | "cluster"; id: string };
 
 const short = (t: string) => (t.length > 52 ? `${t.slice(0, 50)}…` : t);
 
@@ -221,9 +222,13 @@ function Toast({ t, cards, act, dismiss }: { t: StopToast; cards: ClusterCard[];
       ? "That change did not go through. Reload the page and try again."
       : t.done === "added"
         ? `Now tracking “${short(name)}”. First results after tomorrow’s 06:00 check.`
+        : t.done === "saved"
+        ? "Saved. The first check uses these prompts tomorrow at 06:00."
         : t.done === "undone"
         ? `Undone. “${short(name)}” is still tracked.`
-        : t.kind === "cluster"
+        : t.kind === "cluster" && cluster?.status === "pending"
+          ? `Removed “${short(name)}” before its first check.`
+          : t.kind === "cluster"
           ? `Stopped tracking “${short(name)}” and its prompts. Their history stays in your reports.`
           : `Stopped “${short(name)}”. Its history stays in your reports, and the slot is free for a new prompt.`;
   return (
@@ -243,6 +248,61 @@ function Toast({ t, cards, act, dismiss }: { t: StopToast; cards: ClusterCard[];
   );
 }
 
+/**
+ * The pending cluster (part 2d): before its first check every live prompt is an
+ * input, posted as `p-<id>` to /api/app/[client]/edit, which refuses any prompt
+ * that has a reading. "Remove this cluster" is the stop form; a pending cluster
+ * stopped today is never read. Two sibling forms, the Save button joined to its
+ * form by `form=`, so neither nests and both post with JS off.
+ */
+function PendingEditor({ c, kw, lead, act }: { c: ClusterCard; kw: string; lead: string; act: NonNullable<Act> }) {
+  const formId = `edit-${c.id}`;
+  const live = c.prompts.filter((p) => p.stoppedOn === null);
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "14px", padding: "4px 24px 22px" }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", padding: "14px 16px", borderRadius: "12px", background: T.wash }}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={T.accent} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0, marginTop: "2px" }}>
+          <path d="M4 20h4L19 9l-4-4L4 16v4z" />
+          <path d="M13.5 6.5l4 4" />
+        </svg>
+        <span style={{ fontSize: "14px", lineHeight: 1.5, color: T.ink }}>
+          Edit freely until the first check, tomorrow at 06:00. After that a prompt can be stopped and replaced, not rewritten, so its history stays true to what was asked.
+        </span>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+        <span style={{ fontSize: "13px", fontWeight: 600, color: T.soft }}>Keyword</span>
+        <span style={{ fontSize: "15px", fontWeight: 700, color: T.ink }}>{kw}</span>
+        {lead ? (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", padding: "3px 9px", borderRadius: "999px", background: T.goodBg, color: T.goodFg, fontSize: "12px", fontWeight: 600 }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={T.goodFg} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M5 12l5 5L20 7" />
+            </svg>
+            {lead}
+          </span>
+        ) : null}
+      </div>
+      <form id={formId} method="post" action={`${act.action.replace(/\/stop$/, "/edit")}?${new URLSearchParams({ ...act.keep, kind: "cluster", id: c.id })}`} style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        {live.map((p) => (
+          <div key={p.id} className="app-cl-edit" style={{ display: "grid", gridTemplateColumns: "120px minmax(0, 1fr)", alignItems: "center", gap: "12px" }}>
+            <label htmlFor={`${formId}-${p.id}`} style={{ fontSize: "12px", fontWeight: 700, letterSpacing: ".02em", textTransform: "uppercase", color: T.soft }}>
+              {p.angle ?? "Prompt"}
+            </label>
+            <input id={`${formId}-${p.id}`} name={`p-${p.id}`} defaultValue={p.text} required minLength={PROMPT_MIN} maxLength={ADMIN_LIMITS.question} style={{ height: "44px", boxSizing: "border-box", padding: "0 12px", border: `1px solid ${T.line}`, borderRadius: "10px", fontFamily: "inherit", fontSize: "14px", color: T.ink, background: T.surface, minWidth: 0 }} />
+          </div>
+        ))}
+      </form>
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", flexWrap: "wrap" }}>
+        <StopForm act={act} kind="cluster" id={c.id} style={{ height: "44px", padding: "0 16px", border: `1px solid ${T.line}`, borderRadius: "12px", background: T.surface, color: T.ink, fontSize: "14px", fontWeight: 600 }}>
+          Remove this cluster
+        </StopForm>
+        <button type="submit" form={formId} style={{ height: "44px", padding: "0 18px", border: 0, borderRadius: "12px", background: T.accent, color: T.surface, fontFamily: "inherit", fontSize: "14px", fontWeight: 600, cursor: "pointer" }}>
+          Save changes
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function ClusterRow({ c, brand, open, toggle, since, act }: { c: ClusterCard; brand: string; open: boolean; toggle: string; since: string | null; act: Act }) {
   const pending = c.status === "pending";
   // A stop made today shows until tomorrow's check, with Undo; the slot is already free.
@@ -258,7 +318,7 @@ function ClusterRow({ c, brand, open, toggle, since, act }: { c: ClusterCard; br
   const meta = stopped
     ? `${lead ? `${lead}. ` : ""}Stopped from ${formatDay(c.stoppedOn!)}. Its history stays in your reports`
     : pending
-      ? `${lead ? `${lead}. ` : ""}First check tomorrow at 06:00`
+      ? `${lead ? `${lead}. ` : ""}Added today, first check tomorrow at 06:00`
       : `${lead ? `${lead}. ` : ""}Since ${formatDay(c.started_on)}`;
   const named = namedCount(c);
   const mid = BLOCK_H / 2;
@@ -301,7 +361,9 @@ function ClusterRow({ c, brand, open, toggle, since, act }: { c: ClusterCard; br
         </span>
       </Link>
 
-      {open ? (
+      {open && pending && act && !stopped ? (
+        <PendingEditor c={c} kw={kw} lead={lead} act={act} />
+      ) : open ? (
         <div style={{ display: "flex", flexDirection: "column", gap: "14px", padding: "4px 24px 22px" }}>
           <div className="app-cl-body" style={{ display: "flex", alignItems: "center" }}>
             <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "4px", flexGrow: 1, minWidth: 0 }}>

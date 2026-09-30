@@ -249,6 +249,13 @@ const NO_CALLER: { route: string; method: string; why: string; earns: () => bool
     earns: () => readFileSync(join(ROOT, "src/components/app/Clusters.tsx"), "utf8").includes('act.action.replace(/\\/stop$/, "/prompt")'),
   },
   {
+    route: "/api/app/[client]/edit",
+    method: "POST",
+    // BRIEF-3 T6 part 2d, 30 Sep 2026: the pending cluster editor's Save changes.
+    why: "Posted by the plain HTML pending-cluster editor on the Clusters page, which the fetch scanner does not read.",
+    earns: () => readFileSync(join(ROOT, "src/components/app/Clusters.tsx"), "utf8").includes('act.action.replace(/\\/stop$/, "/edit")'),
+  },
+  {
     route: "/api/checkout",
     method: "POST",
     // R91, 29 Sep 2026. It opens a live Stripe Checkout - the one route

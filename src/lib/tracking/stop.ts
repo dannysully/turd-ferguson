@@ -83,7 +83,7 @@ export function readStopForm(get: (k: string) => string | null, search: number):
 }
 
 /** The toast states the page draws: what happened, to which row. Never free text from the URL. */
-export type StopDone = "stopped" | "undone" | "added" | "refused";
+export type StopDone = "stopped" | "undone" | "added" | "saved" | "refused";
 
 /** Where the route sends the browser back to: the Clusters page, its state kept, with the toast. */
 export function stopReturn(slug: string, f: StopForm, done: StopDone): string {

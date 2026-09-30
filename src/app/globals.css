@@ -1671,6 +1671,8 @@ html[data-motion="on"] .res-dial { animation: resDial 1.4s .3s cubic-bezier(.2,.
   .app-cl-prompt { grid-template-columns: minmax(0, 1fr) auto auto !important; }
   .app-cl-text { white-space: normal !important; flex-basis: 100%; }
   .app-cl-text-row { flex-wrap: wrap; }
+  /* The pending editor (T6 part 2d): the angle label sits above its input. */
+  .app-cl-edit { grid-template-columns: minmax(0, 1fr) !important; gap: 6px !important; }
   /* Main.dc.html keeps the Previous period toggle level with the cluster
      name (R122); on a phone the lede needs the width, so it drops below. */
   .app-chart-head { flex-wrap: wrap; gap: 12px !important; }

@@ -52,7 +52,7 @@ export default async function ClientClusters({
   const kind = one("kind");
   const id = one("id");
   const toast: StopToast | null =
-    (done === "stopped" || done === "undone" || done === "refused") && (kind === "prompt" || kind === "cluster") && id ? { done, kind, id } : null;
+    (done === "stopped" || done === "undone" || done === "added" || done === "saved" || done === "refused") && (kind === "prompt" || kind === "cluster") && id ? { done, kind, id } : null;
 
   return (
     <div className="app-shell" style={{ display: "flex", flexWrap: "wrap", minHeight: "100vh", color: T.ink }}>
