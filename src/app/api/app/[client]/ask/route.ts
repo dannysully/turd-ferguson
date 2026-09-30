@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { askGate, askMail, askRecipient, readAskKeyword, recordAsk, upsellMode } from "@/lib/tracking/ask";
+import { askGate, askItemWord, askMail, askRecipient, readAskItems, readAskKeyword, readUpgradeCta, recordAsk, upgradeAskMail, upsellMode } from "@/lib/tracking/ask";
 import { sendAsk } from "@/lib/tracking/ask-mail";
 import { trackingDay } from "@/lib/tracking/decide";
 import { fixtureMode } from "@/lib/tracking/fixture-mode";
@@ -11,18 +11,22 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * A member's ask - BRIEF-2 T11 /ask, first used by Add a cluster's "Ask us to
- * pick one" (30 Sep 2026). Posted by a plain HTML form, the refused keyword in
- * the body. Rules, mail text and the cap are ask.ts; the send is ask-mail.ts.
- * Session and membership as the note route; the fixture sends nothing.
- * Returns to the Clusters page with `ask=sent|refused` and, on a send, the
- * toast's recipient word.
+ * A member's ask - BRIEF-2 T11 /ask (30 Sep 2026). Posted by a plain HTML
+ * form: either Add a cluster's "Ask us to pick one" with the refused keyword,
+ * or an upgrade prompt's "Ask about these N" with its `cta` and the `items` ids
+ * that triggered it, resolved here against this client's own rows. Rules,
+ * mail text and the cap are ask.ts; the send is ask-mail.ts. Session and
+ * membership as the note route; the fixture sends nothing. Returns to the
+ * Clusters page with `ask=sent|refused` and, on a send, the toast's recipient
+ * word and the count sent with it.
  */
 export async function POST(req: Request, ctx: { params: Promise<{ client: string }> }) {
   const { client: slug } = await ctx.params;
   if (!/^[A-Za-z0-9-]{1,64}$/.test(slug)) return NextResponse.json({ error: "Not found." }, { status: 404 });
-  const done = (r: "sent" | "refused", who?: "us" | "agency") =>
-    NextResponse.redirect(new URL(`/app/${slug}/clusters?${new URLSearchParams({ ask: r, ...(who ? { to: who } : {}) })}`, req.url), 303);
+  const form = await req.formData().catch(() => null);
+  const cta = readUpgradeCta(form?.get("cta"));
+  const done = (r: "sent" | "refused", extra: Record<string, string> = {}) =>
+    NextResponse.redirect(new URL(`/app/${slug}/clusters?${new URLSearchParams({ ...(cta === "mentioned" ? { filter: "never" } : {}), ask: r, ...extra })}`, req.url), 303);
   if (fixtureMode()) return done("refused");
 
   const email = await sessionEmail();
@@ -30,9 +34,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ client: string
   const client = (await clientsFor(email)).find((c) => c.slug === slug);
   if (!client) return NextResponse.json({ error: "Not found." }, { status: 404 });
 
-  const form = await req.formData().catch(() => null);
-  const keyword = readAskKeyword(form?.get("keyword"));
-  if (!keyword) return done("refused");
+  const keyword = cta ? null : readAskKeyword(form?.get("keyword"));
+  const ids = cta ? readAskItems(String(form?.get("items") ?? "").split(",")) : [];
+  if (!keyword && !ids.length) return done("refused");
 
   const db = supabaseAdmin();
   // The account is read here, server-side only; clientsFor keeps account_id out of what pages get.
@@ -56,9 +60,27 @@ export async function POST(req: Request, ctx: { params: Promise<{ client: string
     return done("refused");
   }
 
-  const mail = askMail({ brand: client.brand ?? client.domain, domain: client.domain, member: email, keyword, mode });
+  const brand = client.brand ?? client.domain;
+  let items: string[] = [];
+  if (cta) {
+    // Only this client's rows: an id from another client, or a made-up one, lists nothing.
+    const read =
+      cta === "mentioned"
+        ? await db.from("tracked_questions").select("text").eq("client_domain_id", client.id).in("id", ids)
+        : await db.from("tracked_keywords").select("keyword").eq("client_domain_id", client.id).in("id", ids);
+    if (read.error) {
+      console.warn(`[app] ask could not read its items: ${read.error.message}`);
+      return done("refused");
+    }
+    items = ((read.data ?? []) as { text?: string; keyword?: string }[]).map((r) => r.text ?? r.keyword ?? "").filter(Boolean);
+    if (!items.length) return done("refused");
+  }
+  const mail = cta ? upgradeAskMail({ brand, domain: client.domain, member: email, cta, items, mode }) : askMail({ brand, domain: client.domain, member: email, keyword: keyword as string, mode });
   if (!(await sendAsk({ agencyContact: recipient.to, replyTo: email, ...mail }))) return done("refused");
-  if (!(await recordAsk(db, { clientId: client.id, email, cta: "cluster", trigger: { keyword } }))) console.warn("[app] ask sent but not recorded");
-  // The toast's words are rebuilt on the page (askToast) from this one word, never passed as text.
-  return done("sent", recipient.to ? "agency" : "us");
+  const recorded = cta
+    ? await recordAsk(db, { clientId: client.id, email, cta, trigger: { items: String(items.length) } })
+    : await recordAsk(db, { clientId: client.id, email, cta: "cluster", trigger: { keyword: keyword as string } });
+  if (!recorded) console.warn("[app] ask sent but not recorded");
+  // The toast's words are rebuilt on the page (askToast) from these words, never passed as text.
+  return done("sent", { to: recipient.to ? "agency" : "us", ...(cta ? { n: String(items.length), of: askItemWord(cta, 2) } : {}) });
 }

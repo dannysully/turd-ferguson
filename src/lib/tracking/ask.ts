@@ -11,9 +11,9 @@ import { ADMIN_LIMITS } from "./decide.ts";
  * may ask, viewers included: an ask changes nothing that is tracked. With
  * `upsell_mode = 'off'` there is nobody to ask, so it is refused.
  *
- * This part carries the one ask the dashboard already offers: a keyword the
- * Add a cluster check refused, "Ask us to pick one" (cta `cluster`). The
- * upgrade prompts' "Ask about these" join it with UpgradePrompt.
+ * Two asks: a keyword the Add a cluster check refused, "Ask us to pick one"
+ * (cta `cluster`), and an upgrade prompt's "Ask about these N" (its own cta,
+ * the triggering items listed). Both share the recipient and the cap.
  */
 
 export const ASKS_PER_MEMBER_PER_DAY = 3;
@@ -58,8 +58,53 @@ export function askMail(p: { brand: string; domain: string; member: string; keyw
   };
 }
 
-/** The toast, as the board's: who it went to and who will be answered. */
-export const askToast = (who: string, member: string) => `Sent to ${who}. ${who === "nomada digital" ? "We'll" : "They'll"} reply to ${member}.`;
+/**
+ * An upgrade prompt's "Ask about these N" (T11 part 5, 30 Sep 2026): the
+ * prompt's cta and the ids of the prompts or keywords that triggered it. The
+ * route resolves the ids against this client's own rows, so the mail lists
+ * only what the client tracks, never text a form sent. Only the two prompts
+ * with an ask are accepted; alwayseverywhere's second button is "Book a call".
+ */
+export type UpgradeAskCta = "mentioned" | "cited";
+
+export const readUpgradeCta = (raw: unknown): UpgradeAskCta | null => (raw === "mentioned" || raw === "cited" ? raw : null);
+
+/** The most ids one ask carries: every prompt a client could track, with packs. */
+export const ASK_ITEMS_MAX = 100;
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** The form's `items` ids, split on commas: uuids only, once each, at most ASK_ITEMS_MAX. */
+export function readAskItems(raw: unknown[]): string[] {
+  const out = new Set<string>();
+  for (const v of raw) if (typeof v === "string" && UUID.test(v) && out.size < ASK_ITEMS_MAX) out.add(v.toLowerCase());
+  return [...out];
+}
+
+/** What the items are called, in the mail and the toast. */
+export const askItemWord = (cta: UpgradeAskCta, n: number) => (cta === "mentioned" ? (n === 1 ? "prompt" : "prompts") : n === 1 ? "keyword" : "keywords");
+
+/** The upgrade ask's email: the prompt that was showing and its items, one a line. No tier name in agency mode. */
+export function upgradeAskMail(p: { brand: string; domain: string; member: string; cta: UpgradeAskCta; items: string[]; mode: UpsellMode }): { subject: string; text: string } {
+  const where = p.mode === "agency" ? "their dashboard" : "their alwaystracked dashboard";
+  const what = askItemWord(p.cta, p.items.length);
+  const why = p.cta === "mentioned" ? `${p.items.length} ${what} that named them in no answer this period` : `${p.items.length} cluster ${what} at #11 to #20 on Google today`;
+  const next = p.mode === "agency" ? "" : ` The prompt pointed to ${p.cta === "mentioned" ? "alwaysmentioned" : "alwayscited"}.`;
+  return {
+    subject: `${p.brand} asked about ${p.items.length} ${what}`,
+    text: [
+      `${p.member} (${p.brand}, ${p.domain}) asked from ${where} about ${why}.${next}`,
+      "",
+      ...p.items.map((t) => `- ${t}`),
+      "",
+      "Reply to this email to answer them.",
+    ].join("\n"),
+  };
+}
+
+/** The toast, as the board's: who it went to, what went with it, and who will be answered. */
+export const askToast = (who: string, member: string, attached?: string) =>
+  `Sent to ${who}${attached ? ` with the ${attached} attached` : ""}. ${who === "nomada digital" ? "We'll" : "They'll"} reply to ${member}.`;
 
 export type AskGate = { ok: true } | { ok: false; reason: "off" | "capped" | "read_failed" };
 
@@ -80,3 +125,16 @@ export async function recordAsk(db: SupabaseClient, p: { clientId: string; email
   const { error } = await db.from("cta_events").insert({ client_domain_id: p.clientId, member_email: p.email, cta: p.cta, action: "asked", trigger: p.trigger });
   return !error;
 }
+
+/**
+ * "Hide for 30 days": one `hidden` row for this member and cta. upgrade-context
+ * reads it back through hiddenCtas for HIDE_DAYS; nothing else is changed.
+ */
+export async function recordHidden(db: SupabaseClient, p: { clientId: string; email: string; cta: AskCta }): Promise<boolean> {
+  const { error } = await db.from("cta_events").insert({ client_domain_id: p.clientId, member_email: p.email, cta: p.cta, action: "hidden", trigger: {} });
+  return !error;
+}
+
+/** The hide form's cta: any prompt's, since each can be hidden. */
+export const readHideCta = (raw: unknown): AskCta | null =>
+  raw === "mentioned" || raw === "cited" || raw === "everywhere" || raw === "pack" || raw === "cluster" ? raw : null;

@@ -220,6 +220,22 @@ const EXEMPT: Record<string, Exemption> = {
     ].join(" "),
     holds: [{ file: "lib/tracking/ask.ts", needs: ".slice(0, ADMIN_LIMITS.question)" }],
   },
+  // T11 part 5 (30 Sep 2026): an upgrade prompt's two plain HTML forms. The
+  // cta fields are read against a fixed list; the items field is split and
+  // kept only as uuids, at most ASK_ITEMS_MAX, then resolved against the
+  // client's own rows, so no sent text reaches the mail.
+  "up-ask-cta": {
+    why: "Ask about these N's hidden cta. type=hidden, nobody types in it; ask.ts readUpgradeCta accepts only mentioned or cited.",
+    holds: [{ file: "lib/tracking/ask.ts", needs: 'raw === "mentioned" || raw === "cited" ? raw : null' }],
+  },
+  "up-ask-items": {
+    why: "Ask about these N's hidden prompt ids. type=hidden; ask.ts readAskItems keeps uuids only, capped at ASK_ITEMS_MAX, and the route lists only this client's rows.",
+    holds: [{ file: "lib/tracking/ask.ts", needs: "out.size < ASK_ITEMS_MAX" }],
+  },
+  "up-hide-cta": {
+    why: "Hide for 30 days's hidden cta. type=hidden, nobody types in it; ask.ts readHideCta accepts only the five cta_events ctas.",
+    holds: [{ file: "lib/tracking/ask.ts", needs: "export const readHideCta" }],
+  },
   "cc-coverage": {
     why: [
       "type=file, which maxLength does not apply to at all. It is bounded by bytes",

@@ -55,6 +55,8 @@ test("never named: prompts read with no named answer, of the prompts read, their
     answers: 48,
     // Counted once per answer: ledgerline 3, softwarecritic 2, thesmallbizstack 2 (a tie goes alphabetically).
     hosts: ["ledgerline.com", "softwarecritic.com"],
+    // What "Ask about these 3" sends: the never-named prompts, in card order.
+    ids: ["a1", "a3", "b1"],
   });
 });
 

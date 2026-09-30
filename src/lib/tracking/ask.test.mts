@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { ASKS_PER_MEMBER_PER_DAY, askGate, askMail, askRecipient, askToast, readAskKeyword, upsellMode } from "./ask.ts";
+import { ASKS_PER_MEMBER_PER_DAY, ASK_ITEMS_MAX, askGate, askMail, askRecipient, askToast, readAskItems, readAskKeyword, readHideCta, readUpgradeCta, recordHidden, upgradeAskMail, upsellMode } from "./ask.ts";
 
 /** A stub of the one count askGate reads, recording the filters it was given. */
 function countDb(count: number | null, error: { message: string } | null = null) {
@@ -55,4 +55,37 @@ test("the mail names the client, the member and the keyword, and no tier in agen
 test("the toast, as the board's: who it went to and who will be answered", () => {
   assert.equal(askToast("nomada digital", "m@example.com"), "Sent to nomada digital. We'll reply to m@example.com.");
   assert.equal(askToast("your account contact", "m@example.com"), "Sent to your account contact. They'll reply to m@example.com.");
+  // CTAs.dc.html, after "Ask about these".
+  assert.equal(askToast("nomada digital", "maya@tallyroo.com", "5 prompts"), "Sent to nomada digital with the 5 prompts attached. We'll reply to maya@tallyroo.com.");
+});
+
+test("Ask about these: only the two prompts with an ask, uuid items once each, capped", () => {
+  assert.equal(readUpgradeCta("mentioned"), "mentioned");
+  assert.equal(readUpgradeCta("cited"), "cited");
+  assert.equal(readUpgradeCta("everywhere"), null, "its second button is Book a call");
+  assert.equal(readUpgradeCta(null), null);
+  const id = "0b7e7c1e-3b1a-4c2d-9e8f-0123456789ab";
+  assert.deepEqual(readAskItems([id, id.toUpperCase(), "not-an-id", 7, "' or 1=1"]), [id]);
+  const many = Array.from({ length: ASK_ITEMS_MAX + 20 }, (_, i) => `00000000-0000-4000-8000-${String(i).padStart(12, "0")}`);
+  assert.equal(readAskItems(many).length, ASK_ITEMS_MAX);
+});
+
+test("Ask about these: the mail lists the items and names a tier only outside agency mode", () => {
+  const m = upgradeAskMail({ brand: "Tallyroo", domain: "example.com", member: "m@example.com", cta: "mentioned", items: ["What is the best invoicing tool?", "Cheapest bookkeeping app?"], mode: "nomada" });
+  assert.equal(m.subject, "Tallyroo asked about 2 prompts");
+  assert.match(m.text, /^- What is the best invoicing tool\?$/m);
+  assert.match(m.text, /^- Cheapest bookkeeping app\?$/m);
+  assert.match(m.text, /alwaysmentioned/);
+  const a = upgradeAskMail({ brand: "T", domain: "example.com", member: "m", cta: "cited", items: ["invoicing software"], mode: "agency" });
+  assert.equal(a.subject, "T asked about 1 keyword");
+  assert.doesNotMatch(a.text, /always/);
+});
+
+test("Hide for 30 days: any prompt's cta, one hidden row for this member", async () => {
+  assert.equal(readHideCta("everywhere"), "everywhere");
+  assert.equal(readHideCta("shown"), null);
+  let row: unknown = null;
+  const db = { from: (t: string) => (assert.equal(t, "cta_events"), { insert: (r: unknown) => ((row = r), Promise.resolve({ error: null })) }) } as never;
+  assert.equal(await recordHidden(db, { clientId: "c", email: "m@example.com", cta: "mentioned" }), true);
+  assert.deepEqual(row, { client_domain_id: "c", member_email: "m@example.com", cta: "mentioned", action: "hidden", trigger: {} });
 });

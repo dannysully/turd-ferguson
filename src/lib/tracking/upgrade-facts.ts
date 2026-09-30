@@ -41,7 +41,7 @@ export function neverNamedFacts(p: {
     }
   }
   const hosts = [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 2).map(([h]) => h);
-  return { prompts: never.length, of: prompts.length, answers: never.reduce((n, q) => n + q.now.den, 0), hosts };
+  return { prompts: never.length, of: prompts.length, answers: never.reduce((n, q) => n + q.now.den, 0), hosts, ids: never.map((q) => q.id) };
 }
 
 /** alwayscited: cluster keywords whose latest reading is #11 to #20, of the cluster keywords read. */

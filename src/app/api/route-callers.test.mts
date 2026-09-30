@@ -270,6 +270,13 @@ const NO_CALLER: { route: string; method: string; why: string; earns: () => bool
     earns: () => readFileSync(join(ROOT, "src/components/app/Clusters.tsx"), "utf8").includes("action={`/api/app/${encodeURIComponent(slug)}/ask`}"),
   },
   {
+    route: "/api/app/[client]/hide",
+    method: "POST",
+    // BRIEF-2 T11 part 5, 30 Sep 2026: the upgrade prompt's x, "Hide for 30 days".
+    why: "Posted by the plain HTML Hide for 30 days form in UpgradePrompt, which the fetch scanner does not read.",
+    earns: () => readFileSync(join(ROOT, "src/components/app/UpgradePrompt.tsx"), "utf8").includes("action={`${api}/hide`}"),
+  },
+  {
     route: "/api/app/[client]/check",
     method: "POST",
     // BRIEF-3 T6 part 3b, 30 Sep 2026: Check keyword in Add a cluster.

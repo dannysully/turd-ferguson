@@ -67,6 +67,7 @@ export default function Clusters({
   toast,
   adding = null,
   asked = null,
+  askSent = false,
   packPrice = "",
   upgrade = null,
 }: {
@@ -86,6 +87,8 @@ export default function Clusters({
   adding?: Adding | null;
   /** The /ask confirmation or refusal, built by the page from the 303's one word. */
   asked?: string | null;
+  /** Whether that line says the ask went (the board's dark pill) or not. */
+  askSent?: boolean;
   packPrice?: string;
   /** T11: what the never filter's alwaysmentioned prompt is judged on beyond the cards. */
   upgrade?: { tier: TierKey; mode: UpsellMode; hidden: ReadonlySet<PromptCta>; startedOn: string; domain: string } | null;
@@ -188,9 +191,21 @@ export default function Clusters({
       </div>
 
       {asked ? (
-        <p role="status" style={{ margin: 0, padding: "12px 16px", borderRadius: "12px", background: T.wash, border: `1px solid ${T.washLine}`, fontSize: "14px", color: T.ink }}>
-          {asked}
-        </p>
+        askSent ? (
+          // CTAs.dc.html's "After Ask about these": a dark pill with a tick. The tick is the palette's good pair, not the board's light green.
+          <p role="status" style={{ margin: 0, display: "flex", alignItems: "center", gap: "12px", padding: "12px 16px", borderRadius: "14px", background: T.ink, color: T.surface, fontSize: "14px", lineHeight: 1.4, alignSelf: "flex-start", maxWidth: "100%", boxSizing: "border-box" }}>
+            <span aria-hidden="true" style={{ flexShrink: 0, width: "22px", height: "22px", borderRadius: "50%", background: T.goodBg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={T.goodFg} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12l5 5 9-10" />
+              </svg>
+            </span>
+            {asked}
+          </p>
+        ) : (
+          <p role="status" style={{ margin: 0, padding: "12px 16px", borderRadius: "12px", background: T.wash, border: `1px solid ${T.washLine}`, fontSize: "14px", color: T.ink }}>
+            {asked}
+          </p>
+        )
       ) : null}
 
       {canWrite && adding ? <AddPanel slug={slug} adding={adding} full={full} clusterLimit={clusterLimit} packPrice={packPrice} close={href({})} /> : null}
@@ -211,7 +226,7 @@ export default function Clusters({
             {q.trim() ? `Nothing matches “${q.trim()}”. Clear the search to see every cluster.` : cards.length ? "No clusters match this filter." : "No clusters yet. nomada digital sets up your first one when tracking starts."}
           </div>
         ) : null}
-        {prompt ? <UpgradePrompt copy={prompt} /> : null}
+        {prompt ? <UpgradePrompt copy={prompt} cta="mentioned" slug={slug} items={facts?.neverNamed?.ids ?? []} /> : null}
       </section>
       <p style={{ margin: 0, fontSize: "13px", lineHeight: 1.5, color: T.soft, maxWidth: "820px" }}>
         The number beside each engine is the days it named {brand} for that prompt, out of the days checked. Stopping a prompt or a cluster keeps its history in your reports. A new prompt or cluster starts at the next daily check.
