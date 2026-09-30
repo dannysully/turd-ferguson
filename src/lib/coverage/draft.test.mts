@@ -1,0 +1,107 @@
+import assert from "node:assert/strict";
+import { test } from "node:test";
+
+import { MAX_COVERAGE_URLS, parseCoverageCsv } from "./csv.ts";
+import {
+  REPORT_LIMIT_LINE,
+  clientDomainFrom,
+  draftMarket,
+  draftMarketLine,
+  outboundLinks,
+  pretick,
+  runBlocker,
+  tickedRows,
+} from "./draft.ts";
+
+/**
+ * R140 part 1 (Danny, 30 Sep 2026, danny.md lines 128-133): the draft's rules
+ * that need no network. The route and the two-step form come in later parts.
+ */
+
+const eight = parseCoverageCsv(
+  Array.from({ length: 8 }, (_, i) => `https://pub${i}.com/piece-${i}`).join("\n"),
+).rows;
+
+test("over five rows: every row listed, exactly five pre-ticked", () => {
+  const rows = pretick(eight);
+  assert.equal(rows.length, 8, "a row past the limit was dropped");
+  assert.equal(rows.filter((r) => r.ticked).length, MAX_COVERAGE_URLS);
+  assert.deepEqual(rows.map((r) => r.ticked), [true, true, true, true, true, false, false, false]);
+  assert.equal(REPORT_LIMIT_LINE, "We report on 5 per reading");
+});
+
+test("the run gets the ticked rows, never more than five", () => {
+  const rows = pretick(eight).map((r, i) => ({ ...r, ticked: i >= 2 }));
+  const out = tickedRows(rows);
+  assert.equal(out.length, MAX_COVERAGE_URLS);
+  assert.equal(out[0]!.url, "https://pub2.com/piece-2");
+  assert.deepEqual(Object.keys(out[0]!).sort(), ["source_domain", "url"]);
+});
+
+test("a blank client domain blocks the run", () => {
+  const rows = pretick(eight);
+  assert.match(runBlocker({ clientDomain: "", rows })!, /client's domain/);
+  assert.match(runBlocker({ clientDomain: "   ", rows })!, /client's domain/);
+  assert.match(runBlocker({ clientDomain: "not a domain", rows })!, /website address/);
+  assert.match(runBlocker({ clientDomain: "brightbook.com", rows: rows.map((r) => ({ ...r, ticked: false })) })!, /Tick/);
+  assert.equal(runBlocker({ clientDomain: "https://www.brightbook.com/", rows }), null);
+});
+
+test("market: client ending, then publications, then currency, then the US", () => {
+  const uk = parseCoverageCsv("https://retailweek.co.uk/a\nhttps://thegrocer.co.uk/b\nhttps://forbes.com/c").rows;
+  assert.deepEqual(draftMarket({ clientDomain: "acme.us", rows: uk, text: "" }), { market: "US", reason: "domain ending" });
+  assert.deepEqual(draftMarket({ clientDomain: "acme.com", rows: uk, text: "$5" }), { market: "UK", reason: "publications" });
+  const neutral = parseCoverageCsv("https://forbes.com/c\nhttps://techcrunch.com/d").rows;
+  assert.deepEqual(draftMarket({ clientDomain: null, rows: neutral, text: "costs £40, or £400 a year" }), { market: "UK", reason: "currency" });
+  assert.deepEqual(draftMarket({ clientDomain: null, rows: neutral, text: "costs $40 (USD)" }), { market: "US", reason: "currency" });
+  assert.deepEqual(draftMarket({ clientDomain: null, rows: neutral, text: "£4 and $4" }), { market: "US", reason: "default" });
+  assert.match(draftMarketLine({ market: "UK", reason: "publications" }, null), /UK sites/);
+  assert.match(draftMarketLine({ market: "UK", reason: "domain ending" }, "acme.co.uk"), /acme\.co\.uk/);
+  assert.match(draftMarketLine({ market: "US", reason: "default" }, null), /default to the US/);
+});
+
+test("outbound links leave the publication and are resolved and decoded", () => {
+  const html = `
+    <a href="/about">About</a>
+    <a href="https://www.retailweek.co.uk/x">own</a>
+    <a href="https://news.retailweek.co.uk/y">own subdomain</a>
+    <a href="https://www.brightbook.com/?utm=a&amp;b=2#top">Brightbook</a>
+    <a href="mailto:press@brightbook.com">mail</a>
+    <a href='//twitter.com/brightbook'>tw</a>`;
+  assert.deepEqual(outboundLinks(html, "https://retailweek.co.uk/piece"), [
+    "https://www.brightbook.com/?utm=a&b=2",
+    "https://twitter.com/brightbook",
+  ]);
+});
+
+test("client domain: the brand's own domain, the most linked, or blank - never a guess", () => {
+  const publications = ["retailweek.co.uk", "forbes.com"];
+  assert.equal(
+    clientDomainFrom({ brand: "Brightbook", links: ["https://www.brightbook.com/", "https://twitter.com/brightbook"], publications }),
+    "brightbook.com",
+  );
+  assert.equal(
+    clientDomainFrom({ brand: "Brightbook Ltd", links: ["https://brightbookltd.co.uk/x"], publications }),
+    "brightbookltd.co.uk",
+    "brand words with a suffix still match their compact domain",
+  );
+  assert.equal(
+    clientDomainFrom({
+      brand: "Brightbook",
+      links: ["https://brightbook.com/a", "https://brightbook.com/b", "https://getbrightbook.io/"],
+      publications,
+    }),
+    "brightbook.com",
+  );
+  assert.equal(
+    clientDomainFrom({ brand: "Brightbook", links: ["https://brightbook.com/", "https://brightbookhq.com/"], publications }),
+    null,
+    "a tie is not a pick",
+  );
+  assert.equal(clientDomainFrom({ brand: "Brightbook", links: ["https://twitter.com/brightbook"], publications }), null);
+  assert.equal(
+    clientDomainFrom({ brand: "Forbes", links: ["https://forbes.com/other"], publications }),
+    null,
+    "a link back to a publication is never the client",
+  );
+});
