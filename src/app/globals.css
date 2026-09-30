@@ -1648,6 +1648,8 @@ html[data-motion="on"] .res-dial { animation: resDial 1.4s .3s cubic-bezier(.2,.
   .app-headline { padding: 28px 22px !important; gap: 28px !important; }
   .app-headline-h { font-size: 30px !important; }
   .app-figures > * { border-left: 0 !important; margin-left: 0 !important; border-top: 1px solid var(--line); }
+  /* T6 part 2b: the stop toast clears the phone's bottom tabs. */
+  .app-toast { bottom: 88px !important; }
 }
 /* Mobile.dc.html: the key figures two by two; the bars, engine marks and
    sparklines give way so the words and numbers keep their width. */

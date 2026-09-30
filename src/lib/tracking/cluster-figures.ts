@@ -45,6 +45,8 @@ export type ClusterPrompt = {
   daysChecked: number;
   /** Per engine, in the tier's order: days that engine named the client for this prompt. */
   daysNamed: { engine: string; days: number }[];
+  /** Set once stopped (T6 part 2b); after today it is a stop still pending, which Undo can clear. */
+  stoppedOn: Day | null;
 };
 
 export type ClusterCard = {
@@ -54,6 +56,8 @@ export type ClusterCard = {
   volume: number | null;
   intent: string | null;
   status: ClusterStatus;
+  /** Set once the cluster is stopped (T6 part 2b); after today the stop is still pending. */
+  stoppedOn: Day | null;
   /** The card's "Tracked since". */
   started_on: Day;
   now: Rate;
@@ -248,6 +252,7 @@ export function clusterCards(input: ClusterInput): ClusterCard[] {
         volume: kw?.search_volume ?? null,
         intent: kw?.intent ?? null,
         status,
+        stoppedOn: c.stopped_on,
         started_on: c.started_on,
         now,
         before: wasRate,
@@ -269,6 +274,7 @@ export function clusterCards(input: ClusterInput): ClusterCard[] {
             namedBy: engines.filter((e) => byPrompt.get(q.id)?.engines.has(e)),
             daysChecked: checkedDays.get(q.id)?.size ?? 0,
             daysNamed: engines.map((e) => ({ engine: e, days: namedDays.get(`${q.id} ${e}`)?.size ?? 0 })),
+            stoppedOn: q.stopped_on,
           };
         }),
         heat: days.map((d) => {

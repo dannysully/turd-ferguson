@@ -177,6 +177,18 @@ type Entry = { why: string; boards: number; sites: Record<string, number> };
 
 const OFF_PALETTE: Record<string, Entry> = {
   // ---- board values the tokens file never got a name for -------------------
+  // The Clusters page's stop toast (BRIEF-3 T6 part 2b, 30 Sep 2026). The
+  // count is from docs/tracked-dashboard-2026-09-29/boards-3, not docs/design.
+  "rgba(15,17,21,.6)": {
+    why: "the stop toast's drop shadow on boards-3/Questions.dc.html - T.ink at 60%, so the dark toast lifts off the page. A shadow is not a fill and has no token.",
+    boards: 1,
+    sites: { "src/components/app/Clusters.tsx": 1 },
+  },
+  "rgba(255,255,255,.12)": {
+    why: "the toast's Undo button ground on boards-3/Questions.dc.html - white at 12% over T.ink, the one button drawn on a dark ground in the dashboard.",
+    boards: 1,
+    sites: { "src/components/app/Clusters.tsx": 1 },
+  },
   "#fbfbfc": {
     why: "the raised panel ground, and the most-typed value in this list. blocked.md 9 already treats it as a real ground - its table measures `soft` at 4.53 on it - so it is a palette member in everything but a name.",
     boards: 10,

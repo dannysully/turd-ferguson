@@ -4,7 +4,7 @@ import { test } from "node:test";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { liveOn } from "./decide.ts";
-import { refuseRole, refuseStop, refuseUndo, stop, stopDay, undoStop } from "./stop.ts";
+import { readStopForm, refuseRole, refuseStop, refuseUndo, stop, stopDay, stopReturn, undoStop } from "./stop.ts";
 
 // BRIEF-3 T6 part 2a (30 Sep 2026): stop and Undo. One test per refusal, then
 // the writers against an in-memory table set, so the rows they leave are read
@@ -173,4 +173,31 @@ test("undoing a cluster is refused when the client is at its cluster limit again
   assert.equal(r.ok, false);
   assert.match((r as { message: string }).message, /limit of 2 clusters/);
   assert.equal(w.tracked_clusters[0]!.stopped_on, "2026-10-01");
+});
+
+// ---- T6 part 2b: the form the Clusters page posts, and where the route sends it back. ----
+
+const formOf = (o: Record<string, string>) => (k: string) => (k in o ? o[k] : null);
+
+test("the stop form is read without trusting it: bad kinds and ids are refused, page state is kept only when well formed", () => {
+  assert.equal(readStopForm(formOf({ kind: "keyword", id: "a" }), 120), null);
+  assert.equal(readStopForm(formOf({ kind: "prompt", id: "" }), 120), null);
+  assert.equal(readStopForm(formOf({ kind: "prompt", id: "a b" }), 120), null);
+  const f = readStopForm(formOf({ kind: "cluster", id: "c-1", undo: "1", from: "2026-09-03", to: "bad", compare: "month", filter: "evil", q: "x".repeat(200), open: "c-1", done: "stopped", other: "y" }), 120)!;
+  assert.equal(f.kind, "cluster");
+  assert.equal(f.undo, true);
+  assert.deepEqual(Object.keys(f.back).sort(), ["compare", "from", "open", "q"]);
+  assert.equal(f.back.q.length, 120);
+  assert.equal(readStopForm(formOf({ kind: "prompt", id: "q1" }), 120)!.undo, false);
+});
+
+test("the route returns to the Clusters page with the toast as fixed words, never free text", () => {
+  const f = readStopForm(formOf({ kind: "prompt", id: "q1", from: "2026-09-03", q: "a&b" }), 120)!;
+  const url = new URL(stopReturn("tally roo", f, "stopped"), "https://x.test");
+  assert.equal(url.pathname, "/app/tally%20roo/clusters");
+  assert.equal(url.searchParams.get("done"), "stopped");
+  assert.equal(url.searchParams.get("kind"), "prompt");
+  assert.equal(url.searchParams.get("id"), "q1");
+  assert.equal(url.searchParams.get("q"), "a&b");
+  assert.equal(url.searchParams.get("from"), "2026-09-03");
 });

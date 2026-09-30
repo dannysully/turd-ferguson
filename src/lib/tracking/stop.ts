@@ -55,6 +55,42 @@ export function refuseUndo(row: Stoppable | null, today: string): string | null 
   return null;
 }
 
+// ---- The form the Clusters page posts (T6 part 2b), read without trusting it. ----
+
+/** The page state a stop returns to; anything else in the form is dropped. */
+const KEPT = ["from", "to", "compare", "filter", "q", "open"] as const;
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
+const ID = /^[0-9A-Za-z_-]{1,64}$/;
+
+export type StopForm = { kind: StopKind; id: string; undo: boolean; back: Record<string, string> };
+
+/** The posted form, or null if its kind or id is not one we write. `search` is APP_LIMITS.search. */
+export function readStopForm(get: (k: string) => string | null, search: number): StopForm | null {
+  const kind = get("kind");
+  const id = get("id") ?? "";
+  if ((kind !== "prompt" && kind !== "cluster") || !ID.test(id)) return null;
+  const back: Record<string, string> = {};
+  for (const k of KEPT) {
+    const v = get(k);
+    if (v === null || v === "") continue;
+    if ((k === "from" || k === "to") && !DAY.test(v)) continue;
+    if (k === "compare" && v !== "none" && v !== "month") continue;
+    if (k === "filter" && v !== "named" && v !== "never") continue;
+    if (k === "open" && !ID.test(v)) continue;
+    back[k] = k === "q" ? v.slice(0, search) : v;
+  }
+  return { kind, id, undo: get("undo") === "1", back };
+}
+
+/** The toast states the page draws: what happened, to which row. Never free text from the URL. */
+export type StopDone = "stopped" | "undone" | "refused";
+
+/** Where the route sends the browser back to: the Clusters page, its state kept, with the toast. */
+export function stopReturn(slug: string, f: StopForm, done: StopDone): string {
+  const q = new URLSearchParams({ ...f.back, done, kind: f.kind, id: f.id });
+  return `/app/${encodeURIComponent(slug)}/clusters?${q}`;
+}
+
 // ---- The writers. Each reads the row on this client, asks the rule, then writes. ----
 
 export type Stopped = { ok: true; stoppedOn: string | null } | { ok: false; message: string };

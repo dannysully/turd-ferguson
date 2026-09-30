@@ -18,11 +18,18 @@ import { Chip } from "./Overview";
  * their changes; the open row lists its 5 prompts with each engine's days
  * named of days checked, joined to the keyword card.
  *
- * Read-only in this part. Opening, filtering and searching are links and a
- * GET form (`?open=&filter=&q=`), so all of it works with JS off. Stop, the
- * free slot, the pending editor and "Add a cluster" come with the write
- * routes (C2's limits), so none is drawn as a control that does nothing.
+ * Opening, filtering and searching are links and a GET form
+ * (`?open=&filter=&q=`), so all of it works with JS off. Stop and Undo (part
+ * 2b) are plain POST forms to /api/app/[client]/stop?kind=&id=, which answers with a 303
+ * back here carrying `?done=&kind=&id=`; the toast is drawn from those, never
+ * from free text in the URL. Owners and editors see the controls, viewers do
+ * not. The free slot, the pending editor and "Add a cluster" come with the
+ * add routes, so none is drawn as a control that does nothing.
  */
+
+export type StopToast = { done: "stopped" | "undone" | "refused"; kind: "prompt" | "cluster"; id: string };
+
+const short = (t: string) => (t.length > 52 ? `${t.slice(0, 50)}…` : t);
 
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -43,6 +50,9 @@ export default function Clusters({
   open,
   filter,
   q,
+  slug,
+  canWrite,
+  toast,
 }: {
   brand: string;
   engines: readonly Engine[];
@@ -54,6 +64,9 @@ export default function Clusters({
   open: string | null;
   filter: Filter;
   q: string;
+  slug: string;
+  canWrite: boolean;
+  toast: StopToast | null;
 }) {
   const before = comparisonRange(range, compareMode);
   const cards = clusterCards({ clusters: data.clusters ?? [], questions: data.questions, keywords: data.keywords, answers: data.answers, serp: data.serp, range, before, today, engines });
@@ -62,7 +75,10 @@ export default function Clusters({
   const openId = open ?? cards[0]?.id ?? null;
   const base: Record<string, string> = { from: range.from, to: range.to, ...(compareMode === "prev" ? {} : { compare: compareMode }) };
   const href = (extra: Record<string, string>) => `?${new URLSearchParams({ ...base, ...(filter === "all" ? {} : { filter }), ...(q ? { q } : {}), ...extra })}`;
-  const used = cards.length;
+  // A stopped cluster frees its slot at once, though today's reading still shows (limits.ts).
+  const used = cards.filter((c) => c.stoppedOn === null).length;
+  const keep = { ...base, ...(filter === "all" ? {} : { filter }), ...(q ? { q } : {}), ...(open !== null ? { open } : {}) };
+  const act = canWrite ? { action: `/api/app/${encodeURIComponent(slug)}/stop`, keep, today } : null;
   const full = used >= clusterLimit;
   const live = cards.filter((c) => c.status !== "pending");
   const filters: [Filter, string][] = [
@@ -142,7 +158,7 @@ export default function Clusters({
           <span style={{ ...HEAD, textAlign: "right" }}>{since ? `Position, vs ${since}` : "Position"}</span>
         </div>
         {shown.map((c) => (
-          <ClusterRow key={c.id} c={c} brand={brand} open={c.id === openId} toggle={href({ open: c.id === openId ? "" : c.id })} since={since} />
+          <ClusterRow key={c.id} c={c} brand={brand} open={c.id === openId} toggle={href({ open: c.id === openId ? "" : c.id })} since={since} act={act} />
         ))}
         {shown.length === 0 ? (
           <div style={{ padding: "32px 24px", borderTop: `1px solid ${T.line}`, fontSize: "14px", color: T.soft }}>
@@ -153,6 +169,7 @@ export default function Clusters({
       <p style={{ margin: 0, fontSize: "13px", lineHeight: 1.5, color: T.soft, maxWidth: "820px" }}>
         The number beside each engine is the days it named {brand} for that prompt, out of the days checked. Stopping a prompt or a cluster keeps its history in your reports. A new prompt or cluster starts at the next daily check.
       </p>
+      {toast ? <Toast t={toast} cards={cards} act={act} dismiss={`?${new URLSearchParams(keep)}`} /> : null}
     </div>
   );
 }
@@ -164,12 +181,77 @@ function addDaysBack(d: string): string {
   return new Date(Date.parse(`${d}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
 }
 
-function ClusterRow({ c, brand, open, toggle, since }: { c: ClusterCard; brand: string; open: boolean; toggle: string; since: string | null }) {
+type Act = { action: string; keep: Record<string, string>; today: string } | null;
+
+/**
+ * A stop or undo is a form, so it posts with JS off. What to stop and the page
+ * state to come back to ride in the action's query string rather than hidden
+ * fields, so a list of forms repeats no field ids; the route re-reads every one.
+ */
+function StopForm({ act, kind, id, undo, label, children, style }: { act: NonNullable<Act>; kind: "prompt" | "cluster"; id: string; undo?: boolean; label?: string; children: React.ReactNode; style: React.CSSProperties }) {
+  const q = new URLSearchParams({ ...act.keep, kind, id, ...(undo ? { undo: "1" } : {}) });
+  return (
+    <form method="post" action={`${act.action}?${q}`} style={{ display: "contents" }}>
+      <button type="submit" aria-label={label} title={label} style={{ cursor: "pointer", fontFamily: "inherit", ...style }}>
+        {children}
+      </button>
+    </form>
+  );
+}
+
+const STOP_ICON = (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={T.ink} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect x="6" y="6" width="12" height="12" rx="2" />
+  </svg>
+);
+const BTN: React.CSSProperties = { display: "inline-flex", alignItems: "center", gap: "6px", height: "40px", padding: "0 14px", border: `1px solid ${T.line}`, borderRadius: "10px", background: T.surface, color: T.ink, fontSize: "13px", fontWeight: 600 };
+const SQUARE: React.CSSProperties = { width: "36px", height: "36px", padding: 0, border: `1px solid ${T.line}`, borderRadius: "10px", background: T.surface, color: T.ink, display: "flex", alignItems: "center", justifyContent: "center" };
+
+/** The board's toast: what the stop did, and Undo while it can still be undone. */
+function Toast({ t, cards, act, dismiss }: { t: StopToast; cards: ClusterCard[]; act: Act; dismiss: string }) {
+  const cluster = t.kind === "cluster" ? cards.find((c) => c.id === t.id) : cards.find((c) => c.prompts.some((p) => p.id === t.id));
+  const prompt = t.kind === "prompt" ? cluster?.prompts.find((p) => p.id === t.id) : undefined;
+  const name = t.kind === "cluster" ? (cluster?.keyword ?? cluster?.name) : prompt?.text;
+  const stoppedOn = t.kind === "cluster" ? cluster?.stoppedOn : prompt?.stoppedOn;
+  const canUndo = t.done === "stopped" && !!act && !!stoppedOn && stoppedOn > act.today;
+  const text =
+    t.done === "refused" || !name
+      ? "That change did not go through. Reload the page and try again."
+      : t.done === "undone"
+        ? `Undone. “${short(name)}” is still tracked.`
+        : t.kind === "cluster"
+          ? `Stopped tracking “${short(name)}” and its prompts. Their history stays in your reports.`
+          : `Stopped “${short(name)}”. Its history stays in your reports, and the slot is free for a new prompt.`;
+  return (
+    <div role="status" className="app-toast" style={{ position: "fixed", left: "50%", bottom: "32px", transform: "translateX(-50%)", zIndex: 20, display: "flex", alignItems: "center", gap: "16px", padding: "12px 12px 12px 18px", borderRadius: "14px", background: T.ink, color: T.surface, fontSize: "14px", lineHeight: 1.4, boxShadow: "0 24px 60px -28px rgba(15,17,21,.6)", width: "max-content", maxWidth: "min(720px, calc(100vw - 32px))", boxSizing: "border-box" }}>
+      <span>{text}</span>
+      {canUndo && act ? (
+        <StopForm act={act} kind={t.kind} id={t.id} undo style={{ flexShrink: 0, height: "36px", padding: "0 14px", border: 0, borderRadius: "10px", background: "rgba(255,255,255,.12)", color: T.surface, fontSize: "14px", fontWeight: 600 }}>
+          Undo
+        </StopForm>
+      ) : null}
+      <Link href={dismiss} scroll={false} aria-label="Dismiss" style={{ flexShrink: 0, width: "36px", height: "36px", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={T.surface} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M6 6l12 12M18 6L6 18" />
+        </svg>
+      </Link>
+    </div>
+  );
+}
+
+function ClusterRow({ c, brand, open, toggle, since, act }: { c: ClusterCard; brand: string; open: boolean; toggle: string; since: string | null; act: Act }) {
   const pending = c.status === "pending";
+  // A stop made today shows until tomorrow's check, with Undo; the slot is already free.
+  const stopped = c.stoppedOn !== null;
+  const undoable = !!act && stopped && c.stoppedOn! > act.today;
   const kw = c.keyword ?? c.name;
   const vol = c.volume !== null ? `${c.volume.toLocaleString("en-GB")} searches a month` : null;
   const lead = [c.intent ? cap(c.intent) : null, vol].filter(Boolean).join(", ");
-  const meta = pending ? `${lead ? `${lead}. ` : ""}First check tomorrow at 06:00` : `${lead ? `${lead}. ` : ""}Since ${formatDay(c.started_on)}`;
+  const meta = stopped
+    ? `${lead ? `${lead}. ` : ""}Stopped from ${formatDay(c.stoppedOn!)}. Its history stays in your reports`
+    : pending
+      ? `${lead ? `${lead}. ` : ""}First check tomorrow at 06:00`
+      : `${lead ? `${lead}. ` : ""}Since ${formatDay(c.started_on)}`;
   const named = namedCount(c);
   const mid = BLOCK_H / 2;
   return (
@@ -216,7 +298,7 @@ function ClusterRow({ c, brand, open, toggle, since }: { c: ClusterCard; brand: 
           <div className="app-cl-body" style={{ display: "flex", alignItems: "center" }}>
             <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "4px", flexGrow: 1, minWidth: 0 }}>
               {c.prompts.map((p) => (
-                <li key={p.id} className="app-cl-prompt" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 52px 76px", alignItems: "center", gap: "12px", minHeight: `${ROW_H}px`, boxSizing: "border-box", padding: "8px 12px 8px 14px", borderRadius: "12px", background: T.surface, border: `1px solid ${T.hair}` }}>
+                <li key={p.id} className="app-cl-prompt" style={{ display: "grid", gridTemplateColumns: act ? "minmax(0, 1fr) 52px 76px 36px" : "minmax(0, 1fr) 52px 76px", alignItems: "center", gap: "12px", minHeight: `${ROW_H}px`, boxSizing: "border-box", padding: "8px 12px 8px 14px", borderRadius: "12px", background: T.surface, border: `1px solid ${T.hair}`, opacity: p.stoppedOn !== null && !stopped ? 0.6 : 1 }}>
                   <div style={{ display: "flex", flexDirection: "column", gap: "7px", minWidth: 0 }}>
                     <div className="app-cl-text-row" style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
                       <span style={{ flexShrink: 0, padding: "2px 8px", borderRadius: "6px", background: T.chip, color: T.soft, fontSize: "11px", fontWeight: 700, letterSpacing: ".02em", textTransform: "uppercase" }}>{p.angle ?? "Prompt"}</span>
@@ -224,7 +306,9 @@ function ClusterRow({ c, brand, open, toggle, since }: { c: ClusterCard; brand: 
                         {p.text}
                       </span>
                     </div>
-                    {pending ? (
+                    {p.stoppedOn !== null && !stopped ? (
+                      <span style={{ fontSize: "12px", color: T.soft, fontWeight: 600 }}>{`Stopped from ${formatDay(p.stoppedOn)}. Its history stays in your reports.`}</span>
+                    ) : pending ? (
                       <span style={{ fontSize: "12px", color: T.accent, fontWeight: 600 }}>First check tomorrow at 06:00</span>
                     ) : (
                       <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
@@ -244,6 +328,19 @@ function ClusterRow({ c, brand, open, toggle, since }: { c: ClusterCard; brand: 
                   <span style={{ display: "flex", justifyContent: "flex-end" }}>
                     <Chip value={p.before && p.now.pct !== null && p.before.pct !== null ? p.now.pct - p.before.pct : null} unit=" pts" none={pending ? "Tomorrow" : "New"} />
                   </span>
+                  {act ? (
+                    !stopped && p.stoppedOn === null ? (
+                      <StopForm act={act} kind="prompt" id={p.id} label={`Stop tracking: ${p.text}`} style={SQUARE}>
+                        {STOP_ICON}
+                      </StopForm>
+                    ) : !stopped && p.stoppedOn !== null && p.stoppedOn > act.today ? (
+                      <StopForm act={act} kind="prompt" id={p.id} undo label={`Undo stop: ${p.text}`} style={{ ...SQUARE, fontSize: "11px", fontWeight: 700 }}>
+                        Undo
+                      </StopForm>
+                    ) : (
+                      <span />
+                    )
+                  ) : null}
                 </li>
               ))}
             </ul>
@@ -273,9 +370,19 @@ function ClusterRow({ c, brand, open, toggle, since }: { c: ClusterCard; brand: 
               ) : null}
             </div>
           </div>
-          <span style={{ fontSize: "13px", color: T.soft }}>
-            {c.status === "added" ? `Added ${formatDay(c.started_on)}, so there is no earlier period to compare against yet.` : pending ? "Its prompts are asked from tomorrow's 06:00 check." : "Dates and comparisons apply to the prompts and the keyword alike."}
-          </span>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px", flexWrap: "wrap" }}>
+            <span style={{ fontSize: "13px", color: T.soft }}>
+              {c.status === "added" ? `Added ${formatDay(c.started_on)}, so there is no earlier period to compare against yet.` : pending ? "Its prompts are asked from tomorrow's 06:00 check." : "Dates and comparisons apply to the prompts and the keyword alike."}
+            </span>
+            {act && (!stopped || undoable) ? (
+              <span style={{ display: "flex", gap: "10px" }}>
+                <StopForm act={act} kind="cluster" id={c.id} undo={stopped} style={BTN}>
+                  {stopped ? null : STOP_ICON}
+                  {stopped ? "Undo stop" : "Stop tracking this cluster"}
+                </StopForm>
+              </span>
+            ) : null}
+          </div>
         </div>
       ) : null}
     </div>

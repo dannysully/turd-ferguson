@@ -235,6 +235,13 @@ const NO_CALLER: { route: string; method: string; why: string; earns: () => bool
     earns: () => readFileSync(join(ROOT, "src/components/app/Sidebar.tsx"), "utf8").includes('action="/api/app/logout"'),
   },
   {
+    route: "/api/app/[client]/stop",
+    method: "POST",
+    // BRIEF-3 T6 part 2b, 30 Sep 2026: stop and Undo on the Clusters page.
+    why: "Posted by the plain HTML stop and Undo forms on the Clusters page, which the fetch scanner does not read.",
+    earns: () => readFileSync(join(ROOT, "src/components/app/Clusters.tsx"), "utf8").includes("action: `/api/app/${encodeURIComponent(slug)}/stop`"),
+  },
+  {
     route: "/api/checkout",
     method: "POST",
     // R91, 29 Sep 2026. It opens a live Stripe Checkout - the one route
