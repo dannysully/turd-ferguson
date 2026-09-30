@@ -5,7 +5,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { trackingDay } from "@/lib/tracking/decide";
 import { fixtureMode } from "@/lib/tracking/fixture-mode";
 import { clientsFor, sessionEmail } from "@/lib/tracking/member";
-import { readStopForm, stop, stopReturn, undoStop } from "@/lib/tracking/stop";
+import { type StopDone, readStopForm, stop, stopReturn, undoStop } from "@/lib/tracking/stop";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,7 +26,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ client: string
   const sp = new URL(req.url).searchParams;
   const f = readStopForm((k) => sp.get(k), APP_LIMITS.search);
   if (!f) return NextResponse.json({ error: "Not a stop this page can make." }, { status: 400 });
-  const back = (done: "stopped" | "undone" | "refused") => NextResponse.redirect(new URL(stopReturn(slug, f, done), req.url), 303);
+  const back = (done: StopDone) => NextResponse.redirect(new URL(stopReturn(slug, f, done), req.url), 303);
   if (fixtureMode()) return back("refused");
 
   const email = await sessionEmail();

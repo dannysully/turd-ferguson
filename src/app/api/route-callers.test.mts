@@ -242,6 +242,13 @@ const NO_CALLER: { route: string; method: string; why: string; earns: () => bool
     earns: () => readFileSync(join(ROOT, "src/components/app/Clusters.tsx"), "utf8").includes("action: `/api/app/${encodeURIComponent(slug)}/stop`"),
   },
   {
+    route: "/api/app/[client]/prompt",
+    method: "POST",
+    // BRIEF-3 T6 part 2c, 30 Sep 2026: the free slot on the Clusters page.
+    why: "Posted by the plain HTML free-slot form on the Clusters page, which the fetch scanner does not read.",
+    earns: () => readFileSync(join(ROOT, "src/components/app/Clusters.tsx"), "utf8").includes('act.action.replace(/\\/stop$/, "/prompt")'),
+  },
+  {
     route: "/api/checkout",
     method: "POST",
     // R91, 29 Sep 2026. It opens a live Stripe Checkout - the one route

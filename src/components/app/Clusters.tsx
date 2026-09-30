@@ -2,6 +2,8 @@ import Link from "next/link";
 
 import EngineLogo from "@/components/EngineLogo";
 import { APP_LIMITS } from "@/config/contact";
+import { ADMIN_LIMITS } from "@/lib/tracking/decide";
+import { PROMPT_MIN } from "@/lib/tracking/slot";
 import { T } from "@/config/tokens";
 import { ENGINE_SPECS, type Engine } from "@/lib/scan/engines";
 import { type ClusterCard, type ClusterFilter as Filter, clusterCards, filterClusters, namedCount, neverCount } from "@/lib/tracking/cluster-figures";
@@ -27,7 +29,7 @@ import { Chip } from "./Overview";
  * add routes, so none is drawn as a control that does nothing.
  */
 
-export type StopToast = { done: "stopped" | "undone" | "refused"; kind: "prompt" | "cluster"; id: string };
+export type StopToast = { done: "stopped" | "undone" | "added" | "refused"; kind: "prompt" | "cluster"; id: string };
 
 const short = (t: string) => (t.length > 52 ? `${t.slice(0, 50)}…` : t);
 
@@ -217,7 +219,9 @@ function Toast({ t, cards, act, dismiss }: { t: StopToast; cards: ClusterCard[];
   const text =
     t.done === "refused" || !name
       ? "That change did not go through. Reload the page and try again."
-      : t.done === "undone"
+      : t.done === "added"
+        ? `Now tracking “${short(name)}”. First results after tomorrow’s 06:00 check.`
+        : t.done === "undone"
         ? `Undone. “${short(name)}” is still tracked.`
         : t.kind === "cluster"
           ? `Stopped tracking “${short(name)}” and its prompts. Their history stays in your reports.`
@@ -244,6 +248,10 @@ function ClusterRow({ c, brand, open, toggle, since, act }: { c: ClusterCard; br
   // A stop made today shows until tomorrow's check, with Undo; the slot is already free.
   const stopped = c.stoppedOn !== null;
   const undoable = !!act && stopped && c.stoppedOn! > act.today;
+  // The free slot (part 2c): a live cluster with fewer than 5 live prompts offers
+  // the place of a stopped one, at its angle, to owners and editors.
+  const free = Math.max(0, 5 - c.prompts.filter((p) => p.stoppedOn === null).length);
+  const slots = new Set(act && !stopped && !pending ? c.prompts.filter((p) => p.stoppedOn !== null).slice(0, free).map((p) => p.id) : []);
   const kw = c.keyword ?? c.name;
   const vol = c.volume !== null ? `${c.volume.toLocaleString("en-GB")} searches a month` : null;
   const lead = [c.intent ? cap(c.intent) : null, vol].filter(Boolean).join(", ");
@@ -297,7 +305,19 @@ function ClusterRow({ c, brand, open, toggle, since, act }: { c: ClusterCard; br
         <div style={{ display: "flex", flexDirection: "column", gap: "14px", padding: "4px 24px 22px" }}>
           <div className="app-cl-body" style={{ display: "flex", alignItems: "center" }}>
             <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "4px", flexGrow: 1, minWidth: 0 }}>
-              {c.prompts.map((p) => (
+              {c.prompts.map((p) => act && slots.has(p.id) ? (
+                <li key={p.id} className="app-cl-prompt" style={{ minHeight: `${ROW_H}px`, boxSizing: "border-box", padding: "8px 12px 8px 14px", borderRadius: "12px", background: T.surface, border: `1px dashed ${T.washLine}`, display: "flex", alignItems: "center" }}>
+                  <form method="post" action={`${act.action.replace(/\/stop$/, "/prompt")}?${new URLSearchParams({ ...act.keep, kind: "cluster", id: c.id, ...(p.angle ? { angle: p.angle } : {}) })}`} style={{ display: "flex", alignItems: "center", gap: "10px", width: "100%", flexWrap: "wrap" }}>
+                    <span style={{ flexShrink: 0, padding: "2px 8px", borderRadius: "6px", background: T.chip, color: T.soft, fontSize: "11px", fontWeight: 700, letterSpacing: ".02em", textTransform: "uppercase" }}>{p.angle ?? "Prompt"}</span>
+                    <label htmlFor={`slot-${p.id}`} className="sr-only">{`A new ${p.angle ? `${p.angle} ` : ""}prompt about ${kw}`}</label>
+                    <input id={`slot-${p.id}`} name="text" required minLength={PROMPT_MIN} maxLength={ADMIN_LIMITS.question} placeholder={`A new ${p.angle ? `${p.angle} ` : ""}prompt about “${kw}”`} style={{ flex: "1 1 200px", minWidth: 0, height: "40px", boxSizing: "border-box", padding: "0 12px", border: `1px solid ${T.line}`, borderRadius: "10px", fontFamily: "inherit", fontSize: "14px", color: T.ink, background: T.surface }} />
+                    <button type="submit" style={{ flexShrink: 0, height: "40px", padding: "0 14px", border: 0, borderRadius: "10px", background: T.accent, color: T.surface, fontFamily: "inherit", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>
+                      {/* The board's word here is the alwaystracked CTA's label, which only pricing.ts may type (tier-action.test.mts); a slot is not a sign-up. */}
+                      Track this prompt
+                    </button>
+                  </form>
+                </li>
+              ) : (
                 <li key={p.id} className="app-cl-prompt" style={{ display: "grid", gridTemplateColumns: act ? "minmax(0, 1fr) 52px 76px 36px" : "minmax(0, 1fr) 52px 76px", alignItems: "center", gap: "12px", minHeight: `${ROW_H}px`, boxSizing: "border-box", padding: "8px 12px 8px 14px", borderRadius: "12px", background: T.surface, border: `1px solid ${T.hair}`, opacity: p.stoppedOn !== null && !stopped ? 0.6 : 1 }}>
                   <div style={{ display: "flex", flexDirection: "column", gap: "7px", minWidth: 0 }}>
                     <div className="app-cl-text-row" style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
