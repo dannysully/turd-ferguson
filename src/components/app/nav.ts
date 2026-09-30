@@ -1,0 +1,36 @@
+/**
+ * Where each dashboard nav item goes (R130, Danny, 30 Sep 2026, danny.md 119).
+ * A string is the route under /app/[client] ("" is the overview); SOON is an
+ * item whose page is not built, drawn disabled with "Coming soon". Every item
+ * the sidebar or the phone tabs draw has an entry here, and nav.test.mts
+ * (R131) holds each string to a real route and each built route to an item.
+ *
+ * Plain module, relative imports only, so node --test can load it.
+ */
+
+export const SOON = null;
+
+export const NAV = ["Overview", "Clusters", "Google keywords", "Who is named", "Cited pages", "Reports", "Settings"] as const;
+export const TABS = ["Overview", "Clusters", "Keywords", "Reports"] as const;
+// R121 (30 Sep 2026): on a client with cluster rows the Google keyword lives on
+// its cluster card, so there is no keywords tab - boards-3/Main.dc.html's nav
+// and boards-3/Mobile.dc.html's four tabs. A flat client keeps the T3 lists.
+export const CLUSTER_NAV = NAV.filter((n) => n !== "Google keywords");
+export const CLUSTER_TABS = ["Overview", "Clusters", "Reports", "Settings"] as const;
+
+export const NAV_TARGET: Record<string, string | typeof SOON | undefined> = {
+  Overview: "",
+  Clusters: "/clusters",
+  "Google keywords": SOON,
+  Keywords: SOON,
+  "Who is named": SOON,
+  "Cited pages": SOON,
+  Reports: SOON,
+  Settings: SOON,
+};
+
+/** The href for an item on this client, or null when it is not built. */
+export function navHref(item: string, slug: string): string | null {
+  const t = NAV_TARGET[item];
+  return typeof t === "string" ? `/app/${slug}${t}` : null;
+}

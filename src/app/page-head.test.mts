@@ -73,6 +73,14 @@ export function linkIssues(pages: Page[], routes: Set<string>): LinkIssue[] {
     if (!byRoute.has(route)) byRoute.set(route, p.html);
   }
 
+  // A dynamic route (`/app/[client]/clusters`) is matched one segment per
+  // bracket (30 Sep 2026, R130): the /app/parity fixture's sidebar links the
+  // fixture client's built screens, `/app/example/clusters`, which is a real
+  // route that a literal lookup could never find. A catch-all stays literal.
+  const dynamic = [...routes]
+    .filter((r) => /\[[^\].]+\]/.test(r) && !r.includes("[..."))
+    .map((r) => new RegExp("^" + r.split(/\[[^\]]+\]/).map((s) => s.replace(/[.*+?^${}()|\\/]/g, "\\$&")).join("[^/]+") + "$"));
+
   const issues: LinkIssue[] = [];
   for (const { page, html } of pages) {
     const here = p0(page);
@@ -85,7 +93,7 @@ export function linkIssues(pages: Page[], routes: Set<string>): LinkIssue[] {
       const frag = hash === -1 ? "" : href.slice(hash + 1);
 
       const target = path ? routeOf(path) : here;
-      if (path && !routes.has(target)) {
+      if (path && !routes.has(target) && !dynamic.some((re) => re.test(target))) {
         issues.push({ page, href, why: `${target} is not a route in the build` });
         continue;
       }
@@ -130,6 +138,15 @@ test("the link probe fires on a dead link, and not on the four shapes that are f
   assert.deepEqual(probe('<a href="/#scan">x</a>'), [], "a cross-page fragment resolves against the page it points at");
   assert.deepEqual(probe('<a href="/blog?kind=Method">x</a>'), [], "a query string is not part of the route");
   assert.deepEqual(probe('<a href="/blog/">x</a>'), [], "a trailing slash is the same route");
+});
+
+test("a dynamic route matches one segment per bracket, and nothing else (R130, 30 Sep 2026)", () => {
+  const routes = new Set(["/app/[client]", "/app/[client]/clusters"]);
+  const probe = (href: string) => linkIssues([{ page: "/app/parity", html: `<a href="${href}">x</a>` }], routes);
+  assert.deepEqual(probe("/app/example"), []);
+  assert.deepEqual(probe("/app/example/clusters?open=c1"), []);
+  assert.equal(probe("/app/example/reports").length, 1, "an unbuilt screen under a dynamic route still fails");
+  assert.equal(probe("/app/a/b").length, 1, "one bracket is one segment");
 });
 
 // --------------------------------------------------------- the real pages

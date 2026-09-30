@@ -40,7 +40,9 @@ export default async function ParityOverview({ searchParams }: { searchParams: P
   };
   const engines = enginesFor(fx.client.tier);
   const { range, compare } = rangeFrom(await searchParams, fx.today);
-  const client = { slug: "parity", domain: fx.client.domain, brand: fx.client.brand, market: fx.client.market };
+  // Slug "example", the fixture client (TRACKING_FIXTURE): since R130 the
+  // sidebar links every built screen, and /app/parity/clusters is not a route.
+  const client = { slug: "example", domain: fx.client.domain, brand: fx.client.brand, market: fx.client.market };
 
   return (
     <div className="app-shell" style={{ display: "flex", flexWrap: "wrap", minHeight: "100vh", color: T.ink }}>

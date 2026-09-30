@@ -8,6 +8,8 @@ import { T } from "@/config/tokens";
 import { ENGINE_SPECS, type Engine } from "@/lib/scan/engines";
 import { KEYWORDS_PER_CLUSTER, PROMPTS_PER_CLUSTER } from "@/lib/tracking/limits";
 
+import { CLUSTER_NAV, CLUSTER_TABS, NAV, TABS, navHref } from "./nav";
+
 const WORDS = ["no", "one", "two", "three", "four", "five"];
 
 /**
@@ -22,13 +24,7 @@ const WORDS = ["no", "one", "two", "three", "four", "five"];
  * server HTML and swapped by CSS, so the phone shell stands with JS off.
  */
 
-const NAV = ["Overview", "Clusters", "Google keywords", "Who is named", "Cited pages", "Reports", "Settings"];
-const TABS = ["Overview", "Clusters", "Keywords", "Reports"];
-// R121 (30 Sep 2026): on a client with cluster rows the Google keyword lives on
-// its cluster card, so there is no keywords tab - boards-3/Main.dc.html's nav
-// and boards-3/Mobile.dc.html's four tabs. A flat client keeps the T3 lists.
-const CLUSTER_NAV = NAV.filter((n) => n !== "Google keywords");
-const CLUSTER_TABS = ["Overview", "Clusters", "Reports", "Settings"];
+// The item lists and where each goes live in nav.ts, where the R131 census reads them.
 
 // R123 (30 Sep 2026): one line icon per nav item, boards-3/common.py's ICONS
 // at the board's sizes - 18px in the sidebar, 20px on the phone tabs. The
@@ -136,11 +132,12 @@ export default function Sidebar({
   /** upsell_mode is nomada: the plan card may name the next tier and the pack. */
   upsell?: boolean;
 }) {
-  const nav = clusters ? CLUSTER_NAV : NAV;
-  const tabs = clusters ? CLUSTER_TABS : TABS;
+  const nav: readonly string[] = clusters ? CLUSTER_NAV : NAV;
+  const tabs: readonly string[] = clusters ? CLUSTER_TABS : TABS;
   const name = client.brand ?? client.domain;
-  // Only screens that exist are links; the rest stay labels until they are built.
-  const hrefOf = (item: string) => (item === "Overview" ? `/app/${client.slug}` : item === "Clusters" && clusters ? `/app/${client.slug}/clusters` : null);
+  // R130 (30 Sep 2026): a built screen is a link; an unbuilt one is drawn
+  // disabled with "Coming soon" - no href, not focusable, aria-disabled.
+  const hrefOf = (item: string) => navHref(item, client.slug);
   return (
     <>
       <header className="app-topbar" style={{ alignItems: "center", justifyContent: "space-between", height: "60px", padding: "0 16px", background: T.surface, borderBottom: `1px solid ${T.line}`, flex: "1 1 100%", boxSizing: "border-box" }}>
@@ -181,19 +178,30 @@ export default function Sidebar({
           {nav.map((item) => {
             const on = item === current;
             const href = hrefOf(item);
-            const Tag = href ? "a" : "span";
+            const row: React.CSSProperties = { display: "flex", alignItems: "center", gap: "12px", height: "40px", padding: "0 12px", borderRadius: "10px", fontSize: "14px", textDecoration: "none" };
+            if (!href) {
+              return (
+                <span key={item} aria-disabled="true" style={{ ...row, color: T.soft, fontWeight: 500, cursor: "default" }}>
+                  <span style={{ display: "flex" }}>
+                    <NavIcon item={item} size={18} />
+                  </span>
+                  <span style={{ whiteSpace: "nowrap" }}>{item}</span>
+                  <span style={{ marginLeft: "auto", fontSize: "10px", fontWeight: 600, color: T.soft, background: T.chip, borderRadius: "999px", padding: "2px 6px", whiteSpace: "nowrap" }}>Coming soon</span>
+                </span>
+              );
+            }
             return (
-              <Tag
+              <a
                 key={item}
-                href={href ?? undefined}
+                href={href}
                 aria-current={on ? "page" : undefined}
-                style={{ display: "flex", alignItems: "center", gap: "12px", height: "40px", padding: "0 12px", borderRadius: "10px", fontSize: "14px", background: on ? T.wash : "transparent", color: on ? T.accent : T.ink, fontWeight: on ? 600 : 500, textDecoration: "none" }}
+                style={{ ...row, background: on ? T.wash : "transparent", color: on ? T.accent : T.ink, fontWeight: on ? 600 : 500 }}
               >
                 <span style={{ display: "flex", color: on ? T.accent : T.soft }}>
                   <NavIcon item={item} size={18} />
                 </span>
                 {item}
-              </Tag>
+              </a>
             );
           })}
         </nav>
@@ -254,17 +262,21 @@ export default function Sidebar({
         {tabs.map((item) => {
           const on = item === current;
           const href = hrefOf(item);
-          const Tag = href ? "a" : "span";
+          const tab: React.CSSProperties = { flex: "1 1 0", display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", padding: "10px 0 6px", fontSize: "11px", fontWeight: 600, textDecoration: "none" };
+          if (!href) {
+            return (
+              <span key={item} aria-disabled="true" style={{ ...tab, gap: "2px", color: T.soft, cursor: "default" }}>
+                <NavIcon item={item} size={20} />
+                {item}
+                <span style={{ fontSize: "9px", fontWeight: 500 }}>Coming soon</span>
+              </span>
+            );
+          }
           return (
-            <Tag
-              key={item}
-              href={href ?? undefined}
-              aria-current={on ? "page" : undefined}
-              style={{ flex: "1 1 0", display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", padding: "10px 0 6px", color: on ? T.accent : T.soft, fontSize: "11px", fontWeight: 600, textDecoration: "none" }}
-            >
+            <a key={item} href={href} aria-current={on ? "page" : undefined} style={{ ...tab, color: on ? T.accent : T.soft }}>
               <NavIcon item={item} size={20} />
               {item}
-            </Tag>
+            </a>
           );
         })}
       </nav>
