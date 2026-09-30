@@ -53,6 +53,8 @@ const CLOSED_ON_PURPOSE: Record<string, string> = {
   // but are doors to a private area, not pages to be found.
   "/app": "the dashboard's entry; redirects to the member's client or to /app/login",
   "/app/[client]": "one client's private dashboard; 404s to anyone who is not a member",
+  // 30 Sep 2026, T6 part 1.
+  "/app/[client]/clusters": "one client's tracked clusters and prompts; private, same membership 404 as the overview",
   "/app/auth": "where a single-use login link lands; the token in its URL is private",
   "/app/login": "the dashboard login form; nothing on it is meant to be found by search",
   // T4, 29 Sep 2026: renders only in a local checkout that has generated the

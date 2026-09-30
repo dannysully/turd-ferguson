@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
-import { clusterCards, clusterChart, clusterSummary } from "./cluster-figures.ts";
+import { clusterCards, clusterChart, clusterSearch, clusterSummary, filterClusters } from "./cluster-figures.ts";
 import { comparisonRange } from "./figures.ts";
 import { expandFixture } from "./fixture-mode.ts";
 
@@ -86,6 +86,24 @@ test("engine marks: a prompt that never named the client has none; one prompt's 
   assert.deepEqual(c4.prompts.map((p) => p.angle), ["category", "positioning", "sector", "outcome", "comparison"]);
 });
 
+// dataset.py, 30 Sep 2026: each prompt's days named per engine (AIO, ChatGPT, Gemini, Perplexity) and days checked - T6's row counts.
+const BOARD_DAYS: Record<string, [number[][], number]> = {
+  c1: [[[8, 9, 10, 11], [13, 18, 14, 18], [13, 8, 11, 14], [15, 18, 10, 10], [9, 10, 5, 9]], 28],
+  c4: [[[3, 10, 2, 5], [5, 6, 7, 9], [0, 0, 0, 0], [4, 6, 5, 7], [6, 9, 2, 4]], 28],
+  c8: [[[3, 1, 3, 4], [3, 3, 1, 6], [0, 0, 0, 0], [4, 7, 4, 4], [0, 0, 0, 0]], 28],
+  c9: [[[2, 0, 0, 1], [0, 0, 0, 0], [0, 2, 1, 3], [1, 1, 1, 0], [0, 0, 0, 0]], 14],
+  c10: [[[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]], 0],
+};
+
+test("T6 day counts: per engine, the days it named the client for a prompt, of the days checked, match the board", () => {
+  for (const [id, [days, checked]] of Object.entries(BOARD_DAYS)) {
+    const c = by(id);
+    assert.deepEqual(c.prompts.map((p) => p.daysNamed.map((d) => d.days)), days, `${id} days named`);
+    assert.ok(c.prompts.every((p) => p.daysChecked === checked), `${id} days checked`);
+    assert.deepEqual(c.prompts[0]!.daysNamed.map((d) => d.engine), ["google_aio", "chatgpt", "gemini", "perplexity"]);
+  }
+});
+
 test("no comparison: no change anywhere, and a cluster begun before the range is still live", () => {
   const none = clusterCards({ ...fx.data, range, before: null, today: fx.today, engines: ["google_aio"] });
   assert.ok(none.every((c) => c.delta === null && c.positionChange === null));
@@ -137,4 +155,19 @@ test("summary with no comparison has no like-for-like change or 'was' figures", 
   assert.equal(s.lflDelta, null);
   assert.equal(s.promptsNamedBefore, null);
   assert.equal(s.page1Before, null);
+});
+
+test("T6 filters: all 10, naming you 9 and with prompts that never name you 3, as the board counts; search matches keyword or prompt", () => {
+  assert.equal(filterClusters(cards, "all", "").length, 10);
+  assert.equal(filterClusters(cards, "named", "").length, 9, "every checked cluster names Tallyroo somewhere");
+  assert.deepEqual(filterClusters(cards, "never", "").map((c) => c.id), ["c4", "c8", "c9"]);
+  assert.deepEqual(filterClusters(cards, "all", "  PAYROLL ").map((c) => c.id), ["c8", "c10"], "c10's keyword and a c8 prompt about payroll");
+  assert.ok(filterClusters(cards, "all", "ledgerline").length > 1, "a prompt naming a rival matches, not only the keyword");
+  assert.ok(!filterClusters(cards, "named", "payroll").some((c) => c.id === "c10"), "a pending cluster is in all only");
+  assert.ok(!filterClusters(cards, "never", "").some((c) => c.status === "pending"));
+});
+
+test("T6 search: ?q= is cut to APP_LIMITS.search (120) before it is used", () => {
+  assert.equal(clusterSearch(null), "");
+  assert.equal(clusterSearch("x".repeat(500)).length, 120);
 });

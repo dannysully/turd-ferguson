@@ -694,7 +694,7 @@ export default function Overview({
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 /** A change chip in the cards' 12px size, or the grey word when there is no change to show. */
-function Chip({ value, unit, none, size = 12 }: { value: number | null; unit: string; none: string; size?: number }) {
+export function Chip({ value, unit, none, size = 12 }: { value: number | null; unit: string; none: string; size?: number }) {
   if (value === null || value === 0) return <span style={{ fontSize: `${size}px`, fontWeight: 600, color: T.soft, whiteSpace: "nowrap" }}>{value === 0 ? "No change" : none}</span>;
   const up = value > 0;
   const fg = up ? T.goodFg : T.badFg;

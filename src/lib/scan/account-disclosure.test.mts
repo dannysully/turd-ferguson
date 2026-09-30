@@ -159,7 +159,8 @@ const RECORDED: Record<string, string> = {
   // (MemberClient has no account_id), so no page or response carries it.
   "src/lib/tracking/member.ts :: account_id, role":
     "joins a member to their accounts server-side; clientsFor returns no account_id.",
-  "src/lib/tracking/member.ts :: id, account_id, slug, domain, brand_name, market, tier, started_on, question_limit, keyword_limit":
+  // 30 Sep 2026, T6 part 1: cluster_limit added for the Clusters page's usage bar; account_id still stays server-side.
+  "src/lib/tracking/member.ts :: id, account_id, slug, domain, brand_name, market, tier, started_on, question_limit, keyword_limit, cluster_limit":
     "maps each client to its role by account server-side; the returned MemberClient omits account_id.",
 };
 

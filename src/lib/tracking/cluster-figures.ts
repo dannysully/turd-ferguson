@@ -1,4 +1,5 @@
 import { type AnswerRow, type Day, type Range, type Rate, type SerpRow, daysIn, pointsDelta, rate } from "./figures.ts";
+import { APP_LIMITS } from "../../config/contact.ts";
 import type { Angle } from "./limits.ts";
 
 /**
@@ -40,6 +41,10 @@ export type ClusterPrompt = {
   before: Rate | null;
   /** Engines that named the client at least once in the range - the card's full marks. */
   namedBy: string[];
+  /** Days in the range with at least one answer to this prompt (T6's "of N"). */
+  daysChecked: number;
+  /** Per engine, in the tier's order: days that engine named the client for this prompt. */
+  daysNamed: { engine: string; days: number }[];
 };
 
 export type ClusterCard = {
@@ -211,15 +216,24 @@ export function clusterCards(input: ClusterInput): ClusterCard[] {
 
       const cells = new Map<Day, { num: number; den: number }>();
       const byPrompt = new Map<string, { engines: Set<string> }>();
+      const checkedDays = new Map<string, Set<Day>>();
+      const namedDays = new Map<string, Set<Day>>();
       for (const a of input.answers) {
         if (!a.answered || !ids.has(a.question_id) || !within(a.run_date, range)) continue;
         const cell = cells.get(a.run_date) ?? { num: 0, den: 0 };
         cell.den++;
+        const seen = checkedDays.get(a.question_id) ?? new Set<Day>();
+        seen.add(a.run_date);
+        checkedDays.set(a.question_id, seen);
         if (a.named) {
           cell.num++;
           const p = byPrompt.get(a.question_id) ?? { engines: new Set<string>() };
           p.engines.add(a.engine);
           byPrompt.set(a.question_id, p);
+          const key = `${a.question_id} ${a.engine}`;
+          const nd = namedDays.get(key) ?? new Set<Day>();
+          nd.add(a.run_date);
+          namedDays.set(key, nd);
         }
         cells.set(a.run_date, cell);
       }
@@ -253,6 +267,8 @@ export function clusterCards(input: ClusterInput): ClusterCard[] {
             now: p,
             before: b && b.den ? b : null,
             namedBy: engines.filter((e) => byPrompt.get(q.id)?.engines.has(e)),
+            daysChecked: checkedDays.get(q.id)?.size ?? 0,
+            daysNamed: engines.map((e) => ({ engine: e, days: namedDays.get(`${q.id} ${e}`)?.size ?? 0 })),
           };
         }),
         heat: days.map((d) => {
@@ -261,4 +277,31 @@ export function clusterCards(input: ClusterInput): ClusterCard[] {
         }),
       };
     });
+}
+
+export type ClusterFilter = "all" | "named" | "never";
+
+/** Prompts with at least one named answer in range. */
+export const namedCount = (c: ClusterCard) => c.prompts.filter((p) => p.now.num > 0).length;
+/** Prompts checked in range that never named the client. */
+export const neverCount = (c: ClusterCard) => c.prompts.filter((p) => p.now.den > 0 && p.now.num === 0).length;
+
+/**
+ * T6's filters and search (30 Sep 2026): the search matches the keyword or any
+ * prompt; "named" keeps checked clusters with a prompt naming the client,
+ * "never" those with a prompt that never did. A pending cluster is in "all" only.
+ */
+export function filterClusters(cards: ClusterCard[], filter: ClusterFilter, q: string): ClusterCard[] {
+  const term = q.trim().toLowerCase();
+  return cards.filter((c) => {
+    if (term && !(c.keyword ?? c.name).toLowerCase().includes(term) && !c.prompts.some((p) => p.text.toLowerCase().includes(term))) return false;
+    if (filter === "named") return c.status !== "pending" && namedCount(c) > 0;
+    if (filter === "never") return c.status !== "pending" && neverCount(c) > 0;
+    return true;
+  });
+}
+
+/** `?q=` as the Clusters page reads it: cut to APP_LIMITS.search before it filters anything. */
+export function clusterSearch(q: string | null): string {
+  return (q ?? "").slice(0, APP_LIMITS.search);
 }

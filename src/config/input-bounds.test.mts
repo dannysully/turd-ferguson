@@ -173,6 +173,25 @@ const EXEMPT: Record<string, Exemption> = {
       },
     ]),
   ),
+  // T6 part 1 (30 Sep 2026): the Clusters search form carries the range and
+  // filter as hidden fields so a search keeps them. Nobody types in them; the
+  // page re-reads each - rangeFrom clamps from/to/compare, and filter is
+  // anything but named/never read as all.
+  ...Object.fromEntries(
+    (["from", "to", "compare", "filter"] as const).map((f) => [
+      `cl-${f}`,
+      {
+        why: [
+          `the Clusters search form's hidden ${f}, copied from the current URL so a search keeps it.`,
+          "type=hidden, which maxLength does not apply to and nobody types in. The page",
+          "re-validates it: rangeFrom for the range, and a two-value whitelist for the filter.",
+        ].join(" "),
+        holds: [
+          { file: "app/app/[client]/clusters/page.tsx", needs: f === "filter" ? 'f === "named" || f === "never"' : "rangeFrom(sp, today)" },
+        ],
+      },
+    ]),
+  ),
   "cc-coverage": {
     why: [
       "type=file, which maxLength does not apply to at all. It is bounded by bytes",
@@ -542,7 +561,11 @@ const SERVER_FILES = walk(SRC)
  */
 function localNames(source: string, table: string): string[] {
   const names: string[] = [];
-  for (const imp of source.matchAll(/import\s*\{([^}]*)\}\s*from\s*["'][^"']*config\/contact["']/g)) {
+  // `(\.ts)?` from 30 Sep 2026 (T6 part 1): a lib file imports the tables as
+  // `../../config/contact.ts` so `node --test` can load it, and the bare
+  // pattern read that server as not importing them at all - a blind spot, so
+  // widened rather than worked round.
+  for (const imp of source.matchAll(/import\s*\{([^}]*)\}\s*from\s*["'][^"']*config\/contact(?:\.ts)?["']/g)) {
     for (const spec of imp[1].split(",")) {
       const as = new RegExp(`^\\s*${table}\\s+as\\s+(\\w+)\\s*$`).exec(spec);
       if (as) names.push(as[1]);

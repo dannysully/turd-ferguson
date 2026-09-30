@@ -21,6 +21,8 @@ export type MemberClient = {
   started_on: string | null;
   question_limit: number;
   keyword_limit: number;
+  /** BRIEF-3 C2: 10 plus 5 per pack, set by the webhook only. Absent in fixtures cut before clusters. */
+  cluster_limit?: number;
 };
 
 /** The signed-in email, or null. */
@@ -46,7 +48,7 @@ export async function clientsFor(email: string): Promise<(MemberClient & { role:
   if (!roleOf.size) return [];
   const { data: rows, error: cErr } = await db
     .from("client_domains")
-    .select("id, account_id, slug, domain, brand_name, market, tier, started_on, question_limit, keyword_limit")
+    .select("id, account_id, slug, domain, brand_name, market, tier, started_on, question_limit, keyword_limit, cluster_limit")
     .in("account_id", [...roleOf.keys()])
     .not("slug", "is", null)
     .order("created_at", { ascending: true });
@@ -61,6 +63,7 @@ export async function clientsFor(email: string): Promise<(MemberClient & { role:
     started_on: r.started_on as string | null,
     question_limit: r.question_limit as number,
     keyword_limit: r.keyword_limit as number,
+    cluster_limit: r.cluster_limit as number,
     role: roleOf.get(r.account_id as string) ?? "viewer",
   }));
 }

@@ -111,6 +111,7 @@ export default function Sidebar({
   tier,
   engines,
   clusters = false,
+  current = "Overview",
 }: {
   client: Client;
   others: Client[];
@@ -120,10 +121,14 @@ export default function Sidebar({
   engines: readonly Engine[];
   /** The client has cluster rows: the cluster-first nav. */
   clusters?: boolean;
+  /** The nav item for this page (T6 part 1, 30 Sep 2026). */
+  current?: string;
 }) {
   const nav = clusters ? CLUSTER_NAV : NAV;
   const tabs = clusters ? CLUSTER_TABS : TABS;
   const name = client.brand ?? client.domain;
+  // Only screens that exist are links; the rest stay labels until they are built.
+  const hrefOf = (item: string) => (item === "Overview" ? `/app/${client.slug}` : item === "Clusters" && clusters ? `/app/${client.slug}/clusters` : null);
   return (
     <>
       <header className="app-topbar" style={{ alignItems: "center", justifyContent: "space-between", height: "60px", padding: "0 16px", background: T.surface, borderBottom: `1px solid ${T.line}`, flex: "1 1 100%", boxSizing: "border-box" }}>
@@ -161,18 +166,24 @@ export default function Sidebar({
         </div>
 
         <nav aria-label="Dashboard" style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-          {nav.map((item, i) => (
-            <span
-              key={item}
-              aria-current={i === 0 ? "page" : undefined}
-              style={{ display: "flex", alignItems: "center", gap: "12px", height: "40px", padding: "0 12px", borderRadius: "10px", fontSize: "14px", background: i === 0 ? T.wash : "transparent", color: i === 0 ? T.accent : T.ink, fontWeight: i === 0 ? 600 : 500 }}
-            >
-              <span style={{ display: "flex", color: i === 0 ? T.accent : T.soft }}>
-                <NavIcon item={item} size={18} />
-              </span>
-              {item}
-            </span>
-          ))}
+          {nav.map((item) => {
+            const on = item === current;
+            const href = hrefOf(item);
+            const Tag = href ? "a" : "span";
+            return (
+              <Tag
+                key={item}
+                href={href ?? undefined}
+                aria-current={on ? "page" : undefined}
+                style={{ display: "flex", alignItems: "center", gap: "12px", height: "40px", padding: "0 12px", borderRadius: "10px", fontSize: "14px", background: on ? T.wash : "transparent", color: on ? T.accent : T.ink, fontWeight: on ? 600 : 500, textDecoration: "none" }}
+              >
+                <span style={{ display: "flex", color: on ? T.accent : T.soft }}>
+                  <NavIcon item={item} size={18} />
+                </span>
+                {item}
+              </Tag>
+            );
+          })}
         </nav>
 
         <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: "12px", padding: "16px", borderRadius: "14px", background: T.chip }}>
@@ -208,16 +219,22 @@ export default function Sidebar({
       </aside>
 
       <nav aria-label="Dashboard sections" className="app-tabs" style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 20, background: T.surface, borderTop: `1px solid ${T.line}`, paddingBottom: "8px" }}>
-        {tabs.map((item, i) => (
-          <span
-            key={item}
-            aria-current={i === 0 ? "page" : undefined}
-            style={{ flex: "1 1 0", display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", padding: "10px 0 6px", color: i === 0 ? T.accent : T.soft, fontSize: "11px", fontWeight: 600 }}
-          >
-            <NavIcon item={item} size={20} />
-            {item}
-          </span>
-        ))}
+        {tabs.map((item) => {
+          const on = item === current;
+          const href = hrefOf(item);
+          const Tag = href ? "a" : "span";
+          return (
+            <Tag
+              key={item}
+              href={href ?? undefined}
+              aria-current={on ? "page" : undefined}
+              style={{ flex: "1 1 0", display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", padding: "10px 0 6px", color: on ? T.accent : T.soft, fontSize: "11px", fontWeight: 600, textDecoration: "none" }}
+            >
+              <NavIcon item={item} size={20} />
+              {item}
+            </Tag>
+          );
+        })}
       </nav>
     </>
   );

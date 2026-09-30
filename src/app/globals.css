@@ -1661,6 +1661,14 @@ html[data-motion="on"] .res-dial { animation: resDial 1.4s .3s cubic-bezier(.2,.
   .app-show-sm { display: block !important; }
   /* Mobile.dc.html spaces the cluster overview's sections 14px apart. */
   .app-col { gap: 14px !important; }
+  /* T6 Clusters on a phone: the closed row keeps chevron, keyword and the AI
+     rate; the open row stacks the prompts above the keyword card. */
+  .app-cl-grid { grid-template-columns: 28px minmax(0, 1fr) auto !important; gap: 12px !important; padding-left: 16px !important; padding-right: 16px !important; }
+  .app-cl-body { flex-direction: column; align-items: stretch !important; gap: 12px; }
+  .app-cl-kw { width: auto !important; }
+  .app-cl-prompt { grid-template-columns: minmax(0, 1fr) auto auto !important; }
+  .app-cl-text { white-space: normal !important; flex-basis: 100%; }
+  .app-cl-text-row { flex-wrap: wrap; }
   /* Main.dc.html keeps the Previous period toggle level with the cluster
      name (R122); on a phone the lede needs the width, so it drops below. */
   .app-chart-head { flex-wrap: wrap; gap: 12px !important; }
