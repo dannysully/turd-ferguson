@@ -7,7 +7,8 @@ import { trackingDay } from "./decide.ts";
 import type { Day, Range } from "./figures.ts";
 import { expandFixture, fixtureMode, type Fixture } from "./fixture-mode.ts";
 import { type MemberClient, clientsFor, sessionEmail } from "./member.ts";
-import { type Compare, type OverviewData, loadOverview } from "./overview-data.ts";
+import type { LatestAnswers } from "./latest-answers.ts";
+import { type Compare, type OverviewData, loadLatestAnswers, loadOverview } from "./overview-data.ts";
 
 /**
  * The dashboard's data layer (R93, 29 Sep 2026; BRIEF-2 T9): one interface,
@@ -23,11 +24,13 @@ export interface TrackingRepo {
   clientsFor(email: string): Promise<(MemberClient & { role: string })[]>;
   /** Everything the overview reads for one client and range. */
   loadOverview(clientId: string, range: Range, compare: Compare): Promise<OverviewData>;
+  /** One prompt's answers, with their words, at its latest check on or before `to` (T7 part 3b). */
+  latestAnswers(clientId: string, questionId: string, to: Day): Promise<LatestAnswers>;
   /** The tracking day the dashboard treats as today. */
   today(): Day;
 }
 
-const supabaseRepo: TrackingRepo = { sessionEmail, clientsFor, loadOverview, today: () => trackingDay() };
+const supabaseRepo: TrackingRepo = { sessionEmail, clientsFor, loadOverview, latestAnswers: loadLatestAnswers, today: () => trackingDay() };
 
 let cached: Fixture | null = null;
 function fixture(): Fixture {
@@ -47,6 +50,20 @@ const fixtureRepo: TrackingRepo = {
   async loadOverview(clientId) {
     // The fixture holds both periods whole; the figures cut the range.
     return clientId === fixture().client.id ? fixture().data : { clusters: [], questions: [], keywords: [], answers: [], serp: [], lastRun: null, notes: [] };
+  },
+  async latestAnswers(clientId, questionId, to) {
+    const f = fixture();
+    if (clientId !== f.client.id) return { day: null, rows: [] };
+    const mine = f.data.answers.filter((a) => a.question_id === questionId && a.run_date <= to);
+    const day = mine.reduce<Day | null>((d, a) => (d === null || a.run_date > d ? a.run_date : d), null);
+    // The words exist for today's check only; an earlier day shows its verdicts without them.
+    const at = ["05:10", "05:11", "05:12", "05:12"];
+    return {
+      day,
+      rows: mine
+        .filter((a) => a.run_date === day)
+        .map((a, i) => ({ ...a, text: day === f.today ? (f.texts[`${questionId} ${a.engine}`] ?? null) : null, at: `${day}T${at[i % 4]}:00Z` })),
+    };
   },
   today() {
     return fixture().today;

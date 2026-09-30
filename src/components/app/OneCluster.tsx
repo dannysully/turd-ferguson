@@ -2,9 +2,11 @@ import Link from "next/link";
 
 import EngineLogo from "@/components/EngineLogo";
 import { T } from "@/config/tokens";
+import { type Inline, parseAnswer } from "@/components/scan/answer-markdown";
 import { ENGINE_SPECS, type Engine } from "@/lib/scan/engines";
 import { type ClusterDetail, type ClusterInput, clusterChart, promptBrands, promptStrip } from "@/lib/tracking/cluster-figures";
 import { type Day, type Range, type Rate, comparisonRange, daysIn, formatDay, pointsDelta } from "@/lib/tracking/figures";
+import { type AnswerTab, type LatestAnswers, answerTabs, brandRuns } from "@/lib/tracking/latest-answers";
 import type { Compare, OverviewData } from "@/lib/tracking/overview-data";
 
 import ClusterChart from "./ClusterChart";
@@ -15,9 +17,9 @@ import { Chip } from "./Overview";
  * boards-3/QuestionDetail.dc.html): breadcrumb, the keyword as the H1 with
  * its intent and volume, the four summary figures, the cluster chart as the
  * overview draws it, the 5 prompts joined to the keyword card, and for the
- * prompt `?prompt=` picks, every check day by day. Each prompt row is a link,
- * so picking works with JS off. The latest answers, brands named and notes
- * follow in the next part.
+ * prompt `?prompt=` picks, every check day by day, then what each engine
+ * said at the latest check (`?engine=`, T7 part 3b). Each prompt row and
+ * engine tab is a link, so picking works with JS off. Notes follow.
  */
 
 const CARD: React.CSSProperties = { background: T.surface, border: `1px solid ${T.line}`, borderRadius: "18px" };
@@ -28,6 +30,8 @@ const ROW_H = 64;
 const PITCH = ROW_H + 4;
 const CONN_W = 64;
 const WORDS = ["no", "one", "two", "three", "four", "five"];
+/** The board's tab labels; the full name stays in the tab's title and the answer's line. */
+const SHORT: Partial<Record<Engine, string>> = { google_aio: "Google AIO" };
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const pct = (r: Rate) => (r.pct === null ? "-" : `${r.pct}%`);
@@ -46,6 +50,8 @@ export default function OneCluster({
   index,
   total,
   prompt,
+  latest,
+  engine,
   clustersPath,
 }: {
   brand: string;
@@ -62,6 +68,9 @@ export default function OneCluster({
   total: number;
   /** The picked prompt, 0-based, already clamped to the cluster's prompts. */
   prompt: number;
+  /** The picked prompt's latest check (T7 part 3b), and the engine tab `?engine=` picks. */
+  latest: LatestAnswers | null;
+  engine: string;
   clustersPath: string;
 }) {
   const c = detail.card;
@@ -71,7 +80,8 @@ export default function OneCluster({
   const hasPrev = !!chart?.namedBefore?.some((p) => p !== null);
   const pending = c.status === "pending";
   const rangeQuery = { from: range.from, to: range.to, ...(compareMode === "prev" ? {} : { compare: compareMode }) };
-  const promptHref = (i: number) => `?${new URLSearchParams({ ...rangeQuery, prompt: String(i) })}`;
+  const promptHref = (i: number) => `?${new URLSearchParams({ ...rangeQuery, prompt: String(i), ...(engine === engines[0] ? {} : { engine }) })}`;
+  const engineHref = (e: string) => `?${new URLSearchParams({ ...rangeQuery, prompt: String(prompt), ...(e === engines[0] ? {} : { engine: e }) })}`;
   const back = `${clustersPath}?${new URLSearchParams(rangeQuery)}`;
   const where = market === "UK" ? "the United Kingdom" : "the United States";
   const days = daysIn(range);
@@ -79,6 +89,8 @@ export default function OneCluster({
   const strip = P ? promptStrip({ answers: data.answers, range, engines }, P.id) : [];
   const brands = P ? promptBrands({ answers: data.answers, range }, P.id, brand) : null;
   const top = Math.max(1, ...(brands?.rows.map((b) => b.n) ?? []));
+  const tabs = latest?.day ? answerTabs(latest.rows, engines, brand) : [];
+  const tab = tabs.find((t) => t.engine === engine) ?? tabs[0] ?? null;
   const kw = c.keyword ?? c.name;
   const posLine = c.position === null ? (c.keyword ? "Not in the top 20" : "No keyword yet") : domain;
   const upFrom = c.positionBefore !== null && detail.positionBeforeOn ? `, ${c.positionChange && c.positionChange > 0 ? "up" : c.positionChange && c.positionChange < 0 ? "down" : "same as"} from #${c.positionBefore} on ${formatDay(detail.positionBeforeOn)}` : "";
@@ -314,6 +326,38 @@ export default function OneCluster({
         </section>
       ) : null}
 
+      {P && tab && latest?.day ? (
+        <section aria-labelledby="ans-h" style={{ ...CARD, padding: "24px", display: "flex", flexDirection: "column", gap: "20px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px", flexWrap: "wrap" }}>
+            <h2 id="ans-h" style={H2}>
+              Latest answers
+            </h2>
+            <nav aria-label="Engines" style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+              {tabs.map((t) => {
+                const on = t.engine === tab.engine;
+                const label = ENGINE_SPECS[t.engine as Engine].label;
+                return (
+                  <Link
+                    key={t.engine}
+                    href={engineHref(t.engine)}
+                    scroll={false}
+                    aria-current={on ? "true" : undefined}
+                    title={`${label}: ${t.named === null ? "no answer" : t.named ? `names ${brand}` : `doesn't name ${brand}`}`}
+                    style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", boxSizing: "border-box", padding: "0 14px", border: `1px solid ${on ? T.washLine : T.line}`, borderRadius: "12px", background: on ? T.wash : T.surface, color: T.ink, fontSize: "14px", fontWeight: 600, textDecoration: "none" }}
+                  >
+                    <EngineLogo engine={t.engine as Engine} size={18} />
+                    {SHORT[t.engine as Engine] ?? label}
+                    <span aria-hidden="true" style={{ width: "8px", height: "8px", borderRadius: "50%", background: t.named === null ? T.faint : t.named ? T.goodFg : T.badFg }} />
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
+          <Answer tab={tab} brand={brand} day={latest.day} today={today} />
+          <p style={{ margin: 0, fontSize: "13px", color: T.soft }}>{`What each engine said at ${latest.day === today ? "today's" : `the ${formatDay(latest.day)}`} check, with link addresses taken out of the text.`}</p>
+        </section>
+      ) : null}
+
       {/* The board pairs this card with "Notes on this cluster" (next part); the right column waits for it. */}
       {P && brands && brands.answers ? (
         <div className="app-pair" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: "24px" }}>
@@ -338,6 +382,148 @@ export default function OneCluster({
         </section>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+/** One engine's answer (T7 part 3b): the verdict, the words with the brand in accent, pages cited, brands named. */
+function Answer({ tab, brand, day, today }: { tab: AnswerTab; brand: string; day: Day; today: Day }) {
+  const label = ENGINE_SPECS[tab.engine as Engine].label;
+  const when = `${day === today ? "Today" : formatDay(day, true)}${tab.time ? `, ${tab.time}` : ""}`;
+  const pill =
+    tab.named === null
+      ? { text: "No answer", bg: T.chip, fg: T.soft }
+      : tab.named
+        ? { text: `Names ${brand}`, bg: T.goodBg, fg: T.goodFg }
+        : { text: `Doesn’t name ${brand}`, bg: T.badBg, fg: T.badFg };
+  const H3: React.CSSProperties = { margin: 0, fontSize: "14px", fontWeight: 700 };
+  return (
+    <div className="app-pair" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 340px", gap: "32px" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "14px", minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+          <span style={{ padding: "3px 10px", borderRadius: "999px", background: pill.bg, color: pill.fg, fontSize: "12px", fontWeight: 700 }}>{pill.text}</span>
+          <span style={{ fontSize: "13px", color: T.soft }}>{tab.named === null ? `${label} gave no answer at this check.` : `What ${label} said. ${when}.`}</span>
+        </div>
+        {tab.text ? <AnswerText source={tab.text} brand={brand} /> : tab.named !== null ? <p style={{ margin: 0, fontSize: "14px", color: T.soft }}>The words were not kept for this check.</p> : null}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: "16px", minWidth: 0 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+          <h3 style={H3}>Pages it cited</h3>
+          {tab.pages.length ? (
+            <ul style={{ margin: 0, padding: 0, listStyle: "none" }}>
+              {tab.pages.map((pg) => (
+                <li key={pg} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", padding: "10px 0", borderTop: `1px solid ${T.hair}` }}>
+                  <span style={{ fontSize: "14px", color: T.ink, minWidth: 0, overflowWrap: "anywhere" }}>{pg}</span>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={T.soft} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }}>
+                    <path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" />
+                  </svg>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <span style={{ fontSize: "14px", color: T.soft }}>{tab.named === null ? "-" : "None at this check"}</span>
+          )}
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          <h3 style={H3}>Brands it named</h3>
+          {tab.brands.length ? (
+            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+              {tab.brands.map((b) => (
+                <span key={b.name} style={{ padding: "4px 10px", borderRadius: "999px", background: b.you ? T.wash : T.chip, color: b.you ? T.accent : T.ink, fontSize: "13px", fontWeight: 600 }}>
+                  {b.name}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <span style={{ fontSize: "14px", color: T.soft }}>{tab.named === null ? "-" : "None"}</span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** The stored answer as markdown (answer-markdown.ts), every string a React text node; the client's name in accent, `[3]` markers dropped with the links. */
+function AnswerText({ source, brand }: { source: string; brand: string }) {
+  const text: React.CSSProperties = { margin: 0, fontSize: "15px", lineHeight: 1.6, color: T.ink };
+  const cell: React.CSSProperties = { padding: "6px 8px", borderBottom: `1px solid ${T.hair}`, verticalAlign: "top", textAlign: "left" };
+  const runs = (xs: Inline[]) =>
+    xs
+      .filter((x) => !x.cite)
+      .flatMap((x, i) =>
+        brandRuns(x.text, brand).map((r, j) =>
+          r.brand || x.bold ? (
+            <strong key={`${i}-${j}`} style={{ color: r.brand ? T.accent : undefined, fontWeight: 700 }}>
+              {r.text}
+            </strong>
+          ) : (
+            <span key={`${i}-${j}`}>{r.text}</span>
+          ),
+        ),
+      );
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "10px", maxWidth: "620px" }}>
+      {parseAnswer(source).map((b, i) => {
+        if (b.kind === "table") {
+          return (
+            <div key={i} style={{ overflowX: "auto" }}>
+              <table style={{ borderCollapse: "collapse", width: "100%", fontSize: "13px", lineHeight: 1.5, color: T.ink }}>
+                <thead>
+                  <tr>
+                    {b.head.map((c, j) => (
+                      <th key={j} style={{ ...cell, fontWeight: 600, borderBottom: `1px solid ${T.line}` }}>
+                        {runs(c)}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {b.rows.map((r, j) => (
+                    <tr key={j}>
+                      {r.map((c, k) => (
+                        <td key={k} style={cell}>
+                          {runs(c)}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+        }
+        if (b.kind === "ul" || b.kind === "ol") {
+          const items = b.items.map((it, j) => <li key={j}>{runs(it)}</li>);
+          const style: React.CSSProperties = { ...text, paddingLeft: "20px", display: "flex", flexDirection: "column", gap: "6px" };
+          return b.kind === "ol" ? (
+            <ol key={i} style={{ ...style, listStyle: "decimal" }}>
+              {items}
+            </ol>
+          ) : (
+            <ul key={i} style={{ ...style, listStyle: "disc" }}>
+              {items}
+            </ul>
+          );
+        }
+        if (b.kind === "h") {
+          return (
+            <p key={i} style={{ ...text, fontWeight: 700 }}>
+              {runs(b.text)}
+            </p>
+          );
+        }
+        if (b.kind !== "p") return null;
+        return (
+          <p key={i} style={text}>
+            {b.lines.map((l, j) => (
+              <span key={j}>
+                {j ? " " : null}
+                {runs(l)}
+              </span>
+            ))}
+          </p>
+        );
+      })}
     </div>
   );
 }

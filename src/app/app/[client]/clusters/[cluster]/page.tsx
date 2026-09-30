@@ -8,6 +8,7 @@ import { enginesFor } from "@/config/pricing";
 import { T } from "@/config/tokens";
 import { clusterCards, clusterDetail, promptIndex } from "@/lib/tracking/cluster-figures";
 import { comparisonRange } from "@/lib/tracking/figures";
+import { engineTab } from "@/lib/tracking/latest-answers";
 import { rangeFrom } from "@/lib/tracking/overview-data";
 import { trackingRepo } from "@/lib/tracking/repo";
 
@@ -50,6 +51,8 @@ export default async function ClientCluster({
   if (!detail) notFound();
   const cards = clusterCards(input);
   const prompt = promptIndex(sp.prompt, detail.card.prompts.length);
+  const picked = detail.card.prompts[prompt];
+  const latest = picked && detail.card.status !== "pending" ? await repo.latestAnswers(client.id, picked.id, range.to) : null;
 
   return (
     <div className="app-shell" style={{ display: "flex", flexWrap: "wrap", minHeight: "100vh", color: T.ink }}>
@@ -68,6 +71,8 @@ export default async function ClientCluster({
           index={cards.findIndex((c) => c.id === id) + 1}
           total={cards.length}
           prompt={prompt}
+          latest={latest}
+          engine={engineTab(sp.engine, engines)}
           clustersPath={`/app/${slug}/clusters`}
         />
       </div>

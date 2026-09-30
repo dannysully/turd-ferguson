@@ -25,6 +25,8 @@ export type Fixture = {
   member: { email: string; role: string };
   today: Day;
   data: OverviewData;
+  /** T7 part 3b: the answer text of each prompt on each engine at today's check, keyed "promptId engine" (docs/parity/T7/add-texts.py). */
+  texts: Record<string, string>;
 };
 
 type RawAnswer = [Day, string, string, 0 | 1, string[], string[]];
@@ -35,11 +37,13 @@ export function expandFixture(raw: {
   member: Fixture["member"];
   today: Day;
   data: Omit<OverviewData, "answers"> & { answers: RawAnswer[] };
+  texts?: Record<string, string>;
 }): Fixture {
   return {
     client: { ...raw.client, id: "fixture" },
     member: raw.member,
     today: raw.today,
+    texts: raw.texts ?? {},
     data: {
       ...raw.data,
       answers: raw.data.answers.map(([run_date, question_id, engine, named, brands, urls]) => ({

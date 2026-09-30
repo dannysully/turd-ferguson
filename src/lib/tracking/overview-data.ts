@@ -3,6 +3,7 @@ import "server-only";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 import { trackingDay } from "./decide.ts";
+import type { LatestAnswers, LatestRow } from "./latest-answers.ts";
 import type { Angle } from "./limits.ts";
 import { type AnswerRow, type CitationRow, type Day, type Range, type SerpRow, addDays, comparisonRange } from "./figures.ts";
 
@@ -53,6 +54,46 @@ export type OverviewData = {
   lastRun: { run_date: Day; status: string; finished_at: string | null } | null;
   notes: { note_date: Day; text: string }[];
 };
+
+/**
+ * "Latest answers" (T7 part 3b, 30 Sep 2026): one prompt's rows at its latest
+ * check on or before `to` - at most one per engine, so two small reads and
+ * no paging. The overview's read leaves `response_text` out; only this page
+ * needs the words.
+ */
+export async function loadLatestAnswers(clientId: string, questionId: string, to: Day): Promise<LatestAnswers> {
+  const db = supabaseAdmin();
+  const { data: last, error: lastErr } = await db
+    .from("tracking_answers")
+    .select("run_date")
+    .eq("client_domain_id", clientId)
+    .eq("question_id", questionId)
+    .lte("run_date", to)
+    .order("run_date", { ascending: false })
+    .limit(1);
+  if (lastErr) throw new Error(`could not read the latest check: ${lastErr.message}`);
+  const day = (last?.[0]?.run_date as Day | undefined) ?? null;
+  if (!day) return { day: null, rows: [] };
+  const { data, error } = await db
+    .from("tracking_answers")
+    .select("engine, answered, named, response_text, brands, citations, created_at")
+    .eq("client_domain_id", clientId)
+    .eq("question_id", questionId)
+    .eq("run_date", day);
+  if (error) throw new Error(`could not read the latest answers: ${error.message}`);
+  return {
+    day,
+    rows: ((data ?? []) as Record<string, unknown>[]).map((a) => ({
+      engine: a.engine as string,
+      answered: a.answered as boolean,
+      named: a.named as boolean,
+      text: typeof a.response_text === "string" ? a.response_text : null,
+      brands: Array.isArray(a.brands) ? (a.brands as unknown[]).filter((b): b is string => typeof b === "string") : [],
+      citations: Array.isArray(a.citations) ? (a.citations as LatestRow["citations"]) : [],
+      at: typeof a.created_at === "string" ? a.created_at : null,
+    })),
+  };
+}
 
 export async function loadOverview(clientId: string, range: Range, compare: Compare): Promise<OverviewData> {
   const db = supabaseAdmin();
