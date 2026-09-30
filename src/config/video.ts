@@ -29,7 +29,7 @@ export const LAUNCH_VIDEO = {
   uploadDate: "2026-09-29",
   name: "alwayscited in 60 seconds: four tiers, from tracked to everywhere",
   description:
-    "Every AI tool shows you the gap. We close it. One buyer question put to the AI engines, the brands they name instead, and the four tiers that get a brand into the answer: tracking by cluster, placements, citation and earned media.",
+    "Every AI tool shows you the gap. We close it. One buyer prompt put to the AI engines, the brands they name instead, and the four tiers that get a brand into the answer: tracking by cluster, placements, citation and earned media.",
   shownPrices: [] as string[],
 } as const;
 
