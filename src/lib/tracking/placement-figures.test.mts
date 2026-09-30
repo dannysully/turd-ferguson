@@ -3,7 +3,7 @@ import { test } from "node:test";
 
 import type { ClusterChart } from "./cluster-figures.ts";
 import { rate } from "./figures.ts";
-import { axisAt, chartSeries, type CiteRow, citeRows, kindFilters, pageParts, pickKind, pickCluster, placedTier, type PlacementRow, PLACEMENTS_FOOTNOTE, placementsView, shortDay, spanText, weeklyPoints } from "./placement-figures.ts";
+import { axisAt, chartMarkers, chartSeries, type CiteRow, citeRows, kindFilters, pageParts, pickKind, pickCluster, placedTier, type PlacementRow, PLACEMENTS_FOOTNOTE, placementsView, shortDay, spanText, weeklyPoints } from "./placement-figures.ts";
 
 // R97 part 1 / BRIEF-2 T13 (30 Sep 2026). Made-up rows only (privacy.test.mts).
 
@@ -131,4 +131,13 @@ test("R97 part 4b: pickKind, kindFilters and axisAt", () => {
   assert.equal(axisAt("2026-07-06", "2026-07-04", "2026-07-08"), 0.5);
   assert.equal(axisAt("2026-08-01", "2026-07-04", "2026-07-08"), 1);
   assert.equal(axisAt("2026-07-06", "2026-07-06", "2026-07-06"), 0);
+});
+
+test("R97 part 5: chartMarkers draws live rows on the cluster, inside the chart's days, in day order", () => {
+  const rows = [...placements.map((p) => ({ ...p, cluster_id: "c1" })), { ...placements[0]!, id: "other", cluster_id: "c2" }, { ...placements[1]!, id: "late", live_on: "2026-08-01", cluster_id: "c1" }];
+  assert.deepEqual(chartMarkers(days, rows, "c1"), [
+    { id: "a", i: 1, kind: "guest_post", label: "Guest post on example.com, live 5 Jul" },
+    { id: "b", i: 3, kind: "link_insertion", label: "Link insertion on example.com, live 7 Jul" },
+  ]);
+  assert.deepEqual(chartMarkers(days, rows, "c3"), []);
 });

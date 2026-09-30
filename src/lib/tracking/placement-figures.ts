@@ -206,6 +206,20 @@ export function kindFilters(rows: readonly { kind: PlacementKind }[]): { kind: P
   return [{ kind: null, label: `All ${rows.length}` }, ...kinds.map((k) => ({ kind: k, label: `${KIND_PLURAL[k]} ${rows.filter((r) => r.kind === k).length}` }))];
 }
 
+/**
+ * The overview chart's placement lines (R97 part 5, BRIEF-2 T13 "Show
+ * placements"): each live placement on the cluster whose live day is one of
+ * the chart's days, as that day's index. Removed and not-live rows draw none.
+ */
+export function chartMarkers(days: readonly Day[], rows: readonly (PlacementRow & { cluster_id: string })[], clusterId: string): { id: string; i: number; kind: PlacementKind; label: string }[] {
+  return rows
+    .filter((p) => p.cluster_id === clusterId && p.status === "live" && p.live_on !== null)
+    .map((p) => ({ p, i: days.indexOf(p.live_on!) }))
+    .filter(({ i }) => i >= 0)
+    .sort((a, b) => a.i - b.i)
+    .map(({ p, i }) => ({ id: p.id, i, kind: p.kind, label: `${KIND_WORDS[p.kind]} on ${pageParts(p.url).host}, live ${shortDay(p.live_on!)}` }));
+}
+
 /** Where a day falls along an axis from `first` to `last`, 0 to 1, clamped. */
 export function axisAt(d: Day, first: Day, last: Day): number {
   const span = Date.parse(last) - Date.parse(first);

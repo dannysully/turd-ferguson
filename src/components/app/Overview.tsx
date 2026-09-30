@@ -22,6 +22,7 @@ import {
 } from "@/lib/tracking/figures";
 import { type ClusterCard, clusterCards, clusterChart, clusterSummary } from "@/lib/tracking/cluster-figures";
 import type { Compare, OverviewData } from "@/lib/tracking/overview-data";
+import { type PlacementRow, chartMarkers } from "@/lib/tracking/placement-figures";
 
 import ClusterChart from "./ClusterChart";
 import OverviewChart, { type ChartDay } from "./OverviewChart";
@@ -115,7 +116,10 @@ export default function Overview({
   clustersPath,
   clusterLimit,
   reportPath,
+  placements,
 }: {
+  /** R97 part 5: the client's placements, on mentioned and above; the cluster chart's "Show placements" draws the live ones. Undefined draws no switch. */
+  placements?: (PlacementRow & { cluster_id: string })[];
   /** R90 T8: the client's CSV route (api/app/[client]/report); none on /app/parity. */
   reportPath?: string;
   brand: string;
@@ -725,6 +729,7 @@ export default function Overview({
             pending: picked.status === "pending",
             note: picked.status !== "pending" && !pickedHasPrev ? `Tracked from ${formatDay(picked.started_on)}. No earlier period to compare yet.` : null,
             phoneLine,
+            placements: placements ? chartMarkers(pickedChart.days, placements, picked.id) : null,
             // T7 part 2b: the phone board's "Open this cluster" goes to QuestionDetail, the one-cluster page.
             openHref: clustersPath ? `${clustersPath}/${encodeURIComponent(picked.id)}?${new URLSearchParams(rangeQuery)}` : null,
           }}

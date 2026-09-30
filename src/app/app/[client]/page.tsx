@@ -47,11 +47,14 @@ export default async function ClientDashboard({
   const today = repo.today();
   const sp = await searchParams;
   const { range, compare } = rangeFrom(sp, today);
-  const [data, upgrade] = await Promise.all([repo.loadOverview(client.id, range, compare), repo.upgradeContext(client.id, email, today)]);
+  const placed = placedTier(tier);
+  const [data, upgrade, rows] = await Promise.all([repo.loadOverview(client.id, range, compare), repo.upgradeContext(client.id, email, today), repo.placements(client.id)]);
+  // R97 part 5: "Show placements" on the same rule as the placements screen - a placed tier, or any placement logged.
+  const placements = placed || rows.some((p) => p.status !== "removed") ? rows : undefined;
 
   return (
     <div className="app-shell" style={{ display: "flex", flexWrap: "wrap", minHeight: "100vh", color: T.ink }}>
-      <Sidebar client={client} others={clients.filter((c) => c.slug !== slug)} email={email} role={client.role} tier={tier} engines={engines} clusters={(data.clusters?.length ?? 0) > 0} placements={placedTier(tier)} clusterLimit={client.cluster_limit ?? CLUSTER_BASE} packPrice={trackingPackPrice(client.market)} upsell={upgrade.mode === "nomada"} />
+      <Sidebar client={client} others={clients.filter((c) => c.slug !== slug)} email={email} role={client.role} tier={tier} engines={engines} clusters={(data.clusters?.length ?? 0) > 0} placements={placed} clusterLimit={client.cluster_limit ?? CLUSTER_BASE} packPrice={trackingPackPrice(client.market)} upsell={upgrade.mode === "nomada"} />
       <div className="app-main" style={{ flex: "1 1 480px", minWidth: 0, padding: "36px 40px 48px", background: T.bg }}>
         <Overview
           brand={client.brand ?? client.domain}
@@ -67,6 +70,7 @@ export default async function ClientDashboard({
           clustersPath={`/app/${slug}/clusters`}
           reportPath={`/api/app/${encodeURIComponent(slug)}/report`}
           clusterLimit={client.cluster_limit ?? CLUSTER_BASE}
+          placements={placements}
         />
       </div>
     </div>

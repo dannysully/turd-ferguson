@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { T } from "@/config/tokens";
+import type { PlacementKind } from "@/lib/tracking/placements";
+
+import { KIND_DOT } from "./PlacementsChart";
 
 /**
  * The cluster chart (T4b part 5b, 30 Sep 2026; BRIEF-3 T4b step 4 against
@@ -14,6 +17,10 @@ import { T } from "@/config/tokens";
  * gap in the line, never a zero. Hand-built SVG at the board's geometry; the
  * series come from clusterChart() in cluster-figures.ts, so the top panel
  * counts the same answers as the card and the heat row.
+ *
+ * On mentioned and above, "Show placements" (R97 part 5, BRIEF-2 T13) draws
+ * a line down both panels for each live placement, with its type dot between
+ * them - off by default, so the JS-off render has none.
  *
  * The server render is the settled default (previous period on, no hover),
  * so the page reads the same with JS off. Each day is a button, so the
@@ -43,6 +50,8 @@ export type ClusterChartData = {
   note: string | null;
   /** The phone card's one line (R124, boards-3/Mobile.dc.html): "42% named, #4 on Google. Dashed: 5 Aug - 1 Sep". */
   phoneLine: string;
+  /** R97 part 5: live placements on this cluster by day index; null on tiers without placements (no switch). */
+  placements?: { id: string; i: number; kind: PlacementKind; label: string }[] | null;
   /** The one-cluster page: "Open cluster" in the desktop header, "Open this cluster" under the phone card. */
   openHref: string | null;
 };
@@ -82,6 +91,9 @@ const area = (rs: [number, number][][]) =>
 export default function ClusterChart({ data }: { data: ClusterChartData }) {
   const [prev, setPrev] = useState(true);
   const [hover, setHover] = useState<number | null>(null);
+  const [placed, setPlaced] = useState(false);
+  const marks = data.placements ?? [];
+  const showPlaced = placed && marks.length > 0;
 
   const n = data.days.length;
   const step = n > 1 ? (X1 - X0) / (n - 1) : 0;
@@ -131,6 +143,21 @@ export default function ClusterChart({ data }: { data: ClusterChartData }) {
           </span>
           Previous period
         </button>
+        {data.placements ? (
+          <button
+            type="button"
+            className="app-hide-sm"
+            aria-pressed={showPlaced}
+            onClick={() => setPlaced((v) => !v)}
+            disabled={!marks.length}
+            style={{ display: "inline-flex", alignItems: "center", gap: "10px", height: "36px", padding: "0 4px", border: 0, background: "transparent", color: T.ink, fontSize: "13px", fontWeight: 600, cursor: marks.length ? "pointer" : "default", opacity: marks.length ? 1 : 0.5, flexShrink: 0 }}
+          >
+            <span style={{ position: "relative", width: "34px", height: "20px", borderRadius: "999px", background: showPlaced ? T.accent : T.line, transition: "background .15s" }}>
+              <span style={{ position: "absolute", top: "2px", left: showPlaced ? "16px" : "2px", width: "16px", height: "16px", borderRadius: "50%", background: T.surface, boxShadow: `0 1px 2px color-mix(in srgb, ${T.ink} 25%, transparent)`, transition: "left .15s" }} />
+            </span>
+            Show placements
+          </button>
+        ) : null}
         {data.openHref ? (
           <Link href={data.openHref} className="app-hide-sm" style={{ display: "inline-flex", alignItems: "center", gap: "6px", height: "36px", padding: "0 12px", border: `1px solid ${T.line}`, borderRadius: "10px", color: T.ink, fontSize: "13px", fontWeight: 600, textDecoration: "none" }}>
             Open cluster
@@ -183,6 +210,15 @@ export default function ClusterChart({ data }: { data: ClusterChartData }) {
           {showPrev ? <path d={line(runs(googleBefore, xAt, yb))} fill="none" stroke={T.ink} strokeWidth={1.6} strokeDasharray="4 5" strokeLinecap="round" opacity={0.4} /> : null}
           <path d={line(runs(data.google, xAt, yb))} fill="none" stroke={T.ink} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
           {hover !== null ? <line x1={xAt(hover)} x2={xAt(hover)} y1={A_TOP} y2={B_BOT} stroke={T.ink} opacity={0.25} /> : null}
+          {showPlaced
+            ? marks.map((m) => (
+                <g key={m.id}>
+                  <title>{m.label}</title>
+                  <line x1={xAt(m.i)} x2={xAt(m.i)} y1={A_TOP} y2={B_BOT} stroke={T.faint} strokeWidth={2} opacity={0.5} />
+                  <circle cx={xAt(m.i)} cy={(A_BOT + B_TOP) / 2} r={6} fill={KIND_DOT[m.kind]} stroke={T.surface} strokeWidth={3} />
+                </g>
+              ))
+            : null}
         </svg>
 
         {data.pending ? null : (
