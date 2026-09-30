@@ -192,6 +192,23 @@ const EXEMPT: Record<string, Exemption> = {
       },
     ]),
   ),
+  // T6 part 3c (30 Sep 2026): step 2 of Add a cluster carries the checked
+  // verdict as hidden fields. Nobody types in them; the cluster route clamps
+  // each to ADMIN_LIMITS.question and refuses the lot unless the HMAC over
+  // client, keyword, volume, intent and day verifies.
+  ...Object.fromEntries(
+    (["keyword", "vol", "intent", "sig"] as const).map((f) => [
+      `nc-${f}`,
+      {
+        why: [
+          `Add a cluster step 2's hidden ${f}, from Check keyword's signed pass.`,
+          "type=hidden, which maxLength does not apply to and nobody types in. The route",
+          "clamps it and refuses unless verifyCheck passes for this client and today.",
+        ].join(" "),
+        holds: [{ file: "app/api/app/[client]/cluster/route.ts", needs: "verifyCheck(" }],
+      },
+    ]),
+  ),
   "cc-coverage": {
     why: [
       "type=file, which maxLength does not apply to at all. It is bounded by bytes",

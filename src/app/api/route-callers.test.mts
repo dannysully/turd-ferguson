@@ -263,6 +263,13 @@ const NO_CALLER: { route: string; method: string; why: string; earns: () => bool
     earns: () => readFileSync(join(ROOT, "src/components/app/Clusters.tsx"), "utf8").includes("action={`/api/app/${encodeURIComponent(slug)}/check`}"),
   },
   {
+    route: "/api/app/[client]/cluster",
+    method: "POST",
+    // BRIEF-3 T6 part 3c, 30 Sep 2026: Start tracking this cluster.
+    why: "Posted by the plain HTML step 2 form in the Clusters page's Add panel, which the fetch scanner does not read.",
+    earns: () => readFileSync(join(ROOT, "src/components/app/Clusters.tsx"), "utf8").includes("action={`/api/app/${encodeURIComponent(slug)}/cluster`}"),
+  },
+  {
     route: "/api/checkout",
     method: "POST",
     // R91, 29 Sep 2026. It opens a live Stripe Checkout - the one route

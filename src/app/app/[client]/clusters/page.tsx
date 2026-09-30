@@ -60,7 +60,7 @@ export default async function ClientClusters({
   // Add a cluster (part 3b): `?add=1` opens the panel; the check's 303 adds `kw` and `ck`.
   const kw = (one("kw") ?? "").slice(0, 200);
   const market = MARKETS[isMarket(client.market) ? client.market : "US"].label;
-  const adding = one("add") === "1" ? { kw, check: verdictFromQuery(one, keywordForm(kw), `the ${market}`) } : null;
+  const adding = one("add") === "1" ? { kw, check: verdictFromQuery(one, keywordForm(kw), `the ${market}`), sig: (one("sig") ?? "").slice(0, 64) } : null;
 
   return (
     <div className="app-shell" style={{ display: "flex", flexWrap: "wrap", minHeight: "100vh", color: T.ink }}>

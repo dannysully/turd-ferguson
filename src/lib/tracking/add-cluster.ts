@@ -1,5 +1,10 @@
+import { createHmac } from "node:crypto";
+
+import { constantTimeEqual } from "../constant-time.ts";
 import { keywordForm } from "../scan/dataforseo-request.ts";
 import type { ClusterKeywordPick } from "../scan/target-keyword.ts";
+
+import { refuseSlotText } from "./slot.ts";
 
 /**
  * "Add a cluster" on the Clusters page - BRIEF-3 T6 part 3a (30 Sep 2026;
@@ -80,4 +85,45 @@ export function verdictFromQuery(get: (k: string) => string | null, keyword: str
     return checkVerdict({ keyword, volume, intent }, where);
   }
   return ck !== null && Object.hasOwn(MESSAGES, ck) ? refused(ck as Refused["reason"]) : null;
+}
+
+/**
+ * Step 2 (part 3c): the five angle prompts the board drafts from a keyword
+ * that passed, in ANGLES order, for the member to edit. The board's fifth
+ * names a competitor; the page has no competitor it can stand behind for
+ * every client, so it asks for an alternative to the best-known one.
+ */
+export function draftPrompts(keyword: string): string[] {
+  const k = keywordForm(keyword);
+  return [
+    `What’s the best ${k}?`,
+    `Which ${k} is easiest to set up and use?`,
+    `Which ${k} do small businesses recommend?`,
+    `Which ${k} saves the most time each month?`,
+    `What’s a good alternative to the best-known ${k}?`,
+  ];
+}
+
+/** The five typed prompts: each 8 to ADMIN_LIMITS.question characters, no two the same. */
+export function refuseDrafts(texts: readonly string[]): string | null {
+  if (texts.length !== 5) return "A cluster has 5 prompts.";
+  for (let i = 0; i < texts.length; i++) {
+    const r = refuseSlotText(texts[i], texts.slice(0, i));
+    if (r) return r;
+  }
+  return null;
+}
+
+/**
+ * A pass is signed on its way back through the URL, so "Start tracking this
+ * cluster" can trust the volume and intent without paying for the reads again,
+ * and a hand-made URL cannot skip the check. Bound to the client and the day.
+ */
+export function signCheck(p: { clientId: string; keyword: string; volume: number; intent: string; day: string }, secret: string): string {
+  return createHmac("sha256", secret).update(`cluster-check|${p.clientId}|${keywordForm(p.keyword)}|${p.volume}|${p.intent}|${p.day}`).digest("hex");
+}
+
+export function verifyCheck(p: { clientId: string; keyword: string; volume: number; intent: string; day: string }, sig: string | null, secret: string): boolean {
+  if (!sig || !secret) return false;
+  return constantTimeEqual(sig, signCheck(p, secret));
 }

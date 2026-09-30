@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { addPanelState, checkVerdict, precheckKeyword, verdictFromQuery, verdictQuery } from "./add-cluster.ts";
+import { addPanelState, checkVerdict, draftPrompts, precheckKeyword, refuseDrafts, signCheck, verdictFromQuery, verdictQuery, verifyCheck } from "./add-cluster.ts";
 
 // BRIEF-3 T6 part 3a (30 Sep 2026): the free checks that stand before any paid
 // read, and C1's pick in the board's words. Made-up Tallyroo, as the fixture.
@@ -49,4 +49,24 @@ test("the verdict survives the 303 as codes, and URL text is never a message", (
     const b = new URLSearchParams(bad);
     assert.equal(verdictFromQuery((k) => b.get(k), "x y", where), null, JSON.stringify(bad));
   }
+});
+
+test("step 2 drafts five distinct prompts that pass the text rule, and refuses twins", () => {
+  const d = draftPrompts("Accounting Software  for Dentists");
+  assert.equal(d.length, 5);
+  assert.equal(d[0], "What’s the best accounting software for dentists?");
+  assert.equal(refuseDrafts(d), null);
+  assert.match(refuseDrafts([d[0], d[1], d[2], d[3], d[0].toUpperCase()]) ?? "", /already tracked/);
+  assert.match(refuseDrafts([d[0], "short", d[2], d[3], d[4]]) ?? "", /characters/);
+  assert.ok(refuseDrafts(d.slice(0, 4)));
+});
+
+test("a signed pass verifies for its client and day only, so the check cannot be skipped", () => {
+  const p = { clientId: "c1", keyword: "accounting software for dentists", volume: 1300, intent: "commercial", day: "2026-09-30" };
+  const sig = signCheck(p, "s3cret-for-test");
+  assert.ok(verifyCheck(p, sig, "s3cret-for-test"));
+  assert.ok(verifyCheck({ ...p, keyword: "Accounting Software for Dentists" }, sig, "s3cret-for-test"));
+  for (const bad of [{ ...p, clientId: "c2" }, { ...p, volume: 99999 }, { ...p, intent: "transactional" }, { ...p, day: "2026-10-01" }]) assert.equal(verifyCheck(bad, sig, "s3cret-for-test"), false);
+  assert.equal(verifyCheck(p, sig, ""), false);
+  assert.equal(verifyCheck(p, null, "s3cret-for-test"), false);
 });

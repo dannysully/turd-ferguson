@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { isMarket } from "@/lib/scan/domain";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { type KeywordCheck, verdictQuery } from "@/lib/tracking/add-cluster";
+import { type KeywordCheck, signCheck, verdictQuery } from "@/lib/tracking/add-cluster";
 import { checkClusterKeyword } from "@/lib/tracking/check-keyword";
 import { ADMIN_LIMITS, trackingDay } from "@/lib/tracking/decide";
 import { fixtureMode } from "@/lib/tracking/fixture-mode";
@@ -25,8 +25,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ client: string
   const { client: slug } = await ctx.params;
   const form = await req.formData().catch(() => null);
   const raw = typeof form?.get("keyword") === "string" ? (form.get("keyword") as string).trim().slice(0, ADMIN_LIMITS.question) : "";
-  const back = (c: KeywordCheck | null) =>
-    NextResponse.redirect(new URL(`/app/${encodeURIComponent(slug)}/clusters?${new URLSearchParams({ add: "1", ...(raw ? { kw: raw } : {}), ...(c ? verdictQuery(c) : {}) })}`, req.url), 303);
+  const back = (c: KeywordCheck | null, sig?: string) =>
+    NextResponse.redirect(new URL(`/app/${encodeURIComponent(slug)}/clusters?${new URLSearchParams({ add: "1", ...(raw ? { kw: raw } : {}), ...(c ? verdictQuery(c) : {}), ...(sig ? { sig } : {}) })}`, req.url), 303);
   if (!raw) return back(null);
   if (fixtureMode()) return back({ ok: false, reason: "read_failed", ask: true, message: "" });
 
@@ -51,5 +51,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ client: string
     brands: [client.brand ?? "", client.domain],
     today: trackingDay(),
   });
-  return back(r);
+  // A pass is signed so the save can trust it without reading again (add-cluster.ts signCheck).
+  const secret = process.env.CRON_SECRET ?? "";
+  return back(r, r.ok && secret ? signCheck({ clientId: client.id, keyword: r.keyword, volume: r.volume, intent: r.intent, day: trackingDay() }, secret) : undefined);
 }

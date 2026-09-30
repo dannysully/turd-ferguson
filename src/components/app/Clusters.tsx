@@ -9,7 +9,8 @@ import { T } from "@/config/tokens";
 import { ENGINE_SPECS, type Engine } from "@/lib/scan/engines";
 import { type ClusterCard, type ClusterFilter as Filter, clusterCards, filterClusters, namedCount, neverCount } from "@/lib/tracking/cluster-figures";
 import { type Range, comparisonRange, daysIn, formatDay } from "@/lib/tracking/figures";
-import type { KeywordCheck } from "@/lib/tracking/add-cluster";
+import { type KeywordCheck, draftPrompts } from "@/lib/tracking/add-cluster";
+import { ANGLES } from "@/lib/tracking/limits";
 import type { Compare, OverviewData } from "@/lib/tracking/overview-data";
 
 import { Chip } from "./Overview";
@@ -197,14 +198,15 @@ export default function Clusters({
 
 const HEAD: React.CSSProperties = { fontSize: "12px", fontWeight: 600, color: T.soft };
 
-export type Adding = { kw: string; check: KeywordCheck | null };
+export type Adding = { kw: string; check: KeywordCheck | null; sig: string };
 
 /**
  * The board's Add a cluster panel (part 3b): the keyword and "Check keyword",
  * a plain POST to /check that 303s back with the verdict, rebuilt from fixed
  * words (add-cluster.ts). At the limit it is the +5 clusters offer instead.
- * Step 2, the five drafted prompts and "Start tracking this cluster", comes
- * with its insert route; "Ask us to pick one" comes with T11's /ask route.
+ * On a signed pass, step 2 (part 3c): the five drafted prompts, editable, and
+ * "Start tracking this cluster", a POST to /cluster. "Ask us to pick one"
+ * comes with T11's /ask route.
  */
 function AddPanel({ slug, adding, full, clusterLimit, packPrice, close }: { slug: string; adding: Adding; full: boolean; clusterLimit: number; packPrice: string; close: string }) {
   const ck = adding.check;
@@ -249,6 +251,29 @@ function AddPanel({ slug, adding, full, clusterLimit, packPrice, close }: { slug
           </p>
         </form>
       )}
+      {!full && ck?.ok && adding.sig ? (
+        <form method="post" action={`/api/app/${encodeURIComponent(slug)}/cluster`} style={{ display: "flex", flexDirection: "column", gap: "10px", borderTop: `1px solid ${T.line}` }}>
+          <input id="nc-keyword" type="hidden" name="keyword" value={ck.keyword} />
+          <input id="nc-vol" type="hidden" name="vol" value={String(ck.volume)} />
+          <input id="nc-intent" type="hidden" name="intent" value={ck.intent} />
+          <input id="nc-sig" type="hidden" name="sig" value={adding.sig} />
+          <span style={{ fontSize: "13px", fontWeight: 600, color: T.ink, paddingTop: "16px" }}>2. Five prompts about it, one per angle</span>
+          <span style={{ fontSize: "13px", color: T.soft }}>Each asks for a recommendation, the way a buyer would, so it shows whether engines name you. We’ve drafted them from the keyword. Edit any of them.</span>
+          {draftPrompts(ck.keyword).map((text, i) => (
+            <div key={ANGLES[i]} className="app-cl-edit" style={{ display: "grid", gridTemplateColumns: "120px minmax(0, 1fr)", alignItems: "center", gap: "12px" }}>
+              <label htmlFor={`new-p-${i}`} style={{ fontSize: "12px", fontWeight: 700, letterSpacing: ".02em", textTransform: "uppercase", color: T.soft }}>
+                {ANGLES[i]}
+              </label>
+              <input id={`new-p-${i}`} name={`p-${i}`} defaultValue={text} required minLength={PROMPT_MIN} maxLength={ADMIN_LIMITS.question} style={{ height: "44px", boxSizing: "border-box", padding: "0 12px", border: `1px solid ${T.line}`, borderRadius: "10px", fontFamily: "inherit", fontSize: "14px", color: T.ink, background: T.surface, minWidth: 0 }} />
+            </div>
+          ))}
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <button type="submit" style={{ height: "48px", padding: "0 20px", border: 0, borderRadius: "12px", background: T.accent, color: T.surface, fontFamily: "inherit", fontSize: "14px", fontWeight: 600, cursor: "pointer" }}>
+              Start tracking this cluster
+            </button>
+          </div>
+        </form>
+      ) : null}
     </section>
   );
 }
@@ -294,6 +319,8 @@ function Toast({ t, cards, act, dismiss }: { t: StopToast; cards: ClusterCard[];
   const text =
     t.done === "refused" || !name
       ? "That change did not go through. Reload the page and try again."
+      : t.done === "added" && t.kind === "cluster"
+        ? `Now tracking “${short(name)}” and 5 prompts. First results after tomorrow’s 06:00 check.`
       : t.done === "added"
         ? `Now tracking “${short(name)}”. First results after tomorrow’s 06:00 check.`
         : t.done === "saved"
