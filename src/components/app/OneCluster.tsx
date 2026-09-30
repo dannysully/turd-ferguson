@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import EngineLogo from "@/components/EngineLogo";
+import { APP_LIMITS } from "@/config/contact";
 import { T } from "@/config/tokens";
 import { type Inline, parseAnswer } from "@/components/scan/answer-markdown";
 import { ENGINE_SPECS, type Engine } from "@/lib/scan/engines";
@@ -53,6 +54,9 @@ export default function OneCluster({
   latest,
   engine,
   notes,
+  canWrite,
+  noteState,
+  noteAction,
   clustersPath,
 }: {
   brand: string;
@@ -74,6 +78,12 @@ export default function OneCluster({
   engine: string;
   /** Notes on the cluster's prompts, newest first (T7 part 4a). */
   notes: ClusterNote[];
+  /** Owners and editors see "Add a note" (T7 part 4b); viewers see the notes only. */
+  canWrite: boolean;
+  /** `?note=` after the form returns. */
+  noteState: "saved" | "refused" | null;
+  /** POST /api/app/[client]/note for this client. */
+  noteAction: string;
   clustersPath: string;
 }) {
   const c = detail.card;
@@ -383,7 +393,6 @@ export default function OneCluster({
           ))}
         </section>
       ) : null}
-        {/* "Add a note" (owners and editors, a write route) follows in the next part. */}
         <section aria-labelledby="log-h" style={{ ...CARD, padding: "24px", display: "flex", flexDirection: "column", gap: "12px", gridColumn: P && brands && brands.answers ? undefined : "1 / -1" }}>
           <h2 id="log-h" style={H2}>
             Notes on this cluster
@@ -397,6 +406,28 @@ export default function OneCluster({
             ))}
             {pending ? <span style={{ color: T.soft }}>No notes yet. The first check is tomorrow at 06:00.</span> : null}
           </div>
+          {noteState ? (
+            <p role="status" style={{ margin: 0, fontSize: "13px", color: noteState === "saved" ? T.goodFg : T.badFg }}>
+              {noteState === "saved" ? "Note saved." : `That note was not saved. Notes are 1 to ${APP_LIMITS.note} characters, from owners and editors.`}
+            </p>
+          ) : null}
+          {canWrite && P ? (
+            <details>
+              <summary style={{ listStyle: "none", display: "inline-flex", alignItems: "center", gap: "6px", height: "40px", boxSizing: "border-box", padding: "0 14px", border: `1px solid ${T.line}`, borderRadius: "10px", background: T.surface, fontSize: "14px", fontWeight: 600, cursor: "pointer" }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={T.ink} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" />
+                </svg>
+                Add a note
+              </summary>
+              <form method="post" action={`${noteAction}?${new URLSearchParams({ ...rangeQuery, cluster: c.id, q: P.id, prompt: String(prompt), ...(engine === engines[0] ? {} : { engine }) })}`} style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "12px" }}>
+                <label htmlFor="note-text" style={{ fontSize: "13px", color: T.soft }}>{`Dated today, on this prompt. Up to ${APP_LIMITS.note} characters.`}</label>
+                <textarea id="note-text" name="text" required maxLength={APP_LIMITS.note} rows={2} style={{ font: "inherit", fontSize: "14px", padding: "10px 12px", border: `1px solid ${T.line}`, borderRadius: "10px", resize: "vertical" }} />
+                <button type="submit" style={{ alignSelf: "flex-start", height: "40px", padding: "0 16px", border: 0, borderRadius: "10px", background: T.accent, color: T.surface, fontSize: "14px", fontWeight: 600, cursor: "pointer" }}>
+                  Save note
+                </button>
+              </form>
+            </details>
+          ) : null}
         </section>
       </div>
     </div>

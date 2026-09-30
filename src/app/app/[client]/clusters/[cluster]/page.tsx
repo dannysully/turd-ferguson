@@ -76,6 +76,9 @@ export default async function ClientCluster({
           prompt={prompt}
           latest={latest}
           notes={notes}
+          canWrite={client.role === "owner" || client.role === "editor"}
+          noteState={sp.note === "saved" || sp.note === "refused" ? sp.note : null}
+          noteAction={`/api/app/${encodeURIComponent(slug)}/note`}
           engine={engineTab(sp.engine, engines)}
           clustersPath={`/app/${slug}/clusters`}
         />

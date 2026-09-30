@@ -1,0 +1,41 @@
+import { NextResponse } from "next/server";
+
+import { supabaseAdmin } from "@/lib/supabase/admin";
+import { trackingDay } from "@/lib/tracking/decide";
+import { fixtureMode } from "@/lib/tracking/fixture-mode";
+import { clientsFor, sessionEmail } from "@/lib/tracking/member";
+import { addNote, noteReturn, readNote } from "@/lib/tracking/note";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+/**
+ * Add a note - BRIEF-3 T7 part 4b (30 Sep 2026). Posted by the plain HTML
+ * form on the one-cluster page: the cluster, the picked prompt's id and the
+ * page state in the action's query string, the note in the body. Rules and
+ * the one insert are note.ts. Session and membership as the edit route; the
+ * fixture writes nothing. Returns to the page with `note=saved|refused`.
+ */
+export async function POST(req: Request, ctx: { params: Promise<{ client: string }> }) {
+  const { client: slug } = await ctx.params;
+  const sp = new URL(req.url).searchParams;
+  const back = noteReturn(slug, sp);
+  if (!back) return NextResponse.json({ error: "Not a cluster this page can note." }, { status: 400 });
+  const done = (r: "saved" | "refused") => NextResponse.redirect(new URL(`${back}&note=${r}`, req.url), 303);
+  if (fixtureMode()) return done("refused");
+
+  const email = await sessionEmail();
+  if (!email) return NextResponse.redirect(new URL("/app/login", req.url), 303);
+  const client = (await clientsFor(email)).find((c) => c.slug === slug);
+  if (!client) return NextResponse.json({ error: "Not found." }, { status: 404 });
+
+  const form = await req.formData().catch(() => null);
+  const note = readNote(form?.get("text"));
+  if (typeof note === "string") return done("refused");
+  const r = await addNote(supabaseAdmin(), { clientId: client.id, clusterId: sp.get("cluster")!, questionId: sp.get("q")!, text: note.text, email, role: client.role, today: trackingDay() });
+  if (!r.ok) {
+    console.warn(`[app] note refused: ${r.message}`);
+    return done("refused");
+  }
+  return done("saved");
+}

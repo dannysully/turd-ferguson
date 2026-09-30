@@ -256,6 +256,13 @@ const NO_CALLER: { route: string; method: string; why: string; earns: () => bool
     earns: () => readFileSync(join(ROOT, "src/components/app/Clusters.tsx"), "utf8").includes('act.action.replace(/\\/stop$/, "/edit")'),
   },
   {
+    route: "/api/app/[client]/note",
+    method: "POST",
+    // BRIEF-3 T7 part 4b, 30 Sep 2026: Add a note on the one-cluster page.
+    why: "Posted by the plain HTML Add a note form on the one-cluster page, which the fetch scanner does not read.",
+    earns: () => readFileSync(join(ROOT, "src/app/app/[client]/clusters/[cluster]/page.tsx"), "utf8").includes("noteAction={`/api/app/${encodeURIComponent(slug)}/note`}"),
+  },
+  {
     route: "/api/app/[client]/check",
     method: "POST",
     // BRIEF-3 T6 part 3b, 30 Sep 2026: Check keyword in Add a cluster.
