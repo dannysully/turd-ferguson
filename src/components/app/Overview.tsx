@@ -400,7 +400,7 @@ export default function Overview({
           <div style={{ display: "flex", flexDirection: "column", gap: "12px", flex: "0 1 auto", minWidth: 0 }}>
             <div style={{ fontSize: "13px", fontWeight: 600, color: D.cardHead }}>Every daily check, by cluster</div>
             <div style={{ display: "flex", gap: "12px", minWidth: 0 }}>
-              <div className="app-heat-labels" style={{ display: "flex", flexDirection: "column", width: "196px", minWidth: 0, flexShrink: 1 }}>
+              <div className="app-heat-labels app-hide-sm" style={{ display: "flex", flexDirection: "column", width: "196px", minWidth: 0, flexShrink: 1 }}>
                 {heatRows.map((c) => (
                   <div key={c.id} style={{ height: "11px", marginBottom: "3px", display: "flex", alignItems: "center", justifyContent: "flex-end", fontSize: "11px", fontWeight: 500, color: D.cardHead, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", lineHeight: 1 }}>
                     {c.keyword ?? c.name}
