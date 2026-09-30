@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
 import { blockText, inline, parseAnswer } from "./answer-markdown.ts";
@@ -60,4 +61,26 @@ test("markup in an answer stays text", () => {
 test("a lone pipe in prose is not a table", () => {
   const b = parseAnswer("Pricing | is quote-based\nfor larger groups.");
   assert.deepEqual(b.map((x) => x.kind), ["p"]);
+});
+
+test("an engine's bulleted answer renders as list items with markers (R128, 30 Sep 2026)", () => {
+  // QuestionDetail.dc.html draws each answer's list as bulleted lines with the
+  // brand in bold. The page (OneCluster.tsx) drew them without markers because
+  // the reset strips list-style. The fixture's own text is the case: it is
+  // what the parity sheets render.
+  const fx = JSON.parse(readFileSync("src/lib/tracking/fixture.json", "utf8")) as { texts: Record<string, string> };
+  const b = parseAnswer(fx.texts["q1-1 google_aio"]!);
+  assert.deepEqual(b.map((x) => x.kind), ["p", "ul"]);
+  assert.ok(b[1]!.kind === "ul");
+  assert.deepEqual(b[1].items.map((it) => it[0]), [
+    { text: "Ledgerline", bold: true },
+    { text: "Brightbook", bold: true },
+    { text: "Sumly", bold: true },
+  ]);
+  // Each block is drawn as <ul>/<ol> of <li>, with a marker the reset cannot
+  // take away. Read as source: node --test cannot render the .tsx.
+  const src = readFileSync("src/components/app/OneCluster.tsx", "utf8");
+  assert.match(src, /b\.items\.map\(\(it, j\) => <li key=\{j\}>/);
+  assert.match(src, /<ul key=\{i\} style=\{\{ \.\.\.style, listStyle: "disc" \}\}>/);
+  assert.match(src, /<ol key=\{i\} style=\{\{ \.\.\.style, listStyle: "decimal" \}\}>/);
 });
