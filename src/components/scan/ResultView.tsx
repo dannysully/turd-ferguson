@@ -4,7 +4,6 @@ import EngineLogo from "@/components/EngineLogo";
 import TierName from "@/components/TierName";
 import { D, TRACKED_WASH } from "@/components/home/dark";
 import { TIERS, TRACKED_BASIS, TRACKED_CLUSTERS, TRACKED_KEYWORDS, TRACKED_PRICE, TRACKED_PROMPTS, checkoutUrlFor } from "@/config/pricing";
-import { formatPrice } from "@/config/sector-pricing";
 import { count } from "@/lib/plural";
 import { SCAN_LIMITS } from "@/config/contact";
 import { track } from "@/lib/analytics";
@@ -30,6 +29,7 @@ import {
 } from "./result-figures";
 import { btn, field, label } from "./screens";
 import WalkthroughForm from "./WalkthroughForm";
+import { trackOffer } from "./track-offer";
 import { type Inline, parseAnswer } from "./answer-markdown";
 import { type Band, bandOf, selfServeCount, selfServeSentence } from "@/lib/scan/placement-difficulty";
 
@@ -929,11 +929,11 @@ function PlanCards(p: { r: RunScanResponse; rows: RunScanResponse["opportunities
 function TrackedSection(p: { token: string; r: RunScanResponse; cluster: ReturnType<typeof clusterState> }) {
   const tracked = TIERS.find((t) => t.id === "tracked");
   // ScanCluster.dc.html's cta=checkout: a cluster scan buys the cluster it
-  // just read, now checkout and the webhook are live (R117). A UK scan keeps
-  // the walkthrough: checkout adds VAT since R129 (30 Sep 2026), but this card
-  // prints the US price and its link carries no market, so UK needs its own
-  // GBP "plus VAT" card before it can buy here.
-  const buy = p.cluster && p.r.market === "US";
+  // just read, now checkout and the webhook are live (R117). Since R139
+  // (30 Sep 2026) a UK scan buys too: GBP "plus VAT", its link carrying
+  // market=uk (track-offer.ts); VAT is Stripe Tax's, on its page (R129).
+  const buy = !!p.cluster;
+  const offer = trackOffer(p.r.market, TRACKED_PRICE, checkoutUrlFor("tracked"), p.token);
   const tile = (title: string, body: React.ReactNode) => (
     <div style={{ background: D.card, border: "1px solid " + D.cardLine, borderRadius: "14px", padding: "14px 16px" }}>
       <div style={{ fontSize: "14px", fontWeight: 700, color: T.surface }}>{title}</div>
@@ -989,11 +989,11 @@ function TrackedSection(p: { token: string; r: RunScanResponse; cluster: ReturnT
             <span style={{ fontSize: "13px", color: T.soft }}>{"and its 5 prompts. Add " + (TRACKED_CLUSTERS - 1) + " more whenever you like."}</span>
           </div>
           <div style={{ display: "flex", alignItems: "baseline", gap: "8px", flexWrap: "wrap" }}>
-            <span style={{ fontSize: "30px", fontWeight: 700, letterSpacing: "-0.03em" }}>{formatPrice(TRACKED_PRICE.us, "us")}</span>
-            <span style={{ fontSize: "14px", color: T.soft }}>{"a month, " + TRACKED_CLUSTERS + " clusters checked daily"}</span>
+            <span style={{ fontSize: "30px", fontWeight: 700, letterSpacing: "-0.03em" }}>{offer.price}</span>
+            <span style={{ fontSize: "14px", color: T.soft }}>{(offer.vat ? "plus VAT a month, " : "a month, ") + TRACKED_CLUSTERS + " clusters checked daily"}</span>
           </div>
           <a
-            href={checkoutUrlFor("tracked") + "&scan=" + encodeURIComponent(p.token)}
+            href={offer.href}
             style={{ display: "flex", alignItems: "center", justifyContent: "center", background: T.accent, color: T.surface, fontSize: "15px", fontWeight: 600, borderRadius: "12px", minHeight: "48px", textDecoration: "none" }}
           >
             Track this cluster
