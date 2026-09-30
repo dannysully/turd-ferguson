@@ -153,7 +153,7 @@ export default function Post() {
         </P>
         <UL>
           <li>
-            <B>It measures the answer, not a proxy.</B> Does it put your buyers&apos; questions to the engines and
+            <B>It measures the answer, not a proxy.</B> Does it put your buyers&apos; prompts to the engines and
             report whether you were named, engine by engine?
           </li>
           <li>
@@ -183,7 +183,7 @@ export default function Post() {
         </P>
         <UL>
           <li>
-            <B>It starts with the measurement.</B> The free scan writes {QUESTIONS} buyer questions for your
+            <B>It starts with the measurement.</B> The free scan writes {QUESTIONS} buyer prompts for your
             category, puts each to {listOf(FREE_ENGINE_LABELS)}, and shows all {FREE_ANSWERS} answers, with the
             pages each engine cited. No email needed to see it.
           </li>
@@ -228,7 +228,7 @@ export default function Post() {
 
         <H2 id="what-to-ask">What to ask any AI SEO agency, including us</H2>
         <OL>
-          <li>Which questions will you track, and on which engines?</li>
+          <li>Which prompts will you track, and on which engines?</li>
           <li>Can I see the answers, not just a score?</li>
           <li>Which pages are the engines citing for my category today, and will you work on those?</li>
           <li>What does each piece of work cost, and what will you report back on it?</li>

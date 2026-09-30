@@ -42,22 +42,22 @@ const TRACKED_HREF = TIERS.find((t) => t.key === "tracked")!.href;
 
 const CHECKS: { t: string; b: string }[] = [
   {
-    t: `${word(QUESTIONS)} buyer questions`,
+    t: `${word(QUESTIONS)} buyer prompts`,
     b: "Written for your category from your own site, and shown to you to confirm before anything runs.",
   },
   {
     t: `${word(FREE_ENGINE_COUNT)} engines`,
-    b: `${listOf(FREE_ENGINE_LABELS)}. Each question goes to each one, so you get ${FREE_ANSWERS} answers.`,
+    b: `${listOf(FREE_ENGINE_LABELS)}. Each prompt goes to each one, so you get ${FREE_ANSWERS} answers.`,
   },
   { t: "Every answer, and its sources", b: "The full text of each answer and the pages each engine cited to build it." },
-  { t: "Your Google position", b: "Where your site ranks on Google for each question, beside what the AI answer said." },
+  { t: "Your Google position", b: "Where your site ranks on Google for the keyword behind the prompts, beside what the AI answers said." },
   { t: "Who is named instead", b: "The brands the engines recommend when they do not name you." },
   { t: "Placement pages, scored", b: "The cited pages you could be placed on, each scored for how hard it is to get onto." },
 ];
 
 const STEPS = [
   { t: "Enter your domain", b: "The field above. No card and no email." },
-  { t: "Confirm the topic and questions", b: "We read your site and propose the category and the questions. Change them if they are wrong." },
+  { t: "Confirm the topic and prompts", b: "We read your site and propose the category, the keyword and the prompts. Change them if they are wrong." },
   { t: "Read the answers", b: "About two minutes later, every answer from every engine, with the pages behind it." },
 ];
 
@@ -68,7 +68,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "Which LLMs does it check?",
-    a: `${listOf(FREE_ENGINE_LABELS)}: ${word(QUESTIONS).toLowerCase()} questions on each, ${FREE_ANSWERS} answers in all.`,
+    a: `${listOf(FREE_ENGINE_LABELS)}: ${word(QUESTIONS).toLowerCase()} prompts on each, ${FREE_ANSWERS} answers in all.`,
   },
   {
     q: `Why is ${listOf(PLAN_ONLY)} not in the free check?`,
@@ -120,7 +120,7 @@ export default function LlmVisibilityChecker() {
           </p>
           <HeroScanArea
             ready={scanReady()}
-            questionsLine={`${word(QUESTIONS)} buyer questions, ${word(FREE_ENGINE_COUNT).toLowerCase()} engines, around two minutes. No card, no email.`}
+            questionsLine={`${word(QUESTIONS)} buyer prompts, ${word(FREE_ENGINE_COUNT).toLowerCase()} engines, around two minutes. No card, no email.`}
           />
         </div>
       </section>
@@ -130,8 +130,8 @@ export default function LlmVisibilityChecker() {
           <div className="board-head" style={{ ...GRID12, marginBottom: "16px" }}>
             <h2 style={{ ...H2, gridColumn: "span 4" }}>What it checks</h2>
             <p style={{ gridColumn: "span 8", margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
-              An AI visibility checker should show you the answers, not a score. This one puts the questions your buyers
-              ask to the engines and shows you what came back - your LLM brand visibility, question by question.
+              An AI visibility checker should show you the answers, not a score. This one puts the prompts your buyers
+              use to the engines and shows you what came back - your LLM brand visibility, prompt by prompt.
             </p>
           </div>
           <div className="three-up">
@@ -148,7 +148,7 @@ export default function LlmVisibilityChecker() {
           <div className="board-head" style={{ ...GRID12, marginBottom: "16px" }}>
             <h2 style={{ ...H2, gridColumn: "span 4" }}>How it works</h2>
             <p style={{ gridColumn: "span 8", margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
-              Three steps, and nothing runs until you have seen the questions.
+              Three steps, and nothing runs until you have seen the prompts.
             </p>
           </div>
           <div className="three-up">
@@ -166,7 +166,7 @@ export default function LlmVisibilityChecker() {
           <h2 style={{ ...H2, margin: 0 }}>What it is not</h2>
           <p style={{ margin: "10px 0 0", fontSize: "14.5px", lineHeight: 1.65, color: T.soft, maxWidth: "70ch" }}>
             It is not a crawler, and it is not a check of whether your HTML is readable by a model. Those tell you
-            whether an engine could read your site. This asks the engines the questions a buyer actually asks, and
+            whether an engine could read your site. This puts the prompts a buyer actually uses to the engines, and
             tells you whether you were the answer.
           </p>
         </section>

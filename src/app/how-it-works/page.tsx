@@ -85,8 +85,8 @@ const WORK: { heading: string; body: string }[] = [
     body: "Placements on the third-party pages behind the answers in your category - best-of lists, comparisons and round-ups - with the brand where a ranked list gets quoted from. Not paid promotion dressed up as independent coverage.",
   },
   {
-    heading: "On-site pages built for the question",
-    body: "The questions closest to a buying decision get pages of their own: question-format headings, comparison tables, FAQ schema, and an opening line in the buyer's phrasing.",
+    heading: "On-site pages built for the prompt",
+    body: "The prompts closest to a buying decision get pages of their own: question-format headings, comparison tables, FAQ schema, and an opening line in the buyer's phrasing.",
   },
   {
     heading: "Links that land where you want them",
@@ -202,7 +202,7 @@ export default function HowItWorksPage() {
           <div className="board-head" style={{ display: "flex", alignItems: "baseline", gap: "40px" }}>
             <h2 style={{ ...H2_BIG, flexShrink: 0 }}>The 60-second version</h2>
             <p style={LEDE}>
-              One buyer question, the brands the engines name instead, and the four tiers that get a brand into the
+              One buyer prompt, the brands the engines name instead, and the four tiers that get a brand into the
               answer.
             </p>
           </div>
@@ -351,7 +351,7 @@ export default function HowItWorksPage() {
         </section>
 
         <DarkClosing id="hiw-close" title="See which pages sit behind your answers.">
-          {word(QUESTIONS)} buyer questions, {word(FREE_ENGINE_COUNT).toLowerCase()} engines, every answer and every
+          {word(QUESTIONS)} buyer prompts, {word(FREE_ENGINE_COUNT).toLowerCase()} engines, every answer and every
           source it cited. Around two minutes, or we email you the result.
         </DarkClosing>
       </main>
