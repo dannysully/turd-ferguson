@@ -74,8 +74,11 @@ test("rule 1: the walk finds the model calls it is written about", () => {
   const calls = modelCalls(src(files[0]!));
   // Six since 27 Sep 2026: `keywordCandidates`, the decision being Danny's
   // search-volume reversal (R38/R39, docs/rules.md) - one batched call a scan
-  // for candidate Google head keywords. A seventh needs its own decision.
-  assert.equal(calls.length, 6, "anthropic.ts makes six model calls; a seventh needs a decision, not a default");
+  // for candidate Google head keywords. Seven since 30 Sep 2026:
+  // `clusterKeywordCandidates`, the decision being BRIEF-3 C1 step 1 (Danny,
+  // 29 Sep 2026, danny.md lines 96-97 and 109) - one call a scan for the
+  // cluster keyword's candidates. An eighth needs its own decision.
+  assert.equal(calls.length, 7, "anthropic.ts makes seven model calls; an eighth needs a decision, not a default");
   assert.deepEqual(
     [...new Set(calls.map((c) => c.method))],
     ["parse"],

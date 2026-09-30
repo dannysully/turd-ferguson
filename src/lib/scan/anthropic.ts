@@ -9,6 +9,7 @@ import { QUESTIONS } from "@/config/scan-shape";
 import type { Market } from "./domain";
 import { countingFetch, withRetry } from "./retry-policy";
 import { sourceKindRequest, sourceKindSystem } from "./source-kind-prompt";
+import { normaliseCandidate } from "./target-keyword";
 
 const MODEL = "claude-opus-5";
 
@@ -17,9 +18,9 @@ const MODEL = "claude-opus-5";
  * effort is the right setting: it keeps the five model calls in this file
  * inside the scan's budget without trading away accuracy.
  *
- * Six, not three - `readBrand`, `generateQuestions`, `keywordCandidates`
- * (27 Sep 2026, R39), `extractBrands`, `classifyBrands` and
- * `classifySourceDomains`. The count said three while the
+ * Seven, not three - `readBrand`, `generateQuestions`, `keywordCandidates`
+ * (27 Sep 2026, R39), `clusterKeywordCandidates` (30 Sep 2026, BRIEF-3 C1),
+ * `extractBrands`, `classifyBrands` and `classifySourceDomains`. The count said three while the
  * file had carried five for some time, which is the drifted-count species: the
  * number is not the point, the point is that "every call here is low effort"
  * was a census carried in prose with nothing executing it.
@@ -263,6 +264,12 @@ export async function generateQuestions(input: {
   positioning: string | null;
   services?: string[];
   industries?: string[];
+  /**
+   * The cluster keyword that passed C1's check (BRIEF-3 step 5). When set,
+   * the five kinds are five angles on it; when not (none qualified, or a read
+   * failed) the questions are written on the category, as before.
+   */
+  keyword?: string | null;
 }, billed: { calls: number } = { calls: 0 }): Promise<{ questions: GeneratedQuestion[]; calls: number }> {
   const marketName = input.market === "UK" ? "the United Kingdom" : "the United States";
   const year = currentYear();
@@ -326,12 +333,21 @@ export async function generateQuestions(input: {
       "a search bar. No question marks. Use the spelling and vocabulary of the",
       "market, not American English for a United Kingdom scan.",
       "Do not name the subject brand in any question.",
+      ...(input.keyword
+        ? [
+            "",
+            "A Google keyword is given. Every question is an angle on that keyword:",
+            "the same buyer choosing the same kind of supplier, one question per kind,",
+            "each still asking for a recommendation and narrowed by at most one thing.",
+          ]
+        : []),
     ].join("\n"),
     messages: [
       {
         role: "user",
         content: [
           `Broad topic: ${input.topic}`,
+          ...(input.keyword ? [`Google keyword the questions are angles on: ${input.keyword}`] : []),
           variants.length
             ? `Narrower variants to spread across: ${variants.join("; ")}`
             : "Narrower variants: none were read from the site, so work from the positioning below.",
@@ -423,6 +439,67 @@ export async function keywordCandidates(
   const byIdx = new Map<number, string[]>();
   for (const q of out.questions) if (asked.has(q.idx)) byIdx.set(q.idx, q.candidates.slice(0, CANDIDATES_MAX));
   return { supplierNoun: out.supplier_noun.trim().toLowerCase(), byIdx };
+}
+
+// ------------------------------------------------- cluster keyword candidates
+
+/** How many head keywords the model offers for the one cluster (BRIEF-3 C1: "5-8"). */
+const CLUSTER_CANDIDATES_MIN = 5;
+const CLUSTER_CANDIDATES_MAX = 8;
+
+const ClusterKeywordCandidates = z.object({
+  supplier_noun: z.string().describe("The one plural noun a buyer uses for suppliers in this category, e.g. 'providers', 'agencies', 'lenders'"),
+  candidates: z.array(z.string()).describe(`${CLUSTER_CANDIDATES_MIN} to ${CLUSTER_CANDIDATES_MAX} Google head keywords, lower case, most likely first`),
+});
+
+/**
+ * Candidate cluster keywords for a scan - C1 step 1 of
+ * docs/tracked-dashboard-2026-09-29/BRIEF-3-clusters.md (Danny, 29 Sep 2026;
+ * this is the seventh model call's decision). The phrase a buyer types into
+ * Google when choosing a supplier, from the site facts, topic and market.
+ * Each is passed through `normaliseCandidate` (supplier noun kept, bare
+ * category refused); `pickClusterKeyword` and the volume and intent reads
+ * decide, so nothing here is trusted as the keyword. Order is the model's,
+ * which the pick uses for ties.
+ *
+ * One call with a ceiling scaled to the count, the shape `keywordCandidates`
+ * has. Not yet called: C1's route change wires it.
+ */
+export async function clusterKeywordCandidates(
+  input: { topic: string; market: Market; positioning: string | null; services?: string[]; industries?: string[] },
+  billed: { calls: number } = { calls: 0 },
+): Promise<string[]> {
+  const marketName = input.market === "UK" ? "the United Kingdom" : "the United States";
+  const res = await withRetry(() => anthropic(billed).messages.parse({
+    model: MODEL,
+    max_tokens: 400 + CLUSTER_CANDIDATES_MAX * 60,
+    output_config: { effort: EFFORT, format: zodOutputFormat(ClusterKeywordCandidates) },
+    system: [
+      `Propose ${CLUSTER_CANDIDATES_MIN} to ${CLUSTER_CANDIDATES_MAX} Google head keywords a buyer in ${marketName} types when choosing a supplier in this category.`,
+      "Commercial terms only: the buyer is comparing suppliers, not learning what the thing is.",
+      "Drop 'best', 'top', 'who offers', 'which', the year and the country word.",
+      "Every keyword keeps a supplier noun - providers, companies, lenders, software, agencies.",
+      "The bare category alone is never a keyword. Never a brand name. Lower case, no punctuation.",
+      "Most likely first. Also give the one plural supplier noun a buyer uses for this category.",
+    ].join("\n"),
+    messages: [
+      {
+        role: "user",
+        content: [
+          `Category: ${input.topic}`,
+          `Market: ${marketName}`,
+          `How the brand positions itself: ${input.positioning ?? "not stated"}`,
+          `Services it sells: ${(input.services ?? []).join("; ") || "not read"}`,
+          `Industries it serves, strongest first: ${(input.industries ?? []).join("; ") || "not read"}`,
+        ].join("\n"),
+      },
+    ],
+  }));
+  const out = res.parsed_output;
+  if (!out) throw new Error("could not read cluster keyword candidates");
+  const noun = out.supplier_noun.trim().toLowerCase();
+  const standing = out.candidates.map((c) => normaliseCandidate(c, input.topic, noun)).filter((k): k is string => Boolean(k));
+  return [...new Set(standing)].slice(0, CLUSTER_CANDIDATES_MAX);
 }
 
 // ----------------------------------------------------------- brand extraction
