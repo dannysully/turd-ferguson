@@ -530,7 +530,7 @@ export default function Overview({
         )}
       </section>
 
-      <section aria-label="Key figures" className="app-figures" style={{ ...CARD, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", overflow: "hidden" }}>
+      <section aria-label="Key figures" className={cs ? "app-figures app-hide-sm" : "app-figures"} style={{ ...CARD, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", overflow: "hidden" }}>
         {(cs
           ? [
               {
@@ -606,6 +606,30 @@ export default function Overview({
           </div>
         ))}
       </section>
+
+      {/* Mobile.dc.html's four figure cards (T4b mobile, 30 Sep 2026): the headline already says the named share, so the phone trades it for rank among brands. Same figures as above. */}
+      {cs ? (
+        <section aria-label="Key figures" className="app-show-sm">
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "10px" }}>
+            {[
+              { label: "Prompts named in", value: `${cs.promptsNamed.num} of ${cs.promptsNamed.den}`, foot: cs.promptsNamedBefore ? <span style={{ fontSize: "12px", color: T.soft }}>{`was ${cs.promptsNamedBefore.num} of ${cs.promptsNamedBefore.den}`}</span> : null },
+              { label: "Share of voice", value: pct(o.sov), foot: <Delta value={pointsDelta(o.sov, o.sovBefore)} /> },
+              { label: "Keywords on page 1", value: `${cs.page1.num} of ${cs.page1.den}`, foot: cs.page1Before !== null ? <Delta value={cs.page1.num - cs.page1Before} unit="" /> : null },
+              {
+                label: "Rank among brands",
+                value: o.sov.rank ? `${ordinal(o.sov.rank)} of ${o.sov.brands}` : "-",
+                foot: board[0] ? <span style={{ fontSize: "12px", color: T.soft }}>{board[0].you ? "You lead" : `${board[0].name} leads`}</span> : null,
+              },
+            ].map((f) => (
+              <div key={f.label} style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "6px", padding: "16px", background: T.surface, border: `1px solid ${T.line}`, borderRadius: "16px", minWidth: 0 }}>
+                <span style={{ fontSize: "12px", fontWeight: 600, color: T.soft }}>{f.label}</span>
+                <span style={{ fontSize: "24px", fontWeight: 700, letterSpacing: "-0.03em", color: T.ink, fontVariantNumeric: "tabular-nums" }}>{f.value}</span>
+                {f.foot}
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {cards ? <ClusterCards cards={cards} engines={engines} picked={picked?.id ?? null} href={clusterHref} /> : null}
 
