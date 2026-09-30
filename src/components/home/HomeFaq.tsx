@@ -139,7 +139,7 @@ export default function HomeFaq() {
             </h2>
             <p style={{ margin: "10px 0 0", fontSize: "14.5px", lineHeight: 1.6, color: T.soft }}>
               {/* The board's line, counted the way the hero counts it. */}
-              {word(QUESTIONS)} buyer questions, {word(FREE_ENGINE_COUNT).toLowerCase()} engines, every answer and every
+              {word(QUESTIONS)} buyer prompts, {word(FREE_ENGINE_COUNT).toLowerCase()} engines, every answer and every
               source it cited. It takes around two minutes, or we email you the result.
             </p>
           </div>

@@ -56,13 +56,14 @@ export default function ScanProgress(p: {
   const newest = (p.landed ?? [])[(p.landed?.length ?? 0) - 1];
 
   /**
-   * "Five questions, four engines, 20 answers" on the board. Only when this
+   * "Five questions, four engines, 20 answers" on the board, said as prompts
+   * (R127, Danny 30 Sep: his newest word overrides the board). Only when this
    * page knows how many questions the run asks - it does after a confirm here,
    * not after a reload mid-run - and in figures, never spelled.
    */
   const counts =
     p.questions && engines.length
-      ? ` ${p.questions} questions, ${engines.length} engines, ${p.questions * engines.length} answers.`
+      ? ` ${p.questions} prompts, ${engines.length} engines, ${p.questions * engines.length} answers.`
       : "";
 
   return (

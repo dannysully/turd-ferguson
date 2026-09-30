@@ -220,9 +220,12 @@ export function leaderboardCaption(rowCount: number, partial: boolean): string {
  * each put to four engines. Everything below is free."). In figures, from the
  * scan's own question list and engine list. Nothing on the finished result is
  * gated any more, so the second sentence is true of every scan that reaches it.
+ * Said as prompts, not the board's questions (R127, Danny 30 Sep, danny.md
+ * line 113); scan-prompts-copy.test.mts holds it. A scan with a chosen
+ * cluster keyword says what the prompts are about, as ScanCluster.dc.html does.
  */
-export function standfirst(questions: number, engines: number): string {
-  return count(questions, "buyer question") + ", each put to " + count(engines, "engine") + ". Everything below is free.";
+export function standfirst(questions: number, engines: number, cluster = false): string {
+  return count(questions, "buyer prompt") + (cluster ? " about one Google keyword" : "") + ", each put to " + count(engines, "engine") + ". Everything below is free.";
 }
 
 export function headline(answers: number, missing: number): string {
@@ -380,7 +383,7 @@ export function resultFigures(
     missing,
     pct: answers > 0 ? Math.round((named / answers) * 100) : null,
     headline: headline(answers, missing),
-    standfirst: standfirst(qs.length, r.engines.length),
+    standfirst: standfirst(qs.length, r.engines.length, clusterState(r) === "chosen"),
     answeredQuestions,
     blank: tallies.filter((t) => t.answered > 0 && t.named === 0).length,
     bestRank: ranks.length ? Math.min(...ranks) : null,

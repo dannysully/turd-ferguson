@@ -44,7 +44,7 @@ export default function HomeHero() {
 
         <HeroScanArea
           ready={scanReady()}
-          questionsLine={`${word(QUESTIONS)} buyer questions, ${word(FREE_ENGINE_COUNT).toLowerCase()} engines, around two minutes. No card, no email.`}
+          questionsLine={`${word(QUESTIONS)} buyer prompts, ${word(FREE_ENGINE_COUNT).toLowerCase()} engines, around two minutes. No card, no email.`}
         />
 
         <EngineDemo />
