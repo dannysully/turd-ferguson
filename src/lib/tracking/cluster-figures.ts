@@ -90,6 +90,64 @@ function tally(answers: AnswerRow[], ids: Set<string>, r: Range): Rate {
   return rate(num, den);
 }
 
+export type ClusterSummary = {
+  /** Every answer in the range across the clusters with readings. */
+  now: Rate;
+  /** The same on the clusters tracked all period, against the comparison range. */
+  lfl: Rate;
+  lflBefore: Rate | null;
+  lflDelta: number | null;
+  clusters: number;
+  clustersLfl: number;
+  prompts: number;
+  promptsLfl: number;
+  /** "40 of 45", then "was 37 of 40" on the like-for-like prompts. */
+  promptsNamed: Rate;
+  promptsNamedBefore: Rate | null;
+  never: { cluster: string; text: string }[];
+  /** Cluster keywords whose latest position is 1-10, of the keywords of clusters with readings, and their average. */
+  page1: Rate & { avg: number | null };
+  page1Before: number | null;
+  /** Keywords at #11-#20: the ones a push would put on page 1. */
+  offPage1: string[];
+};
+
+/**
+ * The headline and the four figures by cluster (T4b part 2, 30 Sep 2026;
+ * boards-3/overview.py's headline and "Key figures" strip). A pending cluster
+ * counts nowhere; an added one counts in this period but not like-for-like.
+ */
+export function clusterSummary(cards: ClusterCard[]): ClusterSummary {
+  const read = cards.filter((c) => c.status !== "pending");
+  const lfl = read.filter((c) => c.status === "live");
+  const sum = (cs: ClusterCard[], pick: (c: ClusterCard) => Rate | null) => {
+    const rs = cs.map(pick).filter((r): r is Rate => r !== null);
+    return rs.length ? rate(rs.reduce((s, r) => s + r.num, 0), rs.reduce((s, r) => s + r.den, 0)) : null;
+  };
+  const lflNow = sum(lfl, (c) => c.now) ?? rate(0, 0);
+  const lflBefore = lfl.length && lfl.every((c) => c.before) ? sum(lfl, (c) => c.before) : null;
+  const prompts = read.flatMap((c) => c.prompts);
+  const promptsLfl = lfl.flatMap((c) => c.prompts);
+  const ranked = read.map((c) => c.position).filter((p): p is number => p !== null);
+  const hasBefore = lfl.length > 0 && lfl.some((c) => c.positionBefore !== null);
+  return {
+    now: sum(read, (c) => c.now) ?? rate(0, 0),
+    lfl: lflNow,
+    lflBefore,
+    lflDelta: pointsDelta(lflNow, lflBefore),
+    clusters: read.length,
+    clustersLfl: lfl.length,
+    prompts: prompts.length,
+    promptsLfl: promptsLfl.length,
+    promptsNamed: rate(prompts.filter((p) => p.now.num > 0).length, prompts.length),
+    promptsNamedBefore: promptsLfl.every((p) => p.before) && promptsLfl.length ? rate(promptsLfl.filter((p) => p.before!.num > 0).length, promptsLfl.length) : null,
+    never: read.flatMap((c) => c.prompts.filter((p) => p.now.den > 0 && p.now.num === 0).map((p) => ({ cluster: c.keyword ?? c.name, text: p.text }))),
+    page1: { ...rate(ranked.filter((p) => p <= 10).length, read.length), avg: ranked.length ? Math.round((ranked.reduce((s, p) => s + p, 0) / ranked.length) * 10) / 10 : null },
+    page1Before: hasBefore ? lfl.filter((c) => c.positionBefore !== null && c.positionBefore <= 10).length : null,
+    offPage1: read.filter((c) => c.position !== null && c.position >= 11 && c.position <= 20).map((c) => c.keyword ?? c.name),
+  };
+}
+
 export function clusterCards(input: ClusterInput): ClusterCard[] {
   const { range, before, today, engines } = input;
   const days = daysIn(range);

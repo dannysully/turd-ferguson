@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
-import { clusterCards } from "./cluster-figures.ts";
+import { clusterCards, clusterSummary } from "./cluster-figures.ts";
 import { comparisonRange } from "./figures.ts";
 import { expandFixture } from "./fixture-mode.ts";
 
@@ -90,4 +90,34 @@ test("no comparison: no change anywhere, and a cluster begun before the range is
   const none = clusterCards({ ...fx.data, range, before: null, today: fx.today, engines: ["google_aio"] });
   assert.ok(none.every((c) => c.delta === null && c.positionChange === null));
   assert.equal(none.find((c) => c.id === "c1")!.status, "live");
+});
+
+test("the headline and four figures by cluster match dataset.py's summary (T4b part 2)", () => {
+  const s = clusterSummary(cards);
+  assert.deepEqual([s.now.num, s.now.den, s.now.pct], [1272, 4760, 27], "1,272 of 4,760 answers, 27%");
+  assert.deepEqual([s.lfl.den, s.lfl.pct], [4480, 28], "like-for-like on the 8 clusters tracked all period");
+  assert.equal(s.lflBefore?.den, 4480);
+  assert.ok(s.lflDelta !== null);
+  assert.deepEqual([s.clusters, s.clustersLfl, s.prompts, s.promptsLfl], [9, 8, 45, 40]);
+  assert.deepEqual([s.promptsNamed.num, s.promptsNamed.den], [40, 45]);
+  assert.equal(s.promptsNamedBefore?.den, 40);
+  assert.deepEqual(s.never, [
+    { cluster: "bookkeeping software", text: "What bookkeeping software do US restaurants use?" },
+    { cluster: "cloud accounting software", text: "What accounting software with built-in payroll do cloud-first startups use?" },
+    { cluster: "cloud accounting software", text: "What's the cheapest accounting software that's still good?" },
+    { cluster: "accounting software for nonprofits", text: "What accounting software do nonprofits recommend?" },
+    { cluster: "accounting software for nonprofits", text: "Which is better for a nonprofit, Ledgerline or Brightbook?" },
+  ]);
+  assert.deepEqual([s.page1.num, s.page1.den, s.page1Before], [5, 9, 3], "5 of 9 on page 1, was 3");
+  // The board averages 9.7 with c9 at #23; the fixture keeps #23 unranked, so the eight ranked average 8.
+  assert.equal(s.page1.avg, 8);
+  assert.deepEqual(s.offPage1, ["invoicing software", "bookkeeping software", "cloud accounting software"]);
+});
+
+test("summary with no comparison has no like-for-like change or 'was' figures", () => {
+  const s = clusterSummary(clusterCards({ ...fx.data, range, before: null, today: fx.today, engines: ["google_aio"] }));
+  assert.equal(s.lflBefore, null);
+  assert.equal(s.lflDelta, null);
+  assert.equal(s.promptsNamedBefore, null);
+  assert.equal(s.page1Before, null);
 });
