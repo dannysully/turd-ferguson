@@ -8,6 +8,7 @@ import {
   type Palette,
   type ReportCounts,
   escapeHtml,
+  reportAfter,
   reportHeadline,
   reportHtml,
   reportSubject,
@@ -447,6 +448,36 @@ test("the domain is escaped in the html part and raw in the text part", () => {
 test("the send to a confirmed address does not carry the sentence", () => {
   assert.ok(!reportText("Vibe Retail", LINK, COUNTS).includes("Somebody asked"));
   assert.ok(!reportHtml(E, FONT, "Vibe Retail", LINK, COUNTS).includes("Somebody asked"));
+});
+
+/**
+ * A scan from C1 on is the visitor's first cluster on the page it links to
+ * (R114 S1, ScanCluster.dc.html), so the message says prompts and names the
+ * keyword the page names - and names none when none was picked, the page's
+ * "Not picked yet". A scan from before C1 keeps its questions word for word.
+ */
+test("a cluster scan's report says prompts and names its keyword, or none", () => {
+  const chosen = { keyword: "invoicing software for freelancers" };
+  assert.match(reportHeadline("Tallyroo", COUNTS, chosen), /^9 of the 12 prompts/);
+  assert.match(reportHeadline("Tallyroo", NOTHING_MISSED, { keyword: null }), /^We put 14 buying-intent prompts/);
+  assert.equal(reportHeadline("Tallyroo", COUNTS, null), reportHeadline("Tallyroo", COUNTS));
+  assert.equal(reportAfter(null), reportAfter());
+
+  const text = reportText("Tallyroo", LINK, COUNTS, undefined, chosen);
+  assert.ok(text.includes("your first cluster, joined to “invoicing software for freelancers”"));
+  assert.ok(!text.includes("question"));
+  const html = reportHtml(E, FONT, "Tallyroo", LINK, COUNTS, undefined, chosen);
+  assertWellFormed(html, "report, cluster");
+  assert.ok(html.includes("your first cluster, joined to “invoicing software for freelancers”"));
+
+  const none = reportText("Tallyroo", LINK, COUNTS, undefined, { keyword: null });
+  assert.ok(none.includes("your first cluster, then the pages"));
+  assert.ok(!none.includes("“"));
+
+  // The keyword came off a keyword tool and is escaped in the HTML part only.
+  const nasty = { keyword: "<script>alert(1)</script>" };
+  assert.ok(!reportHtml(E, FONT, "Tallyroo", LINK, COUNTS, undefined, nasty).includes("<script>alert(1)"));
+  assert.ok(reportText("Tallyroo", LINK, COUNTS, undefined, nasty).includes("<script>alert(1)</script>"));
 });
 
 test("escapeHtml covers the five", () => {

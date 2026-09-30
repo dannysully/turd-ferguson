@@ -2,6 +2,7 @@ import "server-only";
 
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
+import type { ReportCluster } from "./email-render";
 import { type CountableAnswer, reportCounts } from "./report-counts";
 import { sendReportReadyEmail } from "./verify-email";
 
@@ -41,7 +42,7 @@ import { sendReportReadyEmail } from "./verify-email";
  */
 
 /** The columns a send needs, all of them already on the row. */
-const SEND_COLUMNS = "id, domain, brand_name, public_token, report_email";
+const SEND_COLUMNS = "id, domain, brand_name, public_token, report_email, cluster_keyword, cluster_keyword_status";
 
 /**
  * Take the send, or find there is nothing to take.
@@ -51,12 +52,16 @@ const SEND_COLUMNS = "id, domain, brand_name, public_token, report_email";
  * without it a lost claim and a won one are the same result - the trap this
  * repo has now fixed in the unlock path, both passes and here.
  */
-async function claim(scanId: string): Promise<{
+type SendRow = {
   domain: string;
   brand_name: string | null;
   public_token: string;
-  report_email: string;
-} | null> {
+  report_email: string | null;
+  cluster_keyword: string | null;
+  cluster_keyword_status: string | null;
+};
+
+async function claim(scanId: string): Promise<(SendRow & { report_email: string }) | null> {
   const { data, error } = await supabaseAdmin()
     .from("scans")
     .update({ report_email_sent_at: new Date().toISOString() })
@@ -69,13 +74,23 @@ async function claim(scanId: string): Promise<{
     console.warn(`[scan] could not claim the report email for ${scanId}: ${error.message}`);
     return null;
   }
-  const row = data?.[0] as
-    | { domain: string; brand_name: string | null; public_token: string; report_email: string | null }
-    | undefined;
+  const row = data?.[0] as SendRow | undefined;
   // No row is the ordinary case: nobody asked, or the other caller got there
   // first. Neither is worth a log line on every completed scan.
   if (!row?.report_email) return null;
   return { ...row, report_email: row.report_email };
+}
+
+/**
+ * The scan's cluster keyword as the message names it, by the rule the page's
+ * `clusterState` draws with (R114 S1): no status is a scan from before C1 and
+ * keeps its questions; a chosen, non-blank keyword is named; anything else is
+ * a cluster with no keyword yet, and the message guesses none.
+ */
+function reportCluster(row: SendRow): ReportCluster | null {
+  if (!row.cluster_keyword_status) return null;
+  const keyword = row.cluster_keyword?.trim();
+  return { keyword: row.cluster_keyword_status === "chosen" && keyword ? keyword : null };
 }
 
 /**
@@ -127,6 +142,7 @@ export async function sendRequestedReport(scanId: string): Promise<void> {
       // domain rather than the brand, because the stranger it is written for
       // can only recognise what was typed into the form.
       requestedFor: row.domain,
+      cluster: reportCluster(row),
     });
 
     /**

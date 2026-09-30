@@ -221,10 +221,34 @@ export type ReportCounts = {
  * already fixed on the metric tile the reader lands on; the email kept the old
  * shape and is the copy a buyer sees first.
  */
-export function reportHeadline(brand: string, c: ReportCounts): string {
+export function reportHeadline(brand: string, c: ReportCounts, cluster?: ReportCluster | null): string {
+  // The nouns stay literal for plural-nouns.test.mts, which reads them.
+  const answered = cluster ? count(c.answeredQuestions, "prompt") : count(c.answeredQuestions, "question");
+  const asked = cluster ? count(c.askedQuestions, "buying-intent prompt") : count(c.askedQuestions, "buying-intent question");
   return c.missedQuestions > 0
-    ? `${c.missedQuestions} of the ${count(c.answeredQuestions, "question")} an engine answered came back without ${brand} in the answer.`
-    : `We put ${count(c.askedQuestions, "buying-intent question")} to the engines your buyers use.`;
+    ? `${c.missedQuestions} of the ${answered} an engine answered came back without ${brand} in the answer.`
+    : `We put ${asked} to the engines your buyers use.`;
+}
+
+/**
+ * The scan's cluster keyword, on a scan from C1 on (R114 S1, 30 Sep 2026):
+ * the report it links to draws the prompts as the visitor's first cluster, so
+ * the message says prompts and names the keyword the way the page does. Null
+ * or absent is a scan from before C1, which keeps its questions. `keyword` is
+ * null when none was picked - the page's "Not picked yet"; the message then
+ * names no keyword rather than a guessed one.
+ */
+export type ReportCluster = { keyword: string | null };
+
+/** The sentence after the headline, both parts. Unescaped; the HTML part escapes it. */
+export function reportAfter(cluster?: ReportCluster | null): string {
+  if (!cluster) return "The report adds the pages you could be placed into, ranked by how many answers a placement would win, and what each engine said.";
+  return (
+    (cluster.keyword
+      ? `The report shows them as your first cluster, joined to “${cluster.keyword}” and where you rank for it on Google, `
+      : "The report shows them as your first cluster, ") +
+    "then the pages you could be placed into, ranked by how many answers a placement would win, and what each engine said."
+  );
 }
 
 /**
@@ -281,10 +305,12 @@ export function reportText(
   link: string,
   counts: ReportCounts,
   requestedFor?: string,
+  cluster?: ReportCluster | null,
 ): string {
   return (
     (requestedFor ? `${requestedReason(requestedFor)}\n\n` : "") +
-    `${reportHeadline(brand, counts)}\n\n` +
+    `${reportHeadline(brand, counts, cluster)}\n\n` +
+    (cluster ? `${reportAfter(cluster)}\n\n` : "") +
     `Open your report: ${link}\n\n` +
     "The link works on any device and does not expire."
   );
@@ -297,6 +323,7 @@ export function reportHtml(
   link: string,
   counts: ReportCounts,
   requestedFor?: string,
+  cluster?: ReportCluster | null,
 ): string {
   const b = escapeHtml(brand);
   return shell(p, font, {
@@ -329,9 +356,9 @@ export function reportHtml(
      */
     body:
       (requestedFor ? `${escapeHtml(requestedReason(requestedFor))}<br><br>` : "") +
-      reportHeadline(b, counts) +
-      " The report adds the pages you could be placed into, ranked by how many " +
-      "answers a placement would win, and what each engine said.",
+      reportHeadline(b, counts, cluster) +
+      " " +
+      escapeHtml(reportAfter(cluster)),
     cta: { href: link, label: "Open your report" },
     footnote: "The link works on any device and does not expire. " + linkFallback(p, link),
   });

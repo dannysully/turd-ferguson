@@ -8,6 +8,7 @@ import { T } from "@/config/tokens";
 import { headerSafe } from "@/lib/email-header";
 import {
   type Palette,
+  type ReportCluster,
   type ReportCounts,
   reportHtml,
   reportSubject,
@@ -124,6 +125,8 @@ export async function sendReportReadyEmail(input: {
   publicToken: string;
   counts: ReportCounts;
   requestedFor?: string;
+  /** The scan's cluster keyword from C1 on; null before it. See `ReportCluster`. */
+  cluster?: ReportCluster | null;
 }): Promise<string | null> {
   const key = process.env.RESEND_API_KEY;
   if (!key) {
@@ -139,8 +142,8 @@ export async function sendReportReadyEmail(input: {
       from: mailFrom(),
       to: input.email,
       subject,
-      html: reportHtml(E, FONT, input.brand, link, input.counts, input.requestedFor),
-      text: reportText(input.brand, link, input.counts, input.requestedFor),
+      html: reportHtml(E, FONT, input.brand, link, input.counts, input.requestedFor, input.cluster),
+      text: reportText(input.brand, link, input.counts, input.requestedFor, input.cluster),
     });
     if (error) {
       console.error("[scan] report email rejected", error);
