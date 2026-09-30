@@ -19,6 +19,11 @@ import { ENGINE_SPECS, type Engine } from "@/lib/scan/engines";
 
 const NAV = ["Overview", "Clusters", "Google keywords", "Who is named", "Cited pages", "Reports", "Settings"];
 const TABS = ["Overview", "Clusters", "Keywords", "Reports"];
+// R121 (30 Sep 2026): on a client with cluster rows the Google keyword lives on
+// its cluster card, so there is no keywords tab - boards-3/Main.dc.html's nav
+// and boards-3/Mobile.dc.html's four tabs. A flat client keeps the T3 lists.
+const CLUSTER_NAV = NAV.filter((n) => n !== "Google keywords");
+const CLUSTER_TABS = ["Overview", "Clusters", "Reports", "Settings"];
 
 type Client = { slug: string; domain: string; brand: string | null; market: string };
 
@@ -46,6 +51,7 @@ export default function Sidebar({
   role,
   tier,
   engines,
+  clusters = false,
 }: {
   client: Client;
   others: Client[];
@@ -53,7 +59,11 @@ export default function Sidebar({
   role: string;
   tier: TierKey;
   engines: readonly Engine[];
+  /** The client has cluster rows: the cluster-first nav. */
+  clusters?: boolean;
 }) {
+  const nav = clusters ? CLUSTER_NAV : NAV;
+  const tabs = clusters ? CLUSTER_TABS : TABS;
   const name = client.brand ?? client.domain;
   return (
     <>
@@ -92,7 +102,7 @@ export default function Sidebar({
         </div>
 
         <nav aria-label="Dashboard" style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-          {NAV.map((item, i) => (
+          {nav.map((item, i) => (
             <span
               key={item}
               aria-current={i === 0 ? "page" : undefined}
@@ -136,7 +146,7 @@ export default function Sidebar({
       </aside>
 
       <nav aria-label="Dashboard sections" className="app-tabs" style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 20, background: T.surface, borderTop: `1px solid ${T.line}`, paddingBottom: "8px" }}>
-        {TABS.map((item, i) => (
+        {tabs.map((item, i) => (
           <span
             key={item}
             aria-current={i === 0 ? "page" : undefined}
