@@ -66,6 +66,21 @@ export function refuseKeyword(p: { clientLive: number; clusterHasLive: boolean |
   return null;
 }
 
+/**
+ * One client's line on /admin/tracking (R101): live prompts and keywords
+ * against the limits `cluster_limit` gives, and how many prompts today's
+ * check reads (a prompt stopped for tomorrow still counts today).
+ */
+export function trackingCounts(p: { clusterLimit: number; today: string; prompts: { added_on: string; stopped_on: string | null }[]; keywords: { stopped_on: string | null }[] }) {
+  return {
+    prompts: p.prompts.filter((q) => q.stopped_on === null).length,
+    promptLimit: p.clusterLimit * PROMPTS_PER_CLUSTER,
+    checkedToday: p.prompts.filter((q) => q.added_on <= p.today && (q.stopped_on === null || q.stopped_on > p.today)).length,
+    keywords: p.keywords.filter((k) => k.stopped_on === null).length,
+    keywordLimit: p.clusterLimit * KEYWORDS_PER_CLUSTER,
+  };
+}
+
 /** Text is editable only until the first reading. After that it is "Stop and add a new one". */
 export function refuseEdit(readings: number): string | null {
   return readings > 0 ? "It already has readings, so its text is fixed. Stop it and add a new one." : null;

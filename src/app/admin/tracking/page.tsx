@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 
 import { T } from "@/config/tokens";
 import { supabaseAdmin, supabaseConfigured } from "@/lib/supabase/admin";
-import { ADMIN_LIMITS, UPSELL_MODES, liveOn, trackingDay } from "@/lib/tracking/decide";
-import { PROMPTS_PER_CLUSTER } from "@/lib/tracking/limits";
+import { ADMIN_LIMITS, UPSELL_MODES, trackingDay } from "@/lib/tracking/decide";
+import { PROMPTS_PER_CLUSTER, trackingCounts } from "@/lib/tracking/limits";
 
 import { ActionForm } from "./ActionForm";
 import { addTracked, createClientFromScan, groupCluster, runNow, setMember, setUpsell } from "./actions";
@@ -118,7 +118,7 @@ export default async function TrackingAdmin() {
         const ks = of(keywords, id);
         const liveQ = qs.filter((q) => q.stopped_on === null);
         const liveK = ks.filter((k) => k.stopped_on === null);
-        const checkedToday = qs.filter((q) => liveOn(q as { added_on: string; stopped_on: string | null }, today)).length;
+        const n = trackingCounts({ clusterLimit: c.cluster_limit as number, today, prompts: qs as { added_on: string; stopped_on: string | null }[], keywords: ks as { stopped_on: string | null }[] });
         const rs = of(runs, id);
         const todayRun = rs.find((r) => r.run_date === today);
         const cost14 = rs.reduce((n, r) => n + Number(r.dfs_cost ?? 0), 0);
@@ -130,7 +130,7 @@ export default async function TrackingAdmin() {
               {c.domain as string} <span style={{ color: T.soft, fontWeight: 400 }}>/{c.slug as string} - {c.market as string} - {c.tier as string} - {c.status as string} - started {String(c.started_on ?? "-")}</span>
             </h2>
             <p style={{ margin: "0 0 8px", color: T.soft }}>
-              Clusters allowed {c.cluster_limit as number} - prompts {liveQ.length}/{(c.cluster_limit as number) * PROMPTS_PER_CLUSTER} ({checkedToday} live today) - keywords {liveK.length}/{c.cluster_limit as number} - today&apos;s run:{" "}
+              Clusters allowed {c.cluster_limit as number} - prompts {n.prompts}/{n.promptLimit} ({n.checkedToday} live today) - keywords {n.keywords}/{n.keywordLimit} -today&apos;s run:{" "}
               {todayRun ? `${todayRun.status} ${money(Number(todayRun.dfs_cost ?? 0))}${todayRun.error ? ` (${todayRun.error})` : ""}` : "none"} - 14 days {money(cost14)}
             </p>
             <ActionForm action={runNow} submit="Run now">
