@@ -285,6 +285,44 @@ export function clusterCards(input: ClusterInput): ClusterCard[] {
     });
 }
 
+export type ClusterDetail = {
+  card: ClusterCard;
+  /** The engine naming the client in most of this cluster's answers in range, of that engine's answers (board: "n of 140", 5 prompts x 28 days). Null with none named. */
+  reliable: { engine: string; rate: Rate } | null;
+  /** The day of the comparison range's Google reading, for "up from #N on 1 Sep". */
+  positionBeforeOn: Day | null;
+};
+
+/**
+ * One cluster's page (T7 part 1, 30 Sep 2026; BRIEF-3 T7 against
+ * boards-3/QuestionDetail.dc.html): the card the overview draws, plus the
+ * summary strip's last figure and the date its Google line quotes. Null for
+ * an id that is not one of this client's clusters in range.
+ */
+export function clusterDetail(input: ClusterInput, clusterId: string): ClusterDetail | null {
+  const card = clusterCards(input).find((c) => c.id === clusterId);
+  if (!card) return null;
+  const ids = new Set(card.prompts.map((p) => p.id));
+  const reliable = input.engines
+    .map((engine) => {
+      let num = 0;
+      let den = 0;
+      for (const a of input.answers) {
+        if (a.engine !== engine || !a.answered || !ids.has(a.question_id) || !within(a.run_date, input.range)) continue;
+        den++;
+        if (a.named) num++;
+      }
+      return { engine, rate: rate(num, den) };
+    })
+    .reduce<{ engine: string; rate: Rate } | null>((best, e) => (e.rate.num > 0 && (!best || e.rate.num > best.rate.num) ? e : best), null);
+  const keywordId = input.clusters.find((c) => c.id === clusterId)?.keyword_id ?? null;
+  let positionBeforeOn: Day | null = null;
+  if (card.positionBefore !== null && keywordId && input.before) {
+    for (const s of input.serp) if (s.keyword_id === keywordId && within(s.run_date, input.before) && (positionBeforeOn === null || s.run_date > positionBeforeOn)) positionBeforeOn = s.run_date;
+  }
+  return { card, reliable, positionBeforeOn };
+}
+
 export type ClusterFilter = "all" | "named" | "never";
 
 /** Prompts with at least one named answer in range. */

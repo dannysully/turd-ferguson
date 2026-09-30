@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
-import { clusterCards, clusterChart, clusterSearch, clusterSummary, filterClusters } from "./cluster-figures.ts";
+import { clusterCards, clusterChart, clusterDetail, clusterSearch, clusterSummary, filterClusters } from "./cluster-figures.ts";
 import { comparisonRange } from "./figures.ts";
 import { expandFixture } from "./fixture-mode.ts";
 
@@ -170,4 +170,18 @@ test("T6 filters: all 10, naming you 9 and with prompts that never name you 3, a
 test("T6 search: ?q= is cut to APP_LIMITS.search (120) before it is used", () => {
   assert.equal(clusterSearch(null), "");
   assert.equal(clusterSearch("x".repeat(500)).length, 120);
+});
+
+test("T7 summary: cluster 1's most reliable engine and its earlier Google reading match detail.py", () => {
+  // dataset.py, 30 Sep 2026: c1 days named per engine, summed over its 5 prompts = [58, 63, 50, 62] of 140; posPrev #7.
+  const input = { ...fx.data, range, before: comparisonRange(range, "prev"), today: fx.today, engines: ["google_aio", "chatgpt", "gemini", "perplexity"] };
+  const d = clusterDetail(input, "c1")!;
+  assert.equal(d.card.id, "c1");
+  assert.deepEqual([d.reliable?.engine, d.reliable?.rate.num, d.reliable?.rate.den], ["chatgpt", 63, 140]);
+  assert.equal(d.card.positionBefore, 7);
+  assert.ok(d.positionBeforeOn && d.positionBeforeOn < range.from, "the earlier reading's day is in the comparison range");
+  assert.equal(clusterDetail(input, "not-a-cluster"), null);
+  // A pending cluster has no readings, so no engine to name.
+  const pending = cards.find((c) => c.status === "pending")!;
+  assert.equal(clusterDetail(input, pending.id)!.reliable, null);
 });
