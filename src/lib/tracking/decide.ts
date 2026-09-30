@@ -2,6 +2,7 @@ import { createHmac } from "node:crypto";
 
 import { constantTimeEqual } from "../constant-time.ts";
 import { isPlausibleEmail } from "../email-address.ts";
+import { TASK_SE_ERROR } from "../scan/dataforseo-request.ts";
 
 /**
  * The decisions the daily tracking runner makes, with nothing in here that
@@ -177,7 +178,9 @@ export const READ_RETRY_DELAYS_MS = [1_000, 3_000] as const;
 
 /**
  * The wait before retrying a failed read, or null for no retry. Retried: HTTP
- * 429 and 5xx, and DataForSEO's server-side task codes (5xxxx). Not retried: a
+ * 429 and 5xx, DataForSEO's server-side task codes (5xxxx), and 40101, the
+ * search engine's own server error (R137, 30 Sep 2026). The free scan's
+ * engine reads use this same rule (pipeline.ts). Not retried: a
  * bad request, auth, a timeout (it already spent its budget), or a retry that
  * would not leave the read its minimum budget inside the run.
  */
@@ -187,7 +190,7 @@ export function readRetryDelay(err: unknown, attempt: number, remainingMs: numbe
   const e = (err ?? {}) as ReadError;
   const retryable =
     (typeof e.status === "number" && (e.status === 429 || e.status >= 500)) ||
-    (typeof e.taskStatus === "number" && e.taskStatus >= 50000);
+    (typeof e.taskStatus === "number" && (e.taskStatus >= 50000 || e.taskStatus === TASK_SE_ERROR));
   if (!retryable) return null;
   return remainingMs - delay >= 10_000 ? delay : null;
 }

@@ -13,7 +13,7 @@ import {
   taskCost,
 } from "./dataforseo-request.ts";
 import { type Market } from "./domain";
-import { type Engine, type EngineRead, PARSERS, parseOrganic, rankOf } from "./engines";
+import { type Engine, type EngineRead, PARSERS, parseOrganic, rankOfRead } from "./engines";
 
 /**
  * The HTTP half. Everything that can be decided without a credential or a
@@ -25,7 +25,8 @@ import { type Engine, type EngineRead, PARSERS, parseOrganic, rankOf } from "./e
 
 const BASE = "https://api.dataforseo.com";
 
-export type EngineResult = EngineRead & { cost: number };
+/** partial: DataForSEO answered 40106 with items - some pages missing, the rest used (R137). */
+export type EngineResult = EngineRead & { cost: number; partial: boolean };
 
 function auth(): string {
   const login = process.env.DATAFORSEO_LOGIN;
@@ -73,7 +74,7 @@ export async function readEngine(
   const { path, body, timeoutMs } = requestFor(engine, question, market);
   const raw = await post(path, body, budgetFor(timeoutMs, budgetMs));
   const task = firstTask(raw);
-  return { ...PARSERS[engine](task.result?.[0]), cost: taskCost(task) };
+  return { ...PARSERS[engine](task.result?.[0]), cost: taskCost(task), partial: task.partial === true };
 }
 
 /**
@@ -179,7 +180,7 @@ export async function readKeywordRank(
 ): Promise<{ rank: number | null | undefined; cost: number }> {
   const { path, body, timeoutMs } = keywordRankRequest(keyword, market);
   const task = firstTask(await post(path, body, budgetFor(timeoutMs, budgetMs)));
-  return { rank: rankOf(parseOrganic(task.result?.[0]), domain), cost: taskCost(task) };
+  return { rank: rankOfRead(parseOrganic(task.result?.[0]), domain, task.partial === true), cost: taskCost(task) };
 }
 
 /**
@@ -196,7 +197,7 @@ export async function readKeywordPosition(
   const { path, body, timeoutMs } = keywordRankRequest(keyword, market);
   const task = firstTask(await post(path, body, budgetFor(timeoutMs, budgetMs)));
   const organic = parseOrganic(task.result?.[0]);
-  const rank = rankOf(organic, domain);
+  const rank = rankOfRead(organic, domain, task.partial === true);
   const url = typeof rank === "number" ? (organic.find((o) => o.rank === rank)?.url ?? null) : null;
   return { rank, url, cost: taskCost(task) };
 }

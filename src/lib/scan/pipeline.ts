@@ -27,7 +27,8 @@ import { sendRequestedReport } from "./report-mail";
 // The words this file writes into `scans.step`, so a typo here is a compile
 // error rather than a progress bar that freezes on the waiting screen.
 import { type RunStep, STEP } from "./run-steps";
-import { type Engine, isEngine, rankOf } from "./engines";
+import { type Engine, isEngine, rankOfRead } from "./engines";
+import { readRetryDelay } from "@/lib/tracking/decide";
 import { classifySources } from "./sources";
 import { normaliseCandidate, pickKeyword } from "./target-keyword";
 
@@ -104,10 +105,7 @@ async function mapWithConcurrency<T, R>(
   return out;
 }
 
-function isRetryable(err: unknown): boolean {
-  const status = (err as { status?: number } | null)?.status;
-  return typeof status === "number" && status >= 500;
-}
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 type Answer = {
   questionId: string;
@@ -470,7 +468,12 @@ async function readAndStore(input: {
       citations: [] as Answer["citations"],
     };
 
-    for (let attempt = 0; attempt < 2; attempt++) {
+    // Retries follow the tracking runner's rule (readRetryDelay: 429, 5xx,
+    // 5xxxx and 40101, twice, 1s then 3s, inside the budget; R137, 30 Sep
+    // 2026). A missing claimed Overview keeps its one retry.
+    let retries = 0;
+    let claimRetried = false;
+    for (let attempt = 0; attempt < 4; attempt++) {
       try {
         /**
          * Counted before the await, for the same reason the search volume call
@@ -498,7 +501,11 @@ async function readAndStore(input: {
         // Google claiming an Overview that did not arrive is worth one retry.
         const claimedButAbsent =
           !read.answered && (read.raw as { claimed_but_absent?: boolean } | null)?.claimed_but_absent;
-        if (claimedButAbsent && attempt === 0) continue;
+        if (claimedButAbsent && !claimRetried) {
+          claimRetried = true;
+          continue;
+        }
+        if (read.partial) console.warn(`[scan] ${engine} read was partial (DataForSEO 40106); using what came back`);
 
         return {
           ...base,
@@ -506,12 +513,17 @@ async function readAndStore(input: {
           brandNamed: read.answered && namesSubject(read.prose, brand, domain),
           prose: read.prose,
           citations: read.citations,
-          googleRank: engine === "google_aio" ? rankOf(read.organic, domain) : undefined,
+          googleRank: engine === "google_aio" ? rankOfRead(read.organic, domain, read.partial) : undefined,
           error: null,
           cost: read.cost,
         };
       } catch (err) {
-        if (attempt === 0 && isRetryable(err)) continue;
+        const wait = readRetryDelay(err, retries, remainingMs());
+        if (wait !== null) {
+          retries += 1;
+          await sleep(wait);
+          continue;
+        }
         return {
           ...base,
           answered: false,

@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
 import { firstTask, keywordRankRequest, SERP_DEPTH } from "../scan/dataforseo-request.ts";
-import { parseGoogleAio, parseOrganic, rankOf } from "../scan/engines.ts";
+import { parseGoogleAio, parseOrganic, rankOf, rankOfRead } from "../scan/engines.ts";
 
 import { billedCost, failureSummary, keywordOutcome, readFailureReason, readRetryDelay, runOutcome } from "./decide.ts";
 
@@ -35,6 +35,39 @@ test("retry: 429, 5xx and DataForSEO 5xxxx retry twice with backoff; bad request
   assert.equal(readRetryDelay({ status: 401 }, 0, plenty), null);
   assert.equal(readRetryDelay({ name: "TimeoutError" }, 0, plenty), null, "a timeout already spent its budget");
   assert.equal(readRetryDelay({ status: 429 }, 0, 9_000), null, "no retry that would not fit inside the run");
+});
+
+test("R137: 40101 (the search engine's own server error) retries twice on the same delays", () => {
+  const plenty = 200_000;
+  let thrown: unknown;
+  try {
+    firstTask({ tasks: [{ status_code: 40101, status_message: "Internal SE Server Error.", cost: 0 }] });
+  } catch (err) {
+    thrown = err;
+  }
+  assert.equal((thrown as { taskStatus?: number }).taskStatus, 40101);
+  assert.equal(readRetryDelay(thrown, 0, plenty), 1_000);
+  assert.equal(readRetryDelay(thrown, 1, plenty), 3_000);
+  assert.equal(readRetryDelay(thrown, 2, plenty), null, "two retries, then stop");
+  assert.equal(readRetryDelay(thrown, 0, 9_000), null, "not past the run's budget");
+  assert.equal(readRetryDelay({ taskStatus: 40102 }, 0, plenty), null, "no results is not a server error");
+});
+
+test("R137: 40106 with items is a partial read, used; with none it is still a failure", () => {
+  const items = [{ type: "ai_overview", items: [{ text: "Brightbook is good." }] }, { type: "organic", rank_group: 4, domain: "ledgerline.com", url: "https://ledgerline.com/" }];
+  const task = firstTask({ tasks: [{ status_code: 40106, status_message: "Task completed with partial results.", cost: 0.002, result: [{ items }] }] });
+  assert.equal(task.partial, true);
+  assert.equal(parseGoogleAio(task.result?.[0]).answered, true, "the Overview that came back is used");
+  assert.equal(firstTask({ tasks: [{ status_code: 20000, result: [{ items }] }] }).partial, undefined, "a whole read is not marked");
+  assert.throws(() => firstTask({ tasks: [{ status_code: 40106, status_message: "partial", result: [{ items: [] }] }] }), /task 40106/);
+  assert.throws(() => firstTask({ tasks: [{ status_code: 40106, status_message: "partial", result: null }] }), /task 40106/);
+});
+
+test("R137: on a partial read, not found is not measured; found is still a rank", () => {
+  const organic = parseOrganic({ items: [{ type: "organic", rank_group: 4, domain: "ledgerline.com", url: "https://ledgerline.com/" }, { type: "organic", rank_group: 6, domain: "tallyroo.com", url: "https://tallyroo.com/" }] });
+  assert.equal(rankOfRead(organic, "tallyroo.com", true), 6);
+  assert.equal(rankOfRead(organic, "ownerledger.co", true), undefined, "may sit on the page that did not come back");
+  assert.equal(rankOfRead(organic, "ownerledger.co", false), null, "a whole read keeps not-in-top-20");
 });
 
 test("a task DataForSEO failed keeps its status, its billed cost and a short reason", () => {

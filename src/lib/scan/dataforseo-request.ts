@@ -210,10 +210,31 @@ export type Task = {
   status_message?: string;
   cost?: number;
   result?: Array<Record<string, unknown>> | null;
+  /** Set by `firstTask` on a 40106 it accepted: some pages did not come back. */
+  partial?: boolean;
 };
 
-/** DataForSEO's "everything is fine" task status. Anything else is an error. */
+/** DataForSEO's "everything is fine" task status. Anything else is an error, bar 40106 below. */
 export const TASK_OK = 20000;
+
+/**
+ * Two task codes read differently from the rest (R137, Danny, 30 Sep 2026,
+ * after 142 of 342 google_aio reads in 14 days errored: 115 x 40101, 27 x
+ * 40106, both since 16 Sep). DataForSEO's errors appendix, read 30 Sep:
+ *
+ * 40101 "internal se server error. - the requested search engine was unable
+ * to process your request and responded with an error". Google's side, not
+ * ours: retried, twice, on the tracking runner's delays (`readRetryDelay`).
+ *
+ * 40106 "Task completed with partial results. Some pages could not be
+ * retrieved after several retry attempts. You have not been charged for the
+ * pages that were not returned. - the task has been completed successfully,
+ * but we could not parse some of the requested results ... you will get 80
+ * results with this error". So a 40106 with items is a read: used, and
+ * marked partial. One with no items is still a failure.
+ */
+export const TASK_SE_ERROR = 40101;
+export const TASK_PARTIAL = 40106;
 
 /**
  * The first task, or a throw. The error carries the task's status code and
@@ -226,6 +247,10 @@ export function firstTask(body: Record<string, unknown>): Task {
   const tasks = body.tasks;
   const task = (Array.isArray(tasks) ? (tasks as Task[]) : [])[0];
   if (!task) throw new Error("DataForSEO returned no task");
+  if (task.status_code === TASK_PARTIAL) {
+    const items = task.result?.[0]?.items;
+    if (Array.isArray(items) && items.length > 0) return { ...task, partial: true };
+  }
   if (task.status_code !== TASK_OK) {
     const err = new Error(`DataForSEO task ${task.status_code}: ${task.status_message ?? "unknown"}`);
     Object.assign(err, { taskStatus: task.status_code, cost: taskCost(task) });

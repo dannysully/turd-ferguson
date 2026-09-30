@@ -227,6 +227,17 @@ export function rankOf(organic: OrganicHit[] | undefined, subject: string): numb
   return hit ? hit.rank : null;
 }
 
+/**
+ * `rankOf` for a read that may be partial (R137, 30 Sep 2026). A 40106 means
+ * some SERP pages did not come back, so "not found" no longer means "not in
+ * the top SERP_DEPTH": the subject may sit on the missing page. Found is
+ * still a rank; not found on a partial read is not measured (undefined).
+ */
+export function rankOfRead(organic: OrganicHit[] | undefined, subject: string, partial: boolean): number | null | undefined {
+  const rank = rankOf(organic, subject);
+  return partial && rank === null ? undefined : rank;
+}
+
 export function parseGoogleAio(result: Record<string, unknown> | undefined | null): EngineRead {
   if (!result) return EMPTY;
 
