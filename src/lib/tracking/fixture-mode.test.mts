@@ -4,6 +4,7 @@ import { test } from "node:test";
 
 import { expandFixture, fixtureMode } from "./fixture-mode.ts";
 import { overview } from "./figures.ts";
+import { ANGLES } from "./limits.ts";
 
 /**
  * R93 / BRIEF-2 T9 (29 Sep 2026): the fixture switch, and the fixture itself.
@@ -48,6 +49,27 @@ test("the fixture expands to the rows the overview reads, and the overview compu
     keywordCount: fx.data.keywords.length,
   });
   assert.ok(o.named.den > 0 && o.named.num > 0 && o.named.num < o.named.den);
+});
+
+test("the fixture is cluster-shaped: 10 clusters, each one keyword and one prompt per angle (R117 T9 step, 30 Sep 2026)", () => {
+  const { clusters, questions, keywords } = fx.data;
+  assert.equal(clusters.length, fx.client.cluster_limit);
+  assert.deepEqual(new Set(clusters.map((c) => c.keyword_id)).size, clusters.length, "one live cluster per keyword");
+  for (const c of clusters) {
+    const kw = keywords.find((k) => k.id === c.keyword_id);
+    assert.ok(kw, `${c.id} joins to a keyword row`);
+    assert.equal(c.name, kw.keyword, "a cluster is named for its keyword");
+    assert.ok(kw.search_volume && kw.search_volume > 0);
+    assert.ok(kw.intent === "commercial" || kw.intent === "transactional");
+    const prompts = questions.filter((q) => q.cluster_id === c.id);
+    assert.deepEqual(prompts.map((q) => q.angle), [...ANGLES], `${c.id} has one prompt per angle, in order`);
+    assert.ok(prompts.every((q) => q.added_on === c.started_on));
+  }
+  assert.ok(questions.every((q) => q.cluster_id !== null), "no ungrouped prompt in the fixture");
+  const pending = clusters.filter((c) => c.started_on > fx.today);
+  assert.equal(pending.length, 1, "one pending cluster, first asked tomorrow");
+  const pendingIds = new Set(questions.filter((q) => q.cluster_id === pending[0].id).map((q) => q.id));
+  assert.ok(!fx.data.answers.some((a) => pendingIds.has(a.question_id)), "a pending cluster has no readings");
 });
 
 test("the fixture names only the made-up brands and domains", () => {

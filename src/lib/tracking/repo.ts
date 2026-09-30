@@ -46,7 +46,7 @@ const fixtureRepo: TrackingRepo = {
   },
   async loadOverview(clientId) {
     // The fixture holds both periods whole; the figures cut the range.
-    return clientId === fixture().client.id ? fixture().data : { questions: [], keywords: [], answers: [], serp: [], lastRun: null, notes: [] };
+    return clientId === fixture().client.id ? fixture().data : { clusters: [], questions: [], keywords: [], answers: [], serp: [], lastRun: null, notes: [] };
   },
   today() {
     return fixture().today;

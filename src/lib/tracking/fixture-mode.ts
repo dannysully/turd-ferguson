@@ -21,7 +21,7 @@ export function fixtureMode(env: Record<string, string | undefined> = process.en
 }
 
 export type Fixture = {
-  client: { id: string; slug: string; brand: string; domain: string; market: string; tier: string; started_on: string; question_limit: number; keyword_limit: number };
+  client: { id: string; slug: string; brand: string; domain: string; market: string; tier: string; started_on: string; question_limit: number; keyword_limit: number; cluster_limit: number };
   member: { email: string; role: string };
   today: Day;
   data: OverviewData;
