@@ -432,7 +432,12 @@ function AnswerDrawer(p: {
   if (!q) return null;
   const brand = p.r.brand.name;
   const answers = q.answers ?? [];
-  const rank = googleLine(q);
+  // ScanCluster.dc.html: on a cluster scan the head names the prompt and the
+  // keyword's rank, and an angle line sits over the prompt; a scan from
+  // before C1 keeps "Question N of M" and the row's own Google line.
+  const cluster = clusterState(p.r);
+  const noun = cluster ? "prompt" : "question";
+  const rank = cluster === "chosen" ? "keyword at Google " + clusterRank(p.r) : cluster === "none" ? "no keyword yet" : googleLine(q);
   const step = (d: number) => {
     const next = qs[at + d];
     if (next) p.onMove(next.idx);
@@ -446,11 +451,11 @@ function AnswerDrawer(p: {
             44px paging buttons, the question at 22px, then one card per engine
             with its verdict pill, what it said, and the pages it cited. */}
         <div className="ans-drawer__head">
-          <div style={{ fontSize: "12.5px", color: T.soft, flexGrow: 1 }}>{"Question " + (at + 1) + " of " + qs.length + " · " + rank}</div>
-          <button type="button" className="ans-nav" onClick={() => step(-1)} disabled={at <= 0} aria-label="Previous question">
+          <div style={{ fontSize: "12.5px", color: T.soft, flexGrow: 1 }}>{noun[0].toUpperCase() + noun.slice(1) + " " + (at + 1) + " of " + qs.length + " · " + rank}</div>
+          <button type="button" className="ans-nav" onClick={() => step(-1)} disabled={at <= 0} aria-label={"Previous " + noun}>
             <Chevron d="M15 6l-6 6 6 6" />
           </button>
-          <button type="button" className="ans-nav" onClick={() => step(1)} disabled={at >= qs.length - 1} aria-label="Next question">
+          <button type="button" className="ans-nav" onClick={() => step(1)} disabled={at >= qs.length - 1} aria-label={"Next " + noun}>
             <Chevron d="M9 6l6 6-6 6" />
           </button>
           <button type="button" className="ans-nav" ref={closeRef} onClick={p.onClose} aria-label="Close">
@@ -458,6 +463,11 @@ function AnswerDrawer(p: {
           </button>
         </div>
         <div style={{ padding: "4px 26px 32px" }}>
+          {cluster ? (
+            <div style={{ marginBottom: "8px", fontSize: "11px", fontWeight: 700, letterSpacing: ".03em", textTransform: "uppercase", color: T.accentHover }}>
+              {(KIND[q.kind] ?? "Your own") + " prompt" + (cluster === "chosen" ? ", about “" + p.r.cluster_keyword?.keyword + "”" : "")}
+            </div>
+          ) : null}
           <h2 id="ans-title" style={{ margin: 0, fontSize: "22px", fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.2 }}>
             {q.question}
           </h2>
@@ -484,7 +494,7 @@ function AnswerDrawer(p: {
                       <p style={{ margin: 0, fontSize: "13px", color: T.soft }}>
                         {a.answered
                           ? "The words were not kept for this scan - it ran before answers were stored for good."
-                          : "This engine gave no answer to this question."}
+                          : "This engine gave no answer to this " + noun + "."}
                       </p>
                     )}
                     {cited.length ? (
