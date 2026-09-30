@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { UsageBeacon } from "@/components/app/UsageBeacon";
 import { fixtureMode } from "@/lib/tracking/fixture-mode";
 
 /**
@@ -16,5 +17,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   // Throws when TRACKING_FIXTURE=1 meets VERCEL_ENV=production (R93): the
   // made-up fixture client is never served from the live site.
   fixtureMode();
-  return children;
+  return (
+    <>
+      {children}
+      <UsageBeacon />
+    </>
+  );
 }

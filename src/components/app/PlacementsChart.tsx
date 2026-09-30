@@ -122,7 +122,7 @@ export default function PlacementsChart({
         {filters.map((f) => {
           const on = f.kind === kind;
           return (
-            <a key={f.kind ?? "all"} href={f.href} aria-current={on ? "true" : undefined} style={{ display: "inline-flex", alignItems: "center", gap: "8px", height: "36px", padding: "0 14px", borderRadius: "999px", border: `1px solid ${on ? T.washLine : T.line}`, background: on ? T.wash : T.surface, color: T.ink, fontSize: "13px", fontWeight: 600, textDecoration: "none", boxSizing: "border-box" }}>
+            <a key={f.kind ?? "all"} href={f.href} data-usage="placement_select" data-usage-type={f.kind ?? "all"} aria-current={on ? "true" : undefined} style={{ display: "inline-flex", alignItems: "center", gap: "8px", height: "36px", padding: "0 14px", borderRadius: "999px", border: `1px solid ${on ? T.washLine : T.line}`, background: on ? T.wash : T.surface, color: T.ink, fontSize: "13px", fontWeight: 600, textDecoration: "none", boxSizing: "border-box" }}>
               <span style={{ width: "10px", height: "10px", borderRadius: "50%", background: f.kind ? KIND_DOT[f.kind] : T.faint }} />
               {f.label}
             </a>
@@ -172,6 +172,7 @@ export default function PlacementsChart({
                 <a
                   key={r.id}
                   href={hrefFor(on ? null : r.id)}
+                  data-usage="placement_select"
                   aria-label={`${KIND_WORDS[r.kind]} on ${host}, live ${r.when}`}
                   aria-current={on ? "true" : undefined}
                   style={{ position: "absolute", left: pctOf(xDay(r.liveOn!)), top: 0, width: "14px", height: "100%", marginLeft: "-7px", display: "flex", justifyContent: "center" }}

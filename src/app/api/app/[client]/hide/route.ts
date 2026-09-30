@@ -2,8 +2,10 @@ import { NextResponse } from "next/server";
 
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { readHideCta, recordHidden } from "@/lib/tracking/ask";
+import { trackingDay } from "@/lib/tracking/decide";
 import { fixtureMode } from "@/lib/tracking/fixture-mode";
 import { clientsFor, sessionEmail } from "@/lib/tracking/member";
+import { recordUsage } from "@/lib/tracking/usage-record";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,5 +32,6 @@ export async function POST(req: Request, ctx: { params: Promise<{ client: string
   if (!client) return NextResponse.json({ error: "Not found." }, { status: 404 });
 
   if (!(await recordHidden(supabaseAdmin(), { clientId: client.id, email, cta }))) console.warn("[app] hide not recorded");
+  await recordUsage(supabaseAdmin(), { clientId: client.id, email, event: "cta_hide", path: null, props: { cta }, today: trackingDay() });
   return back;
 }

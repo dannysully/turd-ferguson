@@ -50,6 +50,7 @@ const CLOSED_ON_PURPOSE: Record<string, string> = {
   "/admin/tracking": "tracked-client operations (T2, 29 Sep 2026); behind the same /admin Basic auth, no public reader",
   // 30 Sep 2026, R96 part 3 (BRIEF-2 T12).
   "/admin/tracking/[client]/placements": "logging one client's placements; behind the same /admin Basic auth, no public reader",
+  "/admin/tracking/usage": "weekly dashboard usage counts (R98 T10, 30 Sep 2026); behind the same /admin Basic auth, no public reader",
   // The alwaystracked client dashboard (T3, 29 Sep 2026): a client's own
   // figures behind a login. The login and link pages are reachable by anyone
   // but are doors to a private area, not pages to be found.

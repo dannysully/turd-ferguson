@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
 
+import { supabaseAdmin } from "@/lib/supabase/admin";
+import { fixtureMode } from "@/lib/tracking/fixture-mode";
 import { rangeFrom } from "@/lib/tracking/overview-data";
 import { PLACEMENTS_FOOTNOTE } from "@/lib/tracking/placement-figures";
 import { placementsScreen } from "@/lib/tracking/placements-screen";
 import { answersCsv, isReportKind, keywordsCsv, placementsCsv, reportFilename } from "@/lib/tracking/report-csv";
 import { trackingRepo } from "@/lib/tracking/repo";
+import { recordUsage } from "@/lib/tracking/usage-record";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -41,6 +44,8 @@ export async function GET(req: Request, ctx: { params: Promise<{ client: string 
     const data = await repo.loadOverview(client.id, range, "none");
     body = kind === "answers" ? answersCsv(data, range) : keywordsCsv(data, range);
   }
+  // T10: the download is counted (ids only); the fixture writes nothing.
+  if (!fixtureMode()) await recordUsage(supabaseAdmin(), { clientId: client.id, email, event: "csv", path: kind === "placements" ? "/placements" : "/", props: { type: kind }, today: repo.today() });
   return new NextResponse(body, {
     headers: {
       "content-type": "text/csv; charset=utf-8",

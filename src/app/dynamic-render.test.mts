@@ -160,7 +160,7 @@ test("the blog kind discovery finds pills and nothing else", async () => {
  * the gap that started all of this - and if one of them ever becomes
  * renderable, `capture()` throws rather than letting it sit on the list.
  */
-test("the routes that cannot be rendered here are exactly the five known ones", () => {
+test("the routes that cannot be rendered here are exactly the six known ones", () => {
   const blocked = Object.entries(STATES)
     .filter(([, s]) => !s.urls.length)
     .map(([route]) => route)
@@ -170,10 +170,12 @@ test("the routes that cannot be rendered here are exactly the five known ones", 
   // auth as /admin/scans, and a credential is not ours to hold. The /app
   // routes (T3) all render here: without a session they land on /app/login.
   // Five since 30 Sep 2026: /admin/tracking/[client]/placements (R96 part 3), same auth.
+  // Six since 30 Sep 2026: /admin/tracking/usage (R98 T10), same auth.
   assert.deepEqual(blocked, [
     "/admin/scans",
     "/admin/tracking",
     "/admin/tracking/[client]/placements",
+    "/admin/tracking/usage",
     "/coverage-check/[token]",
     "/scan/[token]",
   ]);

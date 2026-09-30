@@ -6,6 +6,7 @@ import { sendAsk } from "@/lib/tracking/ask-mail";
 import { trackingDay } from "@/lib/tracking/decide";
 import { fixtureMode } from "@/lib/tracking/fixture-mode";
 import { clientsFor, sessionEmail } from "@/lib/tracking/member";
+import { recordUsage } from "@/lib/tracking/usage-record";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -81,6 +82,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ client: string
     ? await recordAsk(db, { clientId: client.id, email, cta, trigger: { items: String(items.length) } })
     : await recordAsk(db, { clientId: client.id, email, cta: "cluster", trigger: { keyword: keyword as string } });
   if (!recorded) console.warn("[app] ask sent but not recorded");
+  if (cta) await recordUsage(db, { clientId: client.id, email, event: "cta_ask", path: null, props: { cta }, today });
   // The toast's words are rebuilt on the page (askToast) from these words, never passed as text.
   return done("sent", { to: recipient.to ? "agency" : "us", ...(cta ? { n: String(items.length), of: askItemWord(cta, 2) } : {}) });
 }

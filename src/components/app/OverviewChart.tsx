@@ -63,6 +63,7 @@ function Switch({ on, label, onToggle, disabled }: { on: boolean; label: string;
     <button
       type="button"
       aria-pressed={on}
+      data-usage="compare_change"
       onClick={onToggle}
       disabled={disabled}
       style={{ display: "inline-flex", alignItems: "center", gap: "10px", height: "36px", padding: "0 4px", border: 0, background: "transparent", color: T.ink, fontSize: "13px", fontWeight: 600, cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.5 : 1 }}
@@ -134,6 +135,8 @@ export default function OverviewChart({ data }: { data: ChartData }) {
               key={e}
               type="button"
               aria-pressed={on}
+              data-usage="engine_toggle"
+              data-usage-engine={e}
               onClick={() => setShown(e)}
               style={{ display: "inline-flex", alignItems: "center", gap: "8px", height: "36px", padding: "0 14px", borderRadius: "999px", border: `1px solid ${on ? T.washLine : T.line}`, background: on ? T.wash : T.surface, color: T.ink, fontSize: "13px", fontWeight: 600, cursor: "pointer" }}
             >

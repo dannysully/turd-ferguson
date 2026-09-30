@@ -105,7 +105,8 @@ const SECTIONS: Section[] = [
         Scan results are kept indefinitely, so you can come back to the link, and so is what each engine said. We used
         to delete the text after seven days on a scan nobody claimed; we do not any more. It is the evidence behind every figure in
         your report, and a number you cannot read back to the words that produced it is not evidence. On a tracked account, every daily
-        answer is kept for the life of the account, and you can download it from the dashboard.
+        answer is kept for the life of the account, and you can download it from the dashboard. The dashboard also records which of
+        its features are used - which page was opened, which control was pressed - to improve it; it stores ids and counts, never what you type.
       </>
     ),
   },
@@ -130,8 +131,9 @@ const SECTIONS: Section[] = [
       <>
         This site sets no cookies of its own, with one exception: when a client signs in to their <TierName tier="tracked" />{" "}
         dashboard, we set one login cookie so they stay signed in. It holds a random key and nothing else, lasts 30
-        days, is cleared when they log out, and is never set on any other visit. The site runs no analytics - there is
-        no Google Analytics, no tag manager, and no advertising pixel. The one third-party script the page loads is Cloudflare Turnstile, which checks you are not
+        days, is cleared when they log out, and is never set on any other visit. The site runs no third-party analytics - there is
+        no Google Analytics, no tag manager, and no advertising pixel. The dashboard's feature counts, described above, are
+        our own and go to no third party. The one third-party script the page loads is Cloudflare Turnstile, which checks you are not
         a robot before a scan runs - usually without showing anything - and it sets storage of its own to do that.
       </>
     ),

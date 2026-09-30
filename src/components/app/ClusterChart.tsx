@@ -134,6 +134,7 @@ export default function ClusterChart({ data }: { data: ClusterChartData }) {
         <button
           type="button"
           aria-pressed={showPrev}
+          data-usage="compare_change"
           onClick={() => setPrev((v) => !v)}
           disabled={!hasPrev}
           style={{ display: "inline-flex", alignItems: "center", gap: "10px", height: "36px", padding: "0 4px", border: 0, background: "transparent", color: T.ink, fontSize: "13px", fontWeight: 600, cursor: hasPrev ? "pointer" : "default", opacity: hasPrev ? 1 : 0.5, flexShrink: 0 }}
@@ -159,7 +160,7 @@ export default function ClusterChart({ data }: { data: ClusterChartData }) {
           </button>
         ) : null}
         {data.openHref ? (
-          <Link href={data.openHref} className="app-hide-sm" style={{ display: "inline-flex", alignItems: "center", gap: "6px", height: "36px", padding: "0 12px", border: `1px solid ${T.line}`, borderRadius: "10px", color: T.ink, fontSize: "13px", fontWeight: 600, textDecoration: "none" }}>
+          <Link href={data.openHref} className="app-hide-sm" data-usage="detail_open" style={{ display: "inline-flex", alignItems: "center", gap: "6px", height: "36px", padding: "0 12px", border: `1px solid ${T.line}`, borderRadius: "10px", color: T.ink, fontSize: "13px", fontWeight: 600, textDecoration: "none" }}>
             Open cluster
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={T.ink} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M9 6l6 6-6 6" />
@@ -290,7 +291,7 @@ export default function ClusterChart({ data }: { data: ClusterChartData }) {
         {data.note ? <span>{data.note}</span> : null}
       </div>
       {data.openHref ? (
-        <Link href={data.openHref} className="app-show-sm" style={{ fontSize: "14px", fontWeight: 600, color: T.accent, textDecoration: "none" }}>
+        <Link href={data.openHref} className="app-show-sm" data-usage="detail_open" style={{ fontSize: "14px", fontWeight: 600, color: T.accent, textDecoration: "none" }}>
           Open this cluster
         </Link>
       ) : null}

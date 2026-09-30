@@ -21,7 +21,7 @@ export default function UpgradePrompt({ copy, cta, slug, items }: { copy: Prompt
   const tier = copy.tier ? TIERS.find((t) => t.key === copy.tier) : undefined;
   const api = `/api/app/${encodeURIComponent(slug)}`;
   return (
-    <div role="note" aria-label="Upgrade" style={{ margin: "14px 18px 18px", padding: "18px", borderRadius: "14px", background: T.wash, border: `1px solid ${T.washLine}`, display: "flex", flexDirection: "column", gap: "12px" }}>
+    <div role="note" aria-label="Upgrade" data-usage-shown={cta} style={{ margin: "14px 18px 18px", padding: "18px", borderRadius: "14px", background: T.wash, border: `1px solid ${T.washLine}`, display: "flex", flexDirection: "column", gap: "12px" }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
           <span style={{ fontSize: "15px", fontWeight: 700, color: T.ink }}>{copy.title}</span>
@@ -46,7 +46,7 @@ export default function UpgradePrompt({ copy, cta, slug, items }: { copy: Prompt
       </div>
       <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
         {copy.button && tier ? (
-          <Link href={`${tier.href}?from=app`} style={{ display: "flex", alignItems: "center", height: "44px", padding: "0 16px", borderRadius: "12px", background: T.accent, color: T.surface, fontSize: "14px", fontWeight: 600, textDecoration: "none" }}>
+          <Link href={`${tier.href}?from=app`} data-usage="cta_click" data-usage-cta={cta} style={{ display: "flex", alignItems: "center", height: "44px", padding: "0 16px", borderRadius: "12px", background: T.accent, color: T.surface, fontSize: "14px", fontWeight: 600, textDecoration: "none" }}>
             {tier.action}
           </Link>
         ) : null}

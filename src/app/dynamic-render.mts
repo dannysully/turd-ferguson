@@ -192,6 +192,11 @@ export const STATES: Record<string, State> = {
     urls: [],
     blocked: "behind auth - answers 401 with 24 bytes and no HTML at all, and a credential is not ours to hold",
   },
+  // 30 Sep 2026, R98 T10: weekly dashboard usage counts, same /admin Basic auth.
+  "/admin/tracking/usage": {
+    urls: [],
+    blocked: "behind auth - answers 401 with 24 bytes and no HTML at all, and a credential is not ours to hold",
+  },
 };
 
 // ------------------------------------------------------------ the capture

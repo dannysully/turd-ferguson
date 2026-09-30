@@ -6,6 +6,7 @@ import { ADMIN_LIMITS, trackingDay } from "@/lib/tracking/decide";
 import { fixtureMode } from "@/lib/tracking/fixture-mode";
 import { clientsFor, sessionEmail } from "@/lib/tracking/member";
 import { addCluster } from "@/lib/tracking/new-cluster";
+import { recordUsage } from "@/lib/tracking/usage-record";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -55,5 +56,6 @@ export async function POST(req: Request, ctx: { params: Promise<{ client: string
     console.warn(`[app] add cluster refused: ${r.message}`);
     return back({ done: "refused", kind: "cluster", id: "new" });
   }
+  await recordUsage(supabaseAdmin(), { clientId: client.id, email, event: "add_save", path: "/clusters", today: day });
   return back({ done: "added", kind: "cluster", id: r.clusterId, open: r.clusterId });
 }

@@ -94,7 +94,10 @@ export default async function TrackingAdmin() {
     <main style={{ maxWidth: "1100px", margin: "0 auto", padding: "32px 24px", color: T.ink, fontSize: "14px" }}>
       <h1 style={{ fontSize: "24px", margin: "0 0 4px" }}>Tracking</h1>
       <p style={{ color: T.soft, margin: "0 0 24px" }}>
-        Daily check at 05:00 UTC. Today (London): {today}. Clients are made here from a finished scan.
+        Daily check at 05:00 UTC. Today (London): {today}. Clients are made here from a finished scan.{" "}
+        <a href="/admin/tracking/usage" style={{ color: T.ink }}>
+          Dashboard usage
+        </a>
       </p>
 
       <section style={{ border: `1px solid ${T.line}`, borderRadius: "10px", padding: "16px", marginBottom: "24px" }}>

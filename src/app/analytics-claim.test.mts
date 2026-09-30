@@ -83,8 +83,14 @@ const LEGAL = join(SRC, "app/legal/page.tsx");
 /**
  * The sentence, as a set of phrases rather than one string, so reflowing the
  * JSX does not fail this and rewording it does.
+ *
+ * 30 Sep 2026 (R98, BRIEF-2 T10): "runs no analytics" became "runs no
+ * third-party analytics", because the /app dashboard now counts its own
+ * feature use (src/lib/tracking/usage.ts, first-party rows in
+ * dashboard_events, ids and counts only), and /legal says so. The rules below
+ * guard third-party scripts and the data layer; none of that moved.
  */
-const CLAIM = ["runs no analytics", "no tag manager", "no advertising pixel"];
+const CLAIM = ["runs no third-party analytics", "no tag manager", "no advertising pixel", "feature counts"];
 
 test("the claim this file exists to hold is still on the page", () => {
   const legal = readFileSync(LEGAL, "utf8").replace(/\s+/g, " ");

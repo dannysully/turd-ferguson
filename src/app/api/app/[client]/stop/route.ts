@@ -6,6 +6,7 @@ import { trackingDay } from "@/lib/tracking/decide";
 import { fixtureMode } from "@/lib/tracking/fixture-mode";
 import { clientsFor, sessionEmail } from "@/lib/tracking/member";
 import { type StopDone, readStopForm, stop, stopReturn, undoStop } from "@/lib/tracking/stop";
+import { recordUsage } from "@/lib/tracking/usage-record";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,5 +41,6 @@ export async function POST(req: Request, ctx: { params: Promise<{ client: string
     console.warn(`[app] ${f.undo ? "undo" : "stop"} ${f.kind} refused: ${r.message}`);
     return back("refused");
   }
+  await recordUsage(supabaseAdmin(), { clientId: client.id, email, event: f.undo ? "undo" : "stop", path: "/clusters", today: p.today });
   return back(f.undo ? "undone" : "stopped");
 }

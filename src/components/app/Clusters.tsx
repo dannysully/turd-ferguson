@@ -199,7 +199,7 @@ export default function Clusters({
             </span>
           </div>
           {canWrite ? (
-            <Link href={href({ add: "1" })} scroll={false} style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", padding: "0 16px", borderRadius: "12px", background: T.accent, color: T.surface, fontSize: "14px", fontWeight: 600, textDecoration: "none" }}>
+            <Link href={href({ add: "1" })} scroll={false} data-usage="add_open" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", padding: "0 16px", borderRadius: "12px", background: T.accent, color: T.surface, fontSize: "14px", fontWeight: 600, textDecoration: "none" }}>
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={T.surface} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M12 5v14M5 12h14" />
               </svg>
@@ -277,7 +277,7 @@ function AddPanel({ slug, adding, full, clusterLimit, packPrice, close }: { slug
           <h2 style={{ margin: 0, fontSize: "17px", fontWeight: 700, color: T.ink }}>Add a cluster</h2>
           <span style={{ fontSize: "13px", color: T.soft }}>One Google keyword buyers search, and 5 prompts about it.</span>
         </div>
-        <Link href={close} scroll={false} aria-label="Close" style={{ width: "40px", height: "40px", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+        <Link href={close} scroll={false} aria-label="Close" data-usage="add_abandon" style={{ width: "40px", height: "40px", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={T.ink} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M6 6l12 12M18 6L6 18" />
           </svg>
@@ -648,7 +648,7 @@ function ClusterRow({ c, brand, subject, open, toggle, since, act, refill, openH
             </span>
             <span style={{ display: "flex", gap: "10px" }}>
               {/* T7: the board's "Open cluster" goes to QuestionDetail, the one-cluster page, for every role. */}
-              <Link href={openHref} style={{ ...BTN, textDecoration: "none" }}>
+              <Link href={openHref} data-usage="detail_open" style={{ ...BTN, textDecoration: "none" }}>
                 Open cluster
                 {CHEVRON}
               </Link>
