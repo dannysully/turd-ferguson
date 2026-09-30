@@ -81,6 +81,14 @@ test("?engine= picks an engine of the tier, anything else the first", () => {
   assert.equal(engineTab(undefined, ENGINES), "google_aio");
 });
 
+test("fixture: the cluster notes (T7 part 4a) survive expansion and sit on c1's prompts", () => {
+  const fx = expandFixture(JSON.parse(readFileSync(new URL("./fixture.json", import.meta.url), "utf8")));
+  const c1 = new Set(fx.data.questions.filter((q) => q.cluster_id === "c1").map((q) => q.id));
+  assert.deepEqual(fx.clusterNotes, [{ note_date: "2026-09-09", text: "Freelancer landing page relaunched.", question_id: "q1-1" }]);
+  assert.ok(fx.clusterNotes.every((n) => c1.has(n.question_id)));
+  assert.equal(fx.data.notes.length, 0, "the overview's notes are untouched");
+});
+
 test("fixture: every prompt has words for every engine at today's check, agreeing with the row's verdict and brands", () => {
   const fx = expandFixture(JSON.parse(readFileSync(new URL("./fixture.json", import.meta.url), "utf8")));
   const today = fx.data.answers.filter((a) => a.run_date === fx.today);

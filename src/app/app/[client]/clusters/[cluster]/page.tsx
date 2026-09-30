@@ -52,7 +52,10 @@ export default async function ClientCluster({
   const cards = clusterCards(input);
   const prompt = promptIndex(sp.prompt, detail.card.prompts.length);
   const picked = detail.card.prompts[prompt];
-  const latest = picked && detail.card.status !== "pending" ? await repo.latestAnswers(client.id, picked.id, range.to) : null;
+  const [latest, notes] = await Promise.all([
+    picked && detail.card.status !== "pending" ? repo.latestAnswers(client.id, picked.id, range.to) : null,
+    repo.clusterNotes(client.id, detail.card.prompts.map((p) => p.id)),
+  ]);
 
   return (
     <div className="app-shell" style={{ display: "flex", flexWrap: "wrap", minHeight: "100vh", color: T.ink }}>
@@ -72,6 +75,7 @@ export default async function ClientCluster({
           total={cards.length}
           prompt={prompt}
           latest={latest}
+          notes={notes}
           engine={engineTab(sp.engine, engines)}
           clustersPath={`/app/${slug}/clusters`}
         />

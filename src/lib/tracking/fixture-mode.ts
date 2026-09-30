@@ -1,5 +1,5 @@
 import type { Day } from "./figures.ts";
-import type { OverviewData } from "./overview-data.ts";
+import type { ClusterNote, OverviewData } from "./overview-data.ts";
 
 /**
  * The T9 fixture switch (R93, 29 Sep 2026; BRIEF-2 T9). `TRACKING_FIXTURE=1`
@@ -27,6 +27,8 @@ export type Fixture = {
   data: OverviewData;
   /** T7 part 3b: the answer text of each prompt on each engine at today's check, keyed "promptId engine" (docs/parity/T7/add-texts.py). */
   texts: Record<string, string>;
+  /** T7 part 4a: notes on prompts, as the board's "Notes on this cluster" draws them. */
+  clusterNotes: ClusterNote[];
 };
 
 type RawAnswer = [Day, string, string, 0 | 1, string[], string[]];
@@ -38,12 +40,14 @@ export function expandFixture(raw: {
   today: Day;
   data: Omit<OverviewData, "answers"> & { answers: RawAnswer[] };
   texts?: Record<string, string>;
+  clusterNotes?: ClusterNote[];
 }): Fixture {
   return {
     client: { ...raw.client, id: "fixture" },
     member: raw.member,
     today: raw.today,
     texts: raw.texts ?? {},
+    clusterNotes: raw.clusterNotes ?? [],
     data: {
       ...raw.data,
       answers: raw.data.answers.map(([run_date, question_id, engine, named, brands, urls]) => ({

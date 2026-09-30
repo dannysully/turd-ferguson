@@ -95,6 +95,26 @@ export async function loadLatestAnswers(clientId: string, questionId: string, to
   };
 }
 
+/**
+ * "Notes on this cluster" (T7 part 4a, 30 Sep 2026): tracking_notes has no
+ * cluster column, but each note may carry a question_id, so a cluster's notes
+ * are those on its prompts - any date, newest first, the latest 20.
+ */
+export async function loadClusterNotes(clientId: string, questionIds: string[]): Promise<ClusterNote[]> {
+  if (!questionIds.length) return [];
+  const { data, error } = await supabaseAdmin()
+    .from("tracking_notes")
+    .select("note_date, text, question_id")
+    .eq("client_domain_id", clientId)
+    .in("question_id", questionIds)
+    .order("note_date", { ascending: false })
+    .limit(20);
+  if (error) throw new Error(`could not read the cluster's notes: ${error.message}`);
+  return (data ?? []) as ClusterNote[];
+}
+
+export type ClusterNote = { note_date: Day; text: string; question_id: string };
+
 export async function loadOverview(clientId: string, range: Range, compare: Compare): Promise<OverviewData> {
   const db = supabaseAdmin();
   const earliest = comparisonRange(range, compare)?.from ?? range.from;

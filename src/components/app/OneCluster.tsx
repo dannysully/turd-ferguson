@@ -7,7 +7,7 @@ import { ENGINE_SPECS, type Engine } from "@/lib/scan/engines";
 import { type ClusterDetail, type ClusterInput, clusterChart, promptBrands, promptStrip } from "@/lib/tracking/cluster-figures";
 import { type Day, type Range, type Rate, comparisonRange, daysIn, formatDay, pointsDelta } from "@/lib/tracking/figures";
 import { type AnswerTab, type LatestAnswers, answerTabs, brandRuns } from "@/lib/tracking/latest-answers";
-import type { Compare, OverviewData } from "@/lib/tracking/overview-data";
+import type { ClusterNote, Compare, OverviewData } from "@/lib/tracking/overview-data";
 
 import ClusterChart from "./ClusterChart";
 import { Chip } from "./Overview";
@@ -52,6 +52,7 @@ export default function OneCluster({
   prompt,
   latest,
   engine,
+  notes,
   clustersPath,
 }: {
   brand: string;
@@ -71,6 +72,8 @@ export default function OneCluster({
   /** The picked prompt's latest check (T7 part 3b), and the engine tab `?engine=` picks. */
   latest: LatestAnswers | null;
   engine: string;
+  /** Notes on the cluster's prompts, newest first (T7 part 4a). */
+  notes: ClusterNote[];
   clustersPath: string;
 }) {
   const c = detail.card;
@@ -358,9 +361,8 @@ export default function OneCluster({
         </section>
       ) : null}
 
-      {/* The board pairs this card with "Notes on this cluster" (next part); the right column waits for it. */}
+      <div className="app-pair" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: "24px" }}>
       {P && brands && brands.answers ? (
-        <div className="app-pair" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: "24px" }}>
         <section aria-labelledby="al-h" style={{ ...CARD, padding: "24px", display: "flex", flexDirection: "column", gap: "14px" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
             <h2 id="al-h" style={H2}>
@@ -380,8 +382,23 @@ export default function OneCluster({
             </div>
           ))}
         </section>
-        </div>
       ) : null}
+        {/* "Add a note" (owners and editors, a write route) follows in the next part. */}
+        <section aria-labelledby="log-h" style={{ ...CARD, padding: "24px", display: "flex", flexDirection: "column", gap: "12px", gridColumn: P && brands && brands.answers ? undefined : "1 / -1" }}>
+          <h2 id="log-h" style={H2}>
+            Notes on this cluster
+          </h2>
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "14px" }}>
+            {[...notes.map((n) => ({ day: n.note_date, text: n.text })), ...(pending ? [] : [{ day: c.started_on, text: `Tracking began: the keyword and its ${c.prompts.length} prompts.` }])].map((n, i) => (
+              <div key={i} style={{ display: "flex", gap: "12px" }}>
+                <span style={{ width: "56px", flexShrink: 0, color: T.soft }}>{formatDay(n.day)}</span>
+                <span style={{ minWidth: 0, overflowWrap: "anywhere" }}>{n.text}</span>
+              </div>
+            ))}
+            {pending ? <span style={{ color: T.soft }}>No notes yet. The first check is tomorrow at 06:00.</span> : null}
+          </div>
+        </section>
+      </div>
     </div>
   );
 }

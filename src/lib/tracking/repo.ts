@@ -8,7 +8,7 @@ import type { Day, Range } from "./figures.ts";
 import { expandFixture, fixtureMode, type Fixture } from "./fixture-mode.ts";
 import { type MemberClient, clientsFor, sessionEmail } from "./member.ts";
 import type { LatestAnswers } from "./latest-answers.ts";
-import { type Compare, type OverviewData, loadLatestAnswers, loadOverview } from "./overview-data.ts";
+import { type ClusterNote, type Compare, type OverviewData, loadClusterNotes, loadLatestAnswers, loadOverview } from "./overview-data.ts";
 
 /**
  * The dashboard's data layer (R93, 29 Sep 2026; BRIEF-2 T9): one interface,
@@ -26,11 +26,13 @@ export interface TrackingRepo {
   loadOverview(clientId: string, range: Range, compare: Compare): Promise<OverviewData>;
   /** One prompt's answers, with their words, at its latest check on or before `to` (T7 part 3b). */
   latestAnswers(clientId: string, questionId: string, to: Day): Promise<LatestAnswers>;
+  /** Notes on these prompts, any date, newest first (T7 part 4a). */
+  clusterNotes(clientId: string, questionIds: string[]): Promise<ClusterNote[]>;
   /** The tracking day the dashboard treats as today. */
   today(): Day;
 }
 
-const supabaseRepo: TrackingRepo = { sessionEmail, clientsFor, loadOverview, latestAnswers: loadLatestAnswers, today: () => trackingDay() };
+const supabaseRepo: TrackingRepo = { sessionEmail, clientsFor, loadOverview, latestAnswers: loadLatestAnswers, clusterNotes: loadClusterNotes, today: () => trackingDay() };
 
 let cached: Fixture | null = null;
 function fixture(): Fixture {
@@ -64,6 +66,11 @@ const fixtureRepo: TrackingRepo = {
         .filter((a) => a.run_date === day)
         .map((a, i) => ({ ...a, text: day === f.today ? (f.texts[`${questionId} ${a.engine}`] ?? null) : null, at: `${day}T${at[i % 4]}:00Z` })),
     };
+  },
+  async clusterNotes(clientId, questionIds) {
+    const f = fixture();
+    if (clientId !== f.client.id) return [];
+    return f.clusterNotes.filter((n) => questionIds.includes(n.question_id)).sort((a, b) => b.note_date.localeCompare(a.note_date));
   },
   today() {
     return fixture().today;
