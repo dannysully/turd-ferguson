@@ -43,7 +43,7 @@ export type ClusterChartData = {
   note: string | null;
   /** The phone card's one line (R124, boards-3/Mobile.dc.html): "42% named, #4 on Google. Dashed: 5 Aug - 1 Sep". */
   phoneLine: string;
-  /** "Open this cluster" on the phone: the Clusters page with this one open. */
+  /** The one-cluster page: "Open cluster" in the desktop header, "Open this cluster" under the phone card. */
   openHref: string | null;
 };
 
@@ -118,6 +118,7 @@ export default function ClusterChart({ data }: { data: ClusterChartData }) {
             {`Top: the share of this cluster's ${data.answersPerDay} answers a day that named ${data.brand}. Below: where ${data.site} ranks for the keyword. One date range for both.`}
           </p>
         </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "16px", flexShrink: 0 }}>
         <button
           type="button"
           aria-pressed={showPrev}
@@ -130,6 +131,15 @@ export default function ClusterChart({ data }: { data: ClusterChartData }) {
           </span>
           Previous period
         </button>
+        {data.openHref ? (
+          <Link href={data.openHref} className="app-hide-sm" style={{ display: "inline-flex", alignItems: "center", gap: "6px", height: "36px", padding: "0 12px", border: `1px solid ${T.line}`, borderRadius: "10px", color: T.ink, fontSize: "13px", fontWeight: 600, textDecoration: "none" }}>
+            Open cluster
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={T.ink} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M9 6l6 6-6 6" />
+            </svg>
+          </Link>
+        ) : null}
+        </div>
       </div>
 
       <Compact data={data} showPrev={showPrev} />

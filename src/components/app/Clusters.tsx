@@ -180,7 +180,7 @@ export default function Clusters({
           <span style={{ ...HEAD, textAlign: "right" }}>{since ? `Position, vs ${since}` : "Position"}</span>
         </div>
         {shown.map((c) => (
-          <ClusterRow key={c.id} c={c} brand={brand} open={c.id === openId} toggle={href({ open: c.id === openId ? "" : c.id })} since={since} act={act} />
+          <ClusterRow key={c.id} c={c} brand={brand} open={c.id === openId} toggle={href({ open: c.id === openId ? "" : c.id })} since={since} act={act} openHref={`/app/${encodeURIComponent(slug)}/clusters/${encodeURIComponent(c.id)}?${new URLSearchParams(base)}`} />
         ))}
         {shown.length === 0 ? (
           <div style={{ padding: "32px 24px", borderTop: `1px solid ${T.line}`, fontSize: "14px", color: T.soft }}>
@@ -306,6 +306,11 @@ const STOP_ICON = (
     <rect x="6" y="6" width="12" height="12" rx="2" />
   </svg>
 );
+const CHEVRON = (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={T.ink} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M9 6l6 6-6 6" />
+  </svg>
+);
 const BTN: React.CSSProperties = { display: "inline-flex", alignItems: "center", gap: "6px", height: "40px", padding: "0 14px", border: `1px solid ${T.line}`, borderRadius: "10px", background: T.surface, color: T.ink, fontSize: "13px", fontWeight: 600 };
 const SQUARE: React.CSSProperties = { width: "36px", height: "36px", padding: 0, border: `1px solid ${T.line}`, borderRadius: "10px", background: T.surface, color: T.ink, display: "flex", alignItems: "center", justifyContent: "center" };
 
@@ -404,7 +409,7 @@ function PendingEditor({ c, kw, lead, act }: { c: ClusterCard; kw: string; lead:
   );
 }
 
-function ClusterRow({ c, brand, open, toggle, since, act }: { c: ClusterCard; brand: string; open: boolean; toggle: string; since: string | null; act: Act }) {
+function ClusterRow({ c, brand, open, toggle, since, act, openHref }: { c: ClusterCard; brand: string; open: boolean; toggle: string; since: string | null; act: Act; openHref: string }) {
   const pending = c.status === "pending";
   // A stop made today shows until tomorrow's check, with Undo; the slot is already free.
   const stopped = c.stoppedOn !== null;
@@ -557,14 +562,19 @@ function ClusterRow({ c, brand, open, toggle, since, act }: { c: ClusterCard; br
             <span style={{ fontSize: "13px", color: T.soft }}>
               {c.status === "added" ? `Added ${formatDay(c.started_on)}, so there is no earlier period to compare against yet.` : pending ? "Its prompts are asked from tomorrow's 06:00 check." : "Dates and comparisons apply to the prompts and the keyword alike."}
             </span>
-            {act && (!stopped || undoable) ? (
-              <span style={{ display: "flex", gap: "10px" }}>
+            <span style={{ display: "flex", gap: "10px" }}>
+              {/* T7: the board's "Open cluster" goes to QuestionDetail, the one-cluster page, for every role. */}
+              <Link href={openHref} style={{ ...BTN, textDecoration: "none" }}>
+                Open cluster
+                {CHEVRON}
+              </Link>
+              {act && (!stopped || undoable) ? (
                 <StopForm act={act} kind="cluster" id={c.id} undo={stopped} style={BTN}>
                   {stopped ? null : STOP_ICON}
                   {stopped ? "Undo stop" : "Stop tracking this cluster"}
                 </StopForm>
-              </span>
-            ) : null}
+              ) : null}
+            </span>
           </div>
         </div>
       ) : null}
