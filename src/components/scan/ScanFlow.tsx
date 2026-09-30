@@ -354,7 +354,7 @@ function toResult(t: Teaser, domain: string, full: FullPayload | null): RunScanR
     leaderboard_partial: partial,
     // Every engine answering nothing is a real finding, not an error.
     empty: silent,
-    reason: silent ? "None of the engines produced an answer for these questions yet." : null,
+    reason: silent ? "None of the engines produced an answer for these prompts yet." : null,
   };
 }
 

@@ -133,7 +133,7 @@ export function TopicScreen({ headingRef, ...p }: {
       )}
       <label htmlFor={`${id}-topic`} style={label}>
         What keyword are you targeting?{" "}
-        <span style={{ fontWeight: 400, color: T.soft }}>This informs the questions we check.</span>
+        <span style={{ fontWeight: 400, color: T.soft }}>This informs the prompts we check.</span>
       </label>
       <input id={`${id}-topic`} maxLength={WAITLIST_LIMITS.topic} value={p.topic} onChange={(e) => p.onTopic?.(e.target.value)} placeholder="b2b seo agency" style={{ ...field, marginBottom: "0.75rem" }} {...ro(p.readOnly)} />
       <fieldset style={{ border: "none", padding: 0, margin: "0 0 0.75rem" }}>
