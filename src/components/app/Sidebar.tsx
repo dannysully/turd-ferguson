@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import BrandMark from "@/components/BrandMark";
 import EngineLogo from "@/components/EngineLogo";
 import TierName, { type TierKey } from "@/components/TierName";
@@ -25,7 +27,64 @@ const TABS = ["Overview", "Clusters", "Keywords", "Reports"];
 const CLUSTER_NAV = NAV.filter((n) => n !== "Google keywords");
 const CLUSTER_TABS = ["Overview", "Clusters", "Reports", "Settings"];
 
-type Client = { slug: string; domain: string; brand: string | null; market: string };
+// R123 (30 Sep 2026): one line icon per nav item, boards-3/common.py's ICONS
+// at the board's sizes - 18px in the sidebar, 20px on the phone tabs. The
+// flat client's keywords item takes the board's search mark.
+const ICONS: Record<string, ReactNode> = {
+  Overview: (
+    <>
+      <rect x="3" y="3" width="7" height="9" rx="1.5" />
+      <rect x="14" y="3" width="7" height="5" rx="1.5" />
+      <rect x="14" y="12" width="7" height="9" rx="1.5" />
+      <rect x="3" y="16" width="7" height="5" rx="1.5" />
+    </>
+  ),
+  Clusters: (
+    <>
+      <circle cx="5" cy="6" r="1.6" />
+      <circle cx="5" cy="12" r="1.6" />
+      <circle cx="5" cy="18" r="1.6" />
+      <path d="M7 6c6 0 6 6 10 6M7 18c6 0 6-6 10-6M7 12h10" />
+      <circle cx="19" cy="12" r="2.2" />
+    </>
+  ),
+  "Google keywords": (
+    <>
+      <circle cx="11" cy="11" r="7" />
+      <path d="M20 20l-4-4" />
+    </>
+  ),
+  "Who is named": <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />,
+  "Cited pages": (
+    <>
+      <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" />
+      <path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />
+    </>
+  ),
+  Reports: (
+    <>
+      <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+      <path d="M14 3v6h6M8 13h8M8 17h5" />
+    </>
+  ),
+  Settings: (
+    <>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" />
+    </>
+  ),
+};
+ICONS.Keywords = ICONS["Google keywords"];
+
+function NavIcon({ item, size }: { item: string; size: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }}>
+      {ICONS[item]}
+    </svg>
+  );
+}
+
+type Client ={ slug: string; domain: string; brand: string | null; market: string };
 
 function Lockup({ size }: { size: number }) {
   return (
@@ -106,8 +165,11 @@ export default function Sidebar({
             <span
               key={item}
               aria-current={i === 0 ? "page" : undefined}
-              style={{ display: "flex", alignItems: "center", height: "40px", padding: "0 12px", borderRadius: "10px", fontSize: "14px", background: i === 0 ? T.wash : "transparent", color: i === 0 ? T.accent : T.ink, fontWeight: i === 0 ? 600 : 500 }}
+              style={{ display: "flex", alignItems: "center", gap: "12px", height: "40px", padding: "0 12px", borderRadius: "10px", fontSize: "14px", background: i === 0 ? T.wash : "transparent", color: i === 0 ? T.accent : T.ink, fontWeight: i === 0 ? 600 : 500 }}
             >
+              <span style={{ display: "flex", color: i === 0 ? T.accent : T.soft }}>
+                <NavIcon item={item} size={18} />
+              </span>
               {item}
             </span>
           ))}
@@ -150,8 +212,9 @@ export default function Sidebar({
           <span
             key={item}
             aria-current={i === 0 ? "page" : undefined}
-            style={{ flex: "1 1 0", display: "flex", flexDirection: "column", alignItems: "center", padding: "12px 0 6px", color: i === 0 ? T.accent : T.soft, fontSize: "11px", fontWeight: 600 }}
+            style={{ flex: "1 1 0", display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", padding: "10px 0 6px", color: i === 0 ? T.accent : T.soft, fontSize: "11px", fontWeight: 600 }}
           >
+            <NavIcon item={item} size={20} />
             {item}
           </span>
         ))}
