@@ -7,7 +7,7 @@ import { runIsStuck } from "@/lib/tracking/dispatch";
 import { PROMPTS_PER_CLUSTER, type Subject, namesBrandIn, trackingCounts } from "@/lib/tracking/limits";
 
 import { ActionForm } from "./ActionForm";
-import { addTracked, createClientFromScan, groupCluster, runNow, setMember, setUpsell } from "./actions";
+import { addTracked, createClientFromScan, editTracked, groupCluster, runNow, setMember, setUpsell, stopTracked } from "./actions";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -161,6 +161,7 @@ export default async function TrackingAdmin() {
               prompts={liveQ}
               keywords={liveK}
             />
+            <EditOrStop client={id} prompts={liveQ} keywords={liveK} />
             <div>
               <strong style={{ fontSize: "13px" }}>Members</strong>{" "}
               {ms.map((m) => `${m.email as string} (${m.role as string})`).join(", ") || "none"}
@@ -202,6 +203,39 @@ export default async function TrackingAdmin() {
         );
       })}
     </main>
+  );
+}
+
+/**
+ * R102 (Danny, 29 Sep 2026, danny.md line 94): each live prompt and keyword
+ * with a text fix and a stop. The fix is refused server-side once the row has
+ * a reading (admin-edit.ts), so the history never mixes two questions; stop
+ * sets `stopped_on` to tomorrow and deletes nothing. Separate forms from the
+ * cluster pickers above, which are one form each and cannot hold these.
+ */
+function EditOrStop({ client, prompts, keywords }: { client: string; prompts: Row[]; keywords: Row[] }) {
+  const rows = [...prompts.map((q) => ({ kind: "prompt", id: q.id as string, value: q.text as string })), ...keywords.map((k) => ({ kind: "keyword", id: k.id as string, value: k.keyword as string }))];
+  return (
+    <details style={{ margin: "8px 0" }}>
+      <summary>Fix or stop a prompt or keyword ({rows.length})</summary>
+      <p style={{ margin: "4px 0", color: T.soft, fontSize: "12.5px" }}>Text fixes only before the first reading; after that, stop it and add a new one. Stop takes effect tomorrow and keeps its history.</p>
+      {rows.map((r) => (
+        <div key={`${r.kind}-${r.id}`} style={{ display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "center", borderTop: `1px solid ${T.hair}` }}>
+          <ActionForm action={editTracked} submit="Save text">
+            <input type="hidden" name="client" value={client} maxLength={ADMIN_LIMITS.id} />
+            <input type="hidden" name="kind" value={r.kind} maxLength={ADMIN_LIMITS.id} />
+            <input type="hidden" name="id" value={r.id} maxLength={ADMIN_LIMITS.id} />
+            <span style={{ fontSize: "12px", color: T.soft, width: "56px" }}>{r.kind}</span>
+            <input name="value" defaultValue={r.value} maxLength={r.kind === "prompt" ? ADMIN_LIMITS.question : ADMIN_LIMITS.keyword} style={{ ...input, width: "440px" }} aria-label={`Text of ${r.kind}: ${r.value}`} />
+          </ActionForm>
+          <ActionForm action={stopTracked} submit="Stop">
+            <input type="hidden" name="client" value={client} maxLength={ADMIN_LIMITS.id} />
+            <input type="hidden" name="kind" value={r.kind} maxLength={ADMIN_LIMITS.id} />
+            <input type="hidden" name="id" value={r.id} maxLength={ADMIN_LIMITS.id} />
+          </ActionForm>
+        </div>
+      ))}
+    </details>
   );
 }
 

@@ -12,6 +12,7 @@ import { ADMIN_LIMITS, dayAfter, liveOn, slugFor, trackingDay, upsellSetting } f
 import { NEEDS_A_KEYWORD } from "@/lib/checkout/signup";
 import { type Angle, angleFor, groupPrompts, insertCluster, insertKeyword, insertPrompts, linkKeyword, namesBrandIn, PROMPTS_PER_CLUSTER, readPromptRoom, readSubject, refuseGrouping } from "@/lib/tracking/limits";
 import { dispatchTrackingRun } from "@/lib/tracking/runner";
+import { adminEdit, adminStop, isAdminKind } from "@/lib/tracking/admin-edit";
 
 /**
  * /admin/tracking's writes - T2 of docs/tracked-dashboard-2026-09-29/BRIEF.md
@@ -276,6 +277,28 @@ export async function groupCluster(_prev: AdminResult | null, form: FormData): P
   }
   revalidatePath("/admin/tracking");
   return { ok: true, message: `${clusterIdIn ? "Cluster updated" : `Cluster "${keyword}" made`}: ${ids.length} prompt(s) grouped${keyword ? `, keyword ${keyword}` : ""}.` };
+}
+
+/** R102: rewrite one prompt's or keyword's text, only while it has no reading (admin-edit.ts). */
+export async function editTracked(_prev: AdminResult | null, form: FormData): Promise<AdminResult> {
+  const refused = await refuseUnlessAdmin();
+  if (refused) return refused;
+  const kind = text(form, "kind");
+  if (!isAdminKind(kind)) return { ok: false, message: "Unknown kind." };
+  const done = await adminEdit(supabaseAdmin(), { kind, clientId: text(form, "client"), id: text(form, "id"), text: text(form, "value") });
+  if (done.ok) revalidatePath("/admin/tracking");
+  return done;
+}
+
+/** R102: stop one prompt or keyword from tomorrow; the row and its history stay. */
+export async function stopTracked(_prev: AdminResult | null, form: FormData): Promise<AdminResult> {
+  const refused = await refuseUnlessAdmin();
+  if (refused) return refused;
+  const kind = text(form, "kind");
+  if (!isAdminKind(kind)) return { ok: false, message: "Unknown kind." };
+  const done = await adminStop(supabaseAdmin(), { kind, clientId: text(form, "client"), id: text(form, "id"), today: trackingDay() });
+  if (done.ok) revalidatePath("/admin/tracking");
+  return done;
 }
 
 /** Add or remove a dashboard member on an account. */

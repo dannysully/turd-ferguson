@@ -236,7 +236,10 @@ const ACTIONS: Record<string, string[]> = {
   // groupCluster, 30 Sep 2026 (BRIEF-3 C3, R111): makes a cluster or adds to
   // one, moving ungrouped prompts and keywords in through limits.ts. Sends
   // nothing, spends nothing, same admin check first.
-  "src/app/admin/tracking/actions.ts": ["addTracked", "createClientFromScan", "groupCluster", "runNow", "setMember", "setUpsell"],
+  // editTracked and stopTracked, 30 Sep 2026 (R102): fix one prompt's or
+  // keyword's text before its first reading, or stop it from tomorrow
+  // (admin-edit.ts). Send nothing, spend nothing, delete nothing, same admin check first.
+  "src/app/admin/tracking/actions.ts": ["addTracked", "createClientFromScan", "editTracked", "groupCluster", "runNow", "setMember", "setUpsell", "stopTracked"],
 };
 
 // --------------------------------------------------------------- the tests
