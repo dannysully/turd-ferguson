@@ -351,7 +351,13 @@ export function promptStrip(input: Pick<ClusterInput, "answers" | "range" | "eng
   });
 }
 
-export type ClusterFilter = "all" | "named" | "never";
+/** `?prompt=` on the one-cluster page (T7 part 2b): a 0-based index into its prompts; anything else, or past the last, is the first. */
+export function promptIndex(raw: string | string[] | undefined, count: number): number {
+  const n = typeof raw === "string" && /^\d$/.test(raw) ? Number(raw) : 0;
+  return n < count ? n : 0;
+}
+
+export type ClusterFilter ="all" | "named" | "never";
 
 /** Prompts with at least one named answer in range. */
 export const namedCount = (c: ClusterCard) => c.prompts.filter((p) => p.now.num > 0).length;

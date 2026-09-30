@@ -673,7 +673,8 @@ export default function Overview({
             pending: picked.status === "pending",
             note: picked.status !== "pending" && !pickedHasPrev ? `Tracked from ${formatDay(picked.started_on)}. No earlier period to compare yet.` : null,
             phoneLine,
-            openHref: clustersPath ? `${clustersPath}?${new URLSearchParams({ ...rangeQuery, open: picked.id })}` : null,
+            // T7 part 2b: the phone board's "Open this cluster" goes to QuestionDetail, the one-cluster page.
+            openHref: clustersPath ? `${clustersPath}/${encodeURIComponent(picked.id)}?${new URLSearchParams(rangeQuery)}` : null,
           }}
         />
       ) : (

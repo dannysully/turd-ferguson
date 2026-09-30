@@ -23,6 +23,8 @@ import { T } from "@/config/tokens";
 export type ClusterPoint = { pct: number | null; num: number; den: number } | null;
 export type ClusterChartData = {
   keyword: string;
+  /** The card's heading; the keyword by default. The one-cluster page, whose H1 is the keyword, uses the board's "AI answers and Google, day by day". */
+  title?: string;
   /** Where the ranking page lives, as the board's "where {url} ranks". */
   site: string;
   brand: string;
@@ -107,7 +109,7 @@ export default function ClusterChart({ data }: { data: ClusterChartData }) {
       <div className="app-chart-head" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "24px" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: "4px", flex: "1 1 0", minWidth: 0 }}>
           <h2 id="ch-h" className="app-chart-h" style={{ margin: 0, fontSize: "19px", fontWeight: 700, letterSpacing: "-0.022em", color: T.ink }}>
-            {data.keyword}
+            {data.title ?? data.keyword}
           </h2>
           <p className="app-show-sm" style={{ margin: 0, fontSize: "12px", color: T.soft }}>
             {data.phoneLine}

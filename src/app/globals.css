@@ -1659,6 +1659,17 @@ html[data-motion="on"] .res-dial { animation: resDial 1.4s .3s cubic-bezier(.2,.
   .app-figures { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
   .app-figures > * { padding: 16px !important; }
   .app-figures > :nth-child(even) { border-left: 1px solid var(--line) !important; }
+  /* T7 one cluster (no phone board for QuestionDetail): the summary goes two
+     by two, and each prompt row lets its text wrap over the counts. */
+  .app-cl-sum > * { flex: 1 1 50% !important; padding: 16px !important; box-sizing: border-box; }
+  .app-cl-sum > :nth-child(odd) { border-left: 0 !important; }
+  .app-cl-sum > :nth-child(n + 3) { border-top: 1px solid var(--line); }
+  .app-cl-prow { grid-template-columns: minmax(0, 1fr) auto !important; grid-template-rows: auto auto; height: auto !important; padding: 12px !important; row-gap: 8px !important; }
+  .app-cl-prow > :first-child { grid-row: 1 / 3; }
+  .app-cl-prow > :first-child > :first-child { flex-wrap: wrap; }
+  .app-cl-prow > :first-child > :first-child > :last-child { white-space: normal !important; }
+  .app-cl-prow > :first-child > :last-child { flex-wrap: wrap; gap: 8px !important; }
+  .app-cl-kw { width: 100% !important; margin-top: 12px; }
   .app-hide-sm { display: none !important; }
   .app-show-sm { display: block !important; }
   /* Mobile.dc.html spaces the cluster overview's sections 14px apart. */

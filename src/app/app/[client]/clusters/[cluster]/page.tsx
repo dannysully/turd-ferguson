@@ -1,0 +1,76 @@
+import type { Metadata } from "next";
+import { notFound, redirect } from "next/navigation";
+
+import OneCluster from "@/components/app/OneCluster";
+import Sidebar from "@/components/app/Sidebar";
+import type { TierKey } from "@/components/TierName";
+import { enginesFor } from "@/config/pricing";
+import { T } from "@/config/tokens";
+import { clusterCards, clusterDetail, promptIndex } from "@/lib/tracking/cluster-figures";
+import { comparisonRange } from "@/lib/tracking/figures";
+import { rangeFrom } from "@/lib/tracking/overview-data";
+import { trackingRepo } from "@/lib/tracking/repo";
+
+export const dynamic = "force-dynamic";
+
+/** Private - noindex here as well as in the layout, the header rule and robots.txt. */
+export const metadata: Metadata = {
+  title: "Cluster - alwaystracked dashboard",
+  robots: { index: false, follow: false },
+};
+export const runtime = "nodejs";
+
+/**
+ * One cluster (BRIEF-3 T7, route 8: `/app/[client]/clusters/[cluster]?prompt=0-4`),
+ * for the range the URL states. Same membership rule as the overview; a
+ * cluster id that is not this client's, or not in range, is a 404 too.
+ */
+export default async function ClientCluster({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ client: string; cluster: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const repo = trackingRepo();
+  const email = await repo.sessionEmail();
+  if (!email) redirect("/app/login");
+  const { client: slug, cluster: id } = await params;
+  const clients = await repo.clientsFor(email);
+  const client = clients.find((c) => c.slug === slug);
+  if (!client) notFound();
+  const tier = (client.tier as TierKey) ?? "tracked";
+  const engines = enginesFor(tier);
+  const today = repo.today();
+  const sp = await searchParams;
+  const { range, compare } = rangeFrom(sp, today);
+  const data = await repo.loadOverview(client.id, range, compare);
+  const input = { clusters: data.clusters ?? [], questions: data.questions, keywords: data.keywords, answers: data.answers, serp: data.serp, range, before: comparisonRange(range, compare), today, engines };
+  const detail = clusterDetail(input, id);
+  if (!detail) notFound();
+  const cards = clusterCards(input);
+  const prompt = promptIndex(sp.prompt, detail.card.prompts.length);
+
+  return (
+    <div className="app-shell" style={{ display: "flex", flexWrap: "wrap", minHeight: "100vh", color: T.ink }}>
+      <Sidebar client={client} others={clients.filter((c) => c.slug !== slug)} email={email} role={client.role} tier={tier} engines={engines} clusters current="Clusters" />
+      <div className="app-main" style={{ flex: "1 1 480px", minWidth: 0, padding: "36px 40px 48px", background: T.bg }}>
+        <OneCluster
+          brand={client.brand ?? client.domain}
+          domain={client.domain}
+          market={client.market}
+          engines={engines}
+          today={today}
+          range={range}
+          compareMode={compare}
+          data={data}
+          detail={detail}
+          index={cards.findIndex((c) => c.id === id) + 1}
+          total={cards.length}
+          prompt={prompt}
+          clustersPath={`/app/${slug}/clusters`}
+        />
+      </div>
+    </div>
+  );
+}

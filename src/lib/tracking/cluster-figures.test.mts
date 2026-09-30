@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
-import { clusterCards, clusterChart, clusterDetail, clusterSearch, clusterSummary, filterClusters, promptStrip } from "./cluster-figures.ts";
+import { clusterCards, clusterChart, clusterDetail, clusterSearch, clusterSummary, filterClusters, promptIndex, promptStrip } from "./cluster-figures.ts";
 import { comparisonRange } from "./figures.ts";
 import { expandFixture } from "./fixture-mode.ts";
 
@@ -199,4 +199,11 @@ test("T7 strip: cluster 1's second prompt, day by day per engine, matches detail
   assert.deepEqual(rows.map((r) => r.named), prompt.daysNamed.map((d) => d.days));
   // A prompt with no answers draws empty cells, never "not named".
   assert.ok(promptStrip({ answers: [], range, engines }, prompt.id).every((r) => r.cells.every((c) => c === null) && r.answered === 0));
+});
+
+test("promptIndex: ?prompt= picks 0-4 of the cluster's prompts, anything else is the first (T7 part 2b)", () => {
+  assert.equal(promptIndex("1", 5), 1);
+  assert.equal(promptIndex("4", 5), 4);
+  assert.equal(promptIndex("4", 4), 0);
+  for (const bad of [undefined, "", "-1", "1.5", "12", "x", ["1", "2"]]) assert.equal(promptIndex(bad, 5), 0);
 });
