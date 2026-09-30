@@ -3,7 +3,7 @@ import { test } from "node:test";
 
 import type { ClusterChart } from "./cluster-figures.ts";
 import { rate } from "./figures.ts";
-import { type CiteRow, type PlacementRow, PLACEMENTS_FOOTNOTE, placementsView, shortDay, spanText, weeklyPoints } from "./placement-figures.ts";
+import { type CiteRow, citeRows, type PlacementRow, PLACEMENTS_FOOTNOTE, placementsView, shortDay, spanText, weeklyPoints } from "./placement-figures.ts";
 
 // R97 part 1 / BRIEF-2 T13 (30 Sep 2026). Made-up rows only (privacy.test.mts).
 
@@ -63,6 +63,16 @@ test("weekly points sum a week's answers rather than averaging its days", () => 
   assert.deepEqual(w.days, ["2026-07-04", "2026-07-11"]);
   assert.deepEqual(w.named, [rate(10, 40), rate(1, 1)]);
   assert.deepEqual(w.google, [4, 3]);
+});
+
+test("citeRows: one row per cited URL of an answered read, none from a URL-less citation", () => {
+  assert.deepEqual(
+    citeRows([
+      { run_date: "2026-07-06", question_id: "q1", engine: "chatgpt", answered: true, citations: [{ url: "https://example.com/one" }, { url: null }] },
+      { run_date: "2026-07-06", question_id: "q1", engine: "gemini", answered: false, citations: [{ url: "https://example.com/two" }] },
+    ]),
+    [{ run_date: "2026-07-06", question_id: "q1", engine: "chatgpt", url: "https://example.com/one" }],
+  );
 });
 
 test("the footnote is the board's, word for word, and a day reads as the board writes it", () => {

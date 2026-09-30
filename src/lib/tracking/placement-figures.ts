@@ -120,6 +120,11 @@ export function placementsView(input: { chart: ClusterChart; questionIds: readon
   };
 }
 
+/** The overview's answers (which carry their citations) as one row per cited URL. */
+export function citeRows(answers: readonly { run_date: Day; question_id: string; engine: string; answered: boolean; citations: readonly { url: string | null }[] }[]): CiteRow[] {
+  return answers.flatMap((a) => (a.answered ? a.citations.flatMap((c) => (c.url ? [{ run_date: a.run_date, question_id: a.question_id, engine: a.engine, url: c.url }] : [])) : []));
+}
+
 /** A span as the board writes it: "12% to 44%", "#18 to #4", or a dash. */
 export function spanText(s: Span<number>, unit: "pct" | "rank"): string {
   if (s.from === null || s.to === null) return "-";

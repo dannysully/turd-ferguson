@@ -8,6 +8,8 @@ import type { Day, Range } from "./figures.ts";
 import { expandFixture, fixtureMode, type Fixture } from "./fixture-mode.ts";
 import { type MemberClient, clientsFor, sessionEmail } from "./member.ts";
 import type { LatestAnswers } from "./latest-answers.ts";
+import type { PlacementRow } from "./placement-figures.ts";
+import { loadPlacements } from "./placements-data.ts";
 import { type UpgradeContext, loadUpgradeContext } from "./upgrade-context.ts";
 import { type ClusterNote, type Compare, type OverviewData, loadClusterNotes, loadLatestAnswers, loadOverview } from "./overview-data.ts";
 
@@ -31,11 +33,13 @@ export interface TrackingRepo {
   clusterNotes(clientId: string, questionIds: string[]): Promise<ClusterNote[]>;
   /** The upsell mode and this member's hidden prompts (T11 part 4). */
   upgradeContext(clientId: string, email: string, today: Day): Promise<UpgradeContext>;
+  /** The client's placements, removed ones included (T13, R97 part 2). */
+  placements(clientId: string): Promise<(PlacementRow & { cluster_id: string })[]>;
   /** The tracking day the dashboard treats as today. */
   today(): Day;
 }
 
-const supabaseRepo: TrackingRepo = { sessionEmail, clientsFor, loadOverview, latestAnswers: loadLatestAnswers, clusterNotes: loadClusterNotes, upgradeContext: loadUpgradeContext, today: () => trackingDay() };
+const supabaseRepo: TrackingRepo = { sessionEmail, clientsFor, loadOverview, latestAnswers: loadLatestAnswers, clusterNotes: loadClusterNotes, upgradeContext: loadUpgradeContext, placements: loadPlacements, today: () => trackingDay() };
 
 let cached: Fixture | null = null;
 function fixture(): Fixture {
@@ -78,6 +82,10 @@ const fixtureRepo: TrackingRepo = {
   async upgradeContext() {
     // The fixture's account is ours, and nobody has hidden a prompt.
     return { mode: "nomada", hidden: new Set() };
+  },
+  async placements() {
+    // None in the fixture until the screen's own rows are added with its route (R97).
+    return [];
   },
   today() {
     return fixture().today;
