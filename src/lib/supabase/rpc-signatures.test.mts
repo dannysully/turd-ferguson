@@ -280,7 +280,10 @@ test("the six call sites are the ones we think they are", () => {
   assert.deepEqual(byName, {
     note_preview_call: 1,
     note_preview_calls: 1,
-    note_scan_spend: 1,
+    // Two since 30 Sep 2026 (BRIEF-3 C1): the pipeline's billSpend, and
+    // /api/scan/[token]/questions billing the cluster keyword check (two
+    // DataForSEO reads onto dfs_cost, the candidates call onto anthropic_calls).
+    note_scan_spend: 2,
     // `note_verify_send` was here until 24 September 2026. Its callers were
     // the unlock and resend routes, deleted with the email gate. **The
     // function itself is still declared in the migrations and is meant to

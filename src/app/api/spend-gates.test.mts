@@ -125,7 +125,11 @@ const EXEMPT: Record<string, { why: string; evidence: RegExp; where: string }> =
     why:
       "Rewrites one question at a time. Bounded per scan by a reservation taken inside a " +
       "database function against a fixed ceiling, rather than by the day's caps - a rewrite " +
-      "is a fraction of a pass and the row it belongs to was already counted.",
+      "is a fraction of a pass and the row it belongs to was already counted. Since 30 Sep 2026 " +
+      "(BRIEF-3 C1) it also picks the cluster keyword: one candidates call and two DataForSEO " +
+      "reads (volume, intent), a few cents, taken after the same reservation, skipped on a " +
+      "rewrite with the same topic and market, and billed onto dfs_cost so the next start's " +
+      "daily_cost_cap_usd sees them.",
     evidence: /p_ceiling: CALL_CEILING/,
     where: "src/app/api/scan/[token]/questions/route.ts",
   },

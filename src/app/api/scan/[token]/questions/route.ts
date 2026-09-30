@@ -1,5 +1,6 @@
 import { SCAN_LIMITS } from "@/config/contact";
 import {
+  clusterKeywordCandidates,
   describeAnthropicError,
   generateQuestions,
   siteFacts,
@@ -7,7 +8,9 @@ import {
   QUESTION_COUNT,
   TOPIC_VARIANT_COUNT,
 } from "@/lib/scan/anthropic";
-import { isMarket } from "@/lib/scan/domain";
+import { readKeywordIntents, readKeywordVolumes } from "@/lib/scan/dataforseo";
+import { isMarket, type Market } from "@/lib/scan/domain";
+import { pickClusterKeyword } from "@/lib/scan/target-keyword";
 import { normaliseTopicVariants } from "@/lib/scan/topic-variants";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
@@ -22,9 +25,13 @@ export const maxDuration = 60;
  * is the whole point of that screen: if the category is wrong then every
  * question built on it is wrong, and nobody says so unless they are shown.
  *
- * One language model call and nothing else. It touches no engine, so it costs
- * no DataForSEO spend, and it stores no questions - what gets asked is what
- * comes back through /confirm, after the visitor has pruned it.
+ * Since 30 Sep 2026 (BRIEF-3 C1) it is not free: before the questions are
+ * written it picks the scan's one cluster keyword - a model call for
+ * candidates, then one DataForSEO volume read and one intent read, a few
+ * cents, billed onto the scan's dfs_cost (which daily_cost_cap_usd sums) and
+ * stored on the scan. A rewrite on the same topic and market reuses it. It
+ * touches no engine and stores no questions - what gets asked is what comes
+ * back through /confirm, after the visitor has pruned it.
  */
 
 /**
@@ -71,7 +78,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
     // Neither counter is read here any more. The ceiling is decided by
     // note_preview_call inside the update, which is the only reading of
     // preview_calls that two concurrent requests cannot disagree about.
-    .select("id, status, domain, brand_name, positioning, topic, topic_variants, market, site_facts")
+    .select("id, status, domain, brand_name, positioning, topic, topic_variants, market, site_facts, cluster_keyword, cluster_keyword_volume, cluster_keyword_intent, cluster_keyword_status")
     .eq("public_token", token)
     .maybeSingle();
 
@@ -192,6 +199,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
     }
   };
 
+  const cluster = await clusterKeywordFor(db, scan, topic, market);
+
   // Annotated rather than left to evolve, because the assignment below is a
   // destructuring one and an inferred `any` here would take the type off
   // everything the response is built from.
@@ -204,6 +213,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
       brand: scan.brand_name ?? scan.domain,
       positioning: scan.positioning,
       ...siteFacts(scan.site_facts),
+      keyword: cluster.keyword,
     }, billed));
   } catch (err) {
     // Logged rather than swallowed. This is the only step between a visitor
@@ -229,5 +239,76 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
     clusters: [topic, ...variants],
     max: QUESTION_COUNT,
     questions,
+    // The one cluster keyword (BRIEF-3 C1), or why there is none.
+    cluster_keyword: cluster,
   });
+}
+
+type ClusterKeyword = { keyword: string | null; volume: number | null; intent: string | null; status: "chosen" | "none_qualified" | "read_failed" };
+
+/**
+ * The scan's cluster keyword - BRIEF-3 C1 (Danny, 29 Sep 2026). Chosen once,
+ * before the prompts are written, so the prompts are about a keyword that
+ * already passed: measured Google volume above zero and a commercial or
+ * transactional intent (`pickClusterKeyword`). A rewrite on the same topic and
+ * market reuses what is stored and makes no new reads; a changed topic or
+ * market re-runs the check, inside CALL_CEILING's reservation above.
+ *
+ * Never fatal. A read that throws stores `read_failed` and the prompts are
+ * written on the category, the same as `none_qualified`. What was spent is
+ * billed onto the scan through `note_scan_spend` - DataForSEO onto `dfs_cost`,
+ * which `daily_cost_cap_usd` sums, and the candidates call onto
+ * `anthropic_calls` only, not the visitor's rewrite allowance.
+ */
+async function clusterKeywordFor(
+  db: ReturnType<typeof supabaseAdmin>,
+  scan: Record<string, unknown>,
+  topic: string,
+  market: Market,
+): Promise<ClusterKeyword> {
+  if (scan.cluster_keyword_status && scan.topic === topic && scan.market === market) {
+    return {
+      keyword: (scan.cluster_keyword as string | null) ?? null,
+      volume: (scan.cluster_keyword_volume as number | null) ?? null,
+      intent: (scan.cluster_keyword_intent as string | null) ?? null,
+      status: scan.cluster_keyword_status as ClusterKeyword["status"],
+    };
+  }
+  const modelBilled = { calls: 0 };
+  let dfsCost = 0;
+  let dfsCalls = 0;
+  let out: ClusterKeyword;
+  try {
+    const candidates = await clusterKeywordCandidates(
+      { topic, market, positioning: (scan.positioning as string | null) ?? null, ...siteFacts(scan.site_facts) },
+      modelBilled,
+    );
+    if (!candidates.length) {
+      out = { keyword: null, volume: null, intent: null, status: "none_qualified" };
+    } else {
+      const [v, i] = await Promise.all([readKeywordVolumes(candidates, market, 20_000), readKeywordIntents(candidates, 20_000)]);
+      dfsCalls = 2;
+      dfsCost = v.cost + i.cost;
+      const pick = pickClusterKeyword(candidates, v.volumes, i.intents);
+      out = "none" in pick ? { keyword: null, volume: null, intent: null, status: "none_qualified" } : { ...pick, status: "chosen" };
+    }
+  } catch (err) {
+    console.warn(`[scan] cluster keyword check failed for ${String(scan.id)}: ${err instanceof Error ? err.message : String(err)}`);
+    out = { keyword: null, volume: null, intent: null, status: "read_failed" };
+  }
+  const { error: wErr } = await db
+    .from("scans")
+    .update({ cluster_keyword: out.keyword, cluster_keyword_volume: out.volume, cluster_keyword_intent: out.intent, cluster_keyword_status: out.status })
+    .eq("id", scan.id as string);
+  if (wErr) console.warn(`[scan] cluster keyword not stored for ${String(scan.id)}: ${wErr.message}`);
+  if (dfsCalls || dfsCost || modelBilled.calls) {
+    const { error: bErr } = await db.rpc("note_scan_spend", {
+      p_scan: scan.id as string,
+      p_dfs_calls: dfsCalls,
+      p_dfs_cost: dfsCost,
+      p_anthropic_calls: modelBilled.calls,
+    });
+    if (bErr) console.warn(`[scan] cluster keyword spend not billed for ${String(scan.id)}: ${bErr.message}`);
+  }
+  return out;
 }
