@@ -142,7 +142,7 @@ export default function Overview({
         <section aria-label="Headline" className="on-dark" style={{ padding: "36px 40px", borderRadius: "18px", background: `${CLOSE_WASH}, ${D.ground}`, color: T.surface }}>
           <h2 style={{ margin: 0, fontSize: "28px", lineHeight: 1.2, fontWeight: 700, letterSpacing: "-0.03em" }}>{line}</h2>
           <p style={{ margin: "12px 0 0", fontSize: "16px", lineHeight: 1.55, color: D.cardHead, maxWidth: "520px" }}>
-            {liveQuestions ? `${liveQuestions} questions are set up on ${WORDS[engines.length] ?? engines.length} engines. ` : ""}
+            {liveQuestions ? `${liveQuestions} prompts are set up on ${WORDS[engines.length] ?? engines.length} engines. ` : ""}
             The figures fill in from the first daily check, and history starts that day.
           </p>
         </section>
@@ -157,7 +157,7 @@ export default function Overview({
   const questionsAnswered = o.questions.den;
   const lflLine =
     o.lfl && lflDelta !== null
-      ? ` On the ${o.lfl.questions} questions tracked all period that's ${pct(o.lfl.now)}, ${lflDelta > 0 ? "up from" : lflDelta < 0 ? "down from" : "the same as"} ${pct(o.lfl.before)}.`
+      ? ` On the ${o.lfl.questions} prompts tracked all period that's ${pct(o.lfl.now)}, ${lflDelta > 0 ? "up from" : lflDelta < 0 ? "down from" : "the same as"} ${pct(o.lfl.before)}.`
       : "";
 
   // ---- 3. chart ----
@@ -166,13 +166,13 @@ export default function Overview({
   const addedMid = data.questions.filter((q) => q.added_on > range.from && q.added_on <= range.to);
   const lflNote =
     o.lfl && addedMid.length
-      ? `Like-for-like leaves out the ${addedMid.length === 1 ? "question" : `${addedMid.length} questions`} added on ${[...new Set(addedMid.map((q) => formatDay(q.added_on)))].join(", ")}.`
+      ? `Like-for-like leaves out the ${addedMid.length === 1 ? "prompt" : `${addedMid.length} prompts`} added on ${[...new Set(addedMid.map((q) => formatDay(q.added_on)))].join(", ")}.`
       : o.compareHidden;
   const notes = [
     ...data.notes.map((n) => ({ day: n.note_date, text: n.text })),
     ...[...new Set(addedMid.map((q) => q.added_on))].map((d) => {
       const n = addedMid.filter((q) => q.added_on === d).length;
-      return { day: d, text: `${n} question${n === 1 ? "" : "s"} added` };
+      return { day: d, text: `${n} prompt${n === 1 ? "" : "s"} added` };
     }),
   ]
     .map((n) => ({ index: daysIn(range).indexOf(n.day), text: n.text }))
@@ -203,7 +203,7 @@ export default function Overview({
             {brand} was named in <span data-figure="headline-named">{pct(o.named)}</span> of AI answers
           </h2>
           <p style={{ margin: 0, fontSize: "16px", lineHeight: 1.55, color: D.cardHead, maxWidth: "500px" }}>
-            {o.named.num.toLocaleString("en-GB")} of {o.named.den.toLocaleString("en-GB")} answers across {questionsAnswered} questions and {WORDS[engines.length] ?? engines.length} engines.
+            {o.named.num.toLocaleString("en-GB")} of {o.named.den.toLocaleString("en-GB")} answers across {questionsAnswered} prompts and {WORDS[engines.length] ?? engines.length} engines.
             {lflLine}
             {o.compareHidden ? ` ${o.compareHidden}` : ""}
           </p>
@@ -230,7 +230,7 @@ export default function Overview({
               ))}
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "8px", minWidth: 0, flex: "1 1 auto" }}>
-              <svg width={gridDays.length * 17 - 3} height={engines.length * 17 - 3} viewBox={`0 0 ${gridDays.length * 17 - 3} ${engines.length * 17 - 3}`} style={{ maxWidth: "100%", height: "auto" }} role="img" aria-label={`Each engine's daily share of questions naming ${brand}, ${formatDay(gridDays[0]!)} to ${formatDay(gridDays[gridDays.length - 1]!)}`}>
+              <svg width={gridDays.length * 17 - 3} height={engines.length * 17 - 3} viewBox={`0 0 ${gridDays.length * 17 - 3} ${engines.length * 17 - 3}`} style={{ maxWidth: "100%", height: "auto" }} role="img" aria-label={`Each engine's daily share of prompts naming ${brand}, ${formatDay(gridDays[0]!)} to ${formatDay(gridDays[gridDays.length - 1]!)}`}>
                 {engines.map((e, row) =>
                   gridDays.map((d, col) => {
                     const cell = o.grid[e]?.[gridFrom + col] ?? null;
@@ -250,7 +250,7 @@ export default function Overview({
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", color: D.quiet, flexWrap: "wrap" }}>
-            Share of questions naming you that day
+            Share of prompts naming you that day
             <span style={{ display: "flex", gap: "3px" }} aria-hidden="true">
               {[0, 15, 30, 45, 60].map((p) => (
                 <span key={p} style={{ width: "12px", height: "12px", borderRadius: "3px", background: heat(p) }} />
@@ -272,10 +272,10 @@ export default function Overview({
           },
           {
             figure: "questions",
-            label: "Questions you are named in",
+            label: "Prompts you are named in",
             value: `${o.questions.num} of ${o.questions.den}`,
             delta: o.questionsBefore && o.questionsBefore.den ? <span style={{ fontSize: "13px", color: T.soft }}>{`was ${o.questionsBefore.num} of ${o.questionsBefore.den}`}</span> : null,
-            foot: o.questions.den - o.questions.num ? <span style={{ fontSize: "13px", color: T.soft }}>{`${o.questions.den - o.questions.num} never name you`}</span> : <span style={{ fontSize: "13px", color: T.soft }}>Named in every question</span>,
+            foot: o.questions.den - o.questions.num ? <span style={{ fontSize: "13px", color: T.soft }}>{`${o.questions.den - o.questions.num} never name you`}</span> : <span style={{ fontSize: "13px", color: T.soft }}>Named in every prompt</span>,
           },
           {
             figure: "sov",
@@ -324,12 +324,12 @@ export default function Overview({
             <h2 id="movers-h" style={H2}>
               Biggest movers
             </h2>
-            <span style={{ fontSize: "13px", color: T.soft }}>{`All ${questionsAnswered} questions`}</span>
+            <span style={{ fontSize: "13px", color: T.soft }}>{`All ${questionsAnswered} prompts`}</span>
           </div>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
-                <th style={TH}>Question</th>
+                <th style={TH}>Prompt</th>
                 <th style={TH} className="app-hide-sm">Named by</th>
                 <th style={{ ...TH, textAlign: "right" }}>Rate</th>
                 <th style={{ ...TH, textAlign: "right" }}>Change</th>
@@ -338,7 +338,7 @@ export default function Overview({
             <tbody>
               {moved.map((m) => (
                 <tr key={m.id}>
-                  <td style={TD_WIDE}>{text.get(m.id) ?? "A question no longer tracked"}</td>
+                  <td style={TD_WIDE}>{text.get(m.id) ?? "A prompt no longer tracked"}</td>
                   <td style={TD} className="app-hide-sm">
                     <span style={{ display: "flex", gap: "4px" }}>
                       {engines.map((e) => (
@@ -363,7 +363,7 @@ export default function Overview({
             <h2 id="lb-h" style={H2}>
               Who is named instead
             </h2>
-            <p style={{ margin: 0, fontSize: "14px", color: T.soft }}>Share of every brand mention across your questions.</p>
+            <p style={{ margin: 0, fontSize: "14px", color: T.soft }}>Share of every brand mention across your prompts.</p>
           </div>
           <ol style={{ listStyle: "none", margin: 0, padding: "0 0 8px" }}>
             {top.map((b, i) => (
@@ -439,7 +439,7 @@ export default function Overview({
             <h2 id="cited-h" style={H2}>
               Pages the engines cite most
             </h2>
-            <p style={{ margin: 0, fontSize: "14px", color: T.soft }}>Times cited in answers to your questions.</p>
+            <p style={{ margin: 0, fontSize: "14px", color: T.soft }}>Times cited in answers to your prompts.</p>
           </div>
           {pages.length ? (
             <ol style={{ listStyle: "none", margin: 0, padding: "0 24px 12px" }}>

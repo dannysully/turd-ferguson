@@ -107,7 +107,7 @@ export async function createClientFromScan(_prev: AdminResult | null, form: Form
     .from("tracked_questions")
     .select("text")
     .eq("client_domain_id", client.id);
-  if (eErr) return { ok: false, message: `Could not read the client's questions: ${eErr.message}` };
+  if (eErr) return { ok: false, message: `Could not read the client's prompts: ${eErr.message}` };
   const have = new Set((existing ?? []).map((q) => String(q.text).toLowerCase()));
 
   const { data: sq, error: qErr } = await db
@@ -115,7 +115,7 @@ export async function createClientFromScan(_prev: AdminResult | null, form: Form
     .select("idx, question, kind")
     .eq("scan_id", scan.id)
     .order("idx", { ascending: true });
-  if (qErr) return { ok: false, message: `Could not read the scan's questions: ${qErr.message}` };
+  if (qErr) return { ok: false, message: `Could not read the scan's prompts: ${qErr.message}` };
   const room = await readPromptRoom(db, client.id as string, null);
   if (typeof room === "string") return { ok: false, message: room };
   // Each prompt keeps its scan kind as its angle (BRIEF-3 C3).
@@ -148,7 +148,7 @@ export async function createClientFromScan(_prev: AdminResult | null, form: Form
     clustered = Math.min(rows.length, PROMPTS_PER_CLUSTER);
   }
   const copied = await insertPrompts(db, client.id as string, null, rows.slice(clustered));
-  if (!copied.ok) return { ok: false, message: `Could not copy the questions: ${copied.message}` };
+  if (!copied.ok) return { ok: false, message: `Could not copy the prompts: ${copied.message}` };
 
   const { error: memErr } = await db
     .from("dashboard_members")
@@ -330,7 +330,7 @@ export async function runNow(_prev: AdminResult | null, form: FormData): Promise
     .from("tracked_questions")
     .select("added_on, stopped_on")
     .eq("client_domain_id", clientId);
-  if (qErr) return { ok: false, message: `Could not read the questions: ${qErr.message}` };
+  if (qErr) return { ok: false, message: `Could not read the prompts: ${qErr.message}` };
   if (!(qs ?? []).some((q) => liveOn(q as { added_on: string; stopped_on: string | null }, day))) {
     return { ok: false, message: "No prompt is live today - new prompts start at the next daily check." };
   }

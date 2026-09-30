@@ -17,8 +17,8 @@ import { ENGINE_SPECS, type Engine } from "@/lib/scan/engines";
  * server HTML and swapped by CSS, so the phone shell stands with JS off.
  */
 
-const NAV = ["Overview", "Questions", "Google keywords", "Who is named", "Cited pages", "Reports", "Settings"];
-const TABS = ["Overview", "Questions", "Keywords", "Reports"];
+const NAV = ["Overview", "Clusters", "Google keywords", "Who is named", "Cited pages", "Reports", "Settings"];
+const TABS = ["Overview", "Clusters", "Keywords", "Reports"];
 
 type Client = { slug: string; domain: string; brand: string | null; market: string };
 

@@ -117,7 +117,7 @@ export default function OverviewChart({ data }: { data: ChartData }) {
             Share of answers naming you
           </h2>
           <p style={{ margin: 0, fontSize: "14px", color: T.soft }}>
-            Each day, the share of your {data.questions} questions where an engine named {data.brand}. Hover or tab to a day for the detail.
+            Each day, the share of your {data.questions} prompts where an engine named {data.brand}. Hover or tab to a day for the detail.
           </p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
