@@ -13,20 +13,43 @@ import { type MarketReason, marketReasonLine } from "@/lib/scan/market-pick";
  *
  * Built from Flow1Confirm.dc.html. The argument of the screen is in its own
  * heading - get the category wrong and every question built on it is wrong,
- * and nobody tells you unless they are asked. So the questions are written
- * and shown BEFORE anything is paid for, and a whole cluster goes with one tap.
+ * and nobody tells you unless they are asked. So the prompts are written
+ * and shown BEFORE anything is paid for.
  *
- * Nothing here is illustrative. These are the questions this scan will run:
+ * One cluster (BRIEF-3 C1, 30 Sep 2026): the route picks one Google keyword
+ * first - measured volume, commercial or transactional intent - and the five
+ * prompts are five angles on it. The topic-group chips that used to sit here
+ * went with it, and the word "cluster" now means only that keyword and its
+ * prompts; the old topic group is `topic` in this file.
+ *
+ * Nothing here is illustrative. These are the prompts this scan will run:
  * the set that comes back from the preview is the set stored at confirm, and
  * the pipeline asks what it finds rather than writing its own.
  */
 
 /**
  * `own` marks a row the visitor added. It used to be read off `kind ===
- * "custom"`, which stops being true the moment they pick an intent for it -
- * and an own row is the one a cluster chip must never drop.
+ * "custom"`, which stops being true the moment they pick an intent for it.
+ * `topic` is the route's `cluster` field on each question: the category or
+ * variant it was written under, shown and never edited.
  */
-export type PreviewQuestion = { question: string; kind: string; cluster: string; own?: boolean };
+export type PreviewQuestion = { question: string; kind: string; topic: string; own?: boolean };
+
+/** What /api/scan/[token]/questions returns as `cluster_keyword`. */
+export type ClusterKeyword = {
+  keyword: string | null;
+  volume: number | null;
+  intent: string | null;
+  status: "chosen" | "none_qualified" | "read_failed";
+};
+
+/** DataForSEO's four intent labels, sentence case. */
+const KEYWORD_INTENT: Record<string, string> = {
+  commercial: "Commercial",
+  transactional: "Transactional",
+  informational: "Informational",
+  navigational: "Navigational",
+};
 
 /** Our own question kinds, sentence case. The board column is illustrative. */
 const INTENT: Record<string, string> = {
@@ -84,16 +107,6 @@ const fieldLabel: React.CSSProperties = {
   margin: "12px 0 6px",
 };
 
-const chipBase: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "9px",
-  borderRadius: "999px",
-  padding: "9px 16px",
-  fontSize: "14px",
-  fontFamily: "inherit",
-};
-
 const rowInput: React.CSSProperties = {
   width: "100%",
   boxSizing: "border-box",
@@ -120,7 +133,7 @@ const rowInput: React.CSSProperties = {
 /** The intents a visitor can give their own question. */
 const PICKABLE = ["category", "positioning", "sector", "outcome", "comparison"];
 
-/** Cluster and intent on an own row: the cell's size, with a box round it. */
+/** Intent on an own row: the cell's size, with a box round it. */
 const rowSelect: React.CSSProperties = {
   width: "100%",
   boxSizing: "border-box",
@@ -170,8 +183,7 @@ export default function ConfirmScreen(p: {
   const [market, setMarket] = useState<Market>(p.initialMarket);
 
   const [questions, setQuestions] = useState<PreviewQuestion[]>([]);
-  const [clusters, setClusters] = useState<string[]>([]);
-  const [dropped, setDropped] = useState<Set<string>>(new Set());
+  const [keyword, setKeyword] = useState<ClusterKeyword | null>(null);
 
   /**
    * True from the first paint when there is a category to work from, because
@@ -201,12 +213,17 @@ export default function ConfirmScreen(p: {
         });
         const data = await res.json();
         if (!res.ok) {
-          setError(data.message ?? "We could not write the questions just now. Try again.");
+          setError(data.message ?? "We could not write the prompts just now. Try again.");
           return;
         }
-        setQuestions(data.questions ?? []);
-        setClusters(data.clusters ?? []);
-        setDropped(new Set());
+        setQuestions(
+          ((data.questions ?? []) as { question: string; kind: string; cluster: string }[]).map((q) => ({
+            question: q.question,
+            kind: q.kind,
+            topic: q.cluster,
+          })),
+        );
+        setKeyword((data.cluster_keyword as ClusterKeyword | undefined) ?? null);
         setWrittenFor({ topic: forTopic, market: forMarket });
       } catch {
         setError("We could not reach the checker. Try again.");
@@ -282,28 +299,13 @@ export default function ConfirmScreen(p: {
   });
 
   const stale = Boolean(writtenFor && (writtenFor.topic.trim() !== topic.trim() || writtenFor.market !== market));
-  /**
-   * A cluster chip governs the questions we wrote, and nothing else.
-   *
-   * A question the visitor adds is stamped with the current category as its
-   * cluster, so dropping that cluster silently took their own question out of
-   * the run with it: typed into the table, counted in no total, and never
-   * asked. Nothing on the screen said so - the row sat there at full opacity
-   * while the footer count ignored it.
-   *
-   * Their questions are theirs. The chip is a way of dropping a batch we
-   * guessed at, so it applies to the rows it guessed and leaves the rest.
-   */
   const isOwn = (q: PreviewQuestion) => q.own === true;
-  const kept = questions.filter((q) => (isOwn(q) || !dropped.has(q.cluster)) && q.question.trim().length >= 4);
-  const keptClusters = new Set(kept.map((q) => q.cluster));
   /**
-   * Counted off what would actually run, not off the rows on screen. The
-   * footer says "N of a possible 14" from `kept`, so a visitor who dropped a
-   * cluster read "10 of a possible 14" under a button that refused an
-   * eleventh, because the four dropped rows were still being counted against
-   * the limit the sentence had just told them they were under.
+   * Counted off what would actually run, not off the rows on screen: a blank
+   * row the visitor has just added is on screen and not in the run, so the
+   * footer and the Add cap both read `kept`.
    */
+  const kept = questions.filter((q) => q.question.trim().length >= 4);
   const atMax = kept.length >= MAX_QUESTIONS;
   const needsWriting = stale || !writtenFor;
   const canAct = topic.trim().length >= 2 && !writing && !p.running && (needsWriting || kept.length > 0);
@@ -332,24 +334,11 @@ export default function ConfirmScreen(p: {
     if (message) setError(message);
   }
 
-  function toggle(cluster: string) {
-    setDropped((prev) => {
-      const next = new Set(prev);
-      if (next.has(cluster)) next.delete(cluster);
-      else next.add(cluster);
-      return next;
-    });
-  }
-
   function edit(index: number, text: string) {
     setQuestions((prev) => prev.map((q, i) => (i === index ? { ...q, question: text } : q)));
   }
 
-  /** Cluster and intent are the visitor's to set, but only on a row they added. */
-  function setCluster(index: number, cluster: string) {
-    setQuestions((prev) => prev.map((q, i) => (i === index ? { ...q, cluster } : q)));
-  }
-
+  /** Intent is the visitor's to set, but only on a row they added. */
   function setIntent(index: number, kind: string) {
     setQuestions((prev) => prev.map((q, i) => (i === index ? { ...q, kind } : q)));
   }
@@ -360,24 +349,24 @@ export default function ConfirmScreen(p: {
 
   function add() {
     focusLast.current = true;
-    setQuestions((prev) => [...prev, { question: "", kind: "custom", cluster: topic.trim(), own: true }]);
+    setQuestions((prev) => [...prev, { question: "", kind: "custom", topic: topic.trim(), own: true }]);
   }
 
   const primaryLabel = p.running
     ? "Starting"
     : writing
-      ? "Writing the questions"
+      ? "Writing the prompts"
       : needsWriting
-        ? "Write the questions"
-        : "Run " + kept.length + (kept.length === 1 ? " question" : " questions");
+        ? "Write the prompts"
+        : "Run " + kept.length + (kept.length === 1 ? " prompt" : " prompts");
 
+  // The per-prompt Google keyword is still what the paid pass reads until C1's
+  // paid-pass step moves it onto the cluster keyword; this line says what the
+  // report does today, not what it will.
   const footerText =
     kept.length +
     " of a possible " +
     MAX_QUESTIONS +
-    ", across " +
-    keptClusters.size +
-    (keptClusters.size === 1 ? " cluster" : " clusters") +
     ". Each also gets a Google keyword, its monthly searches and where you rank for it, in the report.";
 
   return (
@@ -403,7 +392,7 @@ export default function ConfirmScreen(p: {
             This is what we read off the site. Correct it before we run.
           </h1>
           <p style={{ margin: "12px 0 0", lineHeight: 1.65, color: T.soft }}>
-            The questions come from what the site says it sells. If the category is wrong, everything after it is
+            The keyword and the prompts come from what the site says it sells. If the category is wrong, everything after it is
             wrong too - so it is worth ten seconds now.
           </p>
           {p.positioning ? (
@@ -511,78 +500,71 @@ export default function ConfirmScreen(p: {
                 cursor: "pointer",
               }}
             >
-              Run it anyway, and we will write the questions as it goes
+              Run it anyway, and we will write the prompts as it goes
             </button>
           ) : null}
         </div>
       </div>
 
-      {clusters.length > 0 ? (
+      {keyword ? (
         <section>
           <div className="board-head confirm-head confirm-75" style={{ marginBottom: "14px" }}>
             <h2 style={{ margin: 0, fontSize: "19px", fontWeight: 700, letterSpacing: "-0.022em", color: T.ink }}>
-              Which clusters matter to you
+              The Google keyword
             </h2>
             <p style={{ margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
-              We found {clusters.length}. Keep the ones you care about and drop the rest - the question count comes down with them. Better{" "}
-              {MAX_QUESTIONS} sharp questions on the cluster that matters than one each on clusters you do not care about.
+              {keyword.status === "chosen"
+                ? "The term a buyer types into Google when choosing a supplier, with searches behind it. The prompts below are five angles on it."
+                : keyword.status === "read_failed"
+                  ? "We couldn't check Google search volume just now. The prompts below are written on the category, and nomada digital picks the keyword when you start tracking."
+                  : "We couldn't find a commercial Google term with search volume for this. The prompts below are written on the category, and nomada digital picks the keyword when you start tracking."}
             </p>
           </div>
-          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-            {clusters.map((c) => {
-              const n = questions.filter((q) => !isOwn(q) && q.cluster === c).length;
-              const on = !dropped.has(c) && n > 0;
-              return (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => toggle(c)}
-                  aria-pressed={on}
-                  disabled={n === 0}
-                  style={{
-                    ...chipBase,
-                    cursor: n === 0 ? "default" : "pointer",
-                    background: on ? T.wash : T.surface,
-                    border: "1px solid " + (on ? T.accent : T.line),
-                    color: on ? T.ink : T.soft,
-                  }}
-                >
-                  <span style={{ fontWeight: 600 }}>{c}</span>
-                  <span
-                    style={{
-                      fontSize: "12px",
-                      fontWeight: 600,
-                      padding: "1px 8px",
-                      borderRadius: "999px",
-                      background: on ? T.surface : T.chip,
-                      color: on ? T.accent : T.soft,
-                    }}
-                  >
-                    {n}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+          {keyword.status === "chosen" && keyword.keyword ? (
+            <div
+              data-figure="cluster-keyword"
+              style={{
+                ...CARD,
+                padding: "16px 22px",
+                display: "flex",
+                alignItems: "baseline",
+                gap: "10px 28px",
+                flexWrap: "wrap",
+                opacity: stale ? 0.55 : 1,
+              }}
+            >
+              <div style={{ fontSize: "17px", fontWeight: 700, letterSpacing: "-0.015em", color: T.ink }}>
+                {keyword.keyword}
+              </div>
+              {keyword.volume != null ? (
+                <div style={{ fontSize: "13.5px", color: T.soft }}>
+                  <span style={{ fontWeight: 600, color: T.ink }}>{keyword.volume.toLocaleString("en-GB")}</span>{" "}
+                  searches a month in the {writtenFor?.market ?? market}
+                </div>
+              ) : null}
+              {keyword.intent ? <div style={MICRO}>{KEYWORD_INTENT[keyword.intent] ?? keyword.intent} intent</div> : null}
+            </div>
+          ) : null}
         </section>
       ) : null}
 
       <section>
         <div className="board-head confirm-head confirm-75" style={{ marginBottom: "14px" }}>
           <h2 style={{ margin: 0, fontSize: "19px", fontWeight: 700, letterSpacing: "-0.022em", color: T.ink }}>
-            Your buying questions
+            Your five prompts
           </h2>
           <p style={{ margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
-            Written as a buyer would type them, not as keywords, and aimed at the end of the decision rather than
-            the top of it. Edit any of them, swap one out, or add your own. A free scan runs up to {MAX_QUESTIONS}.
+            Written as a buyer would type them into an AI engine, not as keywords, and aimed at the end of the
+            decision rather than the top of it. Edit any of them, swap one out, or add your own. A free scan runs up
+            to {MAX_QUESTIONS}.
           </p>
         </div>
 
         <div style={{ ...CARD, overflow: "hidden", opacity: stale ? 0.55 : 1 }}>
           <div className="q-row q-head" style={{ background: "#fbfbfc", borderBottom: "1px solid " + T.line }}>
             <div style={MICRO}>#</div>
-            <div style={MICRO}>Question</div>
-            <div style={MICRO}>Cluster</div>
+            <div style={MICRO}>Prompt</div>
+            <div style={MICRO}>Topic</div>
             <div style={MICRO}>Intent</div>
             <div />
           </div>
@@ -590,29 +572,25 @@ export default function ConfirmScreen(p: {
           {questions.length === 0 ? (
             <p style={{ margin: 0, padding: "18px 26px", fontSize: "13.5px", color: T.soft }}>
               {writing
-                ? "Writing the questions a buyer in this category would type. It takes a few seconds."
-                : "Tell us the category above and we will write the questions before anything runs."}
+                ? "Checking the Google keyword and writing the prompts a buyer in this category would type. It takes a few seconds."
+                : "Tell us the category above and we will write the prompts before anything runs."}
             </p>
           ) : null}
 
           {questions.map((q, i) => {
-            const off = !isOwn(q) && dropped.has(q.cluster);
             /**
-             * Not in `kept` is not the same as dropped.
-             *
-             * indexOf returns -1, and -1 + 1 is 0, so a question the visitor
-             * had just added numbered itself 0 until the first character was
-             * typed into it - a blank row fails the length test in `kept`. A
-             * dropped cluster draws a dash, which is a state; a row that is
-             * simply not counted yet draws nothing.
+             * indexOf returns -1, and -1 + 1 is 0, so a prompt the visitor had
+             * just added numbered itself 0 until the first character was typed
+             * into it - a blank row fails the length test in `kept`. A row that
+             * is not counted yet draws nothing.
              */
             const at = kept.indexOf(q);
             const position = at >= 0 ? at + 1 : "";
-            const rowLabel = "Question " + (i + 1);
-            const removeLabel = "Remove question " + (i + 1);
+            const rowLabel = "Prompt " + (i + 1);
+            const removeLabel = "Remove prompt " + (i + 1);
             return (
-              <div key={i} className="q-row" style={{ borderBottom: "1px solid " + T.hair, opacity: off ? 0.4 : 1 }}>
-                <div style={{ fontSize: "13px", color: T.soft }}>{off ? "-" : position}</div>
+              <div key={i} className="q-row" style={{ borderBottom: "1px solid " + T.hair }}>
+                <div style={{ fontSize: "13px", color: T.soft }}>{position}</div>
                 <div>
                   <textarea
                     ref={i === questions.length - 1 ? lastRef : undefined}
@@ -621,39 +599,22 @@ export default function ConfirmScreen(p: {
                     value={q.question}
                     onChange={(e) => edit(i, e.target.value.replace(/\n/g, " "))}
                     onKeyDown={(e) => {
-                      // One question per row: Enter does not start a second line.
+                      // One prompt per row: Enter does not start a second line.
                       if (e.key === "Enter") e.preventDefault();
                     }}
                     aria-label={rowLabel}
-                    placeholder="the question a buyer would type"
+                    placeholder="the prompt a buyer would type"
                     maxLength={SCAN_LIMITS.question}
                     style={rowInput}
                   />
                 </div>
-                {isOwn(q) ? (
-                  <div>
-                    <select
-                      value={q.cluster}
-                      onChange={(e) => setCluster(i, e.target.value)}
-                      aria-label={"Cluster for question " + (i + 1)}
-                      style={rowSelect}
-                    >
-                      {[...new Set([...clusters, topic.trim(), q.cluster].filter(Boolean))].map((c) => (
-                        <option key={c} value={c}>
-                          {c}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                ) : (
-                  <div style={{ fontSize: "12.5px", color: T.soft }}>{q.cluster}</div>
-                )}
+                <div style={{ fontSize: "12.5px", color: T.soft }}>{q.topic}</div>
                 {isOwn(q) ? (
                   <div>
                     <select
                       value={q.kind}
                       onChange={(e) => setIntent(i, e.target.value)}
-                      aria-label={"Intent for question " + (i + 1)}
+                      aria-label={"Intent for prompt " + (i + 1)}
                       style={rowSelect}
                     >
                       {/* "Yours" is the unset state, not a pick: it shows until
@@ -700,7 +661,7 @@ export default function ConfirmScreen(p: {
                 padding: 0,
               }}
             >
-              Add a question
+              Add a prompt
             </button>
           </div>
         </div>
