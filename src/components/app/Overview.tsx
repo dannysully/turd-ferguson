@@ -95,6 +95,7 @@ export default function Overview({
   data,
   selected,
   clustersPath,
+  clusterLimit,
 }: {
   brand: string;
   domain: string;
@@ -109,6 +110,8 @@ export default function Overview({
   selected?: string;
   /** The client's Clusters page (T6), for the phone chart's "Open this cluster"; none on /app/parity. */
   clustersPath?: string;
+  /** The client's cluster_limit, for the board's "N of 10 clusters in use" beside "Manage clusters". */
+  clusterLimit?: number;
 }) {
   const where = market === "UK" ? "the United Kingdom" : "the United States";
   const o = overview({ range, compare: compareMode, startedOn, engines, questions: data.questions, answers: data.answers, serp: data.serp, keywordCount: data.keywords.filter((k) => k.stopped_on === null).length });
@@ -126,7 +129,13 @@ export default function Overview({
   const pickedChart = clusterInput && picked ? clusterChart(clusterInput, picked.id) : null;
   const rangeQuery = { from: range.from, to: range.to, ...(compareMode === "prev" ? {} : { compare: compareMode }) };
   const clusterHref = (id: string) => `?${new URLSearchParams({ ...rangeQuery, cluster: id })}`;
-  const pickedHasPrev = !!pickedChart?.namedBefore?.some((p) => p !== null);
+  // T6 (30 Sep 2026): the board's "10 of 10 clusters in use" and "Manage clusters" (phone: "Manage"),
+  // counted as the Clusters page counts - a stopped cluster frees its slot at once. None on /app/parity.
+  const manage =
+    cards && clustersPath
+      ? { href: `${clustersPath}?${new URLSearchParams(rangeQuery)}`, inUse: clusterLimit ? `${cards.filter((c) => c.stoppedOn === null).length} of ${clusterLimit} clusters in use` : null }
+      : null;
+  const pickedHasPrev =!!pickedChart?.namedBefore?.some((p) => p !== null);
   // R124: the phone board's one line under the chart's name - "42% named, #4 on Google. Dashed: 5 Aug - 1 Sep".
   const phoneLine = !picked
     ? ""
@@ -643,8 +652,8 @@ export default function Overview({
         </section>
       ) : null}
 
-      {cards ? <ClusterCards cards={cards} engines={engines} picked={picked?.id ?? null} href={clusterHref} /> : null}
-      {cards ? <ClusterRows cards={cards} picked={picked?.id ?? null} href={clusterHref} /> : null}
+      {cards ? <ClusterCards cards={cards} engines={engines} picked={picked?.id ?? null} href={clusterHref} manage={manage} /> : null}
+      {cards ? <ClusterRows cards={cards} picked={picked?.id ?? null} href={clusterHref} manage={manage} /> : null}
 
       {picked && pickedChart ? (
         <ClusterChart
@@ -733,16 +742,28 @@ export function Chip({ value, unit, none, size = 12 }: { value: number | null; u
  * chart below is set by the picked card: each card is a link to `?cluster=`,
 so picking works with JS off (T4b part 5b).
  */
-function ClusterCards({ cards, engines, picked, href }: { cards: ClusterCard[]; engines: readonly Engine[]; picked: string | null; href: (id: string) => string }) {
+type Manage = { href: string; inUse: string | null } | null;
+
+function ClusterCards({ cards, engines, picked, href, manage }: { cards: ClusterCard[]; engines: readonly Engine[]; picked: string | null; href: (id: string) => string; manage: Manage }) {
   return (
     <section aria-labelledby="cl-h" className="app-hide-sm" style={{ ...CARD, padding: "22px 24px 24px", display: "flex", flexDirection: "column", gap: "18px" }}>
-      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-        <h2 id="cl-h" style={H2}>
-          Your clusters
-        </h2>
-        <p style={{ margin: 0, fontSize: "14px", lineHeight: 1.5, color: T.soft, maxWidth: "760px" }}>
-          Each cluster is one Google keyword and the 5 prompts about it. An engine mark is full where that engine named you at least once this period. Pick a cluster to chart it below.
-        </p>
+      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "24px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+          <h2 id="cl-h" style={H2}>
+            Your clusters
+          </h2>
+          <p style={{ margin: 0, fontSize: "14px", lineHeight: 1.5, color: T.soft, maxWidth: "760px" }}>
+            Each cluster is one Google keyword and the 5 prompts about it. An engine mark is full where that engine named you at least once this period. Pick a cluster to chart it below.
+          </p>
+        </div>
+        {manage ? (
+          <div style={{ display: "flex", alignItems: "center", gap: "16px", flexShrink: 0 }}>
+            {manage.inUse ? <span style={{ fontSize: "13px", color: T.soft }}>{manage.inUse}</span> : null}
+            <Link href={manage.href} style={{ fontSize: "14px", fontWeight: 600, color: T.accent, textDecoration: "none" }}>
+              Manage clusters
+            </Link>
+          </div>
+        ) : null}
       </div>
       <div className="app-pair" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "16px" }}>
         {cards.map((c) => {
@@ -832,15 +853,22 @@ function ClusterCards({ cards, engines, picked, href }: { cards: ClusterCard[]; 
  * desktop cards - a dot per prompt (filled where it named the client this
  * period) joined to the Google node, the keyword and its prompt count, the
  * rate and its change. Swapped by CSS, so it stands with JS off; each row
- * picks the chart below, as the cards do. The board's "Manage" link waits
- * for T6: there is no clusters screen to send it to yet.
+ * picks the chart below, as the cards do. "Manage" goes to the Clusters
+ * page (T6).
  */
-function ClusterRows({ cards, picked, href }: { cards: ClusterCard[]; picked: string | null; href: (id: string) => string }) {
+function ClusterRows({ cards, picked, href, manage }: { cards: ClusterCard[]; picked: string | null; href: (id: string) => string; manage: Manage }) {
   return (
     <section aria-labelledby="cl-h-sm" className="app-show-sm" style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: "16px", paddingTop: "14px" }}>
-      <h2 id="cl-h-sm" style={{ margin: "0 16px 10px", fontSize: "16px", fontWeight: 700, color: T.ink }}>
-        Your clusters
-      </h2>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "0 16px 10px" }}>
+        <h2 id="cl-h-sm" style={{ margin: 0, fontSize: "16px", fontWeight: 700, color: T.ink }}>
+          Your clusters
+        </h2>
+        {manage ? (
+          <Link href={manage.href} style={{ fontSize: "14px", fontWeight: 600, color: T.accent, textDecoration: "none" }}>
+            Manage
+          </Link>
+        ) : null}
+      </div>
       <p style={{ margin: "0 16px 10px", fontSize: "12px", lineHeight: 1.5, color: T.soft }}>Each keyword and its 5 prompts. A filled dot is a prompt that named you this period.</p>
       {cards.map((c) => {
         const pending = c.status === "pending";

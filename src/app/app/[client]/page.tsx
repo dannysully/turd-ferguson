@@ -6,6 +6,7 @@ import Sidebar from "@/components/app/Sidebar";
 import type { TierKey } from "@/components/TierName";
 import { enginesFor } from "@/config/pricing";
 import { T } from "@/config/tokens";
+import { CLUSTER_BASE } from "@/lib/tracking/limits";
 import { rangeFrom } from "@/lib/tracking/overview-data";
 import { trackingRepo } from "@/lib/tracking/repo";
 
@@ -63,6 +64,7 @@ export default async function ClientDashboard({
           data={data}
           selected={typeof sp.cluster === "string" ? sp.cluster : undefined}
           clustersPath={`/app/${slug}/clusters`}
+          clusterLimit={client.cluster_limit ?? CLUSTER_BASE}
         />
       </div>
     </div>
