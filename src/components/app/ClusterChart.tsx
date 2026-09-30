@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 import { T } from "@/config/tokens";
@@ -38,6 +39,10 @@ export type ClusterChartData = {
   pending: boolean;
   /** "Tracked from 22 Sep. No earlier period to compare yet." when a live cluster has no previous period. */
   note: string | null;
+  /** The phone card's one line (R124, boards-3/Mobile.dc.html): "42% named, #4 on Google. Dashed: 5 Aug - 1 Sep". */
+  phoneLine: string;
+  /** "Open this cluster" on the phone: the Clusters page with this one open. */
+  openHref: string | null;
 };
 
 const W = 1056;
@@ -98,13 +103,16 @@ export default function ClusterChart({ data }: { data: ClusterChartData }) {
     : `Daily share of answers naming ${data.brand} for ${data.keyword}, above its Google position, ${data.dayLabels[0]} to ${data.dayLabels[n - 1]}: from ${pct(firstNamed)} to ${pct(lastNamed!)}`;
 
   return (
-    <section id="cluster-chart" aria-labelledby="ch-h" style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: "18px", padding: "24px 27px 20px", display: "flex", flexDirection: "column", gap: "16px", minWidth: 0 }}>
+    <section id="cluster-chart" aria-labelledby="ch-h" className="app-chart-card" style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: "18px", padding: "24px 27px 20px", display: "flex", flexDirection: "column", gap: "16px", minWidth: 0 }}>
       <div className="app-chart-head" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "24px" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: "4px", flex: "1 1 0", minWidth: 0 }}>
-          <h2 id="ch-h" style={{ margin: 0, fontSize: "19px", fontWeight: 700, letterSpacing: "-0.022em", color: T.ink }}>
+          <h2 id="ch-h" className="app-chart-h" style={{ margin: 0, fontSize: "19px", fontWeight: 700, letterSpacing: "-0.022em", color: T.ink }}>
             {data.keyword}
           </h2>
-          <p style={{ margin: 0, fontSize: "14px", color: T.soft }}>
+          <p className="app-show-sm" style={{ margin: 0, fontSize: "12px", color: T.soft }}>
+            {data.phoneLine}
+          </p>
+          <p className="app-hide-sm" style={{ margin: 0, fontSize: "14px", color: T.soft }}>
             {`Top: the share of this cluster's ${data.answersPerDay} answers a day that named ${data.brand}. Below: where ${data.site} ranks for the keyword. One date range for both.`}
           </p>
         </div>
@@ -216,7 +224,7 @@ export default function ClusterChart({ data }: { data: ClusterChartData }) {
         ) : null}
       </div>
 
-      <div style={{ display: "flex", gap: "20px", flexWrap: "wrap", fontSize: "12px", color: T.soft }}>
+      <div className="app-hide-sm" style={{ display: "flex", gap: "20px", flexWrap: "wrap", fontSize: "12px", color: T.soft }}>
         <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
           <span style={{ width: "18px", borderTop: `3px solid ${T.accent}` }} />
           Answers naming you
@@ -233,6 +241,11 @@ export default function ClusterChart({ data }: { data: ClusterChartData }) {
         ) : null}
         {data.note ? <span>{data.note}</span> : null}
       </div>
+      {data.openHref ? (
+        <Link href={data.openHref} className="app-show-sm" style={{ fontSize: "14px", fontWeight: 600, color: T.accent, textDecoration: "none" }}>
+          Open this cluster
+        </Link>
+      ) : null}
     </section>
   );
 }

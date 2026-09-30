@@ -1672,7 +1672,11 @@ html[data-motion="on"] .res-dial { animation: resDial 1.4s .3s cubic-bezier(.2,.
   /* Main.dc.html keeps the Previous period toggle level with the cluster
      name (R122); on a phone the lede needs the width, so it drops below. */
   .app-chart-head { flex-wrap: wrap; gap: 12px !important; }
-  .app-chart-head > :first-child { flex-basis: 100% !important; }
+  .app-chart-head > :first-child { flex-basis: 100% !important; gap: 2px !important; }
+  /* Mobile.dc.html's chart card (R124): 16px corners, 16/16/12 padding, 10px
+     gaps, a 16px name over the one line; the lede and legend are desktop-only. */
+  .app-chart-card { border-radius: 16px !important; padding: 16px 16px 12px !important; gap: 10px !important; }
+  .app-chart-h { font-size: 16px !important; letter-spacing: 0 !important; }
   /* Mobile.dc.html: no page title, the date button spans the column. */
   .app-date { flex: 1 1 100%; }
   .app-headline { padding: 22px 20px !important; gap: 12px !important; }

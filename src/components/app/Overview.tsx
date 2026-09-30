@@ -94,6 +94,7 @@ export default function Overview({
   compareMode,
   data,
   selected,
+  clustersPath,
 }: {
   brand: string;
   domain: string;
@@ -106,6 +107,8 @@ export default function Overview({
   data: OverviewData;
   /** The cluster the chart shows, from `?cluster=`. */
   selected?: string;
+  /** The client's Clusters page (T6), for the phone chart's "Open this cluster"; none on /app/parity. */
+  clustersPath?: string;
 }) {
   const where = market === "UK" ? "the United Kingdom" : "the United States";
   const o = overview({ range, compare: compareMode, startedOn, engines, questions: data.questions, answers: data.answers, serp: data.serp, keywordCount: data.keywords.filter((k) => k.stopped_on === null).length });
@@ -121,7 +124,16 @@ export default function Overview({
   // T4b part 5b: the picked card (?cluster=) sets the chart; the first card by default, as the board opens on c1.
   const picked = cards ? (cards.find((c) => c.id === selected) ?? cards[0]!) : null;
   const pickedChart = clusterInput && picked ? clusterChart(clusterInput, picked.id) : null;
-  const clusterHref = (id: string) => `?${new URLSearchParams({ from: range.from, to: range.to, ...(compareMode === "prev" ? {} : { compare: compareMode }), cluster: id })}`;
+  const rangeQuery = { from: range.from, to: range.to, ...(compareMode === "prev" ? {} : { compare: compareMode }) };
+  const clusterHref = (id: string) => `?${new URLSearchParams({ ...rangeQuery, cluster: id })}`;
+  const pickedHasPrev = !!pickedChart?.namedBefore?.some((p) => p !== null);
+  // R124: the phone board's one line under the chart's name - "42% named, #4 on Google. Dashed: 5 Aug - 1 Sep".
+  const phoneLine = !picked
+    ? ""
+    : picked.status === "pending"
+      ? "First check tomorrow at 06:00."
+      : `${pct(picked.now)} named, ${picked.position === null ? (picked.keyword ? "no Google position" : "no keyword yet") : `#${picked.position} on Google`}.` +
+        (pickedHasPrev && o.compare ? ` Dashed: ${span(o.compare)}` : ` Tracked from ${formatDay(picked.started_on)}.`);
   const heatRows = cards ? cards.filter((c) => c.status !== "pending") : [];
   const pendingKeywords = cards ? cards.filter((c) => c.status === "pending" && c.keyword).length : 0;
   const liveQuestions = data.questions.filter((q) => q.stopped_on === null && q.added_on <= today).length;
@@ -650,7 +662,9 @@ export default function Overview({
             beforeLabel: o.compare ? span(o.compare) : null,
             answersPerDay: picked.prompts.length * engines.length,
             pending: picked.status === "pending",
-            note: picked.status !== "pending" && !pickedChart.namedBefore?.some((p) => p !== null) ? `Tracked from ${formatDay(picked.started_on)}. No earlier period to compare yet.` : null,
+            note: picked.status !== "pending" && !pickedHasPrev ? `Tracked from ${formatDay(picked.started_on)}. No earlier period to compare yet.` : null,
+            phoneLine,
+            openHref: clustersPath ? `${clustersPath}?${new URLSearchParams({ ...rangeQuery, open: picked.id })}` : null,
           }}
         />
       ) : (

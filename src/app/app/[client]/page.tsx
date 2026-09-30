@@ -62,6 +62,7 @@ export default async function ClientDashboard({
           compareMode={compare}
           data={data}
           selected={typeof sp.cluster === "string" ? sp.cluster : undefined}
+          clustersPath={`/app/${slug}/clusters`}
         />
       </div>
     </div>
