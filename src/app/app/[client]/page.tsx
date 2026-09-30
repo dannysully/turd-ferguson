@@ -64,6 +64,7 @@ export default async function ClientDashboard({
           data={data}
           selected={typeof sp.cluster === "string" ? sp.cluster : undefined}
           clustersPath={`/app/${slug}/clusters`}
+          reportPath={`/api/app/${encodeURIComponent(slug)}/report`}
           clusterLimit={client.cluster_limit ?? CLUSTER_BASE}
         />
       </div>

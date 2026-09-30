@@ -1,0 +1,51 @@
+import type { Range } from "./figures.ts";
+import type { OverviewData } from "./overview-data.ts";
+
+/**
+ * T8 "Download report", v1 (R90, Danny, 29 Sep 2026, danny.md line 84): two
+ * CSVs of the range, no PDF. Answers is one row per prompt, engine and day;
+ * keywords is one row per keyword and day. Every figure is a stored reading.
+ * Nothing here is computed from other figures. Pure, relative imports only, so
+ * node --test can load it.
+ */
+
+export type ReportKind = "answers" | "keywords";
+export const isReportKind = (v: string | null): v is ReportKind => v === "answers" || v === "keywords";
+
+/** One CSV field: quoted when it holds a comma, quote or line break; a leading = + - @ is defused so a spreadsheet does not run it. */
+export function csvField(v: string | number | boolean | null): string {
+  if (v === null) return "";
+  let s = String(v);
+  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
+  return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+const line = (cells: (string | number | boolean | null)[]) => cells.map(csvField).join(",");
+const within = (d: string, r: Range) => d >= r.from && d <= r.to;
+
+export function answersCsv(data: Pick<OverviewData, "answers" | "questions" | "clusters">, range: Range): string {
+  const q = new Map(data.questions.map((x) => [x.id, x]));
+  const cluster = new Map((data.clusters ?? []).map((c) => [c.id, c.name]));
+  const rows = data.answers
+    .filter((a) => within(a.run_date, range))
+    .sort((a, b) => a.run_date.localeCompare(b.run_date) || a.question_id.localeCompare(b.question_id) || a.engine.localeCompare(b.engine))
+    .map((a) => {
+      const p = q.get(a.question_id);
+      return line([a.run_date, (p?.cluster_id && cluster.get(p.cluster_id)) || null, p?.angle ?? null, p?.text ?? null, a.engine, a.answered ? "yes" : "no", a.answered ? (a.named ? "yes" : "no") : null, a.brands.join("; ") || null, a.citations.map((c) => c.url || c.source_domain).filter(Boolean).join(" ") || null]);
+    });
+  return [line(["date", "cluster", "angle", "prompt", "engine", "answered", "named you", "brands named", "pages cited"]), ...rows].join("\r\n") + "\r\n";
+}
+
+export function keywordsCsv(data: Pick<OverviewData, "serp" | "keywords">, range: Range): string {
+  const k = new Map(data.keywords.map((x) => [x.id, x.keyword]));
+  const rows = data.serp
+    .filter((s) => within(s.run_date, range))
+    .sort((a, b) => a.run_date.localeCompare(b.run_date) || a.keyword_id.localeCompare(b.keyword_id))
+    .map((s) => line([s.run_date, k.get(s.keyword_id) ?? null, s.position]));
+  return [line(["date", "keyword", "google position (blank: not in top 20)"]), ...rows].join("\r\n") + "\r\n";
+}
+
+/** The file's name: the client's slug, the kind and the range, e.g. tallyroo-answers-2026-09-02-to-2026-09-29.csv. */
+export function reportFilename(slug: string, kind: ReportKind, range: Range): string {
+  return `${slug.replace(/[^a-z0-9-]/gi, "")}-${kind}-${range.from}-to-${range.to}.csv`;
+}

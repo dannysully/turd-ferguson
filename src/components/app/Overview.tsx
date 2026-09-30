@@ -114,7 +114,10 @@ export default function Overview({
   selected,
   clustersPath,
   clusterLimit,
+  reportPath,
 }: {
+  /** R90 T8: the client's CSV route (api/app/[client]/report); none on /app/parity. */
+  reportPath?: string;
   brand: string;
   domain: string;
   market: string;
@@ -159,6 +162,8 @@ export default function Overview({
       ? { href: `${clustersPath}?${new URLSearchParams(rangeQuery)}`, inUse: clusterLimit ? `${cards.filter((c) => c.stoppedOn === null).length} of ${clusterLimit} clusters in use` : null }
       : null;
   const clientPath = clustersPath ? clustersPath.replace(/\/clusters$/, "") : null;
+  // R90 T8 v1: the board's "Download report" beside the date, as CSVs of this range (api/app/[client]/report).
+  const report = reportPath ? (kind: "answers" | "keywords") => `${reportPath}?${new URLSearchParams({ kind, from: range.from, to: range.to })}` : null;
   const pickedHasPrev =!!pickedChart?.namedBefore?.some((p) => p !== null);
   // R124: the phone board's one line under the chart's name - "42% named, #4 on Google. Dashed: 5 Aug - 1 Sep".
   const phoneLine = !picked
@@ -182,7 +187,21 @@ export default function Overview({
           {enginesSentence(engines)}.
         </p>
       </div>
-      <div className={cards ? "app-date" : undefined} style={{ display: "flex", alignItems: "center", gap: "12px", height: "48px", padding: "0 14px", border: `1px solid ${T.line}`, borderRadius: "12px", background: T.surface, color: T.ink }}>
+      <div className={cards ? "app-date" : undefined} style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+      {report ? (
+        <span className="app-hide-sm" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <a href={report("keywords")} download style={{ fontSize: "13px", fontWeight: 600, color: T.accent, textDecoration: "none" }}>
+            Keywords CSV
+          </a>
+          <a href={report("answers")} download style={{ display: "inline-flex", alignItems: "center", gap: "8px", height: "48px", padding: "0 16px", boxSizing: "border-box", border: `1px solid ${T.line}`, borderRadius: "12px", background: T.surface, color: T.ink, fontSize: "14px", fontWeight: 600, textDecoration: "none" }}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={T.ink} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 4v11M7 10l5 5 5-5M5 20h14" />
+            </svg>
+            Download report
+          </a>
+        </span>
+      ) : null}
+      <div style={{ display: "flex", flex: "1 1 auto", alignItems: "center", gap: "12px", height: "48px", padding: "0 14px", border: `1px solid ${T.line}`, borderRadius: "12px", background: T.surface, color: T.ink }}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={T.ink} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <rect x="3" y="5" width="18" height="16" rx="2" />
           <path d="M3 10h18M8 3v4M16 3v4" />
@@ -201,6 +220,7 @@ export default function Overview({
             {o.compare ? `, vs ${span(o.compare)}` : ""}
           </span>
         </span>
+      </div>
       </div>
     </header>
   );
