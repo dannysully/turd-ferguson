@@ -351,6 +351,33 @@ export function promptStrip(input: Pick<ClusterInput, "answers" | "range" | "eng
   });
 }
 
+/**
+ * "Named in answers to this prompt" (T7 part 3a, 30 Sep 2026;
+ * boards-3/QuestionDetail.dc.html): of the prompt's answers in range, how
+ * many named each brand - the client always, then the three others named in
+ * most, most first. A count of answers, not of mentions, so no row can
+ * exceed `answers`.
+ */
+export function promptBrands(input: Pick<ClusterInput, "answers" | "range">, promptId: string, you: string): { answers: number; rows: { name: string; you: boolean; n: number }[] } {
+  let answers = 0;
+  let mine = 0;
+  const others = new Map<string, { name: string; n: number }>();
+  for (const a of input.answers) {
+    if (a.question_id !== promptId || !a.answered || !within(a.run_date, input.range)) continue;
+    answers++;
+    if (a.named) mine++;
+    for (const key of new Set(a.brands.map((b) => b.toLowerCase()))) {
+      if (key === you.toLowerCase()) continue;
+      const c = others.get(key) ?? { name: a.brands.find((b) => b.toLowerCase() === key)!, n: 0 };
+      c.n++;
+      others.set(key, c);
+    }
+  }
+  const top = [...others.values()].sort((x, y) => y.n - x.n || x.name.localeCompare(y.name)).slice(0, 3);
+  const rows = [{ name: you, you: true, n: mine }, ...top.map((c) => ({ ...c, you: false }))].sort((x, y) => y.n - x.n);
+  return { answers, rows };
+}
+
 /** `?prompt=` on the one-cluster page (T7 part 2b): a 0-based index into its prompts; anything else, or past the last, is the first. */
 export function promptIndex(raw: string | string[] | undefined, count: number): number {
   const n = typeof raw === "string" && /^\d$/.test(raw) ? Number(raw) : 0;

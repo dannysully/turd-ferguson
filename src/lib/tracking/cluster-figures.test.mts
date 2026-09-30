@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
-import { clusterCards, clusterChart, clusterDetail, clusterSearch, clusterSummary, filterClusters, promptIndex, promptStrip } from "./cluster-figures.ts";
+import { clusterCards, clusterChart, clusterDetail, clusterSearch, clusterSummary, filterClusters, promptBrands, promptIndex, promptStrip } from "./cluster-figures.ts";
 import { comparisonRange } from "./figures.ts";
 import { expandFixture } from "./fixture-mode.ts";
 
@@ -206,4 +206,19 @@ test("promptIndex: ?prompt= picks 0-4 of the cluster's prompts, anything else is
   assert.equal(promptIndex("4", 5), 4);
   assert.equal(promptIndex("4", 4), 0);
   for (const bad of [undefined, "", "-1", "1.5", "12", "x", ["1", "2"]]) assert.equal(promptIndex(bad, 5), 0);
+});
+
+test("T7 brands: answers naming each brand for one prompt, the client always listed (part 3a)", () => {
+  const prompt = by("c1").prompts[1]!;
+  const b = promptBrands({ answers: fx.data.answers, range }, prompt.id, "Tallyroo");
+  // 4 engines x 28 days; the client's row is the card's named answers for this prompt.
+  assert.equal(b.answers, prompt.now.den);
+  assert.equal(b.rows.find((r) => r.you)!.n, prompt.now.num);
+  assert.ok(b.rows.length <= 4 && b.rows.every((r) => r.n <= b.answers));
+  assert.deepEqual(b.rows.map((r) => r.n), [...b.rows.map((r) => r.n)].sort((x, y) => y - x));
+  // Stub: a brand twice in one answer counts once; another prompt's and an unanswered row count nowhere; on a tie the client stays ahead.
+  const r = { from: "2026-09-01", to: "2026-09-02" };
+  const row = (q: string, answered: boolean, named: boolean, brands: string[]) => ({ run_date: "2026-09-01", question_id: q, engine: "chatgpt", answered, named, brands });
+  const s = promptBrands({ answers: [row("p", true, false, ["Acme", "acme", "Zed"]), row("p", true, true, ["Zed"]), row("p", false, false, ["Acme"]), row("x", true, false, ["Acme"])], range: r }, "p", "Me");
+  assert.deepEqual(s, { answers: 2, rows: [{ name: "Zed", you: false, n: 2 }, { name: "Me", you: true, n: 1 }, { name: "Acme", you: false, n: 1 }] });
 });

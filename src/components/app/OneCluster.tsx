@@ -3,7 +3,7 @@ import Link from "next/link";
 import EngineLogo from "@/components/EngineLogo";
 import { T } from "@/config/tokens";
 import { ENGINE_SPECS, type Engine } from "@/lib/scan/engines";
-import { type ClusterDetail, type ClusterInput, clusterChart, promptStrip } from "@/lib/tracking/cluster-figures";
+import { type ClusterDetail, type ClusterInput, clusterChart, promptBrands, promptStrip } from "@/lib/tracking/cluster-figures";
 import { type Day, type Range, type Rate, comparisonRange, daysIn, formatDay, pointsDelta } from "@/lib/tracking/figures";
 import type { Compare, OverviewData } from "@/lib/tracking/overview-data";
 
@@ -77,6 +77,8 @@ export default function OneCluster({
   const days = daysIn(range);
   const P = c.prompts[prompt] ?? null;
   const strip = P ? promptStrip({ answers: data.answers, range, engines }, P.id) : [];
+  const brands = P ? promptBrands({ answers: data.answers, range }, P.id, brand) : null;
+  const top = Math.max(1, ...(brands?.rows.map((b) => b.n) ?? []));
   const kw = c.keyword ?? c.name;
   const posLine = c.position === null ? (c.keyword ? "Not in the top 20" : "No keyword yet") : domain;
   const upFrom = c.positionBefore !== null && detail.positionBeforeOn ? `, ${c.positionChange && c.positionChange > 0 ? "up" : c.positionChange && c.positionChange < 0 ? "down" : "same as"} from #${c.positionBefore} on ${formatDay(detail.positionBeforeOn)}` : "";
@@ -310,6 +312,31 @@ export default function OneCluster({
             <span />
           </div>
         </section>
+      ) : null}
+
+      {/* The board pairs this card with "Notes on this cluster" (next part); the right column waits for it. */}
+      {P && brands && brands.answers ? (
+        <div className="app-pair" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: "24px" }}>
+        <section aria-labelledby="al-h" style={{ ...CARD, padding: "24px", display: "flex", flexDirection: "column", gap: "14px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+            <h2 id="al-h" style={H2}>
+              Named in answers to this prompt
+            </h2>
+            <p style={LEDE}>{`Out of ${brands.answers} answers this period.`}</p>
+          </div>
+          {brands.rows.map((b) => (
+            <div key={b.name} style={{ display: "grid", gridTemplateColumns: "100px minmax(0, 1fr) 40px", alignItems: "center", gap: "12px" }}>
+              <span style={{ fontSize: "14px", fontWeight: b.you ? 700 : 500, color: b.you ? T.accent : T.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.name}</span>
+              <span aria-hidden="true" style={{ height: "8px", borderRadius: "4px", background: T.hair }}>
+                <span style={{ display: "block", height: "100%", width: `${Math.round((96 * b.n) / top)}%`, borderRadius: "4px", background: b.you ? T.accent : T.faint }} />
+              </span>
+              <span style={{ fontSize: "14px", fontWeight: 700, textAlign: "right", fontVariantNumeric: "tabular-nums" }} title={`${b.n} of ${brands.answers} answers`}>
+                {b.n}
+              </span>
+            </div>
+          ))}
+        </section>
+        </div>
       ) : null}
     </div>
   );
