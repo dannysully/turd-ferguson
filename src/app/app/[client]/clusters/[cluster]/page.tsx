@@ -4,8 +4,9 @@ import { notFound, redirect } from "next/navigation";
 import OneCluster from "@/components/app/OneCluster";
 import Sidebar from "@/components/app/Sidebar";
 import type { TierKey } from "@/components/TierName";
-import { enginesFor } from "@/config/pricing";
+import { enginesFor, trackingPackPrice } from "@/config/pricing";
 import { T } from "@/config/tokens";
+import { CLUSTER_BASE } from "@/lib/tracking/limits";
 import { clusterCards, clusterDetail, promptIndex } from "@/lib/tracking/cluster-figures";
 import { comparisonRange } from "@/lib/tracking/figures";
 import { engineTab } from "@/lib/tracking/latest-answers";
@@ -52,14 +53,15 @@ export default async function ClientCluster({
   const cards = clusterCards(input);
   const prompt = promptIndex(sp.prompt, detail.card.prompts.length);
   const picked = detail.card.prompts[prompt];
-  const [latest, notes] = await Promise.all([
+  const [latest, notes, upgrade] = await Promise.all([
     picked && detail.card.status !== "pending" ? repo.latestAnswers(client.id, picked.id, range.to) : null,
     repo.clusterNotes(client.id, detail.card.prompts.map((p) => p.id)),
+    repo.upgradeContext(client.id, email, today),
   ]);
 
   return (
     <div className="app-shell" style={{ display: "flex", flexWrap: "wrap", minHeight: "100vh", color: T.ink }}>
-      <Sidebar client={client} others={clients.filter((c) => c.slug !== slug)} email={email} role={client.role} tier={tier} engines={engines} clusters current="Clusters" />
+      <Sidebar client={client} others={clients.filter((c) => c.slug !== slug)} email={email} role={client.role} tier={tier} engines={engines} clusters current="Clusters" clusterLimit={client.cluster_limit ?? CLUSTER_BASE} packPrice={trackingPackPrice(client.market)} upsell={upgrade.mode === "nomada"} />
       <div className="app-main" style={{ flex: "1 1 480px", minWidth: 0, padding: "36px 40px 48px", background: T.bg }}>
         <OneCluster
           brand={client.brand ?? client.domain}

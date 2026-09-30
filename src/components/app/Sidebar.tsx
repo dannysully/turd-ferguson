@@ -3,9 +3,12 @@ import type { ReactNode } from "react";
 import BrandMark from "@/components/BrandMark";
 import EngineLogo from "@/components/EngineLogo";
 import TierName, { type TierKey } from "@/components/TierName";
-import { TRACKED_BASIS } from "@/config/pricing";
+import { PACK_CLUSTERS, TRACKED_BASIS } from "@/config/pricing";
 import { T } from "@/config/tokens";
 import { ENGINE_SPECS, type Engine } from "@/lib/scan/engines";
+import { KEYWORDS_PER_CLUSTER, PROMPTS_PER_CLUSTER } from "@/lib/tracking/limits";
+
+const WORDS = ["no", "one", "two", "three", "four", "five"];
 
 /**
  * The dashboard sidebar (T3, 29 Sep 2026), from boards/Main.dc.html: lockup,
@@ -112,6 +115,9 @@ export default function Sidebar({
   engines,
   clusters = false,
   current = "Overview",
+  clusterLimit,
+  packPrice = null,
+  upsell = false,
 }: {
   client: Client;
   others: Client[];
@@ -123,6 +129,12 @@ export default function Sidebar({
   clusters?: boolean;
   /** The nav item for this page (T6 part 1, 30 Sep 2026). */
   current?: string;
+  /** The client's cluster_limit, for "alwaystracked, 10 clusters" and the basis under it. */
+  clusterLimit?: number;
+  /** The pack's price in the client's market, "$49"; null draws no pack link. */
+  packPrice?: string | null;
+  /** upsell_mode is nomada: the plan card may name the next tier and the pack. */
+  upsell?: boolean;
 }) {
   const nav = clusters ? CLUSTER_NAV : NAV;
   const tabs = clusters ? CLUSTER_TABS : TABS;
@@ -186,17 +198,37 @@ export default function Sidebar({
           })}
         </nav>
 
+        {/* T11 (30 Sep 2026): boards-3/common.py's plan card. On tracked, Claude is the dashed fifth tile (BRIEF decision 9);
+            the "joins" line and the pack link are upsell, so they draw only in nomada mode, never in agency or off. */}
         <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: "12px", padding: "16px", borderRadius: "14px", background: T.chip }}>
           <div style={{ fontSize: "12px", fontWeight: 600, color: T.soft }}>Your plan</div>
           <div style={{ fontSize: "15px", fontWeight: 700 }}>
             <TierName tier={tier} />
+            {clusters && clusterLimit ? `, ${clusterLimit} clusters` : null}
           </div>
-          <p style={{ margin: 0, fontSize: "13px", lineHeight: 1.5, color: T.soft }}>{TRACKED_BASIS}.</p>
+          <p style={{ margin: 0, fontSize: "13px", lineHeight: 1.5, color: T.soft }}>
+            {clusters && clusterLimit ? `${clusterLimit * PROMPTS_PER_CLUSTER} prompts and ${clusterLimit * KEYWORDS_PER_CLUSTER} Google keywords, checked every day on ${WORDS[engines.length] ?? engines.length} engines.` : `${TRACKED_BASIS}.`}
+          </p>
           <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
             {engines.map((e) => (
               <EngineLogo key={e} engine={e} size={18} title={ENGINE_SPECS[e].label} />
             ))}
+            {engines.includes("claude") ? null : (
+              <span title={`${ENGINE_SPECS.claude.label}, from alwaysmentioned`} style={{ display: "inline-flex", width: "18px", height: "18px", borderRadius: "6px", border: `1px dashed ${T.faint}`, boxSizing: "border-box", alignItems: "center", justifyContent: "center" }}>
+                <EngineLogo engine="claude" size={11} title={`${ENGINE_SPECS.claude.label}, from alwaysmentioned`} />
+              </span>
+            )}
           </div>
+          {upsell && !engines.includes("claude") ? (
+            <p style={{ margin: 0, fontSize: "12px", lineHeight: 1.5, color: T.soft }}>
+              Claude joins as a fifth engine on <TierName tier="mentioned" />.
+            </p>
+          ) : null}
+          {upsell && clusters && packPrice ? (
+            <a href="/contact" style={{ fontSize: "13px", fontWeight: 600, color: T.accent }}>
+              {`Add ${PACK_CLUSTERS} clusters for ${packPrice} a month`}
+            </a>
+          ) : null}
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "0 8px", fontSize: "13px" }}>

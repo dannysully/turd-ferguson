@@ -101,6 +101,10 @@ export const TRACKED_BASIS = `${TRACKED_CLUSTERS} clusters: ${TRACKED_PROMPTS} p
  */
 export const TRACKING_PACK_PRICE = { us: 49, uk: 39 } as const;
 export const TRACKING_PACK_LINE = `Extra tracking pack: {price}/mo for +${PACK_CLUSTERS} clusters (${PACK_PROMPTS} prompts, ${PACK_KEYWORDS} keywords).`;
+/** The pack's price in one client's market, as the dashboard prints it: "$49", UK "£39". */
+export function trackingPackPrice(market: string): string {
+  return market === "UK" ? `£${TRACKING_PACK_PRICE.uk}` : `$${TRACKING_PACK_PRICE.us}`;
+}
 export function trackingPackLine(price: string): string {
   return TRACKING_PACK_LINE.replace("{price}", "+" + price);
 }

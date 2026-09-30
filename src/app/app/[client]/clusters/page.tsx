@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import Clusters, { type StopToast } from "@/components/app/Clusters";
 import Sidebar from "@/components/app/Sidebar";
 import type { TierKey } from "@/components/TierName";
-import { TRACKING_PACK_PRICE, enginesFor } from "@/config/pricing";
+import { enginesFor, trackingPackPrice } from "@/config/pricing";
 import { T } from "@/config/tokens";
 import { MARKETS, isMarket } from "@/lib/scan/domain";
 import { keywordForm } from "@/lib/scan/dataforseo-request";
@@ -67,11 +67,12 @@ export default async function ClientClusters({
   const n = Number(one("n"));
   const of = one("of");
   const attached = Number.isInteger(n) && n > 0 && n <= ASK_ITEMS_MAX && (of === "prompts" || of === "keywords") ? `${n} ${n === 1 ? of.slice(0, -1) : of}` : undefined;
+  const packPrice = trackingPackPrice(client.market);
   const asked = ask === "sent" ? askToast(one("to") === "agency" ? "your account contact" : "nomada digital", email, attached) : ask === "refused" ? "That ask did not send. Try again later." : null;
 
   return (
     <div className="app-shell" style={{ display: "flex", flexWrap: "wrap", minHeight: "100vh", color: T.ink }}>
-      <Sidebar client={client} others={clients.filter((c) => c.slug !== slug)} email={email} role={client.role} tier={tier} engines={engines} clusters current="Clusters" />
+      <Sidebar client={client} others={clients.filter((c) => c.slug !== slug)} email={email} role={client.role} tier={tier} engines={engines} clusters current="Clusters" clusterLimit={client.cluster_limit ?? CLUSTER_BASE} packPrice={packPrice} upsell={upgrade.mode === "nomada"} />
       <div className="app-main" style={{ flex: "1 1 480px", minWidth: 0, padding: "36px 40px 48px", background: T.bg }}>
         <Clusters
           brand={client.brand ?? client.domain}
@@ -90,7 +91,7 @@ export default async function ClientClusters({
           adding={adding}
           asked={asked}
           askSent={ask === "sent"}
-          packPrice={client.market === "UK" ? `£${TRACKING_PACK_PRICE.uk}` : `$${TRACKING_PACK_PRICE.us}`}
+          packPrice={packPrice}
           upgrade={{ tier, mode: upgrade.mode, hidden: upgrade.hidden, startedOn: client.started_on ?? today, domain: client.domain }}
         />
       </div>
