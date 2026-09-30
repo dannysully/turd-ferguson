@@ -1,0 +1,150 @@
+import { type ClusterChart } from "./cluster-figures.ts";
+import { type Day, type Rate, rate } from "./figures.ts";
+import { type PlacementKind, type PlacementStatus, urlKey } from "./placements.ts";
+
+/**
+ * The placements screen's figures (R97 part 1, 30 Sep 2026; BRIEF-2 T13
+ * against boards-3/Placements.dc.html). Pure and unwired. Every figure reads
+ * the cluster's own chart series (clusterChart), so the strip, the table and
+ * the two panels count the same answers.
+ *
+ * - "At go-live" is the first reading on or after the day a page went live;
+ *   "now" is the latest reading in the range. The footnote says this includes
+ *   everything else that happened in that time; nothing here claims more.
+ * - "Answers citing it" counts answers, from its live day, where an engine
+ *   cited a URL with the placement's url_key (computed on read, T12).
+ * - Ranges over 35 days draw weekly points, otherwise daily.
+ */
+
+/** The board's footnote, word for word (BRIEF-2 T13: mandatory). */
+export const PLACEMENTS_FOOTNOTE =
+  '"At go-live to now" is where the cluster stood the week a page went live, and where it stands today. It includes everything else that happened in that time. "Answers citing it" counts answers where an engine cited that exact page.';
+
+export const WEEKLY_OVER_DAYS = 35;
+
+export type PlacementRow = { id: string; kind: PlacementKind; url: string; url_key: string; status: PlacementStatus; scheduled_on: Day | null; live_on: Day | null };
+/** One citation URL in one answer. */
+export type CiteRow = { run_date: Day; question_id: string; engine: string; url: string };
+
+export type Span<T> = { from: T | null; to: T | null };
+
+export type PlacementLine = {
+  id: string;
+  kind: PlacementKind;
+  url_key: string;
+  live: boolean;
+  /** The live date, or the status in words for a row not live. */
+  when: string;
+  liveOn: Day | null;
+  cited: number;
+  /** Engines that cited the page, in the tier's order. */
+  citedBy: string[];
+  named: Span<number>;
+  google: Span<number>;
+};
+
+export type PlacementsView = {
+  live: number;
+  inProgress: number;
+  whole: { from: Day | null; named: Span<number>; google: Span<number>; cited: number };
+  rows: PlacementLine[];
+  weekly: boolean;
+};
+
+const STATUS_WORDS: Record<PlacementStatus, string> = { pitched: "Pitched", writing: "Writing", scheduled: "Scheduled", live: "Live", removed: "Removed" };
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+/** "11 Jul", as the board writes a day. */
+export const shortDay = (d: Day) => `${Number(d.slice(8, 10))} ${MONTHS[Number(d.slice(5, 7)) - 1]}`;
+
+function spanFrom<T>(days: Day[], values: (T | null)[], at: Day | null): Span<T> {
+  let from: T | null = null;
+  let to: T | null = null;
+  for (let i = 0; i < days.length; i++) {
+    const v = values[i];
+    if (v === null || v === undefined) continue;
+    if (from === null && (at === null || days[i]! >= at)) from = v;
+    to = v;
+  }
+  return { from: from === null ? null : from, to: from === null ? null : to };
+}
+
+/** Whether a range this long draws weekly points. */
+export const isWeekly = (days: number) => days > WEEKLY_OVER_DAYS;
+
+/**
+ * The strip and the table for one cluster. `chart` is clusterChart's output
+ * for the same range; `questionIds` are the cluster's prompts; `cites` are the
+ * citation URLs of those prompts' answers.
+ */
+export function placementsView(input: { chart: ClusterChart; questionIds: readonly string[]; placements: PlacementRow[]; cites: CiteRow[]; engines: readonly string[] }): PlacementsView {
+  const { chart } = input;
+  const pct = chart.named.map((r: Rate | null) => (r ? r.pct : null));
+  const ids = new Set(input.questionIds);
+  const inRange = (d: Day) => d >= chart.days[0]! && d <= chart.days[chart.days.length - 1]!;
+  const cites = input.cites.filter((c) => ids.has(c.question_id) && inRange(c.run_date));
+  const answerKey = (c: CiteRow) => `${c.run_date}|${c.question_id}|${c.engine}`;
+
+  const live = input.placements.filter((p) => p.status === "live" && p.live_on);
+  const citingAny = new Set<string>();
+  const rows = input.placements
+    .filter((p) => p.status !== "removed")
+    .map((p): PlacementLine => {
+      const isLive = p.status === "live" && p.live_on !== null;
+      const hits = isLive ? cites.filter((c) => c.run_date >= p.live_on! && urlKey(c.url) === p.url_key) : [];
+      const answers = new Set(hits.map(answerKey));
+      for (const a of answers) citingAny.add(a);
+      const engines = new Set(hits.map((c) => c.engine));
+      return {
+        id: p.id,
+        kind: p.kind,
+        url_key: p.url_key,
+        live: isLive,
+        when: isLive ? shortDay(p.live_on!) : p.status === "scheduled" && p.scheduled_on ? `Scheduled ${shortDay(p.scheduled_on)}` : STATUS_WORDS[p.status],
+        liveOn: isLive ? p.live_on : null,
+        cited: answers.size,
+        citedBy: input.engines.filter((e) => engines.has(e)),
+        named: isLive ? spanFrom(chart.days, pct, p.live_on) : { from: null, to: null },
+        google: isLive ? spanFrom(chart.days, chart.google, p.live_on) : { from: null, to: null },
+      };
+    })
+    // Live rows by go-live day, then the rest in the order logged.
+    .sort((a, b) => (a.live === b.live ? (a.liveOn ?? "").localeCompare(b.liveOn ?? "") : a.live ? -1 : 1));
+
+  return {
+    live: live.length,
+    inProgress: input.placements.filter((p) => p.status === "pitched" || p.status === "writing" || p.status === "scheduled").length,
+    whole: { from: chart.days[0] ?? null, named: spanFrom(chart.days, pct, null), google: spanFrom(chart.days, chart.google, null), cited: citingAny.size },
+    rows,
+    weekly: isWeekly(chart.days.length),
+  };
+}
+
+/** A span as the board writes it: "12% to 44%", "#18 to #4", or a dash. */
+export function spanText(s: Span<number>, unit: "pct" | "rank"): string {
+  if (s.from === null || s.to === null) return "-";
+  return unit === "pct" ? `${s.from}% to ${s.to}%` : `#${s.from} to #${s.to}`;
+}
+
+/** Weekly points: each week's answers summed (a rate over the week, not an average of days), and its last Google reading. */
+export function weeklyPoints(chart: ClusterChart): { days: Day[]; named: (Rate | null)[]; google: (number | null)[] } {
+  const out = { days: [] as Day[], named: [] as (Rate | null)[], google: [] as (number | null)[] };
+  for (let i = 0; i < chart.days.length; i += 7) {
+    const end = Math.min(i + 7, chart.days.length);
+    let num = 0;
+    let den = 0;
+    let g: number | null = null;
+    for (let j = i; j < end; j++) {
+      const r = chart.named[j];
+      if (r) {
+        num += r.num;
+        den += r.den;
+      }
+      if (chart.google[j] !== null && chart.google[j] !== undefined) g = chart.google[j]!;
+    }
+    out.days.push(chart.days[i]!);
+    out.named.push(den ? rate(num, den) : null);
+    out.google.push(g);
+  }
+  return out;
+}
