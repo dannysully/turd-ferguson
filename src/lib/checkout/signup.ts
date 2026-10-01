@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { siteUrl } from "@/lib/scan/verify-email";
 import { sendOrderEmail } from "@/lib/checkout/order-mail";
-import { orderEmailText, orderRow, packsOn, signupResume, subscriptionScanToken, type CompletedOrder } from "@/lib/checkout/webhook";
+import { clustersToMake, orderEmailText, orderRow, packsOn, signupResume, subscriptionScanToken, type CompletedOrder } from "@/lib/checkout/webhook";
 import { dayAfter, slugFor, trackingDay } from "@/lib/tracking/decide";
 import { angleFor, clusterLimitFor, insertCluster, insertKeyword, insertPrompts, namesBrandIn, PROMPTS_PER_CLUSTER } from "@/lib/tracking/limits";
 import { sendLoginLink } from "@/lib/tracking/login-mail";
@@ -16,8 +16,8 @@ import { LOGIN_TTL_MS, hashToken, newToken } from "@/lib/tracking/session";
  * checkout.session.completed with a scan token: the account by email, the
  * client from the scan at the tier bought, the first cluster from the scan's
  * keyword and its first five prompts (or "Needs a keyword" when the scan chose
- * none, R117), the buyer as owner, and a login link. Without a scan there is
- * no domain to track, so nothing is created and the order email says so.
+ * none, R117), the buyer as owner, and a login link. Without a scan, the same
+ * from the website the order carries (R158, clientFromOrder below).
  * One public.orders row per Session either way, keyed on its id so a replay
  * writes nothing; a refused row is logged and named in the order email, never
  * a retry, because the client above is already made. The order email goes to
@@ -27,19 +27,48 @@ import { LOGIN_TTL_MS, hashToken, newToken } from "@/lib/tracking/session";
 export const NEEDS_A_KEYWORD = "Needs a keyword";
 const TIERS = ["tracked", "mentioned", "cited"];
 
-async function clientFromScan(db: SupabaseClient, o: CompletedOrder): Promise<{ ok: boolean; outcome: string; clientId?: string }> {
-  if (!o.scanToken) return { ok: true, outcome: "no scan on the order, so no client was created" };
+type Scan = {
+  id: string;
+  domain: string;
+  brand_name: string | null;
+  topic: string | null;
+  market: string;
+  cluster_keyword: string | null;
+  cluster_keyword_volume: number | null;
+  cluster_keyword_intent: string | null;
+  cluster_keyword_status: string | null;
+};
+
+/**
+ * Any paid order gets its account, client, clusters, owner and login link
+ * (R158, Danny, 1 Oct 2026, danny.md 168): from the scan when the order
+ * carries one, else from the website /checkout asked for. A scan only
+ * prefills cluster 1; every other cluster bought starts "Needs a keyword".
+ * Before this an order without a scan built nothing and the buyer heard nothing.
+ */
+async function clientFromOrder(db: SupabaseClient, o: CompletedOrder): Promise<{ ok: boolean; outcome: string; clientId?: string }> {
   if (!o.email) return { ok: true, outcome: "no buyer email on the Session, so no client was created" };
   const tier = TIERS.includes(o.tier) ? o.tier : "tracked";
 
-  const { data: scan, error: sErr } = await db
-    .from("scans")
-    .select("id, domain, brand_name, topic, market, status, cluster_keyword, cluster_keyword_volume, cluster_keyword_intent, cluster_keyword_status")
-    .eq("public_token", o.scanToken)
-    .maybeSingle();
-  if (sErr) return { ok: false, outcome: `could not read the scan: ${sErr.message}` };
-  if (!scan || scan.status !== "complete" || (scan.market !== "UK" && scan.market !== "US")) {
-    return { ok: true, outcome: "the scan on the order is missing, unfinished or has no market, so no client was created" };
+  let scan: Scan | null = null;
+  if (o.scanToken) {
+    const { data, error: sErr } = await db
+      .from("scans")
+      .select("id, domain, brand_name, topic, market, status, cluster_keyword, cluster_keyword_volume, cluster_keyword_intent, cluster_keyword_status")
+      .eq("public_token", o.scanToken)
+      .maybeSingle();
+    if (sErr) return { ok: false, outcome: `could not read the scan: ${sErr.message}` };
+    if (data && data.status === "complete" && (data.market === "UK" || data.market === "US")) scan = data as Scan;
+  }
+  const market = scan ? scan.market : o.market === "uk" ? "UK" : o.market === "us" ? "US" : null;
+  const domain = scan ? scan.domain : o.website;
+  if (!domain || !market) {
+    return {
+      ok: true,
+      outcome: o.scanToken
+        ? "the scan on the order is missing, unfinished or has no market, so no client was created"
+        : "no scan and no website on the order, so no client was created",
+    };
   }
 
   const { data: found, error: aErr } = await db.from("accounts").select("id").ilike("email", o.email).maybeSingle();
@@ -52,30 +81,46 @@ async function clientFromScan(db: SupabaseClient, o: CompletedOrder): Promise<{ 
   }
 
   const startedOn = dayAfter(trackingDay());
-  const { data: client, error: cErr } = await db
-    .from("client_domains")
-    .upsert(
-      {
-        account_id: accountId,
-        domain: scan.domain as string,
-        brand_name: scan.brand_name as string | null,
-        topic: scan.topic as string | null,
-        market: scan.market as string,
-        slug: slugFor(scan.domain as string),
-        status: "active",
-        tier,
-        started_on: startedOn,
-        source_scan_id: scan.id as string,
-      },
-      { onConflict: "account_id,domain,topic,market" },
-    )
-    .select("id")
-    .single();
-  if (cErr) return { ok: false, outcome: `could not create the client: ${cErr.message}` };
-  const clientId = client.id as string;
+  const clientRow = {
+    account_id: accountId,
+    domain,
+    brand_name: scan?.brand_name ?? null,
+    topic: scan?.topic ?? null,
+    market,
+    slug: slugFor(domain),
+    status: "active",
+    tier,
+    started_on: startedOn,
+    source_scan_id: scan?.id ?? null,
+  };
+  let clientId: string;
+  if (clientRow.topic !== null) {
+    const { data: client, error: cErr } = await db.from("client_domains").upsert(clientRow, { onConflict: "account_id,domain,topic,market" }).select("id").single();
+    if (cErr) return { ok: false, outcome: `could not create the client: ${cErr.message}` };
+    clientId = client.id as string;
+  } else {
+    // A null topic never conflicts in a unique index (nulls are distinct), so a
+    // retry would make a second client: look for the first one instead.
+    const { data: had, error: hErr } = await db
+      .from("client_domains")
+      .select("id")
+      .eq("account_id", accountId)
+      .eq("domain", domain)
+      .eq("market", market)
+      .is("topic", null)
+      .order("created_at", { ascending: true })
+      .limit(1);
+    if (hErr) return { ok: false, outcome: `could not read the client: ${hErr.message}` };
+    if (had?.[0]) clientId = had[0].id as string;
+    else {
+      const { data: client, error: cErr } = await db.from("client_domains").insert(clientRow).select("id").single();
+      if (cErr) return { ok: false, outcome: `could not create the client: ${cErr.message}` };
+      clientId = client.id as string;
+    }
+  }
 
-  const chosen = scan.cluster_keyword_status === "chosen" && typeof scan.cluster_keyword === "string" && scan.cluster_keyword.trim();
-  const clusterName = chosen ? (scan.cluster_keyword as string).trim() : NEEDS_A_KEYWORD;
+  const chosen = scan?.cluster_keyword_status === "chosen" && typeof scan.cluster_keyword === "string" && scan.cluster_keyword.trim();
+  const clusterName = chosen ? (scan!.cluster_keyword as string).trim() : NEEDS_A_KEYWORD;
 
   // A Stripe retry of a signup that failed part way picks up where it stopped (signupResume).
   const { data: prior, error: pErr } = await db
@@ -103,26 +148,39 @@ async function clientFromScan(db: SupabaseClient, o: CompletedOrder): Promise<{ 
   }
   if (chosen && resume.keyword) {
     const kw = await insertKeyword(db, clientId, clusterId, {
-      keyword: (scan.cluster_keyword as string).trim(),
+      keyword: (scan!.cluster_keyword as string).trim(),
       added_on: startedOn,
       added_by: "nomada",
-      search_volume: (scan.cluster_keyword_volume as number | null) ?? null,
-      intent: (scan.cluster_keyword_intent as string | null) ?? null,
+      search_volume: scan!.cluster_keyword_volume ?? null,
+      intent: scan!.cluster_keyword_intent ?? null,
     });
     if (!kw.ok) return { ok: false, outcome: `cluster made, keyword refused: ${kw.message}`, clientId };
   }
 
-  const { data: sq, error: qErr } = await db.from("scan_questions").select("idx, question, kind").eq("scan_id", scan.id).order("idx", { ascending: true });
-  if (qErr) return { ok: false, outcome: `could not read the scan's prompts: ${qErr.message}`, clientId };
-  // Each prompt keeps its scan kind as its angle (BRIEF-3 C3).
-  const rows = (sq ?? [])
-    .map((q) => ({ text: String(q.question).trim(), angle: angleFor(q.kind) }))
-    // A scan prompt naming the brand is left behind: this copies the scan, which measures unprompted naming (R133, limits.ts).
-    .filter((q) => q.text.length >= 8 && q.text.length <= 300 && !namesBrandIn(q.text, { brand: scan.brand_name as string | null, domain: scan.domain as string }))
-    .slice(0, PROMPTS_PER_CLUSTER)
-    .map((q) => ({ text: q.text, angle: q.angle, source: "scan", added_on: startedOn, added_by: "nomada" }));
-  const prompts = resume.prompts ? await insertPrompts(db, clientId, clusterId, rows) : ({ ok: true } as const);
-  if (!prompts.ok) return { ok: false, outcome: `cluster made, prompts refused: ${prompts.message}`, clientId };
+  let rows: { text: string; angle: string | null; source: string; added_on: string; added_by: string }[] = [];
+  if (scan) {
+    const { data: sq, error: qErr } = await db.from("scan_questions").select("idx, question, kind").eq("scan_id", scan.id).order("idx", { ascending: true });
+    if (qErr) return { ok: false, outcome: `could not read the scan's prompts: ${qErr.message}`, clientId };
+    // Each prompt keeps its scan kind as its angle (BRIEF-3 C3).
+    rows = (sq ?? [])
+      .map((q) => ({ text: String(q.question).trim(), angle: angleFor(q.kind) }))
+      // A scan prompt naming the brand is left behind: this copies the scan, which measures unprompted naming (R133, limits.ts).
+      .filter((q) => q.text.length >= 8 && q.text.length <= 300 && !namesBrandIn(q.text, { brand: scan.brand_name, domain: scan.domain }))
+      .slice(0, PROMPTS_PER_CLUSTER)
+      .map((q) => ({ text: q.text, angle: q.angle, source: "scan", added_on: startedOn, added_by: "nomada" }));
+    const prompts = resume.prompts ? await insertPrompts(db, clientId, clusterId, rows) : ({ ok: true } as const);
+    if (!prompts.ok) return { ok: false, outcome: `cluster made, prompts refused: ${prompts.message}`, clientId };
+  }
+
+  // Every other cluster bought starts "Needs a keyword" (R158); a retry makes only the missing ones.
+  const { data: live, error: lErr } = await db.from("tracked_clusters").select("name").eq("client_domain_id", clientId).is("stopped_on", null);
+  if (lErr) return { ok: false, outcome: `could not read the client's clusters: ${lErr.message}`, clientId };
+  const missing = clustersToMake(tier === "tracked" ? 1 : o.quantity, clusterName, NEEDS_A_KEYWORD, (live ?? []).map((c) => String(c.name)));
+  for (const name of missing) {
+    const made = await insertCluster(db, clientId, { name, tier, started_on: startedOn });
+    if (!made.ok) return { ok: false, outcome: `client made, cluster refused: ${made.message}`, clientId };
+  }
+  const clusters = tier === "tracked" ? 1 : Math.max(1, o.quantity);
 
   const { error: memErr } = await db
     .from("dashboard_members")
@@ -140,13 +198,14 @@ async function clientFromScan(db: SupabaseClient, o: CompletedOrder): Promise<{ 
     ok: true,
     clientId,
     outcome:
-      `${scan.domain} at ${tier}, first check ${startedOn}; cluster "${chosen ? scan.cluster_keyword : NEEDS_A_KEYWORD}" with ${rows.length} prompt(s)` +
-      `${chosen ? "" : " - pick its keyword in /admin/tracking"}; ${o.email} is owner; login link ${sent ? "sent" : "NOT sent"}.`,
+      `${scan ? "from the scan" : "no scan, from the website on the order"}: ${domain} at ${tier}, first check ${startedOn}; ` +
+      `cluster 1 "${clusterName}" with ${rows.length} prompt(s)${clusters > 1 ? `, ${clusters - 1} more "${NEEDS_A_KEYWORD}"` : ""}` +
+      `${chosen && rows.length && clusters === 1 ? "" : " - pick keywords and prompts in /admin/tracking"}; ${o.email} is owner; login link ${sent ? "sent" : "NOT sent"}.`,
   };
 }
 
 export async function onCheckoutCompleted(db: SupabaseClient, o: CompletedOrder, eventId: string): Promise<boolean> {
-  const r = await clientFromScan(db, o);
+  const r = await clientFromOrder(db, o);
   if (!r.ok) {
     console.error(`[stripe] signup failed for ${eventId}: ${r.outcome}`);
     // A paid order whose signup keeps failing was silent: no order row, no

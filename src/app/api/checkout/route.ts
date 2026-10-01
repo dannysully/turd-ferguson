@@ -47,6 +47,7 @@ export async function POST(req: Request) {
     email: field("email", CHECKOUT_LIMITS.email + 1),
     keyword: field("keyword", CHECKOUT_LIMITS.keyword.max + 1),
     scan: field("scan", CHECKOUT_LIMITS.scan),
+    website: field("website", CHECKOUT_LIMITS.website),
   };
 
   const r = checkoutRequest(order, {
@@ -69,6 +70,9 @@ export async function POST(req: Request) {
     // The email does not: an address in a URL lands in request logs.
     const keyword = order.keyword.trim().slice(0, CHECKOUT_LIMITS.keyword.max);
     if (keyword) b.set("keyword", keyword);
+    // So does the website (R158): a domain the buyer is buying for, not personal data.
+    const website = order.website.trim();
+    if (website && !/^[0-9a-f]{32}$/i.test(order.scan)) b.set("website", website);
     return Response.redirect(`${ORIGIN}/checkout?${b}`, 303);
   };
 
@@ -77,7 +81,7 @@ export async function POST(req: Request) {
     return isForm ? back("email") : Response.json({ error: "invalid", message: "A work email is needed." }, { status: 400 });
   }
   if (r.kind === "invalid") {
-    if (isForm) return back(r.message.includes("email") ? "email" : r.message.includes("keyword") ? "keyword" : "failed");
+    if (isForm) return back(r.message.includes("email") ? "email" : r.message.includes("keyword") ? "keyword" : r.message.includes("website") ? "website" : "failed");
     return Response.json({ error: "invalid", message: r.message }, { status: 400 });
   }
   if (r.kind === "call") return go(call);

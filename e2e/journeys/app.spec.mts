@@ -21,7 +21,7 @@ import assert from "node:assert/strict";
 
 const ROOT = path.resolve(import.meta.dirname, "..", "..");
 const require = createRequire(path.join(os.homedir(), "code/.parity/package.json"));
-type Locator = { click(): Promise<void>; count(): Promise<number>; getByRole(role: string, o?: object): Locator; first(): Locator };
+type Locator = { click(): Promise<void>; count(): Promise<number>; getByRole(role: string, o?: object): Locator; first(): Locator; boundingBox(): Promise<{ height: number; width: number } | null> };
 type Page = {
   goto(url: string, o?: object): Promise<{ status(): number } | null>;
   evaluate<R, A>(fn: (a: A) => R | Promise<R>, a: A): Promise<R>;

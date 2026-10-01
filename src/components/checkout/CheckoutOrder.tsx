@@ -26,6 +26,7 @@ import type { CheckoutTier } from "@/lib/checkout/session";
 const ERRORS: Record<string, string> = {
   email: "Type your work email again, in the form name@company.com.",
   keyword: `A keyword target of at least ${CHECKOUT_LIMITS.keyword.min} characters is needed.`,
+  website: "Type your website again, in the form company.com.",
   failed: "The checkout did not open. Please try again, or book a call.",
 };
 
@@ -66,6 +67,8 @@ type Props = {
   initial: Selection;
   scan: string | null;
   keyword: string;
+  /** Asked only without a scan: the webhook builds the dashboard for it (R158, 1 Oct 2026). */
+  website: string;
   error?: string;
 };
 
@@ -77,7 +80,7 @@ function priceFor(tier: CheckoutTier, sel: Selection): { price: string | null; c
   return quote.kind === "call" ? { price: null, call: true } : { price: `${formatPrice(quote.amount, sel.market)}/mo`, call: false };
 }
 
-export default function CheckoutOrder({ tier, tierPlain, plan, tierPage, includes, initial, scan, keyword, error }: Props) {
+export default function CheckoutOrder({ tier, tierPlain, plan, tierPage, includes, initial, scan, keyword, website, error }: Props) {
   const market = useSeededMarket(initial.market);
   const [sector, setSector] = useState(initial.sector);
   const [qty, setQty] = useState(initial.qty);
@@ -206,6 +209,33 @@ export default function CheckoutOrder({ tier, tierPlain, plan, tierPage, include
                 </span>
               ) : null}
             </label>
+            {scan ? null : (
+              <label style={MICRO}>
+                Your website
+                <input
+                  type="text"
+                  id="checkout-website"
+                  name="website"
+                  defaultValue={website}
+                  required
+                  maxLength={CHECKOUT_LIMITS.website}
+                  placeholder="company.com"
+                  autoComplete="url"
+                  inputMode="url"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  autoFocus={error === "website"}
+                  aria-invalid={error === "website" || undefined}
+                  aria-describedby={error === "website" ? "checkout-website-error" : undefined}
+                  style={field}
+                />
+                {error === "website" ? (
+                  <span id="checkout-website-error" role="alert" style={fieldError}>
+                    {ERRORS.website}
+                  </span>
+                ) : null}
+              </label>
+            )}
             <label style={MICRO}>
               {perCluster ? "Keyword target" : "Keyword target (optional)"}
               <input

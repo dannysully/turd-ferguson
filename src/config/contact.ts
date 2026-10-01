@@ -112,7 +112,8 @@ export const WAITLIST_LIMITS = { domain: 253, topic: 200, email: 254, website: 2
  */
 export const APP_LIMITS = { search: 120, note: 200, email: 254 };
 
-export const CHECKOUT_LIMITS = { email: 254, keyword: { min: 2, max: 120 }, tier: 20, sector: 60, clusters: 4, market: 4, scan: 32 };
+// `website`: asked only when the order has no scan (R158, 1 Oct 2026); a hostname's own bound.
+export const CHECKOUT_LIMITS = { email: 254, keyword: { min: 2, max: 120 }, tier: 20, sector: 60, clusters: 4, market: 4, scan: 32, website: 253 };
 
 /**
  * The campaign benchmark form, which is the fourth table this file predicted.

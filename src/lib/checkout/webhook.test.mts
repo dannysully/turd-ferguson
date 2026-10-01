@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { checkoutRequest } from "./session.ts";
-import { completedOrder, handleWebhook, orderEmailText, orderRow, packsOn, signStripePayload, signupResume, subscriptionScanToken, verifyStripeSignature, type WebhookDeps } from "./webhook.ts";
+import { clustersToMake, completedOrder, handleWebhook, orderEmailText, orderRow, packsOn, signStripePayload, signupResume, subscriptionScanToken, verifyStripeSignature, type WebhookDeps } from "./webhook.ts";
 
 /**
  * BRIEF-3 C4 (30 Sep 2026): the webhook's rules against recorded fixtures.
@@ -169,19 +169,44 @@ test("packs count only items marked as a pack", () => {
   assert.equal(packsOn({}), 0);
 });
 
-test("the order email names the order and says when there was no scan", () => {
+test("the order email names the order and which path the signup took (R158, 1 Oct 2026)", () => {
   const o = completedOrder({ ...completed.data.object, metadata: { tier: "mentioned", sector: "saas", quantity: "3", market: "uk", keyword: "crm" } });
-  const m = orderEmailText(o, "no scan on the order, so no client was created", "https://alwayscited.com");
+  const m = orderEmailText(o, "no scan and no website on the order, so no client was created", "https://alwayscited.com");
   assert.match(m.text, /Tier: mentioned/);
   assert.match(m.text, /Clusters: 3/);
   assert.match(m.text, /Keyword target: crm/);
-  assert.match(m.text, /set the client up by hand/);
+  assert.match(m.text, /Path: no scan/);
+  assert.match(m.text, /Website: none given - set the client up by hand/);
   assert.match(m.text, /129\.00 USD/);
+  const site = orderEmailText(completedOrder({ ...completed.data.object, metadata: { tier: "mentioned", quantity: "2", market: "us", website: "buyer-site.com" } }), "made", "https://alwayscited.com");
+  assert.match(site.text, /Path: no scan\n/);
+  assert.match(site.text, /Website: buyer-site\.com/);
+  const scan = orderEmailText(completedOrder(completed.data.object), "made", "https://alwayscited.com");
+  assert.match(scan.text, /Path: scan\n/);
+  assert.match(scan.text, new RegExp(`Scan: https://alwayscited\\.com/scan/${TOKEN}`));
+});
+
+test("the webhook reads the order's website as untrusted (R158, 1 Oct 2026)", () => {
+  const read = (website: unknown) => completedOrder({ ...completed.data.object, metadata: { ...completed.data.object.metadata, website } }).website;
+  assert.equal(read("buyer-site.com"), "buyer-site.com");
+  assert.equal(read("HTTPS://WWW.Buyer-Site.com/x"), "buyer-site.com");
+  for (const bad of ["", "localhost", "a b.com", 7, undefined]) assert.equal(read(bad), null);
+});
+
+test("every cluster bought is made once: a scan prefills only cluster 1, the rest need a keyword, a retry makes only the missing (R158, 1 Oct 2026)", () => {
+  const N = "Needs a keyword";
+  assert.deepEqual(clustersToMake(1, N, N, []), [N], "no scan, one cluster");
+  assert.deepEqual(clustersToMake(3, N, N, []), [N, N, N], "no scan, three bought");
+  assert.deepEqual(clustersToMake(3, "crm software", N, []), ["crm software", N, N], "scan prefills cluster 1 only");
+  assert.deepEqual(clustersToMake(3, "crm software", N, ["crm software"]), [N, N], "retry after cluster 1");
+  assert.deepEqual(clustersToMake(3, "crm software", N, ["crm software", N]), [N], "retry after cluster 2");
+  assert.deepEqual(clustersToMake(3, N, N, [N, N, N]), [], "a full replay makes nothing");
+  assert.deepEqual(clustersToMake(0, N, N, []), [N], "never fewer than one");
 });
 
 test("checkout puts a scan token in the Session metadata only when it is one", () => {
   const ctx = { trackedPrice: { us: 129, uk: 99 }, names: { tracked: "alwaystracked", mentioned: "alwaysmentioned", cited: "alwayscited" }, origin: "https://alwayscited.com" as const };
-  const base = { tier: "tracked", sector: "", quantity: 1, market: "us", email: "a@example.com", keyword: "" };
+  const base = { tier: "tracked", sector: "", quantity: 1, market: "us", email: "a@example.com", keyword: "", website: "example.com" };
   const withScan = checkoutRequest({ ...base, scan: TOKEN.toUpperCase() }, ctx);
   assert.equal(withScan.kind, "session");
   if (withScan.kind === "session") {

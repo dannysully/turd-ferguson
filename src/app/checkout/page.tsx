@@ -27,7 +27,7 @@ export const metadata: Metadata = {
  */
 
 /** The refusals /api/checkout sends back; CheckoutOrder holds their words. */
-const ERRORS = ["email", "keyword", "failed"];
+const ERRORS = ["email", "keyword", "website", "failed"];
 
 export default async function Checkout({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const q = await searchParams;
@@ -40,6 +40,8 @@ export default async function Checkout({ searchParams }: { searchParams: Promise
   const keyword = (q.keyword ?? "").slice(0, CHECKOUT_LIMITS.keyword.max);
   // The free scan this order came from, carried to the Session for the webhook (BRIEF-3 C4).
   const scan = /^[0-9a-f]{32}$/i.test(q.scan ?? "") ? q.scan!.toLowerCase() : null;
+  // Without one, the order asks for the website the dashboard is built for (R158).
+  const website = (q.website ?? "").slice(0, CHECKOUT_LIMITS.website);
 
   return (
     <section style={{ ...SHELL, maxWidth: "560px", paddingTop: "48px", paddingBottom: "96px" }}>
@@ -56,6 +58,7 @@ export default async function Checkout({ searchParams }: { searchParams: Promise
         initial={sel}
         scan={scan}
         keyword={keyword}
+        website={website}
         error={error}
       />
     </section>

@@ -159,6 +159,8 @@ for (const width of [1280, 390]) {
       for (const [error, url] of [
         ["email", "/checkout?tier=alwaystracked&market=uk&error=email&keyword=kept%20words"],
         ["keyword", "/checkout?tier=alwayscited&market=us&sector=business&error=keyword&keyword=k"],
+        // R158 (1 Oct 2026): without a scan the order asks for the website; a bad one comes back kept.
+        ["website", "/checkout?tier=alwaystracked&market=us&error=website&website=not%20a%20site"],
       ] as const) {
         const co = await open(width, url);
         assert.equal(co.status, 200, url);
@@ -166,10 +168,26 @@ for (const width of [1280, 390]) {
         assert.equal(await input.getAttribute("aria-invalid"), "true", `${error} marked invalid`);
         assert.equal(await input.getAttribute("aria-describedby"), `checkout-${error}-error`);
         assert.ok(((await co.page.locator(`#checkout-${error}-error`).textContent()) ?? "").length > 0, `${error} reason shown`);
-        assert.equal(await co.page.locator("#checkout-keyword").first().evaluate((i) => (i as HTMLInputElement).value), error === "email" ? "kept words" : "k", "keyword kept");
+        if (error === "website") assert.equal(await input.inputValue(), "not a site", "website kept");
+        else assert.equal(await co.page.locator("#checkout-keyword").first().evaluate((i) => (i as HTMLInputElement).value), error === "email" ? "kept words" : "k", "keyword kept");
         assert.equal(await co.page.locator("#checkout-email").first().evaluate((i) => (i as HTMLInputElement).value), "", "the email is never carried in the URL");
         await co.ctx.close();
       }
+    });
+
+    // R158 (1 Oct 2026): an order with no scan built no dashboard; it now asks
+    // for the website, required, and an order from a scan does not ask.
+    test("(2c) checkout asks for the website only when no scan rides on the order", async () => {
+      const bare = await open(width, "/checkout?tier=alwaystracked&market=us");
+      const site = bare.page.locator("#checkout-website");
+      assert.equal(await site.count(), 1, "website field without a scan");
+      assert.equal(await site.evaluate((i) => (i as HTMLInputElement).required), true, "website required");
+      assert.ok(((await site.boundingBox())?.height ?? 0) >= 40, "website field is a full-height field");
+      assert.ok((await overflow(bare.page)) <= 0, "no sideways scroll with the website field");
+      await bare.ctx.close();
+      const scanned = await open(width, `/checkout?tier=alwaystracked&market=us&scan=${"0".repeat(32)}`);
+      assert.equal(await scanned.page.locator("#checkout-website").count(), 0, "no website field with a scan");
+      await scanned.ctx.close();
     });
 
     test("(3) /packages -> every tier's CTA opens, alwaystracked's at the order form", async () => {
@@ -259,7 +277,8 @@ for (const width of [1280, 390]) {
       }
       assert.deepEqual(
         stops.map((s) => s.text),
-        ["What the plan includes", "US $", "UK £", "email", "keyword", "Continue to payment"],
+        // "website": asked when no scan rides on the order (R158, 1 Oct 2026).
+        ["What the plan includes", "US $", "UK £", "email", "website", "keyword", "Continue to payment"],
         "after the skip link: plan link, toggle, email, keyword, button",
       );
       assert.deepEqual(stops.filter((s) => !s.ring || !s.inMain), [], "every stop is in main with a visible focus");
@@ -319,7 +338,22 @@ for (const width of [1280, 390]) {
       }
     });
 
-    test("without a scan: the onboarding call, no sign-in button", async () => {
+    // R158 (1 Oct 2026): an order with no scan carries its website, from=site, and gets a dashboard too.
+    test("from the website: the dashboard and the sign-in link, no first-check promise", async () => {
+      const { page, ctx, status } = await open(width, "/checkout/done?session=cs_placeholder&plan=tracked&from=site");
+      try {
+        assert.equal(status, 200);
+        assert.match((await page.locator("h1").first().textContent()) ?? "", /dashboard is being set up/);
+        const body = (await page.locator("main").first().textContent()) ?? "";
+        assert.match(body, /for your website/);
+        assert.doesNotMatch(body, /first check runs tomorrow/, "no keyword or prompts yet, so no check tomorrow");
+        assert.ok(((await page.getByRole("link", { name: "Go to sign in" }).first().boundingBox())?.height ?? 0) >= 44);
+      } finally {
+        await ctx.close();
+      }
+    });
+
+    test("an older link with no from: the onboarding call, no sign-in button", async () => {
       const { page, ctx, status } = await open(width, "/checkout/done?session=cs_placeholder&plan=cited");
       try {
         assert.equal(status, 200);

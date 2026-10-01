@@ -1,5 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
+import { isPlausibleDomain, normalizeDomain } from "../scan/domain.ts";
+
 /**
  * The Stripe webhook's rules - BRIEF-3 C4 (docs/tracked-dashboard-2026-09-29/
  * BRIEF-3-clusters.md), R92/R110/R117, 30 Sep 2026.
@@ -57,6 +59,8 @@ export type CompletedOrder = {
   market: string;
   keyword: string;
   scanToken: string | null;
+  /** The buyer's website, set at /checkout only when there is no scan (R158, 1 Oct 2026). */
+  website: string | null;
   subscriptionId: string | null;
   customerId: string | null;
   amountTotal: number | null;
@@ -64,6 +68,12 @@ export type CompletedOrder = {
 };
 
 const str = (v: unknown) => (typeof v === "string" ? v : "");
+
+/** session.ts normalised it; metadata is still read as untrusted. */
+function siteOf(v: string): string | null {
+  const d = normalizeDomain(v);
+  return d && isPlausibleDomain(d) ? d : null;
+}
 
 export function completedOrder(session: Record<string, unknown>): CompletedOrder {
   const m = (session.metadata ?? {}) as Record<string, unknown>;
@@ -79,6 +89,7 @@ export function completedOrder(session: Record<string, unknown>): CompletedOrder
     market: str(m.market),
     keyword: str(m.keyword),
     scanToken: /^[0-9a-f]{32}$/i.test(scan) ? scan.toLowerCase() : null,
+    website: siteOf(str(m.website)),
     subscriptionId: str(session.subscription) || null,
     customerId: str(session.customer) || null,
     amountTotal: typeof session.amount_total === "number" ? session.amount_total : null,
@@ -146,6 +157,23 @@ export function orderRow(o: CompletedOrder, clientId: string | null): { row: Ord
 export function signupResume(existing: { id: string; keywordId: string | null; livePrompts: number } | null): { clusterId: string | null; keyword: boolean; prompts: boolean } {
   if (!existing) return { clusterId: null, keyword: true, prompts: true };
   return { clusterId: existing.id, keyword: !existing.keywordId, prompts: existing.livePrompts === 0 };
+}
+
+/**
+ * The clusters a paid order still needs (R158, Danny, 1 Oct 2026, danny.md
+ * 168): one per cluster bought, every one "Needs a keyword" unless the scan
+ * chose cluster 1's keyword. `existing` is the names of the client's live
+ * clusters, so a Stripe retry makes only the ones the last attempt did not.
+ */
+export function clustersToMake(quantity: number, first: string, needsKeyword: string, existing: string[]): string[] {
+  const want = Array.from({ length: Math.max(1, quantity) }, (_, i) => (i === 0 ? first : needsKeyword));
+  const left = [...existing];
+  return want.filter((name) => {
+    const i = left.indexOf(name);
+    if (i === -1) return true;
+    left.splice(i, 1);
+    return false;
+  });
 }
 
 /** The subscription's scan token, set on it at checkout (subscription_data[metadata]). */
@@ -224,7 +252,10 @@ export function orderEmailText(o: CompletedOrder, outcome: string, siteOrigin: s
     `Work email: ${o.email ?? "none given"}`,
     `Keyword target: ${o.keyword || "-"}`,
     `First payment: ${amount}`,
-    `Scan: ${o.scanToken ? `${siteOrigin}/scan/${o.scanToken}` : "none - set the client up by hand in /admin/tracking"}`,
+    // Which path the signup took (R158, 1 Oct 2026): from the scan, or with no scan from the website.
+    `Path: ${o.scanToken ? "scan" : "no scan"}`,
+    `Scan: ${o.scanToken ? `${siteOrigin}/scan/${o.scanToken}` : "none"}`,
+    `Website: ${o.scanToken ? "-" : (o.website ?? "none given - set the client up by hand in /admin/tracking")}`,
     `Stripe session: ${o.sessionId}`,
     "",
     `Set up: ${outcome}`,

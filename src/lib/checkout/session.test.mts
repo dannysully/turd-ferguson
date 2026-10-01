@@ -9,7 +9,7 @@ import { checkoutRequest, type CheckoutContext, type Order } from "./session.ts"
 // Made-up figures: the rule under test is that the context's figure is used, not what it is.
 const ctx: CheckoutContext = { trackedPrice: { us: 7, uk: 5 }, names: { tracked: "t-name", mentioned: "m-name", cited: "c-name" }, origin: "https://alwayscited.com" };
 const priced = SECTORS.find((s) => s.prices)!;
-const order = (o: Partial<Order> = {}): Order => ({ tier: "mentioned", sector: priced.id, quantity: 3, market: "us", email: "Buyer@Example.com", keyword: "accounting software", ...o });
+const order = (o: Partial<Order> = {}): Order => ({ tier: "mentioned", sector: priced.id, quantity: 3, market: "us", email: "Buyer@Example.com", keyword: "accounting software", website: "https://www.Buyer-Site.com/about", ...o });
 
 test("the amount comes from the price config, times quantity, in cents", () => {
   const r = checkoutRequest(order(), ctx);
@@ -39,15 +39,31 @@ test("every Session allows promotion codes, is monthly, and returns to alwayscit
   }
 });
 
-test("the success URL names the plan, and from=scan only when a scan token rides on the order (R148 pass 8, 1 Oct 2026)", () => {
+test("the success URL names the plan, and from=scan only when a scan token rides on the order, else from=site (R148 pass 8; R158, 1 Oct 2026)", () => {
   const tok = "0123456789abcdef0123456789abcdef";
   const withScan = checkoutRequest(order({ tier: "tracked", sector: "", keyword: "", scan: tok }), ctx);
   const without = checkoutRequest(order({ tier: "cited" }), ctx);
   const junk = checkoutRequest(order({ scan: "not-a-token" }), ctx);
   assert.ok(withScan.kind === "session" && without.kind === "session" && junk.kind === "session");
   assert.equal(withScan.form.get("success_url"), "https://alwayscited.com/checkout/done?session={CHECKOUT_SESSION_ID}&plan=tracked&from=scan");
-  assert.equal(without.form.get("success_url"), "https://alwayscited.com/checkout/done?session={CHECKOUT_SESSION_ID}&plan=cited");
-  assert.equal(junk.form.get("success_url"), "https://alwayscited.com/checkout/done?session={CHECKOUT_SESSION_ID}&plan=mentioned");
+  assert.equal(without.form.get("success_url"), "https://alwayscited.com/checkout/done?session={CHECKOUT_SESSION_ID}&plan=cited&from=site");
+  assert.equal(junk.form.get("success_url"), "https://alwayscited.com/checkout/done?session={CHECKOUT_SESSION_ID}&plan=mentioned&from=site");
+});
+
+test("an order without a scan needs the buyer's website, carried normalised; with a scan it is not asked (R158, 1 Oct 2026)", () => {
+  const tok = "0123456789abcdef0123456789abcdef";
+  for (const website of [undefined, "", "   ", "not a site", "localhost", `${"a".repeat(250)}.com`]) {
+    assert.equal(checkoutRequest(order({ website }), ctx).kind, "invalid", `website ${JSON.stringify(website)}`);
+    assert.equal(checkoutRequest(order({ tier: "tracked", sector: "", keyword: "", website }), ctx).kind, "invalid");
+  }
+  const r = checkoutRequest(order(), ctx);
+  assert.ok(r.kind === "session");
+  assert.equal(r.form.get("metadata[website]"), "buyer-site.com");
+  assert.equal(r.form.get("subscription_data[metadata][website]"), "buyer-site.com");
+  const withScan = checkoutRequest(order({ scan: tok, website: undefined }), ctx);
+  assert.ok(withScan.kind === "session");
+  assert.equal(withScan.form.get("metadata[website]"), null, "the scan names the domain");
+  assert.equal(withScan.form.get("metadata[scan_token]"), tok);
 });
 
 test("every Session charges tax through Stripe Tax on a tax-exclusive price (R129, 30 Sep 2026)", () => {

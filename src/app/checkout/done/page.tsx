@@ -33,20 +33,30 @@ export default async function CheckoutDone({ searchParams }: Props) {
   const sp = await searchParams;
   const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
   const fromScan = one(sp.from) === "scan";
+  // R158 (1 Oct 2026): an order with no scan now gets its dashboard too, built for the website it carried.
+  const fromSite = one(sp.from) === "site";
+  const dashboard = fromScan || fromSite;
   const tracked = one(sp.plan) === "tracked";
 
   return (
     <section style={{ ...SHELL, maxWidth: "640px", paddingTop: "48px", paddingBottom: "96px" }}>
       <div style={MICRO}>Checkout</div>
       <h1 style={{ margin: "10px 0 0", fontSize: "32px", fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.2, color: T.ink }}>
-        {fromScan ? "Thank you. Your dashboard is being set up." : "Thank you. Next, the onboarding call."}
+        {dashboard ? "Thank you. Your dashboard is being set up." : "Thank you. Next, the onboarding call."}
       </h1>
-      {fromScan ? (
+      {dashboard ? (
         <>
-          <p style={P}>
-            Stripe emails your receipt. We are setting up your dashboard from your scan and sending a sign-in link to
-            your work email. The first check runs tomorrow.
-          </p>
+          {fromScan ? (
+            <p style={P}>
+              Stripe emails your receipt. We are setting up your dashboard from your scan and sending a sign-in link to
+              your work email. The first check runs tomorrow.
+            </p>
+          ) : (
+            <p style={P}>
+              Stripe emails your receipt. We are setting up your dashboard for your website and sending a sign-in link
+              to your work email. We add each cluster&apos;s keyword and prompts, then the daily checks begin.
+            </p>
+          )}
           {!tracked && (
             <p style={P}>We will also email you to book the onboarding call, where we agree the prompts for each keyword.</p>
           )}
