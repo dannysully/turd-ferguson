@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { ASKS_PER_MEMBER_PER_DAY, ASK_ITEMS_MAX, askGate, askMail, askRecipient, askToast, readAskItems, readAskKeyword, readHideCta, readUpgradeCta, recordHidden, upgradeAskMail, upsellMode } from "./ask.ts";
+import { ASKS_PER_MEMBER_PER_DAY, ASK_ITEMS_MAX, aliasAskMail, askGate, billingAskMail, readAskAbout, askMail, askRecipient, askToast, readAskItems, readAskKeyword, readHideCta, readUpgradeCta, recordHidden, upgradeAskMail, upsellMode } from "./ask.ts";
 
 /** A stub of the one count askGate reads, recording the filters it was given. */
 function countDb(count: number | null, error: { message: string } | null = null) {
@@ -88,4 +88,17 @@ test("Hide for 30 days: any prompt's cta, one hidden row for this member", async
   const db = { from: (t: string) => (assert.equal(t, "cta_events"), { insert: (r: unknown) => ((row = r), Promise.resolve({ error: null })) }) } as never;
   assert.equal(await recordHidden(db, { clientId: "c", email: "m@example.com", cta: "mentioned" }), true);
   assert.deepEqual(row, { client_domain_id: "c", member_email: "m@example.com", cta: "mentioned", action: "hidden", trigger: {} });
+});
+
+test("Settings asks (R142 part 3): aliases and billing only, tier-free in agency mode", () => {
+  assert.equal(readAskAbout("aliases"), "aliases");
+  assert.equal(readAskAbout("billing"), "billing");
+  assert.equal(readAskAbout("mentioned"), null);
+  assert.equal(readAskAbout(undefined), null);
+  const m = aliasAskMail({ brand: "T", domain: "example.com", member: "m@example.com", names: ["T", "T Ltd"], mode: "nomada" });
+  assert.equal(m.subject, "Change the names matched for T");
+  assert.match(m.text, /^- T Ltd$/m);
+  assert.match(m.text, /alwaystracked/);
+  assert.doesNotMatch(aliasAskMail({ brand: "T", domain: "example.com", member: "m", names: ["T"], mode: "agency" }).text, /always/);
+  assert.doesNotMatch(billingAskMail({ brand: "T", domain: "example.com", member: "m", mode: "agency" }).text, /always/);
 });

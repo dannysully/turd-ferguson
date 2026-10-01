@@ -69,6 +69,43 @@ export type UpgradeAskCta = "mentioned" | "cited";
 
 export const readUpgradeCta = (raw: unknown): UpgradeAskCta | null => (raw === "mentioned" || raw === "cited" ? raw : null);
 
+/**
+ * Settings' "Ask us to change these" (R142 part 3, 1 Oct 2026; BRIEF-4 P2):
+ * the names we match. Clients never edit aliases - an alias changes what
+ * "named" means, so nomada sets them in /admin/tracking - so the ask carries
+ * the names as they stand, read on the server, and the reply does the rest.
+ * cta_events' check has no `aliases` value and widening it is not additive
+ * DDL, so the row is recorded as cta `cluster` with trigger
+ * `{ about: "aliases" }`; it counts toward the same daily cap. Billing's
+ * "Ask us" is the same ask about billing, until the Stripe portal is checked.
+ */
+export type AskAbout = "aliases" | "billing";
+export const readAskAbout = (raw: unknown): AskAbout | null => (raw === "aliases" || raw === "billing" ? raw : null);
+
+/** Billing's ask: who and which dashboard; the reply is the conversation. */
+export function billingAskMail(p: { brand: string; domain: string; member: string; mode: UpsellMode }): { subject: string; text: string } {
+  const where = p.mode === "agency" ? "their dashboard" : "their alwaystracked dashboard";
+  return {
+    subject: `Billing question from ${p.brand}`,
+    text: [`${p.member} (${p.brand}, ${p.domain}) asked from ${where} about their billing.`, "", "Reply to this email to answer them."].join("\n"),
+  };
+}
+
+export function aliasAskMail(p: { brand: string; domain: string; member: string; names: string[]; mode: UpsellMode }): { subject: string; text: string } {
+  const where = p.mode === "agency" ? "their dashboard" : "their alwaystracked dashboard";
+  return {
+    subject: `Change the names matched for ${p.brand}`,
+    text: [
+      `${p.member} (${p.brand}, ${p.domain}) asked from ${where} to change the names we match.`,
+      "",
+      "The names matched now:",
+      ...p.names.map((n) => `- ${n}`),
+      "",
+      "Reply to this email to ask what to change, then set it in /admin/tracking.",
+    ].join("\n"),
+  };
+}
+
 /** The most ids one ask carries: every prompt a client could track, with packs. */
 export const ASK_ITEMS_MAX = 100;
 

@@ -12,7 +12,10 @@ import type { Member } from "@/lib/tracking/settings-data";
  * is read-only for everyone. Team is read-only for editors and viewers; an
  * owner invites, changes a role and removes (part 2), each a plain form posted
  * to /api/app/[client]/member, with "Remove" behind a <details> confirm.
- * Billing (part 3) follows. Everything here is server drawn, so it all works
+ * Part 3: "Ask us to change these" and Billing's "Ask us" post to the ask
+ * route (`about`); Billing is owners only and, until the Stripe portal is
+ * checked (blocked.md), says who handles billing; "Sign out of every device"
+ * posts `everywhere=1` to logout. Everything here is server drawn, so it all works
  * with JS off.
  */
 
@@ -72,6 +75,7 @@ export default function Settings({
   toast: string | null;
 }) {
   const action = `/api/app/${encodeURIComponent(slug)}/member`;
+  const askAction = `/api/app/${encodeURIComponent(slug)}/ask`;
   const owners = members.filter((m) => m.role === "owner").length;
   const names = [brand?.trim() || domain, ...aliases.filter((a) => a !== brand)];
   return (
@@ -113,6 +117,13 @@ export default function Settings({
             ))}
           </ul>
           <span style={{ fontSize: "13px", color: T.soft }}>We count an answer as naming you when it uses one of these.</span>
+          {/* Nobody to ask with upsell_mode off (ask.ts askRecipient). */}
+          {mode === "off" ? null : (
+            <form method="post" action={askAction} style={{ margin: 0 }}>
+              <input type="hidden" id="set-ask-aliases" name="about" value="aliases" />
+              <button type="submit" style={BUTTON}>Ask us to change these</button>
+            </form>
+          )}
         </div>
       </section>
 
@@ -184,15 +195,38 @@ export default function Settings({
         ) : null}
       </section>
 
+      {owner ? (
+        <section aria-labelledby="set-billing" style={SECTION}>
+          <h2 id="set-billing" style={HEAD}>Billing</h2>
+          <div style={{ ...ROW, alignItems: "center" }}>
+            <span style={{ color: T.soft }}>{mode === "agency" ? "Billing is handled by your account contact." : "Billing is handled directly by nomada digital."}</span>
+            {mode === "nomada" ? (
+              <form method="post" action={askAction} style={{ margin: 0 }}>
+                <input type="hidden" id="set-ask-billing" name="about" value="billing" />
+                <button type="submit" style={BUTTON}>Ask us</button>
+              </form>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
+
       <section aria-labelledby="set-out" style={SECTION}>
         <h2 id="set-out" style={HEAD}>Sign out</h2>
         <div style={ROW}>
           <span style={{ color: T.soft }}>Signed in as {email}</span>
-          <form method="post" action="/api/app/logout" style={{ margin: 0 }}>
-            <button type="submit" style={BUTTON}>
-              Sign out
-            </button>
-          </form>
+          <span style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+            <form method="post" action="/api/app/logout" style={{ margin: 0 }}>
+              <button type="submit" style={BUTTON}>
+                Sign out
+              </button>
+            </form>
+            <form method="post" action="/api/app/logout" style={{ margin: 0 }}>
+              <input type="hidden" id="set-out-all" name="everywhere" value="1" />
+              <button type="submit" style={BUTTON}>
+                Sign out of every device
+              </button>
+            </form>
+          </span>
         </div>
       </section>
     </div>

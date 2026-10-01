@@ -147,8 +147,10 @@ function selectsIn({ file, src }: Source): Select[] {
  */
 const RECORDED: Record<string, string> = {
   // 30 Sep 2026, T11 /ask: the member's own client, already membership-checked;
-  // the id picks the account's recipient and is not in the 303.
-  "src/app/api/app/[client]/ask/route.ts :: account_id":
+  // the id picks the account's recipient and is not in the 303. 1 Oct 2026
+  // (R142 part 3): brand_aliases joins it for the alias ask's mail, which goes
+  // to us or the agency contact, never back to the requester's page.
+  "src/app/api/app/[client]/ask/route.ts :: account_id, brand_aliases":
     "the ask route's recipient lookup; the redirect carries only sent|refused and us|agency.",
   // 29 Sep 2026, T2. Both render only on /admin/tracking, behind the /admin
   // Basic auth; the requester is Nomada, and the id is used only to group

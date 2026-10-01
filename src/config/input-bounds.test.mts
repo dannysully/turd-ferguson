@@ -253,6 +253,20 @@ const EXEMPT: Record<string, Exemption> = {
       },
     ]),
   ),
+  // R142 part 3 (1 Oct 2026): Settings' two asks carry `about`, and "Sign out
+  // of every device" carries everywhere=1, as hidden fields.
+  "set-ask-aliases": {
+    why: "Settings' alias ask's hidden `about`. type=hidden, nobody types in it; ask.ts readAskAbout accepts only aliases or billing.",
+    holds: [{ file: "lib/tracking/ask.ts", needs: 'raw === "aliases" || raw === "billing" ? raw : null' }],
+  },
+  "set-ask-billing": {
+    why: "Settings' billing ask's hidden `about`. type=hidden, nobody types in it; ask.ts readAskAbout accepts only aliases or billing.",
+    holds: [{ file: "lib/tracking/ask.ts", needs: 'raw === "aliases" || raw === "billing" ? raw : null' }],
+  },
+  "set-out-all": {
+    why: "Sign out of every device's hidden flag. type=hidden, nobody types in it; the logout route acts only on the exact value 1 and reads the email off the session row, never the form.",
+    holds: [{ file: "app/api/app/logout/route.ts", needs: 'form?.get("everywhere") === "1"' }],
+  },
   // R140 (1 Oct 2026): step 2's coverage ticks. type=checkbox, nobody types in
   // it and it carries no value; what is posted is the ticked rows' urls, which
   // came from parseCoverageCsv and are cut to MAX_COVERAGE_URLS by tickedRows

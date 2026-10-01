@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { askGate, askItemWord, askMail, askRecipient, readAskItems, readAskKeyword, readUpgradeCta, recordAsk, upgradeAskMail, upsellMode } from "@/lib/tracking/ask";
+import { aliasAskMail, billingAskMail, askGate, askItemWord, askMail, askRecipient, readAskAbout, readAskItems, readAskKeyword, readUpgradeCta, recordAsk, upgradeAskMail, upsellMode } from "@/lib/tracking/ask";
 import { sendAsk } from "@/lib/tracking/ask-mail";
 import { trackingDay } from "@/lib/tracking/decide";
 import { fixtureMode } from "@/lib/tracking/fixture-mode";
@@ -25,9 +25,17 @@ export async function POST(req: Request, ctx: { params: Promise<{ client: string
   const { client: slug } = await ctx.params;
   if (!/^[A-Za-z0-9-]{1,64}$/.test(slug)) return NextResponse.json({ error: "Not found." }, { status: 404 });
   const form = await req.formData().catch(() => null);
-  const cta = readUpgradeCta(form?.get("cta"));
+  // Settings' "Ask us to change these" returns to Settings; every other ask to Clusters.
+  const about = readAskAbout(form?.get("about"));
+  const cta = about ? null : readUpgradeCta(form?.get("cta"));
   const done = (r: "sent" | "refused", extra: Record<string, string> = {}) =>
-    NextResponse.redirect(new URL(`/app/${slug}/clusters?${new URLSearchParams({ ...(cta === "mentioned" ? { filter: "never" } : {}), ask: r, ...extra })}`, req.url), 303);
+    NextResponse.redirect(
+      new URL(
+        about ? `/app/${slug}/settings?${new URLSearchParams({ ask: r, ...extra })}` : `/app/${slug}/clusters?${new URLSearchParams({ ...(cta === "mentioned" ? { filter: "never" } : {}), ask: r, ...extra })}`,
+        req.url,
+      ),
+      303,
+    );
   if (fixtureMode()) return done("refused");
 
   const email = await sessionEmail();
@@ -35,13 +43,13 @@ export async function POST(req: Request, ctx: { params: Promise<{ client: string
   const client = (await clientsFor(email)).find((c) => c.slug === slug);
   if (!client) return NextResponse.json({ error: "Not found." }, { status: 404 });
 
-  const keyword = cta ? null : readAskKeyword(form?.get("keyword"));
+  const keyword = cta || about ? null : readAskKeyword(form?.get("keyword"));
   const ids = cta ? readAskItems(String(form?.get("items") ?? "").split(",")) : [];
-  if (!keyword && !ids.length) return done("refused");
+  if (!about && !keyword && !ids.length) return done("refused");
 
   const db = supabaseAdmin();
   // The account is read here, server-side only; clientsFor keeps account_id out of what pages get.
-  const { data: row, error: rowErr } = await db.from("client_domains").select("account_id").eq("id", client.id).maybeSingle();
+  const { data: row, error: rowErr } = await db.from("client_domains").select("account_id, brand_aliases").eq("id", client.id).maybeSingle();
   if (rowErr || !row) {
     console.warn(`[app] ask could not read the client's account: ${rowErr?.message ?? "none"}`);
     return done("refused");
@@ -62,6 +70,14 @@ export async function POST(req: Request, ctx: { params: Promise<{ client: string
   }
 
   const brand = client.brand ?? client.domain;
+  if (about) {
+    // The names as Settings draws them, read here: the brand, then each alias once.
+    const names = [...new Set([brand, ...((row.brand_aliases as string[] | null) ?? []).filter(Boolean)])];
+    const mail = about === "aliases" ? aliasAskMail({ brand, domain: client.domain, member: email, names, mode }) : billingAskMail({ brand, domain: client.domain, member: email, mode });
+    if (!(await sendAsk({ agencyContact: recipient.to, replyTo: email, ...mail }))) return done("refused");
+    if (!(await recordAsk(db, { clientId: client.id, email, cta: "cluster", trigger: { about } }))) console.warn("[app] ask sent but not recorded");
+    return done("sent", { to: recipient.to ? "agency" : "us" });
+  }
   let items: string[] = [];
   if (cta) {
     // Only this client's rows: an id from another client, or a made-up one, lists nothing.

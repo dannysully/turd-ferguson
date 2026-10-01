@@ -10,6 +10,7 @@ import { CLUSTER_BASE } from "@/lib/tracking/limits";
 import { rangeFrom } from "@/lib/tracking/overview-data";
 import { placedTier } from "@/lib/tracking/placement-figures";
 import { trackingRepo } from "@/lib/tracking/repo";
+import { askToast } from "@/lib/tracking/ask";
 import { teamToast } from "@/lib/tracking/team";
 
 export const dynamic = "force-dynamic";
@@ -62,7 +63,13 @@ export default async function ClientSettings({ params, searchParams }: { params:
           mode={upgrade.mode}
           slug={slug}
           owner={client.role === "owner"}
-          toast={teamToast(sp.team, sp.who, settings.members.find((m) => m.email === sp.who)?.role ?? null)}
+          toast={
+            sp.ask === "sent"
+              ? askToast(sp.to === "agency" ? "your account contact" : "nomada digital", email)
+              : sp.ask === "refused"
+                ? "That ask did not send. Try again later."
+                : teamToast(sp.team, sp.who, settings.members.find((m) => m.email === sp.who)?.role ?? null)
+          }
         />
       </div>
     </div>
