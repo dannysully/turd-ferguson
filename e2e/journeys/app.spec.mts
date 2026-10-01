@@ -111,6 +111,7 @@ const dayZero = process.env.TRACKING_FIXTURE_STATE === "new";
 // the webhook builds it from a scan with no keyword - one "Needs a keyword"
 // cluster, its prompts, nothing else (docs/parity/run-signup.mjs).
 const signup = process.env.TRACKING_FIXTURE_STATE === "signup";
+const errorState = process.env.TRACKING_FIXTURE_STATE === "partial" || process.env.TRACKING_FIXTURE_STATE === "failed" ? process.env.TRACKING_FIXTURE_STATE : null;
 
 for (const width of [1280, 390]) {
   if (signup) {
@@ -135,6 +136,46 @@ for (const width of [1280, 390]) {
           const t = await page.evaluate(() => document.querySelector("main")?.innerText ?? document.body.innerText, null);
           assert.doesNotMatch(t, /None in the top 20|the keyword checked on Google/, "no reading of a keyword that does not exist");
           if (route.endsWith("c1")) assert.match(t, /We add its Google keyword for you/);
+          await ctx.close();
+        });
+      }
+    });
+    continue;
+  }
+  // R151/R154 (1 Oct 2026, docs/parity/r151-error-app.mjs): a check that lost
+  // reads. partial = today's Google AI Overview reads failed; failed = no read
+  // landed, so the last check shown is the day before's.
+  //   node docs/parity/run-error-states.mjs partial   (or failed)
+  if (errorState) {
+    describe(`${errorState} check at ${width} as ${role}`, () => {
+      test("the Overview says what the check is, and never that a failed read was a miss", async () => {
+        const ctx = await browser.newContext({ viewport: { width, height: 900 } });
+        const page = await ctx.newPage();
+        await page.goto(BASE + HOME, { waitUntil: "load" });
+        const t = await page.evaluate(() => document.querySelector("main")?.innerText ?? document.body.innerText, null);
+        if (errorState === "partial") assert.match(t, width === 1280 ? /Some reads did not come back; they are left out of the figures/ : /some reads missing/);
+        else (assert.match(t, /Last checked .+ Next check at 06:00\./), assert.doesNotMatch(t, /Checked today/));
+        await ctx.close();
+      });
+      test("a cluster's Google AI Overview tab does not say the engine gave no answer", async () => {
+        const ctx = await browser.newContext({ viewport: { width, height: 900 } });
+        const page = await ctx.newPage();
+        await page.goto(`${BASE}${HOME}/clusters/c1?engine=google_aio`, { waitUntil: "load" });
+        const t = await page.evaluate(() => document.querySelector("main")?.innerText ?? document.body.innerText, null);
+        assert.match(t, /No answer came back from Google AI Overviews at this check\./);
+        assert.doesNotMatch(t, /Google AI Overviews gave no answer/);
+        await ctx.close();
+      });
+      for (const route of [HOME, `${HOME}/clusters`, `${HOME}/clusters/c1`, `${HOME}/named`, `${HOME}/cited`, `${HOME}/placements`, `${HOME}/reports`, `${HOME}/settings`]) {
+        test(`${route}: 200, no NaN, undefined, null or 0 of 0, no sideways scroll`, async () => {
+          const ctx = await browser.newContext({ viewport: { width, height: 900 } });
+          const page = await ctx.newPage();
+          const r = await page.goto(BASE + route, { waitUntil: "load" });
+          assert.equal(r?.status(), 200);
+          const t = await page.evaluate(() => document.querySelector("main")?.innerText ?? document.body.innerText, null);
+          assert.deepEqual(t.match(/.{0,30}(\bNaN\b|\bundefined\b|\bnull\b|\bInfinity\b|\b0 of 0\b).{0,30}/g), null);
+          const over = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth, null);
+          assert.ok(over <= 0, `sideways scroll ${over}px`);
           await ctx.close();
         });
       }

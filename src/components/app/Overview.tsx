@@ -238,13 +238,16 @@ export default function Overview({
     </header>
   );
 
+  // R151 (1 Oct 2026): a partial run (decide.ts runOutcome - some reads failed after the retry)
+  // said "Checked today" like a whole one. The figures skip an unanswered read, so say so.
+  const missing = data.lastRun?.status === "partial" ? " Some reads did not come back; they are left out of the figures, not counted as misses." : "";
   const checked = data.lastRun?.finished_at
     ? data.lastRun.run_date === today
-      ? `Checked today at ${londonTime(data.lastRun.finished_at)}. Next check tomorrow at 06:00.`
-      : `Last checked ${formatDay(data.lastRun.run_date)} at ${londonTime(data.lastRun.finished_at)}. Next check at 06:00.`
+      ? `Checked today at ${londonTime(data.lastRun.finished_at)}.${missing} Next check tomorrow at 06:00.`
+      : `Last checked ${formatDay(data.lastRun.run_date)} at ${londonTime(data.lastRun.finished_at)}.${missing} Next check at 06:00.`
     : "Your first check runs tomorrow at 06:00.";
   // Mobile.dc.html: "Checked today at 06:10", nothing after it.
-  const checkedShort = data.lastRun?.finished_at && data.lastRun.run_date === today ? `Checked today at ${londonTime(data.lastRun.finished_at)}` : null;
+  const checkedShort = data.lastRun?.finished_at && data.lastRun.run_date === today ? `Checked today at ${londonTime(data.lastRun.finished_at)}${missing ? ", some reads missing" : ""}` : null;
 
   if (!hasData) {
     // R148 pass 7 (1 Oct 2026): only a start that has happened "began" - on day zero it starts tomorrow, and said "Tracking began" with tomorrow's date.

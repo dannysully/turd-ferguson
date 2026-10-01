@@ -116,6 +116,28 @@ test("R148 pass 10: TRACKING_FIXTURE_STATE=signup is day zero as signup.ts build
   assert.equal(s.client.started_on, addDays(fx.today, 1));
 });
 
+test("R151: TRACKING_FIXTURE_STATE=partial is today's run with every Google AI Overview read failed", () => {
+  const p = fixtureState(fx, { TRACKING_FIXTURE_STATE: "partial" });
+  assert.deepEqual(p.data.lastRun, { run_date: fx.today, status: "partial", finished_at: `${fx.today}T06:10:00Z` });
+  const today = p.data.answers.filter((a) => a.run_date === fx.today);
+  const aio = today.filter((a) => a.engine === "google_aio");
+  assert.ok(aio.length > 0 && aio.every((a) => !a.answered && !a.named && !a.brands.length && !a.citations.length));
+  assert.ok(today.filter((a) => a.engine !== "google_aio").every((a) => a.answered), "the other engines landed");
+  assert.ok(p.data.answers.filter((a) => a.run_date < fx.today).every((a) => a.answered), "earlier days untouched");
+  assert.ok(!Object.keys(p.texts).some((k) => k.endsWith(" google_aio")), "no answer text for a read that failed");
+  assert.equal(p.data.answers.length, fx.data.answers.length);
+});
+
+test("R151: TRACKING_FIXTURE_STATE=failed is a run where no read landed - nothing answered today, last check the day before", () => {
+  const f = fixtureState(fx, { TRACKING_FIXTURE_STATE: "failed" });
+  assert.equal(f.data.lastRun?.run_date, addDays(fx.today, -1));
+  assert.equal(f.data.lastRun?.status, "complete");
+  const today = f.data.answers.filter((a) => a.run_date === fx.today);
+  assert.ok(today.length > 0 && today.every((a) => !a.answered && !a.named));
+  assert.deepEqual(f.texts, {});
+  assert.ok(fx.data.answers.filter((a) => a.run_date === fx.today).every((a) => a.answered), "the default fixture is untouched");
+});
+
 test("R146: TRACKING_FIXTURE_ROLE signs the fixture in as each member; removed is refused, a typo throws", () => {
   assert.equal(fixtureState(fx, {}).member.role, "owner");
   assert.ok(fixtureLive(fx, fx.member.email), "the default session is a live member");

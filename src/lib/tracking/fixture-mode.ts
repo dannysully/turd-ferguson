@@ -53,6 +53,8 @@ export function fixtureState(f: Fixture, env: Record<string, string | undefined>
   const as = fixtureAs(f, env);
   if (env.TRACKING_FIXTURE_STATE === "new") return dayZero(as);
   if (env.TRACKING_FIXTURE_STATE === "signup") return signupNoKeyword(dayZero(as));
+  if (env.TRACKING_FIXTURE_STATE === "partial") return failedReads(as, "partial");
+  if (env.TRACKING_FIXTURE_STATE === "failed") return failedReads(as, "failed");
   if (env.TRACKING_FIXTURE_STATE !== "ungrouped") return as;
   return { ...as, placements: [], data: { ...as.data, clusters: [], questions: as.data.questions.map((q) => ({ ...q, cluster_id: null })) } };
 }
@@ -102,6 +104,28 @@ function signupNoKeyword(f: Fixture): Fixture {
       questions: f.data.questions.filter((q) => q.cluster_id === first.id).slice(0, PROMPTS_PER_CLUSTER),
       keywords: [],
     },
+  };
+}
+
+/**
+ * R151 (1 Oct 2026): the error states of a daily check, as the runner records
+ * them (decide.ts runOutcome). `partial` is today's run with every Google AI
+ * Overview read failed - how both pilots' first real runs came back on 30 Sep -
+ * so those rows are answered=false with nothing named or cited, and the run is
+ * `partial`. `failed` is a run where no read landed: every row today is
+ * unanswered, and since overview-data.ts reads only complete or partial runs,
+ * the last check shown is the day before's.
+ */
+const FAILED_ENGINE = "google_aio";
+
+function failedReads(f: Fixture, outcome: "partial" | "failed"): Fixture {
+  const hit = (a: OverviewData["answers"][number]) => a.run_date === f.today && (outcome === "failed" || a.engine === FAILED_ENGINE);
+  const lastRun = outcome === "partial" ? { run_date: f.today, status: "partial", finished_at: `${f.today}T06:10:00Z` } : { run_date: addDays(f.today, -1), status: "complete", finished_at: `${addDays(f.today, -1)}T06:10:00Z` };
+  const texts = Object.fromEntries(Object.entries(f.texts).filter(([k]) => outcome === "partial" && !k.endsWith(` ${FAILED_ENGINE}`)));
+  return {
+    ...f,
+    texts,
+    data: { ...f.data, lastRun, answers: f.data.answers.map((a) => (hit(a) ? { ...a, answered: false, named: false, brands: [], citations: [] } : a)) },
   };
 }
 

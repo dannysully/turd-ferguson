@@ -375,7 +375,7 @@ export default function OneCluster({
               })}
             </nav>
           </div>
-          <Answer tab={tab} brand={brand} day={latest.day} today={today} />
+          <Answer tab={tab} brand={brand} day={latest.day} today={today} unsure={!(data.lastRun?.status === "complete" && data.lastRun.run_date === latest.day)} />
           <p style={{ margin: 0, fontSize: "13px", color: T.soft }}>{`What each engine said at ${latest.day === today ? "today's" : `the ${formatDay(latest.day)}`} check, with link addresses taken out of the text.`}</p>
         </section>
       ) : null}
@@ -444,7 +444,10 @@ export default function OneCluster({
 }
 
 /** One engine's answer (T7 part 3b): the verdict, the words with the brand in accent, pages cited, brands named. */
-function Answer({ tab, brand, day, today }: { tab: AnswerTab; brand: string; day: Day; today: Day }) {
+// R151 (1 Oct 2026): unless the day's run is the last one shown and it completed, an unanswered
+// read may be a failed one (a partial run's, or a failed run's, whose rows are still stored), not
+// the engine's silence - so "gave no answer" would say something the engine may not have done.
+function Answer({ tab, brand, day, today, unsure }: { tab: AnswerTab; brand: string; day: Day; today: Day; unsure: boolean }) {
   const label = ENGINE_SPECS[tab.engine as Engine].label;
   const when = `${day === today ? "Today" : formatDay(day, true)}${tab.time ? `, ${tab.time}` : ""}`;
   const pill =
@@ -459,7 +462,7 @@ function Answer({ tab, brand, day, today }: { tab: AnswerTab; brand: string; day
       <div style={{ display: "flex", flexDirection: "column", gap: "14px", minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
           <span style={{ padding: "3px 10px", borderRadius: "999px", background: pill.bg, color: pill.fg, fontSize: "12px", fontWeight: 700 }}>{pill.text}</span>
-          <span style={{ fontSize: "13px", color: T.soft }}>{tab.named === null ? `${label} gave no answer at this check.` : `What ${label} said. ${when}.`}</span>
+          <span style={{ fontSize: "13px", color: T.soft }}>{tab.named === null ? (unsure ? `No answer came back from ${label} at this check.` : `${label} gave no answer at this check.`) : `What ${label} said. ${when}.`}</span>
         </div>
         {tab.text ? <AnswerText source={tab.text} brand={brand} /> : tab.named !== null ? <p style={{ margin: 0, fontSize: "14px", color: T.soft }}>The words were not kept for this check.</p> : null}
       </div>
