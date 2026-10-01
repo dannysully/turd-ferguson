@@ -27,7 +27,7 @@ import { trackOffer } from "../../src/components/scan/track-offer.ts";
 
 const ROOT = path.resolve(import.meta.dirname, "..", "..");
 const require = createRequire(path.join(os.homedir(), "code/.parity/package.json"));
-type Locator = { evaluate<R>(fn: (el: Element) => R): Promise<R>; count(): Promise<number>; first(): Locator; getAttribute(n: string): Promise<string | null>; isVisible(): Promise<boolean>; boundingBox(): Promise<{ height: number; width: number } | null>; textContent(): Promise<string | null> };
+type Locator = { click(): Promise<void>; inputValue(): Promise<string>; evaluate<R>(fn: (el: Element) => R): Promise<R>; count(): Promise<number>; first(): Locator; getAttribute(n: string): Promise<string | null>; isVisible(): Promise<boolean>; boundingBox(): Promise<{ height: number; width: number } | null>; textContent(): Promise<string | null> };
 type Page = {
   goto(url: string, o?: object): Promise<{ status(): number } | null>;
   url(): string;
@@ -107,11 +107,14 @@ for (const width of [1280, 390]) {
         assert.equal(co.status, 200, href);
         const price = (await co.page.locator('[data-figure="checkout-price"]').first().textContent()) ?? "";
         assert.match(price, market === "UK" ? /^£\d.*plus VAT$/ : /^\$\d/, `${market} price "${price}"`);
-        assert.equal(await co.page.locator('select[name="market"]').first().evaluate((s) => (s as HTMLSelectElement).value), market.toLowerCase());
-        // The scan rides both forms: a market change keeps it, and the Session gets it for the webhook.
-        for (const id of ["#checkout-pick-scan", "#checkout-scan"]) {
-          assert.equal(await co.page.locator(id).first().getAttribute("value"), token, `${market}: ${id} carries the scan`);
-        }
+        // No market dropdown since R157 (danny.md line 157): the toggle shows the market.
+        assert.equal(await co.page.locator('select[name="market"]').count(), 0, "no market dropdown");
+        assert.equal(await co.page.getByRole("button", { name: market === "UK" ? "UK £" : "US $" }).first().getAttribute("aria-pressed"), "true");
+        // The Session gets the scan for the webhook, and a market switch keeps it in the URL.
+        assert.equal(await co.page.locator("#checkout-scan").first().getAttribute("value"), token, `${market}: #checkout-scan carries the scan`);
+        await co.page.getByRole("button", { name: market === "UK" ? "US $" : "UK £" }).first().click();
+        assert.match(co.page.url(), new RegExp(`scan=${token}`), `${market}: the switch keeps the scan`);
+        assert.equal(await co.page.locator("#checkout-scan").first().getAttribute("value"), token);
         assert.equal(await co.page.getByRole("button", { name: /Continue to payment/ }).first().isVisible(), true);
         await co.ctx.close();
       }
@@ -131,7 +134,16 @@ for (const width of [1280, 390]) {
         assert.match(price, market === "uk" ? /^£\d.*plus VAT$/ : /^\$\d/, `${market} price "${price}"`);
         const body = await co.page.evaluate(() => document.body.innerText);
         assert.match(body, /30 days.? notice to cancel/);
-        assert.match(body, /Stripe/);
+        // R156 (danny.md line 156): the one quiet promo line replaced the Stripe and seller lines.
+        assert.match(body, /Got a promo code\? Add it on the next page\./);
+        assert.doesNotMatch(body, /Sold by|You pay on Stripe/, "the seller line lives in the footer only");
+        assert.equal(await co.page.locator('select[name="market"]').count(), 0, "no market dropdown");
+        // The toggle re-prices with no reload (R157).
+        const other = market === "uk" ? "US $" : "UK £";
+        await co.page.getByRole("button", { name: other }).first().click();
+        const switched = (await co.page.locator('[data-figure="checkout-price"]').first().textContent()) ?? "";
+        assert.match(switched, market === "uk" ? /^\$\d/ : /^£\d.*plus VAT$/, `switched from ${market}: "${switched}"`);
+        assert.equal(await co.page.locator("#checkout-market").first().inputValue(), market === "uk" ? "us" : "uk", "the posted market follows the toggle");
         assert.equal(await co.page.getByRole("button", { name: /Continue to payment/ }).first().isVisible(), true);
         assert.ok((await overflow(co.page)) <= 0, `no sideways scroll on ${market} checkout`);
         await co.ctx.close();

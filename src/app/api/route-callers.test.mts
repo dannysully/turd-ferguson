@@ -313,8 +313,10 @@ const NO_CALLER: { route: string; method: string; why: string; earns: () => bool
     // R91, 29 Sep 2026. It opens a live Stripe Checkout - the one route
     // where a buyer's money moves - though Stripe bills nobody for the
     // Session itself.
-    why: "Posted by the plain HTML order form on /checkout, which the fetch scanner does not read.",
-    earns: () => readFileSync(join(ROOT, "src/app/checkout/page.tsx"), "utf8").includes('action="/api/checkout"'),
+    // The form moved into the CheckoutOrder island with the order summary
+    // card, 1 Oct 2026 (danny.md lines 156-157); it is still a plain form post.
+    why: "Posted by the plain HTML order form on /checkout (CheckoutOrder), which the fetch scanner does not read.",
+    earns: () => readFileSync(join(ROOT, "src/components/checkout/CheckoutOrder.tsx"), "utf8").includes('action="/api/checkout"'),
   },
   {
     route: "/api/stripe/webhook",

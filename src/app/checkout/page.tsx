@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 
-import TierName, { TIER_PLAIN } from "@/components/TierName";
-import { CHECKOUT_LIMITS, COMPANY_LINE } from "@/config/contact";
-import { TIERS, TRACKED_PRICE, contactUrlFor } from "@/config/pricing";
-import { MARKETS, MAX_CLUSTERS, SECTORS, formatPrice, quoteFor } from "@/config/sector-pricing";
-import { parseSelection, tierFromPlain, withSelection } from "@/config/sector-selection";
-import { CARD, MICRO, SHELL, T } from "@/config/tokens";
+import TierName, { TIER_PLAIN, TierText } from "@/components/TierName";
+import CheckoutOrder from "@/components/checkout/CheckoutOrder";
+import { CHECKOUT_LIMITS } from "@/config/contact";
+import { TIERS } from "@/config/pricing";
+import { parseSelection, tierFromPlain } from "@/config/sector-selection";
+import { MICRO, SHELL, T } from "@/config/tokens";
 import { CHECKOUT_TIERS, type CheckoutTier } from "@/lib/checkout/session";
 
 export const dynamic = "force-dynamic";
@@ -17,49 +17,17 @@ export const metadata: Metadata = {
 };
 
 /**
- * The order form (R91 part 3, pricing spec section 5): before payment, the
- * keyword target, sector, quantity and work email, and the terms. Plain HTML
- * both ways, so it works with no script: "Update price" is a GET back here
- * with the picks, and "Continue to payment" posts the same picks to
- * /api/checkout, which builds the Session from the price config. The price
- * shown is the price for the picks in the posted form, because the posted
- * form carries only those picks as hidden fields.
+ * The order form (R91 part 3, pricing spec section 5): the plan, the market,
+ * the keyword target, sector, quantity and work email, before payment. The
+ * card itself is CheckoutOrder, an island so the price follows the US/UK
+ * toggle with no reload (Danny, 1 Oct 2026, danny.md lines 156-157); it is
+ * plain HTML both ways with no script, and "Continue to payment" posts the
+ * picks to /api/checkout, which builds the Session from the price config.
+ * The page only reads and validates the URL.
  */
 
-// A refused field's reason sits under that field, which takes focus; only
-// "failed" belongs to the whole form (R151, 1 Oct 2026: Baymard's inline,
-// specific errors). The email is never carried back, so its line says to
-// type it again; the keyword is.
-const ERRORS: Record<string, string> = {
-  email: "Type your work email again, in the form name@company.com.",
-  keyword: `A keyword target of at least ${CHECKOUT_LIMITS.keyword.min} characters is needed.`,
-  failed: "The checkout did not open. Please try again, or book a call.",
-};
-
-const fieldError: React.CSSProperties = { display: "block", marginTop: "6px", fontSize: "13px", fontWeight: 400, letterSpacing: 0, textTransform: "none", color: T.badFg };
-
-const field: React.CSSProperties = {
-  display: "block",
-  width: "100%",
-  boxSizing: "border-box",
-  marginTop: "6px",
-  padding: "10px 12px",
-  fontFamily: "inherit",
-  fontSize: "15px",
-  color: T.ink,
-  background: T.surface,
-  border: `1px solid ${T.line}`,
-  borderRadius: "10px",
-};
-
-const button: React.CSSProperties = {
-  fontFamily: "inherit",
-  fontSize: "15px",
-  fontWeight: 600,
-  borderRadius: "999px",
-  padding: "12px 22px",
-  cursor: "pointer",
-};
+/** The refusals /api/checkout sends back; CheckoutOrder holds their words. */
+const ERRORS = ["email", "keyword", "failed"];
 
 export default async function Checkout({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const q = await searchParams;
@@ -67,176 +35,29 @@ export default async function Checkout({ searchParams }: { searchParams: Promise
   const named = tierFromPlain(q.tier);
   const tier: CheckoutTier = named && (CHECKOUT_TIERS as readonly string[]).includes(named) ? (named as CheckoutTier) : "tracked";
   const sel = parseSelection(params);
-  const perCluster = tier !== "tracked";
-  const tierPage = TIERS.find((t) => t.key === tier)!.href;
-
-  let price: string | null = null;
-  let call = false;
-  // UK prices are before VAT, which Stripe Tax adds on its page (R129, 30 Sep 2026).
-  const vat = sel.market === "uk" ? " plus VAT" : "";
-  if (!perCluster) price = `${formatPrice(TRACKED_PRICE[sel.market], sel.market)}/mo${vat}`;
-  else if (sel.qty > MAX_CLUSTERS) call = true;
-  else if (sel.sector) {
-    const quote = quoteFor(sel.sector, sel.market, tier, sel.qty);
-    if (quote.kind === "call") call = true;
-    else price = `${formatPrice(quote.amount, sel.market)}/mo${vat}`;
-  }
-  const error = q.error && q.error in ERRORS ? q.error : undefined;
+  const tierPage = TIERS.find((t) => t.key === tier)!;
+  const error = q.error && ERRORS.includes(q.error) ? q.error : undefined;
   const keyword = (q.keyword ?? "").slice(0, CHECKOUT_LIMITS.keyword.max);
   // The free scan this order came from, carried to the Session for the webhook (BRIEF-3 C4).
   const scan = /^[0-9a-f]{32}$/i.test(q.scan ?? "") ? q.scan!.toLowerCase() : null;
 
   return (
-    <section style={{ ...SHELL, maxWidth: "640px", paddingTop: "48px", paddingBottom: "96px" }}>
+    <section style={{ ...SHELL, maxWidth: "560px", paddingTop: "48px", paddingBottom: "96px" }}>
       <div style={MICRO}>Checkout</div>
       <h1 style={{ margin: "10px 0 0", fontSize: "32px", fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.2, color: T.ink }}>
         Start <TierName tier={tier} />
       </h1>
-      <p style={{ margin: "12px 0 0", fontSize: "15px", lineHeight: 1.7, color: T.soft }}>
-        A monthly plan. Payment is taken on Stripe&apos;s own page, which also takes a promotion code.{" "}
-        <a href={tierPage} style={{ color: T.accent }}>
-          See what the plan includes
-        </a>
-      </p>
-
-      <form method="get" action="/checkout" style={{ ...CARD, padding: "22px", marginTop: "26px" }}>
-        <input type="hidden" id="checkout-pick-tier" name="tier" value={TIER_PLAIN[tier]} maxLength={CHECKOUT_LIMITS.tier} />
-        {scan ? <input type="hidden" id="checkout-pick-scan" name="scan" value={scan} maxLength={CHECKOUT_LIMITS.scan} /> : null}
-        <div style={{ display: "grid", gap: "14px" }}>
-          {perCluster ? (
-            <>
-              <label style={MICRO}>
-                Sector
-                <select name="sector" defaultValue={sel.sector} style={field}>
-                  <option value="">Pick a sector</option>
-                  {SECTORS.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label style={MICRO}>
-                Clusters
-                <select name="clusters" defaultValue={String(Math.min(sel.qty, MAX_CLUSTERS))} style={field}>
-                  {Array.from({ length: MAX_CLUSTERS }, (_, i) => (
-                    <option key={i + 1} value={String(i + 1)}>
-                      {i + 1}
-                    </option>
-                  ))}
-                </select>
-                {/* The spec's "more on a call" at checkout (R50 section 8). */}
-                <span style={{ display: "block", marginTop: "6px", fontSize: "13px", fontWeight: 400, letterSpacing: 0, textTransform: "none", color: T.soft }}>
-                  More than {MAX_CLUSTERS}?{" "}
-                  <a href={withSelection(contactUrlFor(tier), sel)} style={{ color: T.accent }}>
-                    We set that up on a call
-                  </a>
-                  .
-                </span>
-              </label>
-            </>
-          ) : null}
-          <label style={MICRO}>
-            Market
-            <select name="market" defaultValue={sel.market} style={field}>
-              {MARKETS.map((m) => (
-                <option key={m} value={m}>
-                  {m.toUpperCase()}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "12px", marginTop: "18px", flexWrap: "wrap" }}>
-          <div style={{ fontSize: "22px", fontWeight: 700, color: T.ink }} data-figure="checkout-price">
-            {price ?? (call ? "Book a call" : "Pick a sector")}
-          </div>
-          <button type="submit" style={{ ...button, background: "transparent", color: T.ink, border: `1px solid ${T.line}` }}>
-            Update price
-          </button>
-        </div>
-      </form>
-
-      {call ? (
-        <p style={{ margin: "22px 0 0", fontSize: "15px", lineHeight: 1.7, color: T.soft }}>
-          These picks are priced on a call.{" "}
-          <a href={withSelection(contactUrlFor(tier), sel)} style={{ color: T.accent, fontWeight: 600 }}>
-            Book a call
-          </a>
-        </p>
-      ) : price ? (
-        <form method="post" action="/api/checkout" style={{ ...CARD, padding: "22px", marginTop: "16px" }}>
-          <input type="hidden" id="checkout-tier" name="tier" value={tier} maxLength={CHECKOUT_LIMITS.tier} />
-          <input type="hidden" id="checkout-market" name="market" value={sel.market} maxLength={CHECKOUT_LIMITS.market} />
-          {scan ? <input type="hidden" id="checkout-scan" name="scan" value={scan} maxLength={CHECKOUT_LIMITS.scan} /> : null}
-          {perCluster ? (
-            <>
-              <input type="hidden" id="checkout-sector" name="sector" value={sel.sector} maxLength={CHECKOUT_LIMITS.sector} />
-              <input type="hidden" id="checkout-quantity" name="quantity" value={String(sel.qty)} maxLength={CHECKOUT_LIMITS.clusters} />
-            </>
-          ) : null}
-          {error === "failed" ? (
-            <p role="alert" style={{ margin: "0 0 14px", fontSize: "14px", color: T.badFg }}>
-              {ERRORS.failed}
-            </p>
-          ) : null}
-          <div style={{ display: "grid", gap: "14px" }}>
-            <label style={MICRO}>
-              Work email
-              <input
-                type="email"
-                id="checkout-email"
-                name="email"
-                required
-                maxLength={CHECKOUT_LIMITS.email}
-                autoComplete="email"
-                autoFocus={error === "email"}
-                aria-invalid={error === "email" || undefined}
-                aria-describedby={error === "email" ? "checkout-email-error" : undefined}
-                style={field}
-              />
-              {error === "email" ? (
-                <span id="checkout-email-error" role="alert" style={fieldError}>
-                  {ERRORS.email}
-                </span>
-              ) : null}
-            </label>
-            <label style={MICRO}>
-              {perCluster ? "Keyword target" : "Keyword target (optional)"}
-              <input
-                type="text"
-                id="checkout-keyword"
-                name="keyword"
-                defaultValue={keyword}
-                required={perCluster}
-                minLength={perCluster ? CHECKOUT_LIMITS.keyword.min : undefined}
-                maxLength={CHECKOUT_LIMITS.keyword.max}
-                autoFocus={error === "keyword"}
-                aria-invalid={error === "keyword" || undefined}
-                aria-describedby={error === "keyword" ? "checkout-keyword-error" : undefined}
-                style={field}
-              />
-              {error === "keyword" ? (
-                <span id="checkout-keyword-error" role="alert" style={fieldError}>
-                  {ERRORS.keyword}
-                </span>
-              ) : null}
-            </label>
-          </div>
-          <ul style={{ margin: "18px 0 0", paddingLeft: "18px", fontSize: "14px", lineHeight: 1.7, color: T.soft }}>
-            <li>Billed monthly, at the price above.</li>
-            <li>30 days&apos; notice to cancel{perCluster ? ", because placements may still be in progress" : ""}.</li>
-            {perCluster ? <li>A refund if the keyword turns out not to be workable.</li> : null}
-          </ul>
-          <button type="submit" style={{ ...button, marginTop: "18px", background: T.accent, color: T.surface, border: `1px solid ${T.accent}` }}>
-            Continue to payment
-          </button>
-          {/* Who is selling, at the button rather than only in the footer (R151, 1 Oct 2026). */}
-          <p style={{ margin: "12px 0 0", fontSize: "13px", lineHeight: 1.6, color: T.soft }}>
-            Sold by {COMPANY_LINE}. You pay on Stripe&apos;s page, not this one.
-          </p>
-        </form>
-      ) : null}
+      <CheckoutOrder
+        tier={tier}
+        tierPlain={TIER_PLAIN[tier]}
+        plan={<TierName tier={tier} />}
+        tierPage={tierPage.href}
+        includes={tierPage.includes.slice(0, 3).map((line) => <TierText key={line}>{line}</TierText>)}
+        initial={sel}
+        scan={scan}
+        keyword={keyword}
+        error={error}
+      />
     </section>
   );
 }

@@ -95,36 +95,66 @@ function Parts({ label, per }: { label: string; per: React.CSSProperties }) {
   );
 }
 
-/** The one toggle on a page. Renders nothing until there is script to run it. */
-export function MarketToggle({ tone = "light", style }: { tone?: "light" | "dark"; style?: React.CSSProperties }) {
+/**
+ * The page's market, starting from `initial` rather than the US default - for
+ * a page whose URL already names the market (/checkout, R157). Before mount,
+ * `initial`, so the server's markup and the first client render agree.
+ */
+export function useSeededMarket(initial: Market): Market {
   const m = useMarket();
   const mounted = useMounted();
-  if (!mounted) return null;
+  useEffect(() => setMarket(initial), [initial]);
+  return mounted ? m : initial;
+}
+
+/**
+ * The one toggle on a page. Renders nothing until there is script to run it,
+ * unless `links` gives each market a URL: then, before mount and with no
+ * script, the same pills are links that reload the page in that market
+ * (/checkout, R157, 1 Oct 2026), and `initial` is the one the page is in.
+ */
+export function MarketToggle({
+  tone = "light",
+  style,
+  links,
+  initial,
+}: {
+  tone?: "light" | "dark";
+  style?: React.CSSProperties;
+  links?: Record<Market, string>;
+  initial?: Market;
+}) {
+  const live = useMarket();
+  const mounted = useMounted();
+  if (!mounted && !links) return null;
+  const m = mounted ? live : (initial ?? DEFAULT_MARKET);
   const line = tone === "dark" ? D.cardLine : T.line;
+  const pill = (x: Market): React.CSSProperties => ({
+    fontFamily: "inherit",
+    fontSize: "inherit",
+    fontWeight: "inherit",
+    borderRadius: "999px",
+    padding: "4px 12px",
+    cursor: "pointer",
+    border: "1px solid " + (m === x ? T.accent : line),
+    background: m === x ? T.accent : "transparent",
+    // Before mount these are links on a light page; an inherited colour
+    // there is one the contrast sweep cannot resolve (R157).
+    color: m === x ? T.surface : mounted ? "inherit" : T.ink,
+  });
   return (
     <div role="group" aria-label="Prices in" style={{ display: "inline-flex", gap: "4px", fontSize: "12.5px", fontWeight: 600, ...style }}>
-      {MARKETS.map((x) => (
-        <button
-          key={x}
-          type="button"
-          className="mkt-btn"
-          aria-pressed={m === x}
-          onClick={() => setMarket(x)}
-          style={{
-            fontFamily: "inherit",
-            fontSize: "inherit",
-            fontWeight: "inherit",
-            borderRadius: "999px",
-            padding: "4px 12px",
-            cursor: "pointer",
-            border: "1px solid " + (m === x ? T.accent : line),
-            background: m === x ? T.accent : "transparent",
-            color: m === x ? T.surface : "inherit",
-          }}
-        >
-          {LABEL[x]}
-        </button>
-      ))}
+      {MARKETS.map((x) =>
+        mounted ? (
+          <button key={x} type="button" className="mkt-btn" aria-pressed={m === x} onClick={() => setMarket(x)} style={pill(x)}>
+            {LABEL[x]}
+          </button>
+        ) : (
+          <a key={x} href={links![x]} className="mkt-btn" aria-current={m === x || undefined} style={{ ...pill(x), display: "inline-flex", alignItems: "center", textDecoration: "none" }}>
+            {LABEL[x]}
+          </a>
+        ),
+      )}
       {m === "uk" ? <span style={{ alignSelf: "center", marginLeft: "6px", fontWeight: 500, opacity: 0.8 }}>ex VAT</span> : null}
     </div>
   );
