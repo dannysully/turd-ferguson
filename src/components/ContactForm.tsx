@@ -105,6 +105,7 @@ export default function ContactForm() {
         maxLength={CONTACT_LIMITS.name}
         autoComplete="name"
         defaultValue={typed?.name ?? ""}
+        className="c-field"
         style={inputStyle}
       />
 
@@ -120,6 +121,7 @@ export default function ContactForm() {
         autoComplete="email"
         placeholder="you@youragency.com"
         defaultValue={typed?.email ?? ""}
+        className="c-field"
         style={inputStyle}
       />
 
@@ -133,6 +135,7 @@ export default function ContactForm() {
         maxLength={CONTACT_LIMITS.company}
         autoComplete="organization"
         defaultValue={typed?.company ?? ""}
+        className="c-field"
         style={inputStyle}
       />
 

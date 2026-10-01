@@ -558,6 +558,8 @@ html[data-motion="on"] .tb-now { animation: tbNow 10s infinite both; }
      the count, so there the count takes its own line above them. */
   .sp-grp-compact { flex-wrap: wrap; justify-content: center; }
   .sp-grp-compact > span { order: -1; flex-basis: 100%; padding-bottom: 2px; }
+  /* /contact's one-line fields: 42px at the board's size (Q21), 44 on a phone. */
+  .c-field { min-height: 44px; }
 }
 
 /* PR agencies: the hero's coverage fan-out (PRAgencies.dc.html, Q12, 25 Sep
