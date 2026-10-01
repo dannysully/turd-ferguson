@@ -167,6 +167,24 @@ for (const width of [1280, 390]) {
         assert.ok(await page.getByRole("link", { name: /Manage prompts/ }).count(), "Manage prompts is offered");
         await ctx.close();
       });
+      // R151/R154 (1 Oct 2026, 11:10Z sweep, docs/parity/r151-empty-app.mjs):
+      // every page the nav reaches has an empty state that reads as one.
+      // /placements is left out: a tracked client with no placements has none
+      // (placements-screen.ts), and the nav does not link it.
+      for (const route of [HOME, `${HOME}/clusters`, `${HOME}/clusters/c1`, `${HOME}/named`, `${HOME}/cited`, `${HOME}/reports`, `${HOME}/settings`]) {
+        test(`${route} before any reading: no NaN, undefined, null or 0 of 0, no sideways scroll`, async () => {
+          const ctx = await browser.newContext({ viewport: { width, height: 900 } });
+          const page = await ctx.newPage();
+          const r = await page.goto(BASE + route, { waitUntil: "load" });
+          assert.equal(r?.status(), 200);
+          const t = await page.evaluate(() => document.querySelector("main")?.innerText ?? document.body.innerText, null);
+          assert.deepEqual(t.match(/.{0,30}(\bNaN\b|\bundefined\b|\bnull\b|\bInfinity\b|\b0 of 0\b).{0,30}/g), null);
+          assert.ok(t.trim().length > 100, "the page says something");
+          const over = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth, null);
+          assert.ok(over <= 0, `sideways scroll ${over}px`);
+          await ctx.close();
+        });
+      }
     });
     continue;
   }
