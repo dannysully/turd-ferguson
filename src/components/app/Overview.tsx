@@ -183,7 +183,8 @@ export default function Overview({
         (pickedHasPrev && o.compare ? ` Dashed: ${span(o.compare)}` : ` Tracked from ${formatDay(picked.started_on)}.`);
   const heatRows = cards ? cards.filter((c) => c.status !== "pending") : [];
   const pendingKeywords = cards ? cards.filter((c) => c.status === "pending" && c.keyword).length : 0;
-  const liveQuestions = data.questions.filter((q) => q.stopped_on === null && q.added_on <= today).length;
+  // R148 pass 7 (1 Oct 2026): "set up" includes prompts whose first check is tomorrow - on day zero that is all of them.
+  const liveQuestions = data.questions.filter((q) => q.stopped_on === null).length;
   const hasData = o.named.den > 0;
   const beforeRange = !!startedOn && range.to < startedOn;
 
@@ -246,7 +247,8 @@ export default function Overview({
   const checkedShort = data.lastRun?.finished_at && data.lastRun.run_date === today ? `Checked today at ${londonTime(data.lastRun.finished_at)}` : null;
 
   if (!hasData) {
-    const line = beforeRange && startedOn ? `Tracking began ${formatDay(startedOn, true)}.` : "Your first check runs tomorrow at 06:00.";
+    // R148 pass 7 (1 Oct 2026): only a start that has happened "began" - on day zero it starts tomorrow, and said "Tracking began" with tomorrow's date.
+    const line = beforeRange && startedOn && startedOn <= today ? `Tracking began ${formatDay(startedOn, true)}.` : "Your first check runs tomorrow at 06:00.";
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "24px", minWidth: 0 }}>
         {header}

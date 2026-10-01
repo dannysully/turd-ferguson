@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
 import { expandFixture, fixtureLive, fixtureMode, fixtureState } from "./fixture-mode.ts";
-import { overview } from "./figures.ts";
+import { addDays, overview } from "./figures.ts";
 import { ANGLES } from "./limits.ts";
 
 /**
@@ -90,6 +90,18 @@ test("R138: TRACKING_FIXTURE_STATE=ungrouped serves the client with no clusters 
   assert.ok(u.data.questions.every((q) => q.cluster_id === null));
   assert.equal(u.placements.length, 0);
   assert.ok(fx.data.questions.some((q) => q.cluster_id), "the default fixture is untouched");
+});
+
+test("R148 pass 7: TRACKING_FIXTURE_STATE=new is day zero - everything live starts tomorrow, nothing read yet", () => {
+  const n = fixtureState(fx, { TRACKING_FIXTURE_STATE: "new" });
+  const tomorrow = addDays(fx.today, 1);
+  assert.equal(n.client.started_on, tomorrow);
+  assert.ok(n.data.clusters.length > 0 && n.data.clusters.every((c) => c.started_on === tomorrow && c.stopped_on === null));
+  assert.ok(n.data.questions.length > 0 && n.data.questions.every((q) => q.added_on === tomorrow && q.stopped_on === null));
+  assert.ok(n.data.keywords.every((k) => k.added_on === tomorrow && k.stopped_on === null));
+  assert.deepEqual([n.data.answers.length, n.data.serp.length, n.data.notes.length, n.placements.length, n.clusterNotes.length], [0, 0, 0, 0, 0]);
+  assert.equal(n.data.lastRun, null);
+  assert.ok(fx.data.answers.length > 0, "the default fixture is untouched");
 });
 
 test("R146: TRACKING_FIXTURE_ROLE signs the fixture in as each member; removed is refused, a typo throws", () => {

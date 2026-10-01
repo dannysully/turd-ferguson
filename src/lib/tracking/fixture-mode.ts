@@ -1,5 +1,5 @@
 import { brandKey, subjectKeys } from "../scan/brand-name.ts";
-import type { Day } from "./figures.ts";
+import { addDays, type Day } from "./figures.ts";
 import type { ClusterNote, OverviewData } from "./overview-data.ts";
 import type { PlacementRow } from "./placement-figures.ts";
 
@@ -50,8 +50,37 @@ export type FixturePlacement = Omit<PlacementRow, "url_key"> & { cluster_id: str
  */
 export function fixtureState(f: Fixture, env: Record<string, string | undefined> = process.env): Fixture {
   const as = fixtureAs(f, env);
+  if (env.TRACKING_FIXTURE_STATE === "new") return dayZero(as);
   if (env.TRACKING_FIXTURE_STATE !== "ungrouped") return as;
   return { ...as, placements: [], data: { ...as.data, clusters: [], questions: as.data.questions.map((q) => ({ ...q, cluster_id: null })) } };
+}
+
+/**
+ * R148 pass 7 (1 Oct 2026): `TRACKING_FIXTURE_STATE=new` is the first
+ * dashboard view after checkout - the money path's last step. Signup starts
+ * tracking tomorrow, so every live cluster, prompt and keyword begins then,
+ * stopped rows are gone, and nothing has been read: no answers, no SERP, no
+ * run, no notes, no placements.
+ */
+function dayZero(f: Fixture): Fixture {
+  const tomorrow = addDays(f.today, 1);
+  const live = <T extends { stopped_on: Day | null }>(rows: T[]) => rows.filter((r) => r.stopped_on === null);
+  return {
+    ...f,
+    client: { ...f.client, started_on: tomorrow },
+    texts: {},
+    clusterNotes: [],
+    placements: [],
+    data: {
+      clusters: live(f.data.clusters).map((c) => ({ ...c, started_on: tomorrow })),
+      questions: live(f.data.questions).map((q) => ({ ...q, added_on: tomorrow })),
+      keywords: live(f.data.keywords).map((k) => ({ ...k, added_on: tomorrow })),
+      answers: [],
+      serp: [],
+      lastRun: null,
+      notes: [],
+    },
+  };
 }
 
 /**
