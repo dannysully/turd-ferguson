@@ -270,5 +270,29 @@ for (const width of [1280, 390]) {
       assert.equal(await page.evaluate(() => document.activeElement?.textContent), "UK £", "focus stays on the pill");
       await ctx.close();
     });
+
+    // Pass 6 (R148/R153, 1 Oct 2026): the money path's sign-in leg, signed
+    // out. /app sends you to the login form; each note and the link landing
+    // has its one way on, 44px or more, and nothing is submitted.
+    test("(8) /app -> login -> the link landing, every state with a tappable way on", async () => {
+      const LEG: [string, RegExp, string][] = [
+        ["/app", /^Log in to your dashboard$/, "Email me a link"],
+        ["/app/login?link=expired", /^Log in to your dashboard$/, "Email me a link"],
+        ["/app/login?access=none", /^Log in to your dashboard$/, "Email me a link"],
+        ["/app/auth", /^That link is not valid$/, "Ask for a new link"],
+        [`/app/auth?token=${"0".repeat(64)}`, /^Log in$/, "Open my dashboard"],
+      ];
+      for (const [route, h1, action] of LEG) {
+        const { page, ctx, status } = await open(width, route);
+        assert.equal(status, 200, route);
+        if (route === "/app") assert.match(page.url(), /\/app\/login$/);
+        assert.match((await page.locator("h1").first().textContent()) ?? "", h1, route);
+        assert.ok(await page.evaluate(() => (document.querySelector("main")?.textContent ?? "").startsWith("alwaystracked")), `${route}: opens with the lockup`);
+        const box = await page.locator("a, button", { hasText: action }).first().boundingBox();
+        assert.ok(box && box.height >= 44, `${route}: "${action}" is ${box?.height}px`);
+        assert.ok((await overflow(page)) <= 0, `${route}: no sideways scroll`);
+        await ctx.close();
+      }
+    });
   });
 }
