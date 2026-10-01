@@ -111,6 +111,7 @@ const dayZero = process.env.TRACKING_FIXTURE_STATE === "new";
 // the webhook builds it from a scan with no keyword - one "Needs a keyword"
 // cluster, its prompts, nothing else (docs/parity/run-signup.mjs).
 const signup = process.env.TRACKING_FIXTURE_STATE === "signup";
+const unreadable = process.env.TRACKING_FIXTURE_STATE === "unreadable";
 const errorState = process.env.TRACKING_FIXTURE_STATE === "partial" || process.env.TRACKING_FIXTURE_STATE === "failed" ? process.env.TRACKING_FIXTURE_STATE : null;
 
 for (const width of [1280, 390]) {
@@ -189,6 +190,34 @@ for (const width of [1280, 390]) {
           await ctx.close();
         });
       }
+    });
+    continue;
+  }
+  // R151/R154 (1 Oct 2026, docs/parity/r151-unreadable-app.mjs): a read that
+  // throws lands on src/app/app/[client]/error.tsx, inside the dashboard, not
+  // on the site's "Back to the homepage".
+  //   node docs/parity/run-unreadable.mjs
+  if (unreadable) {
+    describe(`unreadable at ${width} as ${role}`, () => {
+      for (const route of [HOME, `${HOME}/clusters`, `${HOME}/clusters/c1`, `${HOME}/named`, `${HOME}/cited`, `${HOME}/placements`, `${HOME}/reports`, `${HOME}/settings`])
+        test(`${route} keeps the reader in the dashboard: Try again, the Overview and the other pages`, async () => {
+          const ctx = await browser.newContext({ viewport: { width, height: 900 } });
+          const page = await ctx.newPage();
+          // A thrown server read reaches the boundary on hydration, so the text is not there at load.
+          await page.goto(BASE + route, { waitUntil: "networkidle" });
+          const t = await page.evaluate(() => document.body.innerText, null);
+          assert.match(t, /This page of your dashboard did not load\./);
+          assert.doesNotMatch(t, /Back to the homepage/);
+          assert.equal(await page.getByRole("button", { name: "Try again" }).count(), 1);
+          const back = page.getByRole("link", { name: "Back to the Overview" });
+          assert.equal(await back.count(), 1);
+          assert.ok(((await back.boundingBox())?.height ?? 0) >= 44, "44px target");
+          const l = await links(page);
+          for (const p of ["clusters", "named", "cited", "reports", "settings"]) assert.ok(l.includes(`${HOME}/${p}`), `no way to ${p}`);
+          const over = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth, null);
+          assert.ok(over <= 0, `sideways scroll ${over}px`);
+          await ctx.close();
+        });
     });
     continue;
   }
