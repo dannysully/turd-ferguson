@@ -10,8 +10,12 @@
 
 export const SOON = null;
 
-export const NAV = ["Overview", "Clusters", "Google keywords", "Who is named", "Cited pages", "Reports", "Settings"] as const;
-export const TABS = ["Overview", "Clusters", "Keywords", "Reports"] as const;
+export const NAV = ["Overview", "Clusters", "Who is named", "Cited pages", "Reports", "Settings"] as const;
+// R141 (1 Oct 2026; BRIEF-4 P1): the flat client's Google keywords / Keywords
+// item is gone. Every client is grouped or has the Overview's ungrouped state
+// (R138), and the keyword lives on its cluster card, so both layouts draw the
+// same tabs.
+export const TABS = ["Overview", "Clusters", "Reports", "Settings"] as const;
 // R121 (30 Sep 2026): on a client with cluster rows the Google keyword lives on
 // its cluster card, so there is no keywords tab - boards-3/Main.dc.html's nav
 // and boards-3/Mobile.dc.html's four tabs. A flat client keeps the T3 lists.
@@ -19,15 +23,13 @@ export const TABS = ["Overview", "Clusters", "Keywords", "Reports"] as const;
 // boards-3/Placements.dc.html's nav draws it, and only on a client with a
 // placed cluster - the Sidebar drops it otherwise (PLACEMENTS_ITEM).
 export const PLACEMENTS_ITEM = "Placements";
-export const CLUSTER_NAV = ["Overview", "Clusters", PLACEMENTS_ITEM, ...NAV.filter((n) => n !== "Overview" && n !== "Clusters" && n !== "Google keywords")] as const;
+export const CLUSTER_NAV = ["Overview", "Clusters", PLACEMENTS_ITEM, ...NAV.filter((n) => n !== "Overview" && n !== "Clusters")] as const;
 export const CLUSTER_TABS = ["Overview", "Clusters", "Reports", "Settings"] as const;
 
 export const NAV_TARGET: Record<string, string | typeof SOON | undefined> = {
   Overview: "",
   Clusters: "/clusters",
   Placements: "/placements",
-  "Google keywords": SOON,
-  Keywords: SOON,
   "Who is named": SOON,
   "Cited pages": SOON,
   Reports: SOON,

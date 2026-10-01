@@ -49,6 +49,14 @@ export async function POST(req: Request) {
     return failed;
   }
 
+  // BRIEF-4 P0: Settings' "Last signed in". Never fatal - the session is already started.
+  const { error: lErr } = await db
+    .from("dashboard_members")
+    .update({ last_login_at: new Date().toISOString() })
+    .eq("email", email)
+    .is("removed_at", null);
+  if (lErr) console.warn(`[app] could not record the sign-in: ${lErr.message}`);
+
   const res = NextResponse.redirect(new URL("/app", req.url), 303);
   res.cookies.set(sessionCookie(session));
   return res;

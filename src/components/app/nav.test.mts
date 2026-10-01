@@ -39,9 +39,11 @@ const STATIC = ROUTES.filter((r) => !r.includes("[]"));
 /**
  * Floors, 30 Sep 2026: 3 routes (overview, clusters, one cluster), 8 distinct nav and tab items (the 7 nav plus the phone's Keywords).
  * Raised 30 Sep 2026 (R97 part 3, T13): 4 routes (placements) and 9 items (Placements, cluster nav only).
+ * Lowered 1 Oct 2026 (R141, BRIEF-4 P1): 7 items - Google keywords and the phone's Keywords are removed
+ * on purpose (the keyword lives on its cluster card); the test below holds that they stay gone.
  */
 const ROUTE_FLOOR = 4;
-const ITEM_FLOOR = 9;
+const ITEM_FLOOR = 7;
 
 const ITEMS = [...new Set<string>([...NAV, ...TABS, ...CLUSTER_NAV, ...CLUSTER_TABS])];
 
@@ -124,6 +126,13 @@ test("(b) R132: each Overview card with a full page links to it, or says Coming 
   }
   assert.match(src, /navFrom\(SEE_ALL\[card\]/, "the card link comes from nav.ts");
   assert.match(src, /aria-disabled="true"[\s\S]{0,400}Coming soon/, "an unbuilt page is drawn disabled");
+});
+
+test("R141: no Keywords item on a flat or a cluster client", () => {
+  for (const list of [NAV, TABS, CLUSTER_NAV, CLUSTER_TABS] as readonly (readonly string[])[]) {
+    assert.ok(!list.some((n) => /keywords/i.test(n)), `a keywords item is back: ${list.join(", ")}`);
+  }
+  assert.ok(!Object.keys(NAV_TARGET).some((n) => /keywords/i.test(n)), "NAV_TARGET still routes a keywords item");
 });
 
 test("census probe: an orphan route, a plain item and a dead link each fire", () => {

@@ -383,13 +383,20 @@ export async function setMember(_prev: AdminResult | null, form: FormData): Prom
   if (email.length > ADMIN_LIMITS.email || !isPlausibleEmail(email)) return { ok: false, message: "A valid email is needed." };
   const db = supabaseAdmin();
   if (remove) {
-    const { error } = await db.from("dashboard_members").delete().eq("account_id", accountId).eq("email", email);
+    // BRIEF-4 P0: a removal never deletes the row; it is marked, and every membership read skips it.
+    const { error } = await db
+      .from("dashboard_members")
+      .update({ removed_at: new Date().toISOString(), removed_by: "nomada" })
+      .eq("account_id", accountId)
+      .eq("email", email)
+      .is("removed_at", null);
     if (error) return { ok: false, message: `Could not remove ${email}: ${error.message}` };
   } else {
     if (!["owner", "editor", "viewer"].includes(role)) return { ok: false, message: "Unknown role." };
     const { error } = await db
       .from("dashboard_members")
-      .upsert({ account_id: accountId, email, role }, { onConflict: "account_id,email" });
+      // Re-adding a removed member revives the same row (unique account_id, email).
+      .upsert({ account_id: accountId, email, role, removed_at: null, removed_by: null }, { onConflict: "account_id,email" });
     if (error) return { ok: false, message: `Could not add ${email}: ${error.message}` };
   }
   revalidatePath("/admin/tracking");

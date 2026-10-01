@@ -47,7 +47,7 @@ export async function POST(req: Request) {
     return Response.json({ ok: true, message: LOGIN_SENT });
   }
 
-  const { data: member, error: mErr } = await db.from("dashboard_members").select("email").eq("email", email).limit(1);
+  const { data: member, error: mErr } = await db.from("dashboard_members").select("email").eq("email", email).is("removed_at", null).limit(1);
   if (mErr) {
     console.warn(`[app] could not read members: ${mErr.message}`);
     return Response.json({ error: "read_failed", message: "Something went wrong. Please try again." }, { status: 502 });

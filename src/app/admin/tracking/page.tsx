@@ -72,7 +72,7 @@ export default async function TrackingAdmin() {
       .in("client_domain_id", ids)
       .gte("run_date", since)
       .order("run_date", { ascending: false }),
-    db.from("dashboard_members").select("account_id, email, role").in("account_id", accounts),
+    db.from("dashboard_members").select("account_id, email, role").in("account_id", accounts).is("removed_at", null),
     db.from("accounts").select("id, upsell_mode, upsell_contact_email").in("id", accounts),
     db
       .from("tracked_clusters")

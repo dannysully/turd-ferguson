@@ -42,7 +42,7 @@ export async function sessionEmail(): Promise<string | null> {
 /** Every client this email may see, oldest first, with the member's role on it. */
 export async function clientsFor(email: string): Promise<(MemberClient & { role: string })[]> {
   const db = supabaseAdmin();
-  const { data: memberships, error: mErr } = await db.from("dashboard_members").select("account_id, role").eq("email", email);
+  const { data: memberships, error: mErr } = await db.from("dashboard_members").select("account_id, role").eq("email", email).is("removed_at", null);
   if (mErr) throw new Error(`could not read memberships: ${mErr.message}`);
   const roleOf = new Map((memberships ?? []).map((m) => [m.account_id as string, m.role as string]));
   if (!roleOf.size) return [];

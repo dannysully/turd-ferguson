@@ -47,12 +47,6 @@ const ICONS: Record<string, ReactNode> = {
       <circle cx="19" cy="12" r="2.2" />
     </>
   ),
-  "Google keywords": (
-    <>
-      <circle cx="11" cy="11" r="7" />
-      <path d="M20 20l-4-4" />
-    </>
-  ),
   "Who is named": <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />,
   "Cited pages": (
     <>
@@ -73,7 +67,6 @@ const ICONS: Record<string, ReactNode> = {
     </>
   ),
 };
-ICONS.Keywords = ICONS["Google keywords"];
 // boards-3/Placements.dc.html draws Placements with the link mark.
 ICONS[PLACEMENTS_ITEM] = ICONS["Cited pages"];
 
