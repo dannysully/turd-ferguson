@@ -1742,3 +1742,18 @@ html[data-motion="on"] .res-dial { animation: resDial 1.4s .3s cubic-bezier(.2,.
   .app-rp-figs { grid-template-columns: minmax(0, 1fr) !important; gap: 12px !important; }
   .app-nm-filters { flex-wrap: nowrap !important; overflow-x: auto; scrollbar-width: none; }
 }
+/* R151 (1 Oct 2026): /app's controls are 44px tap targets below 640px, as the
+   site's are (docs/parity/tap-targets-app.mjs at 390 on the fixture: filter
+   chips 36px, stop and hide icons 32-36px, form controls 40px, standalone
+   links 22px). Inline styles carry the desktop sizes, so these win over them.
+   min-height is ignored on a plain inline link, so a link inside running text
+   keeps its line. A small tag that is a link (.app-tap, Cited's "Placement")
+   would turn into a blob at 44px, so it keeps its size and an invisible
+   ::before 44px tall takes the tap instead. */
+@media (max-width: 640px) {
+  .app-main :is(button, select, textarea, input:not([type="checkbox"], [type="radio"], [type="hidden"])) { min-height: 44px !important; }
+  .app-main button { min-width: 44px !important; }
+  .app-main a:not(.app-tap) { min-height: 44px; }
+  .app-tap { position: relative; }
+  .app-tap::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 44px; transform: translateY(-50%); }
+}

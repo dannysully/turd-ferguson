@@ -180,7 +180,7 @@ export default function Cited({
                         </Link>
                         {p.yours ? <span style={{ ...TAG, background: T.surface, border: `1px solid ${T.washLine}`, color: T.accent }}>Your site</span> : null}
                         {placed ? (
-                          <Link href={`${appPath}/placements?${new URLSearchParams({ ...base, cluster: placed })}`} style={{ ...TAG, background: T.chip, border: `1px solid ${T.line}`, color: T.ink, textDecoration: "none" }}>
+                          <Link href={`${appPath}/placements?${new URLSearchParams({ ...base, cluster: placed })}`} className="app-tap" style={{ ...TAG, background: T.chip, border: `1px solid ${T.line}`, color: T.ink, textDecoration: "none" }}>
                             Placement
                           </Link>
                         ) : null}
