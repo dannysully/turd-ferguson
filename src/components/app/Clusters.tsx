@@ -1,4 +1,5 @@
 import Link from "@/components/app/AppLink";
+import SubmitButton from "@/components/app/SubmitButton";
 import { rangeLabel } from "@/lib/tracking/date-range";
 
 import DatePicker from "./DatePicker";
@@ -311,9 +312,9 @@ function AddPanel({ slug, adding, full, clusterLimit, packPrice, close }: { slug
           </label>
           <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
             <input id="kw-draft" name="keyword" defaultValue={adding.kw} required maxLength={ADMIN_LIMITS.question} placeholder="e.g. accounting software for dentists" style={{ flex: "1 1 240px", minWidth: 0, height: "48px", boxSizing: "border-box", padding: "0 14px", border: `1px solid ${T.line}`, borderRadius: "12px", fontFamily: "inherit", fontSize: "15px", color: T.ink, background: T.surface }} />
-            <button type="submit" style={{ height: "48px", padding: "0 18px", border: `1px solid ${T.ink}`, borderRadius: "12px", background: T.surface, color: T.ink, fontFamily: "inherit", fontSize: "14px", fontWeight: 600, cursor: "pointer" }}>
+            <SubmitButton busy="Checking..." style={{ height: "48px", padding: "0 18px", border: `1px solid ${T.ink}`, borderRadius: "12px", background: T.surface, color: T.ink, fontFamily: "inherit", fontSize: "14px", fontWeight: 600 }}>
               Check keyword
-            </button>
+            </SubmitButton>
           </div>
           <p role={ck ? "status" : undefined} style={{ margin: 0, fontSize: "13px", lineHeight: 1.5, color: ck ? (ck.ok ? T.goodFg : T.badFg) : T.soft }}>
             {msg}
@@ -345,9 +346,9 @@ function AddPanel({ slug, adding, full, clusterLimit, packPrice, close }: { slug
             </div>
           ))}
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
-            <button type="submit" style={{ height: "48px", padding: "0 20px", border: 0, borderRadius: "12px", background: T.accent, color: T.surface, fontFamily: "inherit", fontSize: "14px", fontWeight: 600, cursor: "pointer" }}>
+            <SubmitButton busy="Starting tracking..." style={{ height: "48px", padding: "0 20px", border: 0, borderRadius: "12px", background: T.accent, color: T.surface, fontFamily: "inherit", fontSize: "14px", fontWeight: 600 }}>
               Start tracking this cluster
-            </button>
+            </SubmitButton>
           </div>
         </form>
       ) : null}
