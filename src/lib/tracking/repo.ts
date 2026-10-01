@@ -11,6 +11,7 @@ import type { LatestAnswers } from "./latest-answers.ts";
 import type { PlacementRow } from "./placement-figures.ts";
 import { urlKey } from "./placements.ts";
 import { loadPlacements } from "./placements-data.ts";
+import { type SettingsData, loadSettings } from "./settings-data.ts";
 import { type UpgradeContext, loadUpgradeContext } from "./upgrade-context.ts";
 import { type ClusterNote, type Compare, type OverviewData, loadClusterNotes, loadLatestAnswers, loadOverview } from "./overview-data.ts";
 
@@ -36,11 +37,13 @@ export interface TrackingRepo {
   upgradeContext(clientId: string, email: string, today: Day): Promise<UpgradeContext>;
   /** The client's placements, removed ones included (T13, R97 part 2). */
   placements(clientId: string): Promise<(PlacementRow & { cluster_id: string })[]>;
+  /** Settings (R142, BRIEF-4 P2): the names we match and the account's live members. */
+  settings(clientId: string): Promise<SettingsData>;
   /** The tracking day the dashboard treats as today. */
   today(): Day;
 }
 
-const supabaseRepo: TrackingRepo = { sessionEmail, clientsFor, loadOverview, latestAnswers: loadLatestAnswers, clusterNotes: loadClusterNotes, upgradeContext: loadUpgradeContext, placements: loadPlacements, today: () => trackingDay() };
+const supabaseRepo: TrackingRepo = { sessionEmail, clientsFor, loadOverview, latestAnswers: loadLatestAnswers, clusterNotes: loadClusterNotes, upgradeContext: loadUpgradeContext, placements: loadPlacements, settings: loadSettings, today: () => trackingDay() };
 
 let cached: Fixture | null = null;
 function fixture(): Fixture {
@@ -87,6 +90,12 @@ const fixtureRepo: TrackingRepo = {
   async placements(clientId) {
     const f = fixture();
     return clientId === f.client.id ? f.placements.map((p) => ({ ...p, url_key: urlKey(p.url) ?? "" })) : [];
+  },
+  async settings(clientId) {
+    const f = fixture();
+    if (clientId !== f.client.id) return { aliases: [], members: [] };
+    // Removed members stay in the file, as the table keeps them, and are skipped as every read skips them.
+    return { aliases: f.aliases, members: f.members.filter((m) => !m.removed_at).map((m) => ({ email: m.email, name: m.name, role: m.role, last_login_at: m.last_login_at })) };
   },
   today() {
     return fixture().today;

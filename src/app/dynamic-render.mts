@@ -178,6 +178,8 @@ export const STATES: Record<string, State> = {
   "/app/[client]/clusters/[cluster]": { urls: ["/app/example/clusters/c1", "/app/example/clusters/c1?prompt=1"] },
   // 30 Sep 2026, R97 part 3 (T13): the placements screen, same session rule.
   "/app/[client]/placements": { urls: ["/app/example/placements", "/app/example/placements?cluster=c1"] },
+  // 1 Oct 2026, R142 (BRIEF-4 P2): Settings, same session rule.
+  "/app/[client]/settings": { urls: ["/app/example/settings"] },
   // 29 Sep 2026, T4: the overview drawn from the local parity fixture - the
   // only way the sweeps see the signed-in overview's markup at all. A 404 in
   // a checkout that has not run docs/parity/T4/make-fixture.py.

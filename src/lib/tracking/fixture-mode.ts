@@ -32,7 +32,12 @@ export type Fixture = {
   clusterNotes: ClusterNote[];
   /** T13 (R97 part 3): placements on cluster c1, after boards-3/Placements.dc.html (docs/parity/T13/add-placements.py). */
   placements: FixturePlacement[];
+  /** R142 (BRIEF-4 P2): the names we match, and the team - owner, editor, viewer and one removed. */
+  aliases: string[];
+  members: FixtureMember[];
 };
+
+export type FixtureMember = { email: string; name: string | null; role: string; last_login_at: string | null; removed_at?: string | null };
 
 /** A placement as fixture.json stores it; url_key is computed on read, as the admin writer computes it. */
 export type FixturePlacement = Omit<PlacementRow, "url_key"> & { cluster_id: string };
@@ -58,6 +63,8 @@ export function expandFixture(raw: {
   texts?: Record<string, string>;
   clusterNotes?: ClusterNote[];
   placements?: FixturePlacement[];
+  aliases?: string[];
+  members?: FixtureMember[];
 }): Fixture {
   return {
     client: { ...raw.client, id: "fixture" },
@@ -66,6 +73,8 @@ export function expandFixture(raw: {
     texts: raw.texts ?? {},
     clusterNotes: raw.clusterNotes ?? [],
     placements: raw.placements ?? [],
+    aliases: raw.aliases ?? [],
+    members: raw.members ?? [{ ...raw.member, name: null, last_login_at: null }],
     data: {
       ...raw.data,
       answers: raw.data.answers.map(([run_date, question_id, engine, named, brands, urls]) => ({

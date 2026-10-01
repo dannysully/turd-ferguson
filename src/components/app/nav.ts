@@ -33,7 +33,7 @@ export const NAV_TARGET: Record<string, string | typeof SOON | undefined> = {
   "Who is named": SOON,
   "Cited pages": SOON,
   Reports: SOON,
-  Settings: SOON,
+  Settings: "/settings",
 };
 
 /** The href for an item on this client, or null when it is not built. */

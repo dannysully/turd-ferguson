@@ -167,6 +167,9 @@ const RECORDED: Record<string, string> = {
   // 30 Sep 2026, T6 part 1: cluster_limit added for the Clusters page's usage bar; account_id still stays server-side.
   "src/lib/tracking/member.ts :: id, account_id, slug, domain, brand_name, market, tier, started_on, question_limit, keyword_limit, cluster_limit":
     "maps each client to its role by account server-side; the returned MemberClient omits account_id.",
+  // 1 Oct 2026, R142 (BRIEF-4 P2): Settings' team list. The id picks the account's members and is dropped.
+  "src/lib/tracking/settings-data.ts :: account_id, brand_aliases":
+    "finds the client's account server-side to list its live members; SettingsData carries no account_id.",
 };
 
 /**
@@ -193,6 +196,9 @@ const MENTIONED: Record<string, string> = {
     "T11 /ask (30 Sep 2026): reads the member's own client's account_id to find its upsell mode " +
     "and agency contact. Used only to pick the recipient; the route answers with a 303 carrying " +
     "sent|refused and us|agency, never the id.",
+  "src/lib/tracking/settings-data.ts":
+    "R142 (1 Oct 2026): reads the column to list the client's live members for Settings; " +
+    "used only in the member read's filter, and SettingsData returns emails, names, roles and sign-in days, never the id.",
   "src/lib/checkout/signup.ts":
     "C4 (30 Sep 2026): writes the column on client_domains and dashboard_members when a " +
     "paid checkout from a scan becomes a client. Writes, behind the Stripe signature; " +
