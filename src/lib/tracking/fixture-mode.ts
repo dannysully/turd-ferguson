@@ -72,6 +72,7 @@ export function fixtureState(f: Fixture, env: Record<string, string | undefined>
   if (env.TRACKING_FIXTURE_STATE === "signup") return signupNoKeyword(dayZero(as));
   if (env.TRACKING_FIXTURE_STATE === "partial") return failedReads(as, "partial");
   if (env.TRACKING_FIXTURE_STATE === "failed") return failedReads(as, "failed");
+  if (env.TRACKING_FIXTURE_STATE === "stopped") return stoppedPrompt(as);
   if (env.TRACKING_FIXTURE_STATE !== "ungrouped") return as;
   return { ...as, placements: [], data: { ...as.data, clusters: [], questions: as.data.questions.map((q) => ({ ...q, cluster_id: null })) } };
 }
@@ -122,6 +123,20 @@ function signupNoKeyword(f: Fixture): Fixture {
       keywords: [],
     },
   };
+}
+
+/**
+ * R151 (1 Oct 2026): `TRACKING_FIXTURE_STATE=stopped` is the first cluster
+ * with its first prompt stopped today, as admin-edit.ts and the owner's Stop
+ * write it (stopped_on tomorrow, so today's check still reads it). Its slot is
+ * free at once, so Clusters draws "Track this prompt" there - the one posted
+ * form no other state reaches.
+ */
+function stoppedPrompt(f: Fixture): Fixture {
+  const first = f.data.clusters[0]!;
+  const id = f.data.questions.find((q) => q.cluster_id === first.id && q.stopped_on === null)?.id;
+  const tomorrow = addDays(f.today, 1);
+  return { ...f, data: { ...f.data, questions: f.data.questions.map((q) => (q.id === id ? { ...q, stopped_on: tomorrow } : q)) } };
 }
 
 /**

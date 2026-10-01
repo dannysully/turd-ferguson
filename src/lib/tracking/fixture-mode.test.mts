@@ -138,6 +138,17 @@ test("R151: TRACKING_FIXTURE_STATE=failed is a run where no read landed - nothin
   assert.ok(fx.data.answers.filter((a) => a.run_date === fx.today).every((a) => a.answered), "the default fixture is untouched");
 });
 
+test("R151: TRACKING_FIXTURE_STATE=stopped is one prompt in the first cluster stopped today, read today, gone tomorrow", () => {
+  const s = fixtureState(fx, { TRACKING_FIXTURE_STATE: "stopped" });
+  const first = fx.data.clusters[0]!.id;
+  const changed = s.data.questions.filter((q, i) => q !== fx.data.questions[i]);
+  assert.equal(changed.length, 1, "exactly one prompt moves");
+  assert.equal(changed[0]!.cluster_id, first);
+  assert.equal(changed[0]!.stopped_on, addDays(fx.today, 1));
+  assert.equal(s.data.questions.filter((q) => q.cluster_id === first && q.stopped_on === null).length, PROMPTS_PER_CLUSTER - 1, "its slot is free");
+  assert.ok(fx.data.questions.every((q) => q.stopped_on === null), "the default fixture is untouched");
+});
+
 test("R146: TRACKING_FIXTURE_ROLE signs the fixture in as each member; removed is refused, a typo throws", () => {
   assert.equal(fixtureState(fx, {}).member.role, "owner");
   assert.ok(fixtureLive(fx, fx.member.email), "the default session is a live member");
