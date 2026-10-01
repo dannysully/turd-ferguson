@@ -67,6 +67,16 @@ test("(b) every nav and tab item is a link to a built route or explicitly Coming
   assert.deepEqual(bad, [], `items neither linked nor disabled: ${bad.join(", ")}`);
 });
 
+// R146 (1 Oct 2026; BRIEF-4 P6): with Who is named, Cited pages, Reports and
+// Settings built (R142-R145), no sidebar item or phone tab is Coming soon any
+// more. A new item arrives linked or not at all.
+test("(b) R146: no sidebar item or phone tab is Coming soon", () => {
+  const soon = ITEMS.filter((item) => NAV_TARGET[item] === SOON);
+  assert.ok(ITEMS.length >= 7, `${ITEMS.length} items, floor 7`);
+  assert.deepEqual(soon, [], `still Coming soon: ${soon.join(", ")}`);
+  for (const p of ["/named", "/cited", "/reports", "/settings"]) assert.ok(ROUTES.includes(p), `${p} is not built`);
+});
+
 test("(b) the sidebar draws an item only as a link or as a disabled Coming soon", () => {
   const src = readFileSync(join(ROOT, "src", "components", "app", "Sidebar.tsx"), "utf8");
   assert.doesNotMatch(src, /href \? "a" : "span"/, "the old plain-text fallback is back");
