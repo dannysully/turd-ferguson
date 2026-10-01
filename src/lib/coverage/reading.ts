@@ -3,6 +3,7 @@ import "server-only";
 import { type CitationCountRow, countCitedDomains } from "@/lib/coverage/citation-count";
 import { MAX_COVERAGE_URLS } from "@/lib/coverage/csv";
 import { type CoveragePiece, coveragePieces } from "@/lib/coverage/pieces";
+import { readingFixture } from "@/lib/coverage/reading-fixture";
 import {
   type ReadingAnswer,
   type ReadingQuestion,
@@ -121,6 +122,9 @@ export type CampaignReading = {
  * and a terminal one.
  */
 export async function readCampaign(token: string): Promise<CampaignReading | null> {
+  const fixture = readingFixture(token);
+  if (fixture) return fixture;
+
   const db = supabaseAdmin();
 
   const { data: campaign, error: campaignErr } = await db
