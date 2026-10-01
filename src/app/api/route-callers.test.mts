@@ -294,6 +294,13 @@ const NO_CALLER: { route: string; method: string; why: string; earns: () => bool
     earns: () => readFileSync(join(ROOT, "src/components/app/Clusters.tsx"), "utf8").includes("action={`/api/app/${encodeURIComponent(slug)}/check`}"),
   },
   {
+    route: "/api/app/[client]/setup",
+    method: "POST",
+    // R166 part 3b, 1 Oct 2026: step 3's Confirm on the setup page.
+    why: "Posted by the plain HTML Confirm form on /app/[client]/setup, which the fetch scanner does not read.",
+    earns: () => readFileSync(join(ROOT, "src/app/app/[client]/setup/page.tsx"), "utf8").includes("action={`/api/app/${encodeURIComponent(slug)}/setup`}"),
+  },
+  {
     route: "/api/app/[client]/cluster",
     method: "POST",
     // BRIEF-3 T6 part 3c, 30 Sep 2026: Start tracking this cluster.

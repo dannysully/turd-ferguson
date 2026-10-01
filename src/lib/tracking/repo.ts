@@ -5,7 +5,7 @@ import { join } from "node:path";
 
 import { trackingDay } from "./decide.ts";
 import type { Day, Range } from "./figures.ts";
-import { expandFixture, fixtureLive, fixtureMode, fixtureSignedOut, fixtureState, fixtureUnreadable, type Fixture } from "./fixture-mode.ts";
+import { expandFixture, fixtureLive, fixtureMode, fixtureSetupConfirmed, fixtureSignedOut, fixtureState, fixtureUnreadable, type Fixture } from "./fixture-mode.ts";
 import { type MemberClient, clientsFor, sessionEmail } from "./member.ts";
 import type { LatestAnswers } from "./latest-answers.ts";
 import { loadLinkState } from "./login-link.ts";
@@ -14,6 +14,7 @@ import type { PlacementRow } from "./placement-figures.ts";
 import { urlKey } from "./placements.ts";
 import { loadPlacements } from "./placements-data.ts";
 import { type SettingsData, loadSettings } from "./settings-data.ts";
+import { loadSetupConfirmed } from "./setup-data.ts";
 import { type UpgradeContext, loadUpgradeContext } from "./upgrade-context.ts";
 import { type ClusterNote, type Compare, type OverviewData, loadClusterNotes, loadLatestAnswers, loadOverview } from "./overview-data.ts";
 
@@ -45,9 +46,11 @@ export interface TrackingRepo {
   today(): Day;
   /** A login link's state, read without spending it (R163); null when the read failed. */
   linkState(token: string): Promise<LinkState | null>;
+  /** Whether the client's setup is confirmed (R166); null when the read failed. */
+  setupConfirmed(clientId: string): Promise<boolean | null>;
 }
 
-const supabaseRepo: TrackingRepo = { sessionEmail, clientsFor, linkState: loadLinkState, loadOverview, latestAnswers: loadLatestAnswers, clusterNotes: loadClusterNotes, upgradeContext: loadUpgradeContext, placements: loadPlacements, settings: loadSettings, today: () => trackingDay() };
+const supabaseRepo: TrackingRepo = { sessionEmail, clientsFor, linkState: loadLinkState, setupConfirmed: loadSetupConfirmed, loadOverview, latestAnswers: loadLatestAnswers, clusterNotes: loadClusterNotes, upgradeContext: loadUpgradeContext, placements: loadPlacements, settings: loadSettings, today: () => trackingDay() };
 
 let cached: Fixture | null = null;
 function fixture(): Fixture {
@@ -108,6 +111,9 @@ const fixtureRepo: TrackingRepo = {
   },
   async linkState(token) {
     return fixtureLinkState(token, fixture().member.email);
+  },
+  async setupConfirmed() {
+    return fixtureSetupConfirmed();
   },
 };
 

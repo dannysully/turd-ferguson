@@ -181,6 +181,8 @@ export const STATES: Record<string, State> = {
   "/app/[client]/placements": { urls: ["/app/example/placements", "/app/example/placements?cluster=c1"] },
   // 1 Oct 2026, R142 (BRIEF-4 P2): Settings, same session rule.
   "/app/[client]/settings": { urls: ["/app/example/settings"] },
+  // 1 Oct 2026, R166 part 3b: a new client's setup page, same session rule.
+  "/app/[client]/setup": { urls: ["/app/example/setup", "/app/example/setup?confirm=failed"] },
   // 1 Oct 2026, R143 (BRIEF-4 P3): Who is named, same session rule.
   "/app/[client]/named": { urls: ["/app/example/named", "/app/example/named?engine=chatgpt&all=1"] },
   // 1 Oct 2026, R144 (BRIEF-4 P4): Cited pages, same session rule.

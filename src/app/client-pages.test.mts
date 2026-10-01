@@ -101,6 +101,10 @@ const KEYS: Record<string, Record<string, string>> = {
     type: 'pickKind(typeof sp.type === "string" ? sp.type : null)',
     sel: "screen.view.rows.some((r) => r.id === sp.sel)",
   },
+  // 1 Oct 2026, R166 part 3b: the setup page's one key, the confirm route's way back on a failed write.
+  "/setup": {
+    confirm: 'sp.confirm === "failed"',
+  },
 };
 
 /** Role reads on a page, and what each may decide. A page reading a role anywhere else fails. */
@@ -108,14 +112,17 @@ const ROLE_READS: Record<string, string[]> = {
   "/clusters": ["canWrite={refuseRole(client.role) === null}"],
   "/clusters/[cluster]": ['canWrite={client.role === "owner" || client.role === "editor"}'],
   "/settings": ['owner={client.role === "owner"}'],
+  // R166 part 3b: viewers see the cards but not Confirm; the route refuses them too.
+  "/setup": ["const canWrite = refuseRole(client.role) === null;"],
 };
 
 /**
  * Floors, 1 Oct 2026: 8 pages (overview, clusters, one cluster, placements,
  * and BRIEF-4's named, cited, reports, settings) and 32 registered keys.
+ * Raised 1 Oct 2026 (R166 part 3b): 9 pages and 33 keys - /setup and its confirm.
  */
-const PAGE_FLOOR = 8;
-const KEY_FLOOR = 32;
+const PAGE_FLOOR = 9;
+const KEY_FLOOR = 33;
 
 /** The query keys a page reads by name, as written. */
 export function keysRead(src: string): string[] {

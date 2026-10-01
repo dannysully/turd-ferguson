@@ -1,0 +1,154 @@
+import type { Metadata } from "next";
+import { notFound, redirect } from "next/navigation";
+
+import BrandMark from "@/components/BrandMark";
+import TierName, { type TierKey } from "@/components/TierName";
+import SubmitButton from "@/components/app/SubmitButton";
+import { CONTACT_EMAIL } from "@/config/contact";
+import { NEXT_STEPS } from "@/config/onboarding";
+import { contactUrlFor } from "@/config/pricing";
+import { CARD, MICRO, T } from "@/config/tokens";
+import { loginHref } from "@/lib/tracking/next-path";
+import { rangeFrom } from "@/lib/tracking/overview-data";
+import { placedTier } from "@/lib/tracking/placement-figures";
+import { trackingRepo } from "@/lib/tracking/repo";
+import { confirmLabel, setupCards } from "@/lib/tracking/setup-landing";
+import { refuseRole } from "@/lib/tracking/stop";
+
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
+/** Private - noindex here as well as in the layout, the header rule and robots.txt. */
+export const metadata: Metadata = {
+  title: "Set up your clusters - alwaystracked dashboard",
+  robots: { index: false, follow: false },
+};
+
+const ANGLE: Record<string, string> = { category: "Category", positioning: "Positioning", sector: "Sector", outcome: "Outcome", comparison: "Comparison" };
+
+const BUTTON = { display: "inline-flex", alignItems: "center", gap: "8px", minHeight: "48px", padding: "12px 18px", borderRadius: "10px", border: "none", background: T.accent, color: "#ffffff", fontWeight: 600, fontSize: "15px" } as const;
+
+/** 44px tall at any width: the help block is the page's way out. */
+const HELP_LINK = { display: "inline-flex", alignItems: "center", minHeight: "44px", color: T.accent, fontWeight: 600 } as const;
+
+const STEP ={ ...MICRO, display: "block", marginBottom: "8px" } as const;
+
+/**
+ * A new client's setup (R166 part 3b, Danny, danny.md line 175): step 1
+ * welcome, step 2 one card per cluster bought with its keyword and the scan's
+ * prompts, step 3 review and confirm. One page, so it works without script.
+ * Confirm posts to /api/app/[client]/setup, which writes setup_confirmed.
+ * Not yet the sign-in landing: /api/app/auth still lands on the Overview.
+ */
+export default async function ClientSetup({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ client: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const repo = trackingRepo();
+  const email = await repo.sessionEmail();
+  const sp = await searchParams;
+  if (!email) redirect(loginHref(`/app/${(await params).client}/setup`, sp));
+  const { client: slug } = await params;
+  const clients = await repo.clientsFor(email);
+  const client = clients.find((c) => c.slug === slug);
+  if (!client) notFound();
+  const tier = (client.tier as TierKey) ?? "tracked";
+  const today = repo.today();
+  const { range, compare } = rangeFrom({}, today);
+  const [data, confirmed] = await Promise.all([repo.loadOverview(client.id, range, compare), repo.setupConfirmed(client.id)]);
+  const cards = setupCards(data);
+  const canWrite = refuseRole(client.role) === null;
+  const failed = sp.confirm === "failed";
+  const brand = client.brand ?? client.domain;
+
+  return (
+    <section style={{ maxWidth: "720px", margin: "0 auto", padding: "56px 24px 96px", color: T.ink }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "17px", fontWeight: 700, letterSpacing: "-0.02em", marginBottom: "40px" }}>
+        <BrandMark id="app-setup" size={15} />
+        <TierName tier="tracked" />
+      </div>
+
+      <span style={STEP}>Step 1 of 3</span>
+      <h1 style={{ fontSize: "30px", fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.2, margin: "0 0 12px" }}>Welcome. Set up your clusters for {brand}.</h1>
+      <p style={{ margin: "0 0 20px", fontSize: "15px", lineHeight: 1.7, color: T.soft }}>
+        You are on <TierName tier={tier} />. A cluster is one Google keyword and the prompts we ask the AI engines about it. Check them below, then confirm.
+      </p>
+      <ol style={{ margin: "0 0 40px", paddingLeft: "20px", listStyle: "decimal", fontSize: "15px", lineHeight: 1.7, color: T.soft }}>
+        {NEXT_STEPS.map((s) => (
+          <li key={s}>{s}</li>
+        ))}
+      </ol>
+
+      <span style={STEP}>Step 2 of 3</span>
+      <h2 style={{ fontSize: "22px", fontWeight: 700, margin: "0 0 16px" }}>
+        Your {cards.length === 1 ? "cluster" : `${cards.length} clusters`}
+      </h2>
+      {cards.length ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: "14px", marginBottom: "40px" }}>
+          {cards.map((c, i) => (
+            <div key={c.id} style={{ ...CARD, borderRadius: "14px", padding: "20px 22px" }}>
+              <div style={MICRO}>Cluster {i + 1}</div>
+              <div style={{ marginTop: "6px", fontSize: "17px", fontWeight: 700 }}>{c.keyword ?? "Needs a keyword"}</div>
+              <p style={{ margin: "4px 0 14px", fontSize: "14px", color: T.soft }}>
+                {c.keyword === null ? "We add its Google keyword for you." : "The keyword we check on Google every morning."}
+              </p>
+              {c.prompts.length ? (
+                <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: "8px" }}>
+                  {c.prompts.map((p) => (
+                    <li key={p.id} style={{ fontSize: "14px", lineHeight: 1.5 }}>
+                      {p.angle && ANGLE[p.angle] ? <span style={{ ...MICRO, marginRight: "8px" }}>{ANGLE[p.angle]}</span> : null}
+                      {p.text}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p style={{ margin: 0, fontSize: "14px", color: T.soft }}>No prompts yet. We write five for you before the first check.</p>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p style={{ margin: "0 0 40px", fontSize: "15px", color: T.soft }}>No clusters yet. We set them up for you; email us if you want to pick them.</p>
+      )}
+
+      <span style={STEP}>Step 3 of 3</span>
+      <h2 style={{ fontSize: "22px", fontWeight: 700, margin: "0 0 12px" }}>Review and confirm</h2>
+      {confirmed ? (
+        <p style={{ margin: "0 0 40px", fontSize: "15px", lineHeight: 1.7, color: T.soft }}>
+          Setup is confirmed. <a href={`/app/${encodeURIComponent(slug)}`} style={{ color: T.accent, fontWeight: 600 }}>Go to your dashboard</a>
+        </p>
+      ) : canWrite ? (
+        <form method="post" action={`/api/app/${encodeURIComponent(slug)}/setup`} style={{ marginBottom: "40px" }}>
+          <p style={{ margin: "0 0 16px", fontSize: "15px", lineHeight: 1.7, color: T.soft }}>
+            Want a change? Tell us before you confirm, and we make it. The first check runs the morning after.
+          </p>
+          {failed ? (
+            <p role="alert" style={{ margin: "0 0 12px", fontSize: "14px", color: T.badFg }}>
+              That did not save. Try again.
+            </p>
+          ) : null}
+          <SubmitButton busy="Confirming..." style={BUTTON}>
+            {confirmLabel(placedTier(tier))}
+          </SubmitButton>
+        </form>
+      ) : (
+        <p style={{ margin: "0 0 40px", fontSize: "15px", color: T.soft }}>The account owner confirms setup.</p>
+      )}
+
+      <div style={{ ...CARD, borderRadius: "14px", padding: "18px 22px" }}>
+        <div style={MICRO}>Need a hand?</div>
+        <p style={{ margin: "4px 0 0", fontSize: "14px", lineHeight: 1.8, display: "flex", flexWrap: "wrap", columnGap: "16px" }}>
+          <a href={contactUrlFor(tier)} style={{ ...HELP_LINK }}>
+            Book a call
+          </a>
+          <a href={`mailto:${CONTACT_EMAIL}`} style={{ ...HELP_LINK }}>
+            Email us: {CONTACT_EMAIL}
+          </a>
+        </p>
+      </div>
+    </section>
+  );
+}

@@ -57,6 +57,14 @@ export function fixtureSignedOut(env: Record<string, string | undefined> = proce
  * overview read throw, as overview-data.ts throws when Supabase refuses a
  * read, so the /app error boundary can be swept without breaking a database.
  */
+/**
+ * R166 part 3b (1 Oct 2026): the signup state is the webhook's fresh client,
+ * so its setup is still to do; every other state is a client already set up.
+ */
+export function fixtureSetupConfirmed(env: Record<string, string | undefined> = process.env): boolean {
+  return env.TRACKING_FIXTURE_STATE !== "signup";
+}
+
 export function fixtureUnreadable(env: Record<string, string | undefined> = process.env): void {
   if (env.TRACKING_FIXTURE_STATE === "unreadable") throw new Error("could not read the runs: fixture state unreadable");
 }

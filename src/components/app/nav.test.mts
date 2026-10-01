@@ -34,7 +34,19 @@ const ROUTES = walk(CLIENT)
   .map((f) => relative(CLIENT, f).split(sep).slice(0, -1))
   .map((segs) => segs.map((s) => (/^\[.+\]$/.test(s) ? "[]" : s)))
   .map((segs) => (segs.length ? "/" + segs.join("/") : ""));
-const STATIC = ROUTES.filter((r) => !r.includes("[]"));
+/**
+ * Static routes that are deliberately not in the nav, each with its reason.
+ * 1 Oct 2026, R166 part 3b: /setup is a one-off step a new client passes
+ * through after sign-in (danny.md line 175), not a page to return to.
+ */
+const OFF_NAV: Record<string, string> = {
+  "/setup": "onboarding step reached from the sign-in landing, not a dashboard page",
+};
+const STATIC = ROUTES.filter((r) => !r.includes("[]") && !Object.hasOwn(OFF_NAV, r));
+
+test("every off-nav route is a built route", () => {
+  assert.deepEqual(Object.keys(OFF_NAV).filter((r) => !ROUTES.includes(r)), []);
+});
 
 /**
  * Floors, 30 Sep 2026: 3 routes (overview, clusters, one cluster), 8 distinct nav and tab items (the 7 nav plus the phone's Keywords).

@@ -31,3 +31,34 @@ export function landingAfterAuth(o: {
   if (!first.confirmed) return setupPath(first.slug);
   return o.next ?? `/app/${first.slug}`;
 }
+
+/** The prompts a setup card shows: the scan's five angles, one each (signup.ts PROMPTS_PER_CLUSTER). */
+export const SETUP_PROMPTS = 5;
+
+export type SetupCard = { id: string; name: string; keyword: string | null; prompts: { id: string; text: string; angle: string | null }[] };
+
+/**
+ * Step 2 of /app/[client]/setup (R166 part 3b): one card per live cluster
+ * bought, in the order the dashboard lists them, with its keyword (null is
+ * "Needs a keyword") and up to SETUP_PROMPTS of its live prompts.
+ */
+export function setupCards(d: {
+  clusters: readonly { id: string; name: string; keyword_id: string | null; stopped_on: string | null }[];
+  questions: readonly { id: string; text: string; cluster_id: string | null; stopped_on: string | null; angle: string | null }[];
+  keywords: readonly { id: string; keyword: string }[];
+}): SetupCard[] {
+  return d.clusters
+    .filter((c) => c.stopped_on === null)
+    .map((c) => ({
+      id: c.id,
+      name: c.name,
+      keyword: d.keywords.find((k) => k.id === c.keyword_id)?.keyword ?? null,
+      prompts: d.questions
+        .filter((q) => q.cluster_id === c.id && q.stopped_on === null)
+        .slice(0, SETUP_PROMPTS)
+        .map((q) => ({ id: q.id, text: q.text, angle: q.angle })),
+    }));
+}
+
+/** Step 3's button: Danny's words on the placement tiers, a tracking plan's plainer ones. */
+export const confirmLabel = (placed: boolean) => (placed ? "Confirm - these are what you'll target" : "Confirm - start tracking these");
