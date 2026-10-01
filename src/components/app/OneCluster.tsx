@@ -12,6 +12,7 @@ import { type ClusterDetail, type ClusterInput, clusterChart, promptBrands, prom
 import { type Day, type Range, type Rate, comparisonRange, daysIn, formatDay, pointsDelta } from "@/lib/tracking/figures";
 import { type AnswerTab, type LatestAnswers, answerTabs, brandRuns } from "@/lib/tracking/latest-answers";
 import type { ClusterNote, Compare, OverviewData } from "@/lib/tracking/overview-data";
+import { partialRunNote } from "@/lib/tracking/run-note";
 
 import ClusterChart from "./ClusterChart";
 import { Chip } from "./Overview";
@@ -94,6 +95,7 @@ export default function OneCluster({
 }) {
   const c = detail.card;
   const before = comparisonRange(range, compareMode);
+  const partial = partialRunNote(data.lastRun, range, today);
   const input: ClusterInput = { clusters: data.clusters ?? [], questions: data.questions, keywords: data.keywords, answers: data.answers, serp: data.serp, range, before, today, engines };
   const chart = clusterChart(input, c.id);
   const hasPrev = !!chart?.namedBefore?.some((p) => p !== null);
@@ -154,6 +156,8 @@ export default function OneCluster({
             {`${c.prompts.length} prompt${c.prompts.length === 1 ? "" : "s"} asked every morning on ${WORDS[engines.length] ?? engines.length} engines${c.keyword === null ? ". We add its Google keyword for you" : ", and the keyword checked on Google"}. `}
             {pending ? "First check tomorrow at 06:00." : `Tracked since ${formatDay(c.started_on, true)}.`}
           </p>
+          {/* R151 (1 Oct 2026): the list screens' partial note, one sentence in run-note.ts. */}
+          {partial ? <p style={{ margin: 0, fontSize: "14px", lineHeight: 1.5, color: T.soft, maxWidth: "680px" }}>{partial}</p> : null}
         </div>
         {/* T5 (30 Sep 2026): the server-drawn face opens boards/DatePicker.dc.html; JS off still shows the range. */}
         <DatePicker range={range} compare={compareMode} today={today} startedOn={startedOn ?? null} grow={false}>

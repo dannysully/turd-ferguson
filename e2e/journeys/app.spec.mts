@@ -158,7 +158,7 @@ for (const width of [1280, 390]) {
         else (assert.match(t, /Last checked .+ Next check at 06:00\./), assert.doesNotMatch(t, /Checked today/));
         await ctx.close();
       });
-      for (const route of [`${HOME}/clusters`, `${HOME}/named`, `${HOME}/cited`])
+      for (const route of [`${HOME}/clusters`, `${HOME}/clusters/c1`, `${HOME}/named`, `${HOME}/cited`])
         test(`${route} ${errorState === "partial" ? "says" : "does not say"} today's check was partial`, async () => {
           const ctx = await browser.newContext({ viewport: { width, height: 900 } });
           const page = await ctx.newPage();

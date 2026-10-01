@@ -20,8 +20,9 @@ test("no note for a complete run, no run, or a partial run outside the range", (
   assert.equal(partialRunNote(run("2026-08-30", "partial"), range, "2026-09-29"), null);
 });
 
-test("Overview, Clusters, Who is named and Cited pages all take the sentence from run-note.ts", () => {
-  for (const f of ["Overview", "Clusters", "Named", "Cited"]) {
+test("Overview, Clusters, a cluster, Who is named and Cited pages all take the sentence from run-note.ts", () => {
+  // OneCluster added 1 Oct 2026 (R151): the one-cluster page said nothing of a partial run beyond its answer tab.
+  for (const f of ["Overview", "Clusters", "OneCluster", "Named", "Cited"]) {
     const src = readFileSync(new URL(`../../components/app/${f}.tsx`, import.meta.url), "utf8");
     assert.match(src, /from "@\/lib\/tracking\/run-note"/, `${f} imports run-note`);
     assert.ok(!src.includes("did not come back"), `${f} has no copy of the sentence`);
