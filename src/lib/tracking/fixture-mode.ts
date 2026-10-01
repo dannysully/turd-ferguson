@@ -45,6 +45,14 @@ export type FixtureMember = { email: string; name: string | null; role: string; 
 export type FixturePlacement = Omit<PlacementRow, "url_key"> & { cluster_id: string };
 
 /**
+ * R164 (1 Oct 2026): `TRACKING_FIXTURE_SESSION=none` is the signed-out
+ * visitor, so e2e can follow a bookmark through the login page.
+ */
+export function fixtureSignedOut(env: Record<string, string | undefined> = process.env): boolean {
+  return env.TRACKING_FIXTURE_SESSION === "none";
+}
+
+/**
  * R151 (1 Oct 2026): `TRACKING_FIXTURE_STATE=unreadable` makes the fixture's
  * overview read throw, as overview-data.ts throws when Supabase refuses a
  * read, so the /app error boundary can be swept without breaking a database.

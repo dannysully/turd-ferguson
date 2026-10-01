@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { loginHref } from "@/lib/tracking/next-path";
 import { notFound, redirect } from "next/navigation";
 
 import Placements from "@/components/app/Placements";
@@ -36,7 +37,7 @@ export default async function ClientPlacements({
 }) {
   const repo = trackingRepo();
   const email = await repo.sessionEmail();
-  if (!email) redirect("/app/login");
+  if (!email) redirect(loginHref(`/app/${(await params).client}/placements`, await searchParams));
   const { client: slug } = await params;
   const clients = await repo.clientsFor(email);
   const client = clients.find((c) => c.slug === slug);

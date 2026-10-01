@@ -151,7 +151,8 @@ for (const [route, src] of PAGES) {
 
   test(`${name}: (a) noindex, (b) login redirect, (c) membership 404`, () => {
     assert.match(src, /robots: \{ index: false, follow: false \}/, "no noindex in the page's own metadata");
-    assert.match(src, /if \(!email\) redirect\("\/app\/login"\);/, "no session must redirect to /app/login");
+    // R164 (1 Oct 2026, danny.md line 173): to /app/login carrying next, through loginHref (next-path.ts, its own tests).
+    assert.match(src, /if \(!email\) redirect\(loginHref\(`\/app\/\$\{\(await params\)\.client\}/, "no session must redirect to /app/login with next");
     assert.match(src, /const clients = await repo\.clientsFor\(email\);/, "the client must come from the session's own clients");
     assert.match(src, /const client = clients\.find\(\(c\) => c\.slug === slug\);\s*if \(!client\) notFound\(\);/, "a slug not among them must 404");
   });

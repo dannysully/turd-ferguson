@@ -3,6 +3,8 @@ import BrandMark from "@/components/BrandMark";
 import TierName from "@/components/TierName";
 import { T } from "@/config/tokens";
 
+import { safeNext } from "@/lib/tracking/next-path";
+
 import LoginForm from "./LoginForm";
 
 export const dynamic = "force-dynamic";
@@ -34,7 +36,8 @@ export default async function AppLogin({ searchParams }: { searchParams: Promise
         We&apos;ll email you a link. It works once, for 15 minutes.
       </p>
       {note ? <p style={{ margin: "0 0 16px", fontSize: "14px", color: T.ink }}>{note}</p> : null}
-      <LoginForm />
+      {/* R164: where a signed-out visitor was going, carried through the email link. */}
+      <LoginForm next={safeNext(q.next) ?? undefined} />
     </section>
   );
 }

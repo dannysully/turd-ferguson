@@ -3,6 +3,7 @@ import BrandMark from "@/components/BrandMark";
 import TierName from "@/components/TierName";
 import { T } from "@/config/tokens";
 import SubmitButton from "@/components/app/SubmitButton";
+import { NEXT_MAX, safeNext } from "@/lib/tracking/next-path";
 import { trackingRepo } from "@/lib/tracking/repo";
 import { TOKEN_CHARS, isTokenShape } from "@/lib/tracking/session";
 
@@ -30,7 +31,8 @@ const BUTTON = { display: "inline-flex", alignItems: "center", gap: "8px", paddi
  * than submitting again in a loop.
  */
 export default async function AppAuth({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  const { token, failed } = await searchParams;
+  const { token, failed, next: rawNext } = await searchParams;
+  const next = safeNext(rawNext);
   const shaped = isTokenShape(token);
   const link = shaped ? await trackingRepo().linkState(token) : null;
   const ok = shaped && (link === null || link.state === "fresh");
@@ -49,6 +51,7 @@ export default async function AppAuth({ searchParams }: { searchParams: Promise<
       {ok ? (
         <form method="post" action="/api/app/auth">
           <input type="hidden" name="token" value={token} maxLength={TOKEN_CHARS} />
+          {next ? <input type="hidden" name="next" value={next} maxLength={NEXT_MAX} /> : null}
           <SubmitButton busy="Opening your dashboard..." style={BUTTON}>
             Open my dashboard
           </SubmitButton>

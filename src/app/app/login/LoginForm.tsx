@@ -6,7 +6,7 @@ import { SCAN_LIMITS } from "@/config/contact";
 import { T } from "@/config/tokens";
 
 /** The email box on /app/login. Posts to /api/app/login and shows its one sentence. */
-export default function LoginForm() {
+export default function LoginForm({ next }: { next?: string }) {
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -19,7 +19,7 @@ export default function LoginForm() {
       const res = await fetch("/api/app/login", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify(next ? { email, next } : { email }),
       });
       const body = (await res.json().catch(() => ({}))) as { message?: string };
       setMessage(body.message ?? "Something went wrong. Please try again.");

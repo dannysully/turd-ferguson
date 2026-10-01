@@ -4,6 +4,7 @@ import { clientIp, hashIp } from "@/lib/scan/ip";
 import { siteUrl } from "@/lib/scan/verify-email";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { sendLoginLink } from "@/lib/tracking/login-mail";
+import { safeNext } from "@/lib/tracking/next-path";
 import { LOGIN_SENT, LOGIN_TTL_MS, LOGIN_PER_EMAIL_PER_HOUR, hashToken, mayRequestLink, newToken } from "@/lib/tracking/session";
 
 export const runtime = "nodejs";
@@ -19,7 +20,7 @@ export const dynamic = "force-dynamic";
  * dashboard_login_tokens.
  */
 export async function POST(req: Request) {
-  let body: { email?: string };
+  let body: { email?: string; next?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -69,7 +70,10 @@ export async function POST(req: Request) {
   }
 
   if (member?.length) {
-    await sendLoginLink({ memberEmail: member[0]!.email as string, link: `${siteUrl()}/app/auth?token=${token}` });
+    // R164: the page a signed-out visitor was on rides the link, validated again on every hop.
+    const next = safeNext(body.next);
+    const link = `${siteUrl()}/app/auth?token=${token}` + (next ? `&next=${encodeURIComponent(next)}` : "");
+    await sendLoginLink({ memberEmail: member[0]!.email as string, link });
   }
   return Response.json({ ok: true, message: LOGIN_SENT });
 }

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { clientsFor } from "@/lib/tracking/member";
+import { safeNext } from "@/lib/tracking/next-path";
 import { SESSION_TTL_MS, hashToken, isTokenShape, newToken, sessionCookie } from "@/lib/tracking/session";
 
 export const runtime = "nodejs";
@@ -25,7 +26,9 @@ export async function POST(req: Request) {
   // R163: back to the link's own page, which reads the token and says spent
   // (with a one-click new link) or, with failed=1, shows the button rather
   // than submitting itself again.
-  const failed = NextResponse.redirect(new URL(`/app/auth?token=${token}&failed=1`, req.url), 303);
+  const next = safeNext(form?.get("next"));
+  const back = next ? `&next=${encodeURIComponent(next)}` : "";
+  const failed = NextResponse.redirect(new URL(`/app/auth?token=${token}&failed=1${back}`, req.url), 303);
 
   const db = supabaseAdmin();
   const { data: claimed, error } = await db
@@ -64,8 +67,9 @@ export async function POST(req: Request) {
   // R163: straight to the client's dashboard, not /app and a second redirect.
   // A failed read falls back to /app, which makes the same choice. No /setup
   // page exists yet, so there is no setup-confirmed detour to take.
-  const clients = await clientsFor(email).catch(() => null);
-  const to = clients === null ? "/app" : clients.length ? `/app/${clients[0]!.slug}` : "/app/login?access=none";
+  // R164: a safe next wins; its own page checks membership as every /app page does.
+  const clients = next ? null : await clientsFor(email).catch(() => null);
+  const to = next ? next : clients === null ? "/app" : clients.length ? `/app/${clients[0]!.slug}` : "/app/login?access=none";
   const res = NextResponse.redirect(new URL(to, req.url), 303);
   res.cookies.set(sessionCookie(session));
   return res;

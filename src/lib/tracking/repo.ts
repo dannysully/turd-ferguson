@@ -5,7 +5,7 @@ import { join } from "node:path";
 
 import { trackingDay } from "./decide.ts";
 import type { Day, Range } from "./figures.ts";
-import { expandFixture, fixtureLive, fixtureMode, fixtureState, fixtureUnreadable, type Fixture } from "./fixture-mode.ts";
+import { expandFixture, fixtureLive, fixtureMode, fixtureSignedOut, fixtureState, fixtureUnreadable, type Fixture } from "./fixture-mode.ts";
 import { type MemberClient, clientsFor, sessionEmail } from "./member.ts";
 import type { LatestAnswers } from "./latest-answers.ts";
 import { loadLinkState } from "./login-link.ts";
@@ -58,6 +58,7 @@ function fixture(): Fixture {
 
 const fixtureRepo: TrackingRepo = {
   async sessionEmail() {
+    if (fixtureSignedOut()) return null;
     return fixture().member.email;
   },
   async clientsFor(email) {

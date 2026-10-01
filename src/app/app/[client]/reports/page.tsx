@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { loginHref } from "@/lib/tracking/next-path";
 import { notFound, redirect } from "next/navigation";
 
 import Reports from "@/components/app/Reports";
@@ -30,7 +31,7 @@ export const runtime = "nodejs";
 export default async function ClientReports({ params, searchParams }: { params: Promise<{ client: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const repo = trackingRepo();
   const email = await repo.sessionEmail();
-  if (!email) redirect("/app/login");
+  if (!email) redirect(loginHref(`/app/${(await params).client}/reports`, await searchParams));
   const { client: slug } = await params;
   const clients = await repo.clientsFor(email);
   const client = clients.find((c) => c.slug === slug);
