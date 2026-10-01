@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { quoteFor, SECTORS } from "../../config/sector-pricing.ts";
+import { parseSelection, tierFromPlain } from "../../config/sector-selection.ts";
+import { TIER_PLAIN } from "../tier-text.ts";
 import { checkoutRequest, type CheckoutContext, type Order } from "./session.ts";
 
 /** R91 (29 Sep 2026): the Session a checkout asks Stripe for. No Stripe call is made here. */
@@ -48,6 +50,25 @@ test("the success URL names the plan, and from=scan only when a scan token rides
   assert.equal(withScan.form.get("success_url"), "https://alwayscited.com/checkout/done?session={CHECKOUT_SESSION_ID}&plan=tracked&from=scan");
   assert.equal(without.form.get("success_url"), "https://alwayscited.com/checkout/done?session={CHECKOUT_SESSION_ID}&plan=cited&from=site");
   assert.equal(junk.form.get("success_url"), "https://alwayscited.com/checkout/done?session={CHECKOUT_SESSION_ID}&plan=mentioned&from=site");
+});
+
+test("Stripe's back link returns to /checkout with the picks, read back by the page's own parsers, never the email (R151, 1 Oct 2026)", () => {
+  const real: CheckoutContext = { ...ctx, names: { tracked: TIER_PLAIN.tracked, mentioned: TIER_PLAIN.mentioned, cited: TIER_PLAIN.cited } };
+  const tok = "0123456789abcdef0123456789abcdef";
+  const cited = checkoutRequest(order({ tier: "cited", market: "uk" }), real);
+  const tracked = checkoutRequest(order({ tier: "tracked", sector: "", keyword: "", scan: tok }), real);
+  assert.ok(cited.kind === "session" && tracked.kind === "session");
+  const a = new URL(cited.form.get("cancel_url")!);
+  assert.equal(a.origin + a.pathname, "https://alwayscited.com/checkout");
+  assert.equal(tierFromPlain(a.searchParams.get("tier")), "cited");
+  assert.deepEqual(parseSelection(a.searchParams), { sector: priced.id, qty: 3, market: "uk" });
+  assert.equal(a.searchParams.get("keyword"), "accounting software");
+  assert.equal(a.searchParams.get("website"), "buyer-site.com");
+  const b = new URL(tracked.form.get("cancel_url")!);
+  assert.equal(tierFromPlain(b.searchParams.get("tier")), "tracked");
+  assert.equal(b.searchParams.get("scan"), tok);
+  assert.equal(b.searchParams.get("website"), null);
+  for (const r of [cited, tracked]) assert.ok(!r.form.get("cancel_url")!.toLowerCase().includes("example.com"), "the email stays out of the URL");
 });
 
 test("an order without a scan needs the buyer's website, carried normalised; with a scan it is not asked (R158, 1 Oct 2026)", () => {

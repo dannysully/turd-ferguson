@@ -74,7 +74,17 @@ export function checkoutRequest(order: Order, ctx: CheckoutContext): CheckoutReq
   // gets a dashboard and a sign-in link, from the scan or the website (R148
   // pass 8; R158, 1 Oct 2026).
   f.set("success_url", `${ctx.origin}/checkout/done?session={CHECKOUT_SESSION_ID}&plan=${tier}&from=${scan ? "scan" : "site"}`);
-  f.set("cancel_url", `${ctx.origin}/packages`);
+  // Stripe's back link returns to the order form with the picks still in it,
+  // the same query /api/checkout's refusals carry (R151, 1 Oct 2026). It was
+  // /packages, which dropped the tier, sector, clusters, keyword and website
+  // the buyer had just entered - backing out of payment meant starting again.
+  // The email stays out: an address in a URL lands in request logs.
+  const back = new URLSearchParams({ tier: ctx.names[tier], market });
+  if (tier !== "tracked" && order.sector) back.set("sector", order.sector);
+  if (quantity > 1) back.set("clusters", String(quantity));
+  if (keyword) back.set("keyword", keyword);
+  back.set(scan ? "scan" : "website", scan || website);
+  f.set("cancel_url", `${ctx.origin}/checkout?${back}`);
   f.set("line_items[0][quantity]", String(quantity));
   f.set("line_items[0][price_data][currency]", currency);
   f.set("line_items[0][price_data][unit_amount]", String(Math.round(unit * 100)));
