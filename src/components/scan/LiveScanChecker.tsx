@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { track } from "@/lib/analytics";
-import { normalizeDomain } from "@/lib/scan/domain";
+import { isPlausibleDomain, normalizeDomain } from "@/lib/scan/domain";
 
 import { DomainScreen } from "./screens";
 import Turnstile from "./Turnstile";
@@ -59,8 +59,31 @@ export default function LiveScanChecker({
   }
   useEffect(() => stopSteps, []);
 
+  /**
+   * A Turnstile token verifies once. The start route spends it before it looks
+   * at anything else, so every refused start - a bad domain, a slow or blocked
+   * site, the daily ceiling - left the widget holding a dead token, and the
+   * corrected retry failed with "We could not verify that request. Please
+   * reload" (R151, 1 Oct 2026). A fresh widget after each refusal, by key, the
+   * way CoverageForm remounts its own.
+   */
+  const [attempt, setAttempt] = useState(0);
+  function freshToken() {
+    setTurnstileToken(null);
+    setAttempt((a) => a + 1);
+  }
+
   async function onDomain(e: React.FormEvent) {
     e.preventDefault();
+    /**
+     * An address that cannot be one is answered here, in the start route's own
+     * words, before anything is spent: no round trip, no token used, no
+     * scan_started event for an empty field. The route still checks it.
+     */
+    if (!isPlausibleDomain(normalizeDomain(domain))) {
+      setError("That does not look like a website address. Try example.com.");
+      return;
+    }
     setError("");
     setBusy(true);
     setStep(0);
@@ -85,6 +108,7 @@ export default function LiveScanChecker({
         stopSteps();
         setError(data.message ?? "Something went wrong. Please try again.");
         setBusy(false);
+        freshToken();
         return;
       }
 
@@ -97,6 +121,7 @@ export default function LiveScanChecker({
       stopSteps();
       setError("We could not reach the checker. Please try again.");
       setBusy(false);
+      freshToken();
     }
   }
 
@@ -111,7 +136,7 @@ export default function LiveScanChecker({
         busy={busy}
         dark={dark}
       />
-      <Turnstile onToken={setTurnstileToken} theme={dark ? "dark" : "light"} />
+      <Turnstile key={attempt} onToken={setTurnstileToken} theme={dark ? "dark" : "light"} />
     </div>
   );
 }
