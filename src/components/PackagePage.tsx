@@ -1,5 +1,6 @@
 import { MarketCta, MarketPrice, MarketToggle, PackLine, SectorPrice, SelectionCta } from "@/components/SectorPrice";
 import DeliverableTiles, { type Tile } from "@/components/DeliverableTiles";
+import NextSteps from "@/components/NextSteps";
 import TierEngines from "@/components/TierEngines";
 import WalkthroughForm from "@/components/scan/WalkthroughForm";
 import TierName, { TierText, type TierKey } from "@/components/TierName";
@@ -253,6 +254,8 @@ export default function PackagePage({
         <p style={{ margin: 0, fontSize: "17px", fontWeight: 700, letterSpacing: "-0.02em", color: T.ink }}>{ALWAYS_ON.tierPage}</p>
         <p style={{ margin: "4px 0 0", fontSize: "14px", lineHeight: 1.6, color: T.soft, maxWidth: "70ch" }}>{ALWAYS_ON_SUPPORT}</p>
       </div>
+
+      <NextSteps />
 
       {/* See it first, 28 Sep 2026 (pricing spec section 6; Danny, danny.md
           line 55): no Loom URL or demo link yet, so each is an ask stored in

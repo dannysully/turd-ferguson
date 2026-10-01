@@ -1,4 +1,5 @@
 import { COMPANY_LINE, CONTACT_EMAIL } from "../../config/contact.ts";
+import { NEXT_STEPS } from "../../config/onboarding.ts";
 import { T } from "../../config/tokens.ts";
 import { escapeHtml, shell, type Palette } from "../scan/email-render.ts";
 import { TIER_PLAIN, type TierKey } from "../tier-text.ts";
@@ -80,8 +81,8 @@ function render(p: Parts): Rendered {
   return { subject: p.subject, html, text };
 }
 
-/** The 3-step strip, what happens after the welcome. */
-export const NEXT_STEPS = ["Set up your clusters: the keywords and prompts we check.", "We run the first check the next morning.", "Your dashboard shows where you are named, and where you rank."];
+/** The 3-step strip, what happens after the welcome; shared with the pages that sell. */
+export { NEXT_STEPS };
 
 export function welcome(d: { tier: TierKey; clusters: number; domain: string; link: string }): Rendered {
   const plan = TIER_PLAIN[d.tier];
@@ -91,7 +92,7 @@ export function welcome(d: { tier: TierKey; clusters: number; domain: string; li
     preheader: `Your ${plan} dashboard for ${d.domain} is ready to set up.`,
     heading: "You're in - set up your clusters",
     body: [`You bought ${plan} for ${d.domain}, with ${d.clusters === 1 ? "1 cluster" : `${d.clusters} clusters`}. Here is what happens next:`],
-    list: NEXT_STEPS,
+    list: [...NEXT_STEPS],
     cta: { href: d.link, label: "Set up your clusters" },
     footnote: "The button signs you in. It works once, for 15 minutes; after that, sign in asks for a new link.",
   });

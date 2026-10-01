@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { OG_IMAGE } from "@/config/og";
 
+import NextSteps from "@/components/NextSteps";
 import Packages from "@/components/home/Packages";
+import { SHELL } from "@/config/tokens";
 
 export const metadata: Metadata = {
   title: { absolute: "Packages and pricing - alwayscited" },
@@ -16,12 +18,16 @@ export const metadata: Metadata = {
  * and the Nomada credit - moved off the homepage onto their own route (Danny,
  * 28 Sep 2026, R65). The homepage keeps the staircase band only, with a link
  * here. Everything on it still reads from `Packages.tsx`, so the two cannot
- * drift apart.
+ * drift apart. The 3-step strip follows it here only, not on the homepage
+ * band (R166).
  */
 export default function PackagesPage() {
   return (
     <div>
       <Packages full />
+      <div style={{ ...SHELL, paddingBottom: "64px" }}>
+        <NextSteps />
+      </div>
     </div>
   );
 }

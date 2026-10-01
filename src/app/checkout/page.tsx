@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import TierName, { TIER_PLAIN, TierText } from "@/components/TierName";
 import CheckoutOrder from "@/components/checkout/CheckoutOrder";
+import NextSteps from "@/components/NextSteps";
 import { CHECKOUT_LIMITS } from "@/config/contact";
 import { TIERS } from "@/config/pricing";
 import { parseSelection, tierFromPlain } from "@/config/sector-selection";
@@ -61,6 +62,7 @@ export default async function Checkout({ searchParams }: { searchParams: Promise
         website={website}
         error={error}
       />
+      <NextSteps style={{ marginTop: "24px" }} />
     </section>
   );
 }
