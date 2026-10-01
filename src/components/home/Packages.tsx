@@ -1,5 +1,6 @@
 import { MarketCta, MarketPrice, MarketToggle, PackLine, SectorPrice, SelectionCta } from "@/components/SectorPrice";
 import TierEngines from "@/components/TierEngines";
+import PkgScroll from "@/components/home/PkgScroll";
 import TierName, { TierText, type TierKey } from "@/components/TierName";
 import { ALWAYS_ON, ALWAYS_ON_SUPPORT } from "@/config/always-on";
 import { CLUSTERS_LINE, TIERS, checkoutUrlFor } from "@/config/pricing";
@@ -197,7 +198,7 @@ export default function Packages({ full = false }: { full?: boolean }) {
         <p className="pkg-cue" style={{ margin: "0 0 10px", fontSize: "12.5px", fontWeight: 600, color: T.soft }}>
           Swipe for all four tiers <span aria-hidden="true">→</span>
         </p>
-        <div className="pkg-scroll" style={{ ...CARD, overflow: "hidden" }}>
+        <PkgScroll style={{ ...CARD, overflow: "hidden" }}>
           <table className="pkg-table">
             <caption className="sr-only">What each tier adds</caption>
             <colgroup>
@@ -307,7 +308,7 @@ export default function Packages({ full = false }: { full?: boolean }) {
               ))}
             </tbody>
           </table>
-        </div>
+        </PkgScroll>
 
         {/* id="white-label" marks the end of the priced grid for price-surfaces.test.mts. */}
         <div id="white-label" className="pkg-foot" style={{ marginTop: "18px", fontSize: "13.5px", lineHeight: 1.6, color: T.soft }}>

@@ -303,7 +303,8 @@ html[data-motion="on"] .stair-step { animation: stair-step 10s infinite both; an
 @keyframes pkgFade { from { --pkg-fade: 56px; } 92% { --pkg-fade: 56px; } to { --pkg-fade: 0px; } }
 @media (max-width: 860px) {
   .pkg-cue { display: block; }
-  .pkg-scroll { overflow-x: auto !important; }
+  /* scroll-padding: PkgScroll brings a focused control clear of the 56px fade (R151, 1 Oct 2026). */
+  .pkg-scroll { overflow-x: auto !important; scroll-padding-inline: 16px 64px; }
   .pkg-scroll {
     -webkit-mask-image: linear-gradient(to right, var(--ink) calc(100% - var(--pkg-fade)), transparent);
     mask-image: linear-gradient(to right, var(--ink) calc(100% - var(--pkg-fade)), transparent);

@@ -213,6 +213,7 @@ export default function HowItWorksPage() {
             poster={LAUNCH_VIDEO.poster}
             width={LAUNCH_VIDEO.width}
             height={LAUNCH_VIDEO.height}
+            aria-label={LAUNCH_VIDEO.name}
             aria-describedby="video-summary"
             style={{
               display: "block",
