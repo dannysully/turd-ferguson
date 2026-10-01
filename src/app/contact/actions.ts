@@ -55,10 +55,19 @@ const CONTACT_EMAIL_DESTINATION = process.env.CONTACT_EMAIL_DESTINATION ?? CONTA
  */
 export type ContactValues = { name: string; email: string; company: string; message: string };
 
+/**
+ * The field a refusal is about, so ContactForm can put the sentence under that
+ * field, mark it invalid and move focus to it (Baymard, inline form
+ * validation; WCAG 2.2 3.3.1). A send failure has no field and stays under the
+ * button. Before this every refusal was one line under the whole form, and an
+ * empty name read "Name, email, and message are required." (R151, 1 Oct 2026).
+ */
+export type ContactField = keyof ContactValues;
+
 export type ContactFormState =
   | { status: "idle" }
   | { status: "success" }
-  | { status: "error"; message: string; values: ContactValues };
+  | { status: "error"; message: string; values: ContactValues; field?: ContactField };
 
 const clamp = (v: string | undefined, max: number) => (v ?? "").slice(0, max);
 
@@ -95,16 +104,17 @@ export async function submitContactForm(
     message: clamp(message, LIMITS.message),
   };
 
-  if (!name || !email || !message) {
-    return { status: "error", message: "Name, email, and message are required.", values };
-  }
+  // The first empty one in the form's order, named, rather than all three.
+  if (!name) return { status: "error", message: "Enter your name.", values, field: "name" };
+  if (!email) return { status: "error", message: "Enter your work email.", values, field: "email" };
+  if (!message) return { status: "error", message: "Tell us what you need.", values, field: "message" };
 
   // Bounded before the regex, because the regex is two unbounded runs either
   // side of an @ and will happily accept a megabyte of them. This is the field
   // that becomes a header rather than a body line, and it was the one field
   // the comment above promised was bounded and was not.
   if (email.length > LIMITS.email) {
-    return { status: "error", message: "That email address is longer than an address can be.", values };
+    return { status: "error", message: "That email address is longer than an address can be.", values, field: "email" };
   }
 
   // The shared, tested check rather than a fourth private pattern. This copy was
@@ -112,7 +122,7 @@ export async function submitContactForm(
   // the two funnel doors refused - and the merge narrows it to their rule while
   // widening all three to a TLD that is not ASCII. See @/lib/email-address.
   if (!isPlausibleEmail(email)) {
-    return { status: "error", message: "Please enter a valid email address.", values };
+    return { status: "error", message: "Please enter a valid email address.", values, field: "email" };
   }
 
   /**
@@ -146,10 +156,10 @@ export async function submitContactForm(
   }
 
   if (name.length > LIMITS.name) {
-    return { status: "error", message: "That name is longer than we can send. Please shorten it.", values };
+    return { status: "error", message: "That name is longer than we can send. Please shorten it.", values, field: "name" };
   }
   if (company && company.length > LIMITS.company) {
-    return { status: "error", message: "That agency name is longer than we can send. Please shorten it.", values };
+    return { status: "error", message: "That agency name is longer than we can send. Please shorten it.", values, field: "company" };
   }
   if (message.length > LIMITS.message) {
     return {
@@ -159,6 +169,7 @@ export async function submitContactForm(
         LIMITS.message +
         " characters. Send the short version and we will ask for the rest.",
       values,
+      field: "message",
     };
   }
 

@@ -1,11 +1,11 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import Link from "next/link";
 
 import { CONTACT_FORM_ID } from "@/components/ContactTier";
 import { CONTACT_LIMITS } from "@/config/contact";
-import { submitContactForm, type ContactFormState } from "@/app/contact/actions";
+import { submitContactForm, type ContactField, type ContactFormState } from "@/app/contact/actions";
 import { T } from "@/config/tokens";
 
 /**
@@ -74,6 +74,35 @@ export default function ContactForm() {
    */
   const typed = state.status === "error" ? state.values : undefined;
 
+  /**
+   * A refusal about one field is drawn under that field, marks it invalid and
+   * takes focus there, so the reader of the sentence is standing on the box it
+   * is about. The effect keys on the state object, which is new on every
+   * submission, so a second refusal of the same field still moves focus.
+   */
+  const bad = state.status === "error" ? state.field : undefined;
+  const formRef = useRef<HTMLFormElement>(null);
+  useEffect(() => {
+    if (!bad) return;
+    formRef.current?.querySelector<HTMLElement>(`[name="${bad}"]`)?.focus();
+  }, [state, bad]);
+
+  const fieldProps = (field: ContactField) =>
+    bad === field
+      ? {
+          "aria-invalid": true as const,
+          "aria-describedby": `c-${field}-error`,
+          style: { ...inputStyle, borderColor: T.badFg },
+        }
+      : { style: inputStyle };
+
+  const fieldError = (field: ContactField) =>
+    bad === field && state.status === "error" ? (
+      <p id={`c-${field}-error`} style={{ margin: "6px 0 0", fontSize: "13px", color: T.badFg }}>
+        {state.message}
+      </p>
+    ) : null;
+
   if (state.status === "success") {
     /**
      * role="status" because this panel replaces the whole form. The error
@@ -93,7 +122,7 @@ export default function ContactForm() {
   }
 
   return (
-    <form id={CONTACT_FORM_ID} action={formAction} noValidate>
+    <form id={CONTACT_FORM_ID} ref={formRef} action={formAction} noValidate>
       <label htmlFor="c-name" style={labelStyle}>
         Name
       </label>
@@ -106,8 +135,9 @@ export default function ContactForm() {
         autoComplete="name"
         defaultValue={typed?.name ?? ""}
         className="c-field"
-        style={inputStyle}
+        {...fieldProps("name")}
       />
+      {fieldError("name")}
 
       <label htmlFor="c-email" style={{ ...labelStyle, marginTop: "16px" }}>
         Work email
@@ -122,8 +152,9 @@ export default function ContactForm() {
         placeholder="you@youragency.com"
         defaultValue={typed?.email ?? ""}
         className="c-field"
-        style={inputStyle}
+        {...fieldProps("email")}
       />
+      {fieldError("email")}
 
       <label htmlFor="c-agency" style={{ ...labelStyle, marginTop: "16px" }}>
         Agency
@@ -136,8 +167,9 @@ export default function ContactForm() {
         autoComplete="organization"
         defaultValue={typed?.company ?? ""}
         className="c-field"
-        style={inputStyle}
+        {...fieldProps("company")}
       />
+      {fieldError("company")}
 
       <label htmlFor="c-msg" style={{ ...labelStyle, marginTop: "16px" }}>
         What do you need
@@ -149,8 +181,10 @@ export default function ContactForm() {
         required
         maxLength={CONTACT_LIMITS.message}
         defaultValue={typed?.message ?? ""}
-        style={{ ...inputStyle, resize: "vertical" }}
+        {...fieldProps("message")}
+        style={{ ...fieldProps("message").style, resize: "vertical" }}
       />
+      {fieldError("message")}
 
       <div style={honeypotStyle} aria-hidden="true">
         <label htmlFor="c-website">Website</label>
@@ -166,7 +200,7 @@ export default function ContactForm() {
         />
       </div>
 
-      {state.status === "error" ? (
+      {state.status === "error" && !state.field ? (
         <p role="alert" style={{ margin: "12px 0 0", fontSize: "13px", color: T.badFg }}>
           {state.message}
         </p>
