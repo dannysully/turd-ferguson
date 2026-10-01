@@ -1788,7 +1788,10 @@ html[data-motion="on"] .app-pending { animation: appPending 1.1s ease-in-out inf
    ::before 44px tall takes the tap instead. */
 @media (max-width: 640px) {
   .app-main :is(button, select, textarea, input:not([type="checkbox"], [type="radio"], [type="hidden"])) { min-height: 44px !important; }
-  .app-main button { min-width: 44px !important; }
+  /* Not the chart's day strip: 28 days share the chart's width, so a 44px
+     floor pushed the flat (ungrouped) Overview 892px sideways at 390 (R151
+     keyboard sweep, 1 Oct 2026). The day is read from the strip as a whole. */
+  .app-main button:not(.app-chart-day) { min-width: 44px !important; }
   .app-main a:not(.app-tap) { min-height: 44px; }
   .app-tap { position: relative; }
   .app-tap::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 44px; transform: translateY(-50%); }
