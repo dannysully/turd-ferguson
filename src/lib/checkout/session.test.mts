@@ -39,6 +39,17 @@ test("every Session allows promotion codes, is monthly, and returns to alwayscit
   }
 });
 
+test("the success URL names the plan, and from=scan only when a scan token rides on the order (R148 pass 8, 1 Oct 2026)", () => {
+  const tok = "0123456789abcdef0123456789abcdef";
+  const withScan = checkoutRequest(order({ tier: "tracked", sector: "", keyword: "", scan: tok }), ctx);
+  const without = checkoutRequest(order({ tier: "cited" }), ctx);
+  const junk = checkoutRequest(order({ scan: "not-a-token" }), ctx);
+  assert.ok(withScan.kind === "session" && without.kind === "session" && junk.kind === "session");
+  assert.equal(withScan.form.get("success_url"), "https://alwayscited.com/checkout/done?session={CHECKOUT_SESSION_ID}&plan=tracked&from=scan");
+  assert.equal(without.form.get("success_url"), "https://alwayscited.com/checkout/done?session={CHECKOUT_SESSION_ID}&plan=cited");
+  assert.equal(junk.form.get("success_url"), "https://alwayscited.com/checkout/done?session={CHECKOUT_SESSION_ID}&plan=mentioned");
+});
+
 test("every Session charges tax through Stripe Tax on a tax-exclusive price (R129, 30 Sep 2026)", () => {
   for (const tier of ["tracked", "mentioned", "cited"]) {
     for (const market of ["uk", "us"]) {

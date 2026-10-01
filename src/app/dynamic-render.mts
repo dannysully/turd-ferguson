@@ -163,7 +163,8 @@ export const STATES: Record<string, State> = {
     ],
   },
   // Stripe's success URL; the Session id is not read, so a made-up one renders the same page.
-  "/checkout/done": { urls: ["/checkout/done", "/checkout/done?session=cs_placeholder"] },
+  // 1 Oct 2026, R148 pass 8: plan and from=scan pick the copy, so the from-scan state renders too.
+  "/checkout/done": { urls: ["/checkout/done", "/checkout/done?session=cs_placeholder", "/checkout/done?session=cs_placeholder&plan=tracked&from=scan"] },
   "/app/auth": {
     urls: ["/app/auth", "/app/auth?token=0000000000000000000000000000000000000000000000000000000000000000"],
   },

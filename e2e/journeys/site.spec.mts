@@ -296,3 +296,38 @@ for (const width of [1280, 390]) {
     });
   });
 }
+
+// (9) Stripe's return page, R148 pass 8 (1 Oct 2026). An order carrying a
+// scan has a dashboard built by the webhook and a sign-in link mailed, so the
+// page names the link and gives one way on to /app/login. Without a scan it
+// still points at the onboarding call. Opened by GET only, as Stripe would.
+for (const width of [1280, 390]) {
+  describe(`(9) after checkout at ${width}`, () => {
+    test("from a scan: the dashboard, the sign-in link, and a 44px way to /app/login", async () => {
+      const { page, ctx, status } = await open(width, "/checkout/done?session=cs_placeholder&plan=tracked&from=scan");
+      try {
+        assert.equal(status, 200);
+        assert.match((await page.locator("h1").first().textContent()) ?? "", /dashboard is being set up/);
+        const go = page.getByRole("link", { name: "Go to sign in" });
+        assert.equal(await go.getAttribute("href"), "/app/login");
+        assert.ok(((await go.boundingBox())?.height ?? 0) >= 44, "sign-in button under 44px");
+        assert.equal(await page.locator("text=onboarding call").count(), 0, "alwaystracked from a scan has no onboarding call line");
+        assert.ok((await overflow(page)) <= 0, "sideways scroll");
+        assert.equal(await statusOf("/app/login"), 200);
+      } finally {
+        await ctx.close();
+      }
+    });
+
+    test("without a scan: the onboarding call, no sign-in button", async () => {
+      const { page, ctx, status } = await open(width, "/checkout/done?session=cs_placeholder&plan=cited");
+      try {
+        assert.equal(status, 200);
+        assert.match((await page.locator("h1").first().textContent()) ?? "", /onboarding call/);
+        assert.equal(await page.getByRole("link", { name: "Go to sign in" }).count(), 0);
+      } finally {
+        await ctx.close();
+      }
+    });
+  });
+}

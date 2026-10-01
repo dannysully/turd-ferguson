@@ -62,16 +62,18 @@ export function checkoutRequest(order: Order, ctx: CheckoutContext): CheckoutReq
   f.set("mode", "subscription");
   f.set("allow_promotion_codes", "true");
   f.set("customer_email", email);
-  f.set("success_url", `${ctx.origin}/checkout/done?session={CHECKOUT_SESSION_ID}`);
+  // The free scan the order came from, when it did (BRIEF-3 C4): the webhook
+  // builds the client and its first cluster from it. Anything not a token is dropped.
+  const scan = /^[0-9a-f]{32}$/i.test(order.scan ?? "") ? order.scan!.toLowerCase() : "";
+  // plan and from=scan tell /checkout/done which next step to name: with a
+  // scan the webhook emails a dashboard sign-in link (R148 pass 8, 1 Oct 2026).
+  f.set("success_url", `${ctx.origin}/checkout/done?session={CHECKOUT_SESSION_ID}&plan=${tier}${scan ? "&from=scan" : ""}`);
   f.set("cancel_url", `${ctx.origin}/packages`);
   f.set("line_items[0][quantity]", String(quantity));
   f.set("line_items[0][price_data][currency]", currency);
   f.set("line_items[0][price_data][unit_amount]", String(Math.round(unit * 100)));
   f.set("line_items[0][price_data][recurring][interval]", "month");
   f.set("line_items[0][price_data][product_data][name]", ctx.names[tier]);
-  // The free scan the order came from, when it did (BRIEF-3 C4): the webhook
-  // builds the client and its first cluster from it. Anything not a token is dropped.
-  const scan = /^[0-9a-f]{32}$/i.test(order.scan ?? "") ? order.scan!.toLowerCase() : "";
   for (const [k, v] of Object.entries({ tier, sector: tier === "tracked" ? "" : order.sector, quantity: String(quantity), market, keyword, ...(scan ? { scan_token: scan } : {}) })) {
     f.set(`metadata[${k}]`, v);
     f.set(`subscription_data[metadata][${k}]`, v);
