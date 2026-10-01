@@ -137,6 +137,8 @@ test("R141: no Keywords item on a flat or a cluster client", () => {
 
 test("census probe: an orphan route, a plain item and a dead link each fire", () => {
   assert.ok(!Object.hasOwn(NAV_TARGET, "Nowhere"), "an item with no entry is neither linked nor disabled");
-  assert.ok(!ROUTES.includes("/reports"), "a link to an unbuilt page is dead");
+  // 1 Oct 2026, R145: /reports is built now, so the probe's unbuilt page is one nobody has planned.
+  assert.ok(ROUTES.includes("/reports"), "R145 built /reports");
+  assert.ok(!ROUTES.includes("/nowhere"), "a link to an unbuilt page is dead");
   assert.ok(STATIC.includes("/clusters"));
 });

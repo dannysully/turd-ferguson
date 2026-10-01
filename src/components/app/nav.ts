@@ -34,7 +34,8 @@ export const NAV_TARGET: Record<string, string | typeof SOON | undefined> = {
   "Who is named": "/named",
   // R144 (1 Oct 2026; BRIEF-4 P4).
   "Cited pages": "/cited",
-  Reports: SOON,
+  // R145 (1 Oct 2026; BRIEF-4 P5).
+  Reports: "/reports",
   Settings: "/settings",
 };
 
