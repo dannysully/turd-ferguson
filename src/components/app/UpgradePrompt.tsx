@@ -1,3 +1,4 @@
+import SubmitButton from "@/components/app/SubmitButton";
 import Link from "@/components/app/AppLink";
 
 import TierName from "@/components/TierName";
@@ -54,9 +55,9 @@ export default function UpgradePrompt({ copy, cta, slug, items }: { copy: Prompt
           <form method="post" action={`${api}/ask`} style={{ margin: 0 }}>
             <input id="up-ask-cta" type="hidden" name="cta" value={cta} />
             <input id="up-ask-items" type="hidden" name="items" value={items.join(",")} />
-            <button type="submit" style={{ height: "44px", padding: "0 16px", border: `1px solid ${T.line}`, borderRadius: "12px", background: "transparent", color: T.ink, fontFamily: "inherit", fontSize: "14px", fontWeight: 600, cursor: "pointer" }}>
+            <SubmitButton busy="Sending..." style={{ height: "44px", padding: "0 16px", border: `1px solid ${T.line}`, borderRadius: "12px", background: "transparent", color: T.ink, fontFamily: "inherit", fontSize: "14px", fontWeight: 600 }}>
               {copy.ask}
-            </button>
+            </SubmitButton>
           </form>
         ) : null}
       </div>

@@ -1,3 +1,4 @@
+import SubmitButton from "@/components/app/SubmitButton";
 import TierName, { type TierKey } from "@/components/TierName";
 import { APP_LIMITS } from "@/config/contact";
 import { T } from "@/config/tokens";
@@ -121,7 +122,7 @@ export default function Settings({
           {mode === "off" ? null : (
             <form method="post" action={askAction} style={{ margin: 0 }}>
               <input type="hidden" id="set-ask-aliases" name="about" value="aliases" />
-              <button type="submit" style={BUTTON}>Ask us to change these</button>
+              <SubmitButton busy="Sending..." style={BUTTON}>Ask us to change these</SubmitButton>
             </form>
           )}
         </div>
@@ -154,7 +155,7 @@ export default function Settings({
                         <input type="hidden" id={`tm-role-op-${i}`} name="op" value="role" />
                         <input type="hidden" id={`tm-role-email-${i}`} name="email" value={m.email} />
                         <input type="hidden" id={`tm-role-role-${i}`} name="role" value={m.role === "editor" ? "viewer" : "editor"} />
-                        <button type="submit" style={BUTTON}>{m.role === "editor" ? "Make viewer" : "Make editor"}</button>
+                        <SubmitButton busy="Changing..." style={BUTTON}>{m.role === "editor" ? "Make viewer" : "Make editor"}</SubmitButton>
                       </form>
                     ) : null}
                     <details>
@@ -163,7 +164,7 @@ export default function Settings({
                         <input type="hidden" id={`tm-rm-op-${i}`} name="op" value="remove" />
                         <input type="hidden" id={`tm-rm-email-${i}`} name="email" value={m.email} />
                         <span style={{ fontSize: "13px", color: T.soft, maxWidth: "260px" }}>They lose access to this dashboard at once.</span>
-                        <button type="submit" style={DARK}>Remove {m.name ?? m.email}</button>
+                        <SubmitButton busy="Removing..." style={DARK}>Remove {m.name ?? m.email}</SubmitButton>
                       </form>
                     </details>
                   </span>
@@ -188,7 +189,7 @@ export default function Settings({
                   <option value="viewer">Viewer</option>
                 </select>
               </label>
-              <button type="submit" style={DARK}>Send invite</button>
+              <SubmitButton busy="Sending invite..." style={DARK}>Send invite</SubmitButton>
               <span style={{ flexBasis: "100%", fontSize: "13px", color: T.soft }}>Editors can add and stop prompts; viewers can only read. We email them; they sign in with that address.</span>
             </form>
           </details>
@@ -203,7 +204,7 @@ export default function Settings({
             {mode === "nomada" ? (
               <form method="post" action={askAction} style={{ margin: 0 }}>
                 <input type="hidden" id="set-ask-billing" name="about" value="billing" />
-                <button type="submit" style={BUTTON}>Ask us</button>
+                <SubmitButton busy="Sending..." style={BUTTON}>Ask us</SubmitButton>
               </form>
             ) : null}
           </div>

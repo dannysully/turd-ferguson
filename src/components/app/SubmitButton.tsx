@@ -10,9 +10,10 @@ import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 
  * step 2 can both pass new-cluster.ts's already-tracked read. An invalid form never fires
  * submit, so the browser's own message still shows. Back from the next page
  * restores this one from the bfcache with busy set, so pageshow clears it.
- * Without script it is an ordinary submit button.
+ * Without script it is an ordinary submit button. `form` is for a button
+ * drawn outside its form (Clusters' Save changes); `.form` follows it.
  */
-export default function SubmitButton({ children, busy: busyText, style }: { children: ReactNode; busy: string; style: CSSProperties }) {
+export default function SubmitButton({ children, busy: busyText, style, form }: { children: ReactNode; busy: string; style: CSSProperties; form?: string }) {
   const ref = useRef<HTMLButtonElement>(null);
   const [busy, setBusy] = useState(false);
   useEffect(() => {
@@ -40,7 +41,7 @@ export default function SubmitButton({ children, busy: busyText, style }: { chil
     };
   }, []);
   return (
-    <button ref={ref} type="submit" aria-disabled={busy || undefined} style={{ ...style, cursor: busy ? "progress" : "pointer" }}>
+    <button ref={ref} type="submit" form={form} aria-disabled={busy || undefined} style={{ ...style, cursor: busy ? "progress" : "pointer" }}>
       {busy ? (
         <>
           <span className="btn-spin" aria-hidden="true" />

@@ -324,9 +324,9 @@ function AddPanel({ slug, adding, full, clusterLimit, packPrice, close }: { slug
       {!full && ck && !ck.ok && ck.ask && adding.kw ? (
         <form method="post" action={`/api/app/${encodeURIComponent(slug)}/ask`}>
           <input id="ask-keyword" type="hidden" name="keyword" value={adding.kw} />
-          <button type="submit" style={{ height: "40px", padding: "0 14px", border: `1px solid ${T.line}`, borderRadius: "10px", background: T.surface, color: T.ink, fontFamily: "inherit", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>
+          <SubmitButton busy="Sending..." style={{ height: "40px", padding: "0 14px", border: `1px solid ${T.line}`, borderRadius: "10px", background: T.surface, color: T.ink, fontFamily: "inherit", fontSize: "13px", fontWeight: 600 }}>
             Ask us to pick one
-          </button>
+          </SubmitButton>
         </form>
       ) : null}
       {!full && ck?.ok && adding.sig ? (
@@ -482,9 +482,9 @@ function PendingEditor({ c, kw, lead, act, subject }: { c: ClusterCard; kw: stri
         <StopForm act={act} kind="cluster" id={c.id} style={{ height: "44px", padding: "0 16px", border: `1px solid ${T.line}`, borderRadius: "12px", background: T.surface, color: T.ink, fontSize: "14px", fontWeight: 600 }}>
           Remove this cluster
         </StopForm>
-        <button type="submit" form={formId} style={{ height: "44px", padding: "0 18px", border: 0, borderRadius: "12px", background: T.accent, color: T.surface, fontFamily: "inherit", fontSize: "14px", fontWeight: 600, cursor: "pointer" }}>
+        <SubmitButton form={formId} busy="Saving..." style={{ height: "44px", padding: "0 18px", border: 0, borderRadius: "12px", background: T.accent, color: T.surface, fontFamily: "inherit", fontSize: "14px", fontWeight: 600 }}>
           Save changes
-        </button>
+        </SubmitButton>
       </div>
     </div>
   );
@@ -566,10 +566,10 @@ function ClusterRow({ c, brand, subject, open, toggle, since, act, refill, openH
                     <span style={{ flexShrink: 0, padding: "2px 8px", borderRadius: "6px", background: T.chip, color: T.soft, fontSize: "11px", fontWeight: 700, letterSpacing: ".02em", textTransform: "uppercase" }}>{p.angle ?? "Prompt"}</span>
                     <label htmlFor={`slot-${p.id}`} className="sr-only">{`A new ${p.angle ? `${p.angle} ` : ""}prompt about ${kw}`}</label>
                     <input id={`slot-${p.id}`} name="text" defaultValue={p.id === refill ? p.text : undefined} required minLength={PROMPT_MIN} maxLength={ADMIN_LIMITS.question} placeholder={`A new ${p.angle ? `${p.angle} ` : ""}prompt about “${kw}”`} style={{ flex: "1 1 200px", minWidth: 0, height: "40px", boxSizing: "border-box", padding: "0 12px", border: `1px solid ${T.line}`, borderRadius: "10px", fontFamily: "inherit", fontSize: "14px", color: T.ink, background: T.surface }} />
-                    <button type="submit" style={{ flexShrink: 0, height: "40px", padding: "0 14px", border: 0, borderRadius: "10px", background: T.accent, color: T.surface, fontFamily: "inherit", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>
+                    <SubmitButton busy="Adding..." style={{ flexShrink: 0, height: "40px", padding: "0 14px", border: 0, borderRadius: "10px", background: T.accent, color: T.surface, fontFamily: "inherit", fontSize: "13px", fontWeight: 600 }}>
                       {/* The board's word here is the alwaystracked CTA's label, which only pricing.ts may type (tier-action.test.mts); a slot is not a sign-up. */}
                       Track this prompt
-                    </button>
+                    </SubmitButton>
                   </form>
                 </li>
               ) : (

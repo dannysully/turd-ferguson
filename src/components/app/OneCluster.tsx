@@ -1,3 +1,4 @@
+import SubmitButton from "@/components/app/SubmitButton";
 import Link from "@/components/app/AppLink";
 import { rangeLabel } from "@/lib/tracking/date-range";
 
@@ -435,9 +436,9 @@ export default function OneCluster({
               <form method="post" action={`${noteAction}?${new URLSearchParams({ ...rangeQuery, cluster: c.id, q: P.id, prompt: String(prompt), ...(engine === engines[0] ? {} : { engine }) })}`} style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "12px" }}>
                 <label htmlFor="note-text" style={{ fontSize: "13px", color: T.soft }}>{`Dated today, on this prompt. Up to ${APP_LIMITS.note} characters.`}</label>
                 <textarea id="note-text" name="text" required maxLength={APP_LIMITS.note} rows={2} style={{ font: "inherit", fontSize: "14px", padding: "10px 12px", border: `1px solid ${T.line}`, borderRadius: "10px", resize: "vertical" }} />
-                <button type="submit" style={{ alignSelf: "flex-start", height: "40px", padding: "0 16px", border: 0, borderRadius: "10px", background: T.accent, color: T.surface, fontSize: "14px", fontWeight: 600, cursor: "pointer" }}>
+                <SubmitButton busy="Saving..." style={{ alignSelf: "flex-start", height: "40px", padding: "0 16px", border: 0, borderRadius: "10px", background: T.accent, color: T.surface, fontFamily: "inherit", fontSize: "14px", fontWeight: 600 }}>
                   Save note
-                </button>
+                </SubmitButton>
               </form>
             </details>
           ) : null}
