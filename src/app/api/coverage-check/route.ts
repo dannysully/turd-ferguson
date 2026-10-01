@@ -159,13 +159,14 @@ export async function POST(req: Request) {
   const prompts = agencyPrompts(promptText.split(/\r\n|\r|\n/));
 
   /**
-   * One free reading per domain in 30 days.
+   * One free reading per domain in FREE_RUN_DAYS (7 days since 1 Oct 2026,
+   * danny.md line 170; was 30).
    *
    * Beside the IP ceiling rather than instead of it: that one is about what a
    * caller may spend, and this is about what a domain may have. They catch
    * different abuse - the same agency running the same client's domain from
    * four offices is nothing the IP ceiling sees - and a benchmark is a dated
-   * starting line, so a second one a week later is not a second measurement of
+   * starting line, so a second one days later is not a second measurement of
    * anything, it is the same measurement billed twice.
    *
    * A re-run is the supported way to take another reading, and it goes through

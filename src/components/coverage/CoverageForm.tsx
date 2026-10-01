@@ -82,7 +82,7 @@ export default function CoverageForm({ intro }: { intro: React.ReactNode }) {
   const [unread, setUnread] = useState<string[]>([]);
   const [reportLimit, setReportLimit] = useState<string | null>(null);
   const [domainRefusal, setDomainRefusal] = useState<string | null>(null);
-  /** The client domain whose 30-day ceiling was last asked about (checkDomain). */
+  /** The client domain whose per-domain ceiling (FREE_RUN_DAYS) was last asked about (checkDomain). */
   const askedFor = useRef("");
 
   /**
@@ -231,7 +231,7 @@ export default function CoverageForm({ intro }: { intro: React.ReactNode }) {
   }
 
   /**
-   * The 30-day ceiling for a domain the visitor typed (R140 part 4), asked as
+   * The per-domain ceiling (FREE_RUN_DAYS, 7 days since 1 Oct 2026) for a domain the visitor typed (R140 part 4), asked as
    * the field loses focus so the refusal sits under it before the run. The
    * draft already checked the domain it found. An answer for a domain the
    * field no longer holds is dropped, and a failed check says nothing: the run

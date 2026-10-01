@@ -5,9 +5,10 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 /**
  * How long a domain's free reading lasts before another may be started.
  *
- * Thirty days because that is the shape of the thing being measured: a
- * campaign lands, the engines take time to pick it up, and a second free
- * reading a week later measures the lag rather than the campaign. Named here
+ * Seven days (Danny, 1 Oct 2026, danny.md line 170; was thirty, on the
+ * argument that a campaign takes time to land and a second free reading a
+ * week later measures the lag rather than the campaign - his call overrides
+ * it). The IP ceiling is unchanged. Named here
  * rather than typed into the sentence that refuses, so the number the visitor
  * reads and the number enforced cannot come apart.
  *
@@ -15,7 +16,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
  * draft route checks the same ceiling as soon as it knows the client domain,
  * and two copies of it would be two ceilings.
  */
-export const FREE_RUN_DAYS = 30;
+export const FREE_RUN_DAYS = 7;
 
 /**
  * The refusal when `domain` already had a free reading inside FREE_RUN_DAYS,

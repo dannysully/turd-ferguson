@@ -132,8 +132,8 @@ test("client domain: the brand's own domain, the most linked, or blank - never a
 });
 
 /**
- * R140 part 4: a typed client domain is checked against the 30-day ceiling on
- * blur, through the same function and sentence the run route uses, and the
+ * R140 part 4: a typed client domain is checked against the per-domain
+ * ceiling (FREE_RUN_DAYS, 30 days then, 7 since 1 Oct 2026) on blur, through the same function and sentence the run route uses, and the
  * route that answers it spends nothing and reads no address.
  */
 test("domain route: the run route's ceiling, said on blur, spending nothing", () => {
@@ -170,4 +170,16 @@ test("step 2 mirrors the confirm screen; step 1 keeps the page's introduction", 
   assert.equal(step2.split("{runControls}").length - 1, 2, "both steps run from the card");
   const page = readFileSync(join(import.meta.dirname, "../../app/coverage-check/page.tsx"), "utf8");
   assert.match(page, /<CoverageForm\s+intro=\{/, "the page hands its introduction to the form");
+});
+
+/**
+ * R161 (Danny, 1 Oct 2026, danny.md line 170): one free reading per domain in
+ * 7 days, not 30. domain-ceiling.ts is server-only, so it is read as text; the
+ * refusal interpolates the constant, so the sentence follows it.
+ */
+test("the per-domain free-reading window is 7 days, and the refusal says the constant", () => {
+  const ceiling = readFileSync(join(import.meta.dirname, "domain-ceiling.ts"), "utf8");
+  assert.match(ceiling, /export const FREE_RUN_DAYS = 7;/);
+  assert.match(ceiling, /in the last \$\{FREE_RUN_DAYS\} days/);
+  assert.match(ceiling, /FREE_RUN_DAYS \* 24 \* 60 \* 60 \* 1000/, "the query enforces the same constant");
 });

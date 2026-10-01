@@ -6,6 +6,7 @@ import { isPlausibleDomain, normalizeDomain } from "@/lib/scan/domain";
  * Step 2's check on a client domain the visitor typed (R140 part 4, Danny,
  * 30 Sep 2026, danny.md lines 128-133: "check the per-domain 30-day ceiling as
  * soon as the client domain is known in step 2 and show the message there").
+ * The window is FREE_RUN_DAYS, 7 days since 1 Oct 2026 (danny.md line 170).
  *
  * The draft route checks the domain it found. When none was found, or the
  * visitor corrects it, the field asks here on blur, so the refusal is under
