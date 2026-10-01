@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import { test } from "node:test";
 
 import { COMPANY_LINE, CONTACT_EMAIL } from "../../config/contact.ts";
@@ -85,6 +86,17 @@ test("every flag ships off, and each send site asks its flag before sending", as
   // The invite: branded only outside agency mode and with its flag on, else the plain inviteMail as before.
   const member = read("../../app/api/app/[client]/member/route.ts");
   assert.match(member, /!agency && \(await lifecycleOn\(db, "invite"\)\)\s*\? inviteEmail\([\s\S]{0,300}: inviteMail\(\{ inviter: email, domain: client\.domain, role: f\.role!, agency \}\)/);
+});
+
+test("first_reading: flag first, the client's only finished run, no agency, the Overview's own figures", () => {
+  const runner = fs.readFileSync(new URL("../tracking/runner.ts", import.meta.url), "utf8");
+  const body = runner.slice(runner.indexOf("async function mailFirstReading"));
+  assert.ok(body.length > 200, "mailFirstReading is gone from runner.ts");
+  const at = (s: string) => body.indexOf(s);
+  assert.ok(at('lifecycleOn(db, "first_reading")') >= 0 && at('lifecycleOn(db, "first_reading")') < at("sendLifecycle("), "the flag is asked before the send");
+  assert.ok(at("if (count !== 1) return;") >= 0 && at("if (count !== 1) return;") < at("sendLifecycle("), "only on the client's first finished run");
+  assert.ok(at('=== "agency") return;') >= 0 && at('=== "agency") return;') < at("sendLifecycle("), "never in agency mode");
+  assert.match(runner, /named: namedRate\(answerRows, range\),\s*page1: keywordsOnPage1\(serpRows, range, keywords\.length\)/);
 });
 
 test("the invite names who added you and the role", () => {

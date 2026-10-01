@@ -178,6 +178,9 @@ const RECORDED: Record<string, string> = {
   // 1 Oct 2026, R159 part 3: plan_ended finds the ended client's live owners.
   "src/lib/checkout/signup.ts :: account_id, domain, tier":
     "the Stripe webhook's subscription-deleted handler finds the ended client's owners to mail; the webhook answers Stripe with a status only, and no visitor makes the request.",
+  // 1 Oct 2026, R159 part 5: first_reading finds the client's account mode and owners.
+  "src/lib/tracking/runner.ts :: account_id, tier":
+    "the tracking runner, after a run, for first_reading's agency check and owners; started only by the cron's signed dispatch, it returns a status only.",
 };
 
 /**
@@ -217,6 +220,9 @@ const MENTIONED: Record<string, string> = {
     "C4 (30 Sep 2026): writes the column on client_domains and dashboard_members when a " +
     "paid checkout from a scan becomes a client. Writes, behind the Stripe signature; " +
     "the webhook answers with no row.",
+  "src/lib/tracking/runner.ts":
+    "R159 part 5 (1 Oct 2026): reads the client's account_id after a run to find its upsell mode and " +
+    "live owners for first_reading. Started only by the cron's signed dispatch; the run returns a status, never the id.",
 };
 
 test("nothing in this tree selects *", () => {

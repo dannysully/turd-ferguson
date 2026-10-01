@@ -187,13 +187,17 @@ const SENDERS: Record<
    * callers are signup.ts's checkout and subscription-deleted handlers, which
    * run only from the Stripe webhook once the signature verifies and the event
    * id is new, and each send first asks its app_settings flag, off by default.
+   * Part 5, same day: first_reading from runTrackingDay, once per client ever
+   * (only when the run is the client's one finished run), the runner being
+   * started only by the cron's signed dispatch - see link-mail.ts's entry.
    */
   "src/lib/email/lifecycle-mail.ts": {
     reach: "signed by Stripe",
     bound:
       "Mails only a dashboard owner the webhook stored or read back with removed_at null. Sent only " +
       "from the Stripe webhook after the signature verifies and the event id is newly recorded in " +
-      "stripe_events, and only when its email_<name>_enabled flag is true; every flag starts false.",
+      "stripe_events, or from a claimed tracking run when it is the client's first finished one, and " +
+      "only when its email_<name>_enabled flag is true; every flag starts false.",
     evidence: /if \(!verifyStripeSignature\(raw, signature, secret, nowS\)\) return/,
     where: "src/lib/checkout/webhook.ts",
   },

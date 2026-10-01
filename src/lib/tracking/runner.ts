@@ -25,7 +25,13 @@ import {
   shouldTrack,
   trackingDay,
 } from "./decide.ts";
+import { firstReading } from "@/lib/email/lifecycle";
+import { lifecycleOn, sendLifecycle } from "@/lib/email/lifecycle-mail";
+import { siteUrl } from "@/lib/scan/verify-email";
+import { TIER_PLAIN } from "@/lib/tier-text";
+import { upsellMode } from "./ask.ts";
 import { dispatchRun } from "./dispatch.ts";
+import { keywordsOnPage1, namedRate } from "./figures.ts";
 import { sendLinkAlerts } from "./link-mail.ts";
 import { decideLinkCheck, isLinkCheckDay, type LinkRow, readPlacement } from "./placements.ts";
 
@@ -447,10 +453,54 @@ export async function runTrackingDay(runId: string): Promise<{ status: string; s
     ];
     const status = runOutcome(reads, failures.length);
     await close({ status, error: failureSummary(reads, failures) });
+    if (status !== "failed") {
+      const range = { from: day, to: day };
+      await mailFirstReading(db, runId, client.id as string, domain, {
+        named: namedRate(answerRows, range),
+        page1: keywordsOnPage1(serpRows, range, keywords.length),
+      });
+    }
     return { status };
   } catch (err) {
     await close({ status: "failed", error: message(err) });
     throw err;
+  }
+}
+
+/**
+ * first_reading (R159, danny.md line 164): after a client's first run that
+ * did not fail, its live owners get the day's headline - the Overview's own
+ * namedRate and keywordsOnPage1, not a new figure. Only when its flag is on
+ * (off until Danny approves it), never in agency mode (the email names
+ * alwayscited and the tier), and only when this run is the client's only one
+ * that finished, so a later run never sends it. Never fatal: the reads are stored.
+ */
+async function mailFirstReading(
+  db: ReturnType<typeof supabaseAdmin>,
+  runId: string,
+  clientId: string,
+  domain: string,
+  f: { named: { num: number; den: number }; page1: { num: number; den: number } },
+): Promise<void> {
+  try {
+    if (!(await lifecycleOn(db, "first_reading"))) return;
+    const { count, error: rErr } = await db.from("tracking_runs").select("id", { count: "exact", head: true }).eq("client_domain_id", clientId).in("status", ["complete", "partial"]);
+    if (rErr) throw new Error(rErr.message);
+    if (count !== 1) return;
+    const { data: c, error: cErr } = await db.from("client_domains").select("account_id, tier").eq("id", clientId).single();
+    if (cErr) throw new Error(cErr.message);
+    const { data: account, error: aErr } = await db.from("accounts").select("upsell_mode").eq("id", c.account_id).maybeSingle();
+    if (aErr || !account) throw new Error(aErr?.message ?? "no account");
+    if (upsellMode(account.upsell_mode) === "agency") return;
+    const { data: owners, error: oErr } = await db.from("dashboard_members").select("email").eq("account_id", c.account_id).eq("role", "owner").is("removed_at", null);
+    if (oErr) throw new Error(oErr.message);
+    const tier = ((c.tier as string) in TIER_PLAIN ? c.tier : "tracked") as TierKey;
+    const mail = firstReading({ tier, domain, named: f.named.num, answers: f.named.den, page1: f.page1.num, keywords: f.page1.den, link: `${siteUrl()}/app` });
+    for (const m of owners ?? []) {
+      if (!(await sendLifecycle({ memberEmail: m.email as string, mail }))) console.warn(`[track] ${runId} first_reading not sent`);
+    }
+  } catch (err) {
+    console.warn(`[track] ${runId} first_reading skipped: ${message(err)}`);
   }
 }
 
