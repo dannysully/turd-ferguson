@@ -374,14 +374,10 @@ export default function Overview({
               <Link href={clustersPath} style={{ fontWeight: 600, color: T.accent, textDecoration: "none" }}>
                 Clusters
               </Link>
-              {" page. Nomada staff group them from "}
-              <Link href="/admin/tracking" style={{ fontWeight: 600, color: T.accent, textDecoration: "none" }}>
-                /admin/tracking
-              </Link>
-              .
+              {" page."}
             </>
           ) : (
-            "Group these into clusters on the Clusters page. Nomada staff group them from /admin/tracking."
+            "Group these into clusters on the Clusters page."
           )}
         </p>
       </section>

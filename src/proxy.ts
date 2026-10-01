@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 import { constantTimeEqual, decodeBasicAuth } from "@/lib/constant-time";
+import { isPrefetch } from "@/lib/prefetch";
 
 /**
  * HTTP Basic auth over /admin. The operations page exposes cost, lead counts
@@ -36,7 +37,10 @@ export function proxy(request: NextRequest) {
    * ordinary wrong password with nothing to say it was impossible.
    */
   const creds = decodeBasicAuth(request.headers.get("authorization") ?? "");
-  if (!creds) return challenge();
+  // R162: a prefetch is never a person, so it is never challenged - a 401 with
+  // WWW-Authenticate here is what opened Chrome's sign-in box over /app.
+  const shut = () => (isPrefetch((n) => request.headers.get(n)) ? new NextResponse(null, { status: 404 }) : challenge());
+  if (!creds) return shut();
 
   /**
    * Both halves are compared, every time.
@@ -51,7 +55,7 @@ export function proxy(request: NextRequest) {
   const passwordOk = constantTimeEqual(creds.password, password);
   const ok = userOk && passwordOk;
 
-  return ok ? NextResponse.next() : challenge();
+  return ok ? NextResponse.next() : shut();
 }
 
 export const config = {
