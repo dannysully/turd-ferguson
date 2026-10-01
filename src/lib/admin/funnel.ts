@@ -22,6 +22,17 @@ export const FUNNEL_STEPS = [
   { key: "paid", label: "Orders paid", source: "orders" },
 ] as const;
 
+/**
+ * The columns the page's three reads ask for: a timestamp, a market and a
+ * status, never an email, a domain or a name, so nothing personal reaches the
+ * page even before the rows are reduced to numbers. The test holds them to it.
+ */
+export const FUNNEL_SELECTS = {
+  scans: "created_at, queued_at, status, market",
+  walkthroughs: "created_at, scans(market)",
+  orders: "created_at, market",
+} as const;
+
 export type FunnelStep = (typeof FUNNEL_STEPS)[number]["key"];
 
 export type ScanRow = { created_at: string; queued_at: string | null; status: string; market: string | null };

@@ -205,6 +205,11 @@ export const STATES: Record<string, State> = {
     urls: [],
     blocked: "behind auth - answers 401 with 24 bytes and no HTML at all, and a credential is not ours to hold",
   },
+  // 1 Oct 2026, R152: the funnel counts, same /admin Basic auth.
+  "/admin/funnel": {
+    urls: [],
+    blocked: "behind auth - answers 401 with 24 bytes and no HTML at all, and a credential is not ours to hold",
+  },
 };
 
 // ------------------------------------------------------------ the capture

@@ -1,8 +1,9 @@
 // R152 part 1 (1 Oct 2026): /admin/funnel's pure counts. The page is part 2.
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 
-import { FUNNEL_STEPS, funnelDays, funnelTotals, marketOf } from "./funnel.ts";
+import { FUNNEL_SELECTS, FUNNEL_STEPS, funnelDays, funnelTotals, marketOf } from "./funnel.ts";
 
 const rows = {
   scans: [
@@ -55,6 +56,16 @@ test("no personal data comes out: only days and numbers, whatever extra fields t
     else assert.ok(v === null || typeof v === "number", `unexpected ${typeof v}`);
   };
   walk(JSON.parse(out));
+});
+
+test("the page's reads ask for no personal column, and the page reads only through them", async () => {
+  for (const sel of Object.values(FUNNEL_SELECTS)) {
+    assert.doesNotMatch(sel, /email|domain|brand|name|ip_hash|keyword|topic|stripe|customer/i, sel);
+  }
+  const page = await readFile(new URL("../../app/admin/funnel/page.tsx", import.meta.url), "utf8");
+  const selects = [...page.matchAll(/\.select\(([^)]*)\)/g)].map((m) => m[1]);
+  assert.equal(selects.length, 3, "the page makes exactly three reads");
+  for (const s of selects) assert.match(s, /^FUNNEL_SELECTS\.\w+$/, `a read not through FUNNEL_SELECTS: ${s}`);
 });
 
 test("market spellings: orders store lower case, scans upper", () => {
