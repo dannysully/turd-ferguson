@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { trackingDay } from "./decide.ts";
 import type { Day, Range } from "./figures.ts";
 import { expandFixture, fixtureLive, fixtureMode, fixtureSetupConfirmed, fixtureSignedOut, fixtureState, fixtureUnreadable, type Fixture } from "./fixture-mode.ts";
+import { type FixtureWritten, fixtureWrites } from "./fixture-writes.ts";
 import { type MemberClient, clientsFor, sessionEmail } from "./member.ts";
 import type { LatestAnswers } from "./latest-answers.ts";
 import { loadLinkState } from "./login-link.ts";
@@ -52,11 +53,40 @@ export interface TrackingRepo {
 
 const supabaseRepo: TrackingRepo = { sessionEmail, clientsFor, linkState: loadLinkState, setupConfirmed: loadSetupConfirmed, loadOverview, latestAnswers: loadLatestAnswers, clusterNotes: loadClusterNotes, upgradeContext: loadUpgradeContext, placements: loadPlacements, settings: loadSettings, today: () => trackingDay() };
 
-let cached: Fixture | null = null;
-function fixture(): Fixture {
+/**
+ * The fixture as served, and as R168's writes leave it. On globalThis, because
+ * the route handlers and the pages are bundled apart and would otherwise each
+ * hold their own copy; a restart reads the file again.
+ */
+type FixtureStore = { fixture: Fixture; setupConfirmed: boolean };
+const STORE = Symbol.for("alwayscited.trackingFixture");
+function store(): FixtureStore {
+  const g = globalThis as { [STORE]?: FixtureStore };
   // A constant path, so the build traces this one file.
-  cached ??= fixtureState(expandFixture(JSON.parse(readFileSync(join(process.cwd(), "src", "lib", "tracking", "fixture.json"), "utf8"))));
-  return cached;
+  g[STORE] ??= { fixture: fixtureState(expandFixture(JSON.parse(readFileSync(join(process.cwd(), "src", "lib", "tracking", "fixture.json"), "utf8")))), setupConfirmed: fixtureSetupConfirmed() };
+  return g[STORE];
+}
+function fixture(): Fixture {
+  return store().fixture;
+}
+
+/**
+ * R168: apply one write to the fixture held in memory. Null when the fixture
+ * is read-only (TRACKING_FIXTURE_WRITE unset), so the route answers as before.
+ */
+export function writeFixture(apply: (f: Fixture) => FixtureWritten): FixtureWritten | null {
+  if (!fixtureWrites()) return null;
+  const s = store();
+  const r = apply(s.fixture);
+  if (r.ok) s.fixture = r.fixture;
+  return r;
+}
+
+/** R168: setup confirm on the fixture; false when it is read-only. */
+export function confirmFixtureSetup(): boolean {
+  if (!fixtureWrites()) return false;
+  store().setupConfirmed = true;
+  return true;
 }
 
 const fixtureRepo: TrackingRepo = {
@@ -113,7 +143,7 @@ const fixtureRepo: TrackingRepo = {
     return fixtureLinkState(token, fixture().member.email);
   },
   async setupConfirmed() {
-    return fixtureSetupConfirmed();
+    return store().setupConfirmed;
   },
 };
 

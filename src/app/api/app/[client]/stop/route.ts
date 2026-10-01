@@ -4,7 +4,9 @@ import { APP_LIMITS } from "@/config/contact";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { trackingDay } from "@/lib/tracking/decide";
 import { fixtureMode } from "@/lib/tracking/fixture-mode";
+import { fixtureStop } from "@/lib/tracking/fixture-writes";
 import { clientsFor, sessionEmail } from "@/lib/tracking/member";
+import { writeFixture } from "@/lib/tracking/repo";
 import { type StopDone, readStopForm, stop, stopReturn, undoStop } from "@/lib/tracking/stop";
 import { recordUsage } from "@/lib/tracking/usage-record";
 
@@ -19,7 +21,8 @@ export const dynamic = "force-dynamic";
  * The session decides the member and their role, and the slug must be one of
  * their clients - anyone else gets the same 404 the page gives. The rules and
  * the writes are stop.ts, which refuses a viewer again and scopes every read
- * and write to this client. The fixture is read-only: nothing is written.
+ * and write to this client. The fixture is read-only unless
+ * TRACKING_FIXTURE_WRITE=1 (R168), which holds the write in memory.
  */
 export async function POST(req: Request, ctx: { params: Promise<{ client: string }> }) {
   const { client: slug } = await ctx.params;
@@ -28,7 +31,12 @@ export async function POST(req: Request, ctx: { params: Promise<{ client: string
   const f = readStopForm((k) => sp.get(k), APP_LIMITS.search);
   if (!f) return NextResponse.json({ error: "Not a stop this page can make." }, { status: 400 });
   const back = (done: StopDone) => NextResponse.redirect(new URL(stopReturn(slug, f, done), req.url), 303);
-  if (fixtureMode()) return back("refused");
+  if (fixtureMode()) {
+    // R168: with TRACKING_FIXTURE_WRITE=1 the stop is held in memory; otherwise the fixture refuses it.
+    const r = writeFixture((fx) => fixtureStop(fx, { kind: f.kind, id: f.id, today: fx.today, role: fx.member.role, undo: f.undo }));
+    if (r && !r.ok) console.warn(`[app] fixture ${f.undo ? "undo" : "stop"} ${f.kind} refused: ${r.message}`);
+    return back(r?.ok ? (f.undo ? "undone" : "stopped") : "refused");
+  }
 
   const email = await sessionEmail();
   if (!email) return NextResponse.redirect(new URL("/app/login", req.url), 303);
