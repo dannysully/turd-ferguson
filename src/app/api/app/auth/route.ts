@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { clientsFor } from "@/lib/tracking/member";
 import { safeNext } from "@/lib/tracking/next-path";
+import { loadSetupConfirmed } from "@/lib/tracking/setup-data";
+import { landingAfterAuth, needsSetup } from "@/lib/tracking/setup-landing";
 import { SESSION_TTL_MS, hashToken, isTokenShape, newToken, sessionCookie } from "@/lib/tracking/session";
 
 export const runtime = "nodejs";
@@ -65,11 +67,16 @@ export async function POST(req: Request) {
   if (lErr) console.warn(`[app] could not record the sign-in: ${lErr.message}`);
 
   // R163: straight to the client's dashboard, not /app and a second redirect.
-  // A failed read falls back to /app, which makes the same choice. No /setup
-  // page exists yet, so there is no setup-confirmed detour to take.
+  // A failed read falls back to /app, which makes the same choice.
   // R164: a safe next wins; its own page checks membership as every /app page does.
-  const clients = next ? null : await clientsFor(email).catch(() => null);
-  const to = next ? next : clients === null ? "/app" : clients.length ? `/app/${clients[0]!.slug}` : "/app/login?access=none";
+  // R166 part 3c: ahead of next, a first client bought since the setup page
+  // (needsSetup) lands on its setup until confirmed. A failed setup read
+  // counts as confirmed, so a set-up client is never sent round again.
+  const listed = await clientsFor(email).catch(() => null);
+  const first = listed?.[0];
+  const unconfirmed = first && needsSetup(first) ? (await loadSetupConfirmed(first.id)) === false : false;
+  const clients = listed ? listed.map((c, i) => ({ slug: c.slug, confirmed: !(i === 0 && unconfirmed) })) : null;
+  const to = landingAfterAuth({ next, clients });
   const res = NextResponse.redirect(new URL(to, req.url), 303);
   res.cookies.set(sessionCookie(session));
   return res;

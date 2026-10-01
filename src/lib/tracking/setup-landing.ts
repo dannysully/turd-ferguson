@@ -1,8 +1,7 @@
 /**
  * Where sign-in lands while a client's setup is unconfirmed (R166 part 3a,
  * Danny, danny.md line 175: "After auth, redirect to /setup until
- * confirmed"). Pure and unwired: /api/app/auth still makes the R163/R164
- * choice inline until /app/[client]/setup exists to land on.
+ * confirmed"). /api/app/auth asks it since part 3c.
  *
  * Setup is confirmed once the client has a dashboard_events row named
  * SETUP_CONFIRMED_EVENT. The column has no database whitelist, so the event
@@ -18,6 +17,20 @@ export const setupPath = (slug: string) => `/app/${slug}/setup`;
 
 export function setupConfirmed(events: readonly { event: string }[]): boolean {
   return events.some((e) => e.event === SETUP_CONFIRMED_EVENT);
+}
+
+/**
+ * R166 part 3c: the first started_on that goes through setup. The page went
+ * live on 1 Oct 2026 at 19:16Z, and signup starts a client the day after
+ * purchase (signup.ts), so every client bought from then on starts on
+ * 2 Oct or later. Clients started before were set up by hand, have no
+ * setup_confirmed row, and would otherwise be sent through a setup they
+ * have already had. A missing start is one of those.
+ */
+export const SETUP_SINCE = "2026-10-02";
+
+export function needsSetup(c: { started_on: string | null }): boolean {
+  return c.started_on !== null && c.started_on >= SETUP_SINCE;
 }
 
 export function landingAfterAuth(o: {

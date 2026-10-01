@@ -1,7 +1,15 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { SETUP_PROMPTS, confirmLabel, landingAfterAuth, setupCards, setupConfirmed, setupPath } from "./setup-landing.ts";
+import { SETUP_PROMPTS, SETUP_SINCE, confirmLabel, landingAfterAuth, needsSetup, setupCards, setupConfirmed, setupPath } from "./setup-landing.ts";
+
+test("only clients started since the setup page went live need setup", () => {
+  assert.equal(SETUP_SINCE, "2026-10-02");
+  assert.equal(needsSetup({ started_on: "2026-09-20" }), false);
+  assert.equal(needsSetup({ started_on: "2026-10-01" }), false);
+  assert.equal(needsSetup({ started_on: "2026-10-02" }), true);
+  assert.equal(needsSetup({ started_on: null }), false);
+});
 
 test("setup is confirmed by a setup_confirmed event and nothing else", () => {
   assert.equal(setupConfirmed([]), false);
