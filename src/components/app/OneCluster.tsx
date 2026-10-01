@@ -330,7 +330,7 @@ export default function OneCluster({
                   />
                 ))}
               </span>
-              <span style={{ fontSize: "14px", fontWeight: 700, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{`${r.named} of ${r.answered}`}</span>
+              <span style={{ fontSize: "14px", fontWeight: 700, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{r.answered ? `${r.named} of ${r.answered}` : "-"}</span>
             </div>
           ))}
           <div aria-hidden="true" style={{ display: "grid", gridTemplateColumns: "170px minmax(0, 1fr) 92px", gap: "16px", minWidth: `${282 + days.length * 26}px` }}>

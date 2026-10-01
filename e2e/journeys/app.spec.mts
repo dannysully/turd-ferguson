@@ -102,7 +102,42 @@ async function clicks(page: Page, route: string, max = 3): Promise<number | null
 // role: run the file three times, TRACKING_FIXTURE_ROLE unset, =editor, =viewer.
 const role = process.env.TRACKING_FIXTURE_ROLE || "owner";
 
+// Pass 7 (R148/R153, 1 Oct 2026): TRACKING_FIXTURE_STATE=new is the first
+// view after checkout, before any check. The journeys below need readings, so
+// that run checks day zero instead:
+//   TRACKING_FIXTURE_STATE=new node --test e2e/journeys/app.spec.mts
+const dayZero = process.env.TRACKING_FIXTURE_STATE === "new";
+
 for (const width of [1280, 390]) {
+  if (dayZero) {
+    describe(`day zero at ${width} as ${role}`, () => {
+      test("the Overview says when the first check runs, right under the top bar", async () => {
+        const ctx = await browser.newContext({ viewport: { width, height: 900 } });
+        const page = await ctx.newPage();
+        await page.goto(BASE + HOME, { waitUntil: "load" });
+        const t = await page.evaluate(() => document.body.innerText, null);
+        assert.match(t, /Your first check runs tomorrow at 06:00\./);
+        assert.match(t, /\d+ prompts are set up on/);
+        assert.doesNotMatch(t, /Tracking began/, "nothing has begun yet");
+        // The phone shell once opened a ~215px gap above a short page.
+        const top = await page.evaluate(() => document.querySelector(".app-main")!.getBoundingClientRect().top, null);
+        assert.ok(top <= 80, `.app-main starts at ${top}px`);
+        await ctx.close();
+      });
+      test("a cluster before its first check shows no counts, and a way to its prompts", async () => {
+        const ctx = await browser.newContext({ viewport: { width, height: 900 } });
+        const page = await ctx.newPage();
+        const r = await page.goto(`${BASE}${HOME}/clusters/c1`, { waitUntil: "load" });
+        assert.equal(r?.status(), 200);
+        const t = await page.evaluate(() => document.body.innerText, null);
+        assert.deepEqual(t.match(/.{0,30}(\b0 of \d+\b|days named, of 0).{0,30}/g), null, "no zero counts before a reading");
+        assert.match(t, /Not checked yet/);
+        assert.ok(await page.getByRole("link", { name: /Manage prompts/ }).count(), "Manage prompts is offered");
+        await ctx.close();
+      });
+    });
+    continue;
+  }
   {
     describe(`dashboard journeys at ${width} as ${role}`, () => {
       for (const j of JOURNEYS) {
