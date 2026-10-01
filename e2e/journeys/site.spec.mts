@@ -23,9 +23,11 @@ import path from "node:path";
 import { after, before, describe, test } from "node:test";
 import assert from "node:assert/strict";
 
+import { trackOffer } from "../../src/components/scan/track-offer.ts";
+
 const ROOT = path.resolve(import.meta.dirname, "..", "..");
 const require = createRequire(path.join(os.homedir(), "code/.parity/package.json"));
-type Locator = { count(): Promise<number>; first(): Locator; getAttribute(n: string): Promise<string | null>; isVisible(): Promise<boolean>; boundingBox(): Promise<{ height: number; width: number } | null>; textContent(): Promise<string | null> };
+type Locator = { evaluate<R>(fn: (el: Element) => R): Promise<R>; count(): Promise<number>; first(): Locator; getAttribute(n: string): Promise<string | null>; isVisible(): Promise<boolean>; boundingBox(): Promise<{ height: number; width: number } | null>; textContent(): Promise<string | null> };
 type Page = {
   goto(url: string, o?: object): Promise<{ status(): number } | null>;
   url(): string;
@@ -92,6 +94,27 @@ for (const width of [1280, 390]) {
         assert.equal(await res.page.getByRole("button", { name: /Send me the walkthrough/ }).first().isVisible(), true, "no checkout card, so the walkthrough form");
       }
       await res.ctx.close();
+    });
+
+    // The "Track this cluster" click itself needs a cluster scan, and both inbox
+    // tokens predate them (pass 3). So the leg after the click: the exact href
+    // trackOffer gives the card, opened on production for each market's token -
+    // tokens in the inbox's order, the .co.uk scan then the US .com one.
+    test("(1b) a result's Track this cluster link lands on the order form with its scan and market", async () => {
+      for (const [market, token] of [["UK", TOKENS[0]], ["US", TOKENS[1]]] as const) {
+        const { href } = trackOffer(market, { us: 0, uk: 0 }, "/checkout?tier=alwaystracked", token);
+        const co = await open(width, href);
+        assert.equal(co.status, 200, href);
+        const price = (await co.page.locator('[data-figure="checkout-price"]').first().textContent()) ?? "";
+        assert.match(price, market === "UK" ? /^£\d.*plus VAT$/ : /^\$\d/, `${market} price "${price}"`);
+        assert.equal(await co.page.locator('select[name="market"]').first().evaluate((s) => (s as HTMLSelectElement).value), market.toLowerCase());
+        // The scan rides both forms: a market change keeps it, and the Session gets it for the webhook.
+        for (const id of ["#checkout-pick-scan", "#checkout-scan"]) {
+          assert.equal(await co.page.locator(id).first().getAttribute("value"), token, `${market}: ${id} carries the scan`);
+        }
+        assert.equal(await co.page.getByRole("button", { name: /Continue to payment/ }).first().isVisible(), true);
+        await co.ctx.close();
+      }
     });
 
     test("(2) /alwaystracked -> the order form, price and terms before payment", async () => {
