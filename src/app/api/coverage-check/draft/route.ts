@@ -1,6 +1,7 @@
 import { COVERAGE_LIMITS } from "@/config/contact";
 import { MAX_COVERAGE_BYTES, MAX_COVERAGE_ROWS, parseCoverageCsv } from "@/lib/coverage/csv";
 import { recentReadingRefusal } from "@/lib/coverage/domain-ceiling";
+import { coverageFixture, fixtureDraft } from "@/lib/coverage/draft-fixture";
 import { clientDomainFrom, draftMarket, draftMarketLine, pretick, REPORT_LIMIT_LINE, tickedRows } from "@/lib/coverage/draft";
 import { describeAnthropicError, readCoverage, type CoverageDraftRead } from "@/lib/scan/anthropic";
 import { checkCeilings } from "@/lib/scan/ceilings";
@@ -51,7 +52,9 @@ export async function POST(req: Request) {
 
   const ip = clientIp(req);
   const turnstileToken = typeof body.turnstileToken === "string" ? body.turnstileToken : undefined;
-  if (!(await verifyTurnstile(turnstileToken, ip))) {
+  // Local parity only (draft-fixture.ts): throws in production, reads and spends nothing.
+  const fixture = coverageFixture();
+  if (!fixture && !(await verifyTurnstile(turnstileToken, ip))) {
     return fail(403, "turnstile_failed", "We could not verify that request. Please reload and try again.");
   }
 
@@ -69,6 +72,7 @@ export async function POST(req: Request) {
   if (!parsed.rows.length) {
     return fail(400, "no_coverage", "We found no links in that. Paste the URLs of the pieces you placed, one per line.");
   }
+  if (fixture) return Response.json(fixtureDraft(pretick(parsed.rows)));
 
   const ipHash = hashIp(ip);
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();

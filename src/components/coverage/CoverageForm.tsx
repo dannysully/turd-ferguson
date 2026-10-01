@@ -393,7 +393,7 @@ export default function CoverageForm() {
           <legend style={labelStyle}>Coverage we report on</legend>
           <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
             {rows.map((r, i) => (
-              <label key={r.url} style={{ display: "flex", gap: "8px", alignItems: "flex-start", fontSize: "13.5px", color: T.ink, lineHeight: 1.45, wordBreak: "break-all" }}>
+              <label key={r.url} style={{ display: "flex", gap: "8px", alignItems: "flex-start", fontSize: "13.5px", color: T.ink, lineHeight: 1.45 }}>
                 <input
                   id={`cc-row-${i}`}
                   type="checkbox"
@@ -403,7 +403,8 @@ export default function CoverageForm() {
                   style={{ marginTop: "3px" }}
                 />
                 <span>
-                  {r.url}
+                  {/* A long URL may break anywhere; the words after it break only between words. */}
+                  <span style={{ wordBreak: "break-all" }}>{r.url}</span>
                   {unread.includes(r.url) && <span style={{ color: T.soft }}> - could not be read, still counted</span>}
                 </span>
               </label>
