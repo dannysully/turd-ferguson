@@ -20,8 +20,8 @@ export const metadata: Metadata = {
  */
 export default function PackagesPage() {
   return (
-    <main>
+    <div>
       <Packages full />
-    </main>
+    </div>
   );
 }

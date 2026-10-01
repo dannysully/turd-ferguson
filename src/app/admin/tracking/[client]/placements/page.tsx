@@ -41,7 +41,7 @@ const KIND_LABEL: Record<string, string> = { guest_post: "guest post", link_inse
 type Row = Record<string, unknown>;
 
 export default async function PlacementsAdmin({ params }: { params: Promise<{ client: string }> }) {
-  if (!supabaseConfigured()) return <main style={{ padding: "40px" }}>Database not configured.</main>;
+  if (!supabaseConfigured()) return <div style={{ padding: "40px" }}>Database not configured.</div>;
   const { client: slug } = await params;
   const db = supabaseAdmin();
   const { data: client, error: cErr } = await db.from("client_domains").select("id, domain, tier, slug").eq("slug", slug).maybeSingle();
@@ -67,7 +67,7 @@ export default async function PlacementsAdmin({ params }: { params: Promise<{ cl
   const flagged = list.filter((x) => x.check.flagged);
 
   return (
-    <main style={{ maxWidth: "1100px", margin: "0 auto", padding: "32px 24px", color: T.ink, fontSize: "14px" }}>
+    <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "32px 24px", color: T.ink, fontSize: "14px" }}>
       <p style={{ margin: "0 0 4px", fontSize: "13px" }}>
         <a href="/admin/tracking" style={{ color: T.soft }}>
           Tracking
@@ -123,7 +123,7 @@ export default async function PlacementsAdmin({ params }: { params: Promise<{ cl
       {list.map(({ r, check }) => (
         <PlacementRow key={r.id as string} client={id} row={r} cluster={nameOf(r.cluster_id)} check={check} />
       ))}
-    </main>
+    </div>
   );
 }
 

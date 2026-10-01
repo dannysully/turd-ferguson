@@ -41,7 +41,7 @@ const money = (n: number) => `$${n.toFixed(2)}`;
 type Row = Record<string, unknown>;
 
 export default async function TrackingAdmin() {
-  if (!supabaseConfigured()) return <main style={{ padding: "40px" }}>Database not configured.</main>;
+  if (!supabaseConfigured()) return <div style={{ padding: "40px" }}>Database not configured.</div>;
   const db = supabaseAdmin();
   const today = trackingDay();
   const since = new Date(Date.now() - 14 * 86_400_000).toISOString().slice(0, 10);
@@ -91,7 +91,7 @@ export default async function TrackingAdmin() {
   const of = (rows: Row[] | null, id: string, key = "client_domain_id") => (rows ?? []).filter((r) => r[key] === id);
 
   return (
-    <main style={{ maxWidth: "1100px", margin: "0 auto", padding: "32px 24px", color: T.ink, fontSize: "14px" }}>
+    <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "32px 24px", color: T.ink, fontSize: "14px" }}>
       <h1 style={{ fontSize: "24px", margin: "0 0 4px" }}>Tracking</h1>
       <p style={{ color: T.soft, margin: "0 0 24px" }}>
         Daily check at 05:00 UTC. Today (London): {today}. Clients are made here from a finished scan.{" "}
@@ -213,7 +213,7 @@ export default async function TrackingAdmin() {
           </section>
         );
       })}
-    </main>
+    </div>
   );
 }
 

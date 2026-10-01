@@ -128,7 +128,7 @@ export default function HowItWorksPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: articleSchema }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: videoSchema }} />
 
-      <main style={{ ...SHELL, paddingTop: "64px", paddingBottom: "64px" }}>
+      <div style={{ ...SHELL, paddingTop: "64px", paddingBottom: "64px" }}>
         <div className="guide-top">
           <div>
             <div style={{ fontSize: "13px", fontWeight: 600, color: T.soft }}>How it works</div>
@@ -355,7 +355,7 @@ export default function HowItWorksPage() {
           {word(QUESTIONS)} buyer prompts, {word(FREE_ENGINE_COUNT).toLowerCase()} engines, every answer and every
           source it cited. Around two minutes, or we email you the result.
         </DarkClosing>
-      </main>
+      </div>
     </>
   );
 }

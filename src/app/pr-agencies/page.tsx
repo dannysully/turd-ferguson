@@ -100,7 +100,7 @@ const WIRES = [
 export default function PrAgenciesPage() {
   const label: React.CSSProperties = { fontSize: "12px", lineHeight: "17px", color: D.muted };
   return (
-    <main>
+    <div>
       <section className="on-dark" style={{ background: WASH_PR + ", " + D.ground, color: T.surface, paddingBottom: "64px" }}>
         <div style={{ ...SHELL, paddingTop: "56px" }}>
           <div style={{ fontSize: "13px", fontWeight: 600, color: D.muted }}>For PR agencies</div>
@@ -267,6 +267,6 @@ export default function PrAgenciesPage() {
           </Link>
         </p>
       </div>
-    </main>
+    </div>
   );
 }

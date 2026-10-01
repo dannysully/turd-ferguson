@@ -28,7 +28,7 @@ const WIDTHS = [
 export default function EmailsAdmin() {
   const all = previews();
   return (
-    <main style={{ padding: "32px 24px 80px", maxWidth: "1180px", margin: "0 auto", color: T.ink }}>
+    <div style={{ padding: "32px 24px 80px", maxWidth: "1180px", margin: "0 auto", color: T.ink }}>
       <h1 style={{ margin: 0, fontSize: "26px", fontWeight: 700 }}>Lifecycle emails</h1>
       <p style={{ margin: "8px 0 0", fontSize: "15px", color: T.soft, maxWidth: "70ch" }}>
         Previews on made-up data. None of these is sent until its flag is turned on, and each flag stays off until you approve the preview.
@@ -63,6 +63,6 @@ export default function EmailsAdmin() {
           </section>
         );
       })}
-    </main>
+    </div>
   );
 }

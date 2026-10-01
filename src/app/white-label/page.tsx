@@ -88,7 +88,7 @@ const pill = (color: string, background: string): React.CSSProperties => ({
 
 export default function WhiteLabelPage() {
   return (
-    <main style={{ ...SHELL, paddingTop: "72px", paddingBottom: "72px" }}>
+    <div style={{ ...SHELL, paddingTop: "72px", paddingBottom: "72px" }}>
       <div className="wl-top">
         <div>
           <div style={{ fontSize: "13px", fontWeight: 600, color: T.soft }}>White label</div>
@@ -184,6 +184,6 @@ export default function WhiteLabelPage() {
           - or run a scan on a client first.
         </p>
       </section>
-    </main>
+    </div>
   );
 }

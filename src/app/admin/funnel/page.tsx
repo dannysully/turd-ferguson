@@ -23,7 +23,7 @@ const MARKETS: Market[] = ["US", "UK"];
  * a step no table records reads "not logged", never zero.
  */
 export default async function FunnelAdmin() {
-  if (!supabaseConfigured()) return <main style={{ padding: "40px" }}>Database not configured.</main>;
+  if (!supabaseConfigured()) return <div style={{ padding: "40px" }}>Database not configured.</div>;
   const db = supabaseAdmin();
   // force-dynamic, and the whole job is "the last N days", so the clock read is deliberate.
   // eslint-disable-next-line react-hooks/purity
@@ -69,7 +69,7 @@ export default async function FunnelAdmin() {
     );
 
   return (
-    <main style={{ maxWidth: "1400px", margin: "0 auto", padding: "32px 24px", color: T.ink, fontSize: "14px" }}>
+    <div style={{ maxWidth: "1400px", margin: "0 auto", padding: "32px 24px", color: T.ink, fontSize: "14px" }}>
       <h1 style={{ fontSize: "24px", margin: "0 0 4px" }}>Funnel</h1>
       <p style={{ color: T.soft, margin: "0 0 24px" }}>
         Counts per UTC day, the last {DAYS} days, US and UK. Every step is dated by its own row&apos;s created time. Counts only,
@@ -120,6 +120,6 @@ export default async function FunnelAdmin() {
           </tbody>
         </table>
       </div>
-    </main>
+    </div>
   );
 }

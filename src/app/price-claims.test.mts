@@ -174,7 +174,9 @@ function splitSentences(text: string): string[] {
  * the chrome in their denominator.
  *
  * There is exactly one `<header>` and one `<footer>` in the shipped markup;
- * `<main>` is not usable for this because it occurs twice on some pages.
+ * `<main>` was not usable for this because it occurred twice on some pages;
+ * since 1 Oct 2026 (R151) there is one, but stripping header and footer still
+ * says the same thing and is kept.
  */
 function contentOf(page: Page): string {
   return pageText(

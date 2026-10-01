@@ -65,7 +65,7 @@ const SERP: { n: number; name: string; domain: string; you?: boolean; cls?: stri
 export default function SeoAgenciesPage() {
   const soft: React.CSSProperties = { color: T.soft };
   return (
-    <main style={{ ...SHELL, paddingTop: "64px", paddingBottom: "64px" }}>
+    <div style={{ ...SHELL, paddingTop: "64px", paddingBottom: "64px" }}>
       <div className="seo-top">
         <div>
           <div style={{ fontSize: "13px", fontWeight: 600, color: T.soft }}>For SEO agencies</div>
@@ -242,6 +242,6 @@ export default function SeoAgenciesPage() {
           </Link>
         </p>
       </section>
-    </main>
+    </div>
   );
 }

@@ -235,7 +235,7 @@ export default function WhatIsAEOPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: articleSchema }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: faqSchema }} />
 
-      <main style={{ ...SHELL, paddingTop: "64px", paddingBottom: "64px" }}>
+      <div style={{ ...SHELL, paddingTop: "64px", paddingBottom: "64px" }}>
         <div className="guide-top guide-top--aeo">
           <div>
             <div style={{ fontSize: "13px", fontWeight: 600, color: T.soft }}>Answer engine optimisation</div>
@@ -480,7 +480,7 @@ export default function WhatIsAEOPage() {
             How we run the campaigns
           </Link>
         </DarkClosing>
-      </main>
+      </div>
     </>
   );
 }

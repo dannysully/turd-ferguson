@@ -125,7 +125,7 @@ export default function LlmVisibilityChecker() {
         </div>
       </section>
 
-      <main style={{ ...SHELL, paddingTop: "44px", paddingBottom: "44px", display: "flex", flexDirection: "column", gap: "40px" }}>
+      <div style={{ ...SHELL, paddingTop: "44px", paddingBottom: "44px", display: "flex", flexDirection: "column", gap: "40px" }}>
         <section>
           <div className="board-head" style={{ ...GRID12, marginBottom: "16px" }}>
             <h2 style={{ ...H2, gridColumn: "span 4" }}>What it checks</h2>
@@ -200,7 +200,7 @@ export default function LlmVisibilityChecker() {
             ))}
           </div>
         </section>
-      </main>
+      </div>
     </>
   );
 }

@@ -122,7 +122,7 @@ const pill = (bg: string, fg: string): React.CSSProperties => ({
 
 export default function CoverageCheckPage() {
   return (
-    <main style={{ ...SHELL, paddingTop: "42px", paddingBottom: "44px", display: "flex", flexDirection: "column", gap: "26px" }}>
+    <div style={{ ...SHELL, paddingTop: "42px", paddingBottom: "44px", display: "flex", flexDirection: "column", gap: "26px" }}>
       {/* The form owns this grid since R140 part 5: step 2 replaces this
           introduction with the draft's own, in the confirm screen's layout. */}
       <CoverageForm
@@ -203,6 +203,6 @@ export default function CoverageCheckPage() {
           See how agencies use it
         </Link>
       </p>
-    </main>
+    </div>
   );
 }

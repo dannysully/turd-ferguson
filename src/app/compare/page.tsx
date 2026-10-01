@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { OG_IMAGE } from "@/config/og";
 
 import TierName from "@/components/TierName";
@@ -61,7 +62,7 @@ const ROWS: { feature: string; values: Record<string, string> }[] = [
 
 export default function ComparePage() {
   return (
-    <main style={{ ...SHELL, paddingTop: "44px", paddingBottom: "44px", display: "flex", flexDirection: "column", gap: "28px" }}>
+    <div style={{ ...SHELL, paddingTop: "44px", paddingBottom: "44px", display: "flex", flexDirection: "column", gap: "28px" }}>
       <div className="board-head" style={{ ...GRID12, alignItems: "start" }}>
         {/* The beat, from globals.css. The table head is deliberately not a
             row: eight features plus a header is nine in one group, which is
@@ -131,8 +132,35 @@ export default function ComparePage() {
             When you need the gap closed rather than measured, and you do not have relationships with the
             sites the engines read. That is the whole difference, and it is a supply problem rather than a software one.
           </p>
+          {/* R151 (1 Oct 2026): the page ended here with nothing to do next -
+              no link or control in main at all. One primary action, as on
+              /pr-agencies, and a quiet way to the prices. */}
+          <div style={{ marginTop: "18px", display: "flex", alignItems: "center", gap: "18px", flexWrap: "wrap" }}>
+            <Link
+              href="/#scan"
+              className="btn-primary"
+              style={{
+                // No inline colour: .btn-primary sets white on its gradient, and
+                // contrast.test.mts measures that pair there, not against this card.
+                fontSize: "15px",
+                fontWeight: 600,
+                padding: "12px 20px",
+                borderRadius: "10px",
+                textDecoration: "none",
+                minHeight: "44px",
+                boxSizing: "border-box",
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
+              Run a free scan
+            </Link>
+            <Link href="/packages" style={{ fontSize: "14px", fontWeight: 600, textDecoration: "none", color: T.accent, minHeight: "44px", display: "flex", alignItems: "center" }}>
+              See the packages
+            </Link>
+          </div>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

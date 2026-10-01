@@ -21,7 +21,7 @@ const WEEKS = 8;
  * aggregate the UX pass reads; no raw row, member or path is shown here.
  */
 export default async function UsageAdmin() {
-  if (!supabaseConfigured()) return <main style={{ padding: "40px" }}>Database not configured.</main>;
+  if (!supabaseConfigured()) return <div style={{ padding: "40px" }}>Database not configured.</div>;
   const db = supabaseAdmin();
   const since = new Date(Date.now() - WEEKS * 7 * 86_400_000).toISOString();
   const [{ data: clients, error: cErr }, { data: rows, error: eErr }] = await Promise.all([
@@ -37,7 +37,7 @@ export default async function UsageAdmin() {
   const cell = { padding: "6px 8px", borderBottom: `1px solid ${T.hair}`, textAlign: "right", fontVariantNumeric: "tabular-nums" } as const;
 
   return (
-    <main style={{ maxWidth: "1400px", margin: "0 auto", padding: "32px 24px", color: T.ink, fontSize: "14px" }}>
+    <div style={{ maxWidth: "1400px", margin: "0 auto", padding: "32px 24px", color: T.ink, fontSize: "14px" }}>
       <p style={{ margin: "0 0 4px", fontSize: "13px" }}>
         <a href="/admin/tracking" style={{ color: T.soft }}>
           Tracking
@@ -81,6 +81,6 @@ export default async function UsageAdmin() {
           </table>
         </div>
       )}
-    </main>
+    </div>
   );
 }

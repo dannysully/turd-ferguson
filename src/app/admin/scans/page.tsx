@@ -204,13 +204,13 @@ function Readiness() {
 export default async function AdminScansPage() {
   if (!supabaseConfigured()) {
     return (
-      <main style={{ maxWidth: 900, margin: "0 auto", padding: "3rem 1.5rem" }}>
+      <div style={{ maxWidth: 900, margin: "0 auto", padding: "3rem 1.5rem" }}>
         <h1 style={{ fontSize: "1.5rem", color: C.navy }}>Scan operations</h1>
         <p style={{ color: C.body }}>
           The database is not configured. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY, then reload.
         </p>
         <Readiness />
-      </main>
+      </div>
     );
   }
 
@@ -340,7 +340,7 @@ export default async function AdminScansPage() {
   };
 
   return (
-    <main style={{ maxWidth: 1180, margin: "0 auto", padding: "2.5rem 1.5rem 4rem" }}>
+    <div style={{ maxWidth: 1180, margin: "0 auto", padding: "2.5rem 1.5rem 4rem" }}>
       <h1 style={{ fontSize: "1.75rem", fontWeight: 700, color: C.navy, letterSpacing: "-0.03em", margin: 0 }}>
         Scan operations
       </h1>
@@ -516,6 +516,6 @@ export default async function AdminScansPage() {
           </tbody>
         </table>
       </div>
-    </main>
+    </div>
   );
 }

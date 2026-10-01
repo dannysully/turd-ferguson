@@ -152,7 +152,7 @@ const SECTIONS: Section[] = [
 
 export default function LegalPage() {
   return (
-    <main style={{ ...SHELL, paddingTop: "44px", paddingBottom: "44px" }}>
+    <div style={{ ...SHELL, paddingTop: "44px", paddingBottom: "44px" }}>
       <div className="board-head" style={{ ...GRID12, alignItems: "start" }}>
         {/* The beat, from globals.css. The document switcher animates as one
             list rather than five items - the four unpublished entries are one
@@ -260,6 +260,6 @@ export default function LegalPage() {
           </p>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

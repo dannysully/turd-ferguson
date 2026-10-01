@@ -159,7 +159,7 @@ export default async function CampaignReadingPage({ params }: { params: Promise<
   const tail = sources.length - shown.length;
 
   return (
-    <main
+    <div
       style={{
         ...SHELL,
         paddingTop: "42px",
@@ -622,6 +622,6 @@ export default async function CampaignReadingPage({ params }: { params: Promise<
         </Link>{" "}
         - a generated question set across the whole category, the leaderboard, and where an article could be placed.
       </p>
-    </main>
+    </div>
   );
 }
