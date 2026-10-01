@@ -128,6 +128,10 @@ test("every door that takes a caller's address is in this file's denominator", (
       // caps requests per hashed IP. The address goes to `hashIp` only.
       "src/app/api/app/login/route.ts",
       "src/app/api/coverage-check/[token]/rerun/route.ts",
+      // The eighth, 1 October 2026: step 2's draft (R140). Turnstile and the
+      // per-IP draft cap; the address goes to verifyTurnstile and hashIp only,
+      // the same pair as the run route beside it.
+      "src/app/api/coverage-check/draft/route.ts",
       "src/app/api/coverage-check/route.ts",
       // The fourth, 20 September 2026. It takes no scan and starts nothing - it
       // rate limits the one send on this site that mails an address nobody

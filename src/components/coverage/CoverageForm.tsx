@@ -7,6 +7,7 @@ import Turnstile from "@/components/scan/Turnstile";
 import { COVERAGE_LIMITS, WAITLIST_LIMITS } from "@/config/contact";
 import { MICRO, T } from "@/config/tokens";
 import { MAX_COVERAGE_BYTES, MAX_COVERAGE_ROWS, MAX_COVERAGE_URLS, parseCoverageCsv } from "@/lib/coverage/csv";
+import { type DraftRow, runBlocker, tickedRows } from "@/lib/coverage/draft";
 import { MAX_AGENCY_PROMPTS } from "@/lib/coverage/prompts";
 import { count } from "@/lib/plural";
 
@@ -70,6 +71,17 @@ export default function CoverageForm() {
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  /**
+   * Two steps since 1 Oct 2026 (R140, Danny, danny.md lines 128-133). Step 1
+   * is the coverage alone; step 2 is the draft the route built from it, every
+   * field editable, and only step 2's "Run the reading" reaches the engines.
+   */
+  const [step, setStep] = useState<1 | 2>(1);
+  const [rows, setRows] = useState<DraftRow[]>([]);
+  const [marketLine, setMarketLine] = useState("");
+  const [unread, setUnread] = useState<string[]>([]);
+  const [reportLimit, setReportLimit] = useState<string | null>(null);
+  const [domainRefusal, setDomainRefusal] = useState<string | null>(null);
 
   /**
    * What the file turned out to hold, said here rather than after the reading
@@ -160,9 +172,71 @@ export default function CoverageForm() {
   const promptLines = prompts.split(/\r\n|\r|\n/).map((l) => l.trim()).filter(Boolean);
   const promptsKept = Math.min(promptLines.length, MAX_AGENCY_PROMPTS);
 
+  /** Step 1: the coverage goes to the draft route, and step 2 opens on what it sends back. */
+  async function onDraft(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    if (!coverageFound) {
+      setError("Paste the URLs of the pieces you placed, or drop a CSV of them.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await fetch("/api/coverage-check/draft", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ coverageLinks: pasted, coverageCsv: csv, turnstileToken }),
+      });
+      const json = (await res.json()) as {
+        message?: string;
+        brand?: string;
+        clientDomain?: string;
+        topic?: string;
+        segment?: string;
+        prompts?: string[];
+        market?: "UK" | "US";
+        marketLine?: string;
+        rows?: DraftRow[];
+        reportLimit?: string | null;
+        unread?: string[];
+        domainRefusal?: string | null;
+      };
+      if (!res.ok || !json.rows) {
+        setError(json.message ?? "We could not build a draft from that. Please try again.");
+        return;
+      }
+      setBrand(json.brand ?? "");
+      setDomain(json.clientDomain ?? "");
+      setTopic(json.topic ?? "");
+      setSegment(json.segment ?? "");
+      setPrompts((json.prompts ?? []).join("\n"));
+      setMarket(json.market === "UK" ? "UK" : "US");
+      setMarketLine(json.marketLine ?? "");
+      setRows(json.rows);
+      setReportLimit(json.reportLimit ?? null);
+      setUnread(json.unread ?? []);
+      setDomainRefusal(json.domainRefusal ?? null);
+      // Turnstile tokens are single use and the run route checks its own.
+      setTurnstileToken(null);
+      setStep(2);
+    } catch {
+      setError("We could not reach the draft. Check your connection and try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const blocker = step === 2 ? runBlocker({ clientDomain: domain, rows }) : null;
+  const tickedCount = rows.filter((r) => r.ticked).length;
+
+  /** Step 2: the same fields /api/coverage-check has always taken, the coverage being the ticked rows. */
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    if (blocker) {
+      setError(blocker);
+      return;
+    }
     setBusy(true);
     try {
       const res = await fetch("/api/coverage-check", {
@@ -174,8 +248,8 @@ export default function CoverageForm() {
           topic,
           segment,
           market,
-          coverageLinks: pasted,
-          coverageCsv: csv,
+          coverageLinks: tickedRows(rows).map((r) => r.url).join("\n"),
+          coverageCsv: "",
           coveragePrompts: prompts,
           turnstileToken,
         }),
@@ -197,9 +271,25 @@ export default function CoverageForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} noValidate>
-      <div style={MICRO}>The campaign</div>
+    <form onSubmit={step === 1 ? onDraft : onSubmit} noValidate>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "12px" }}>
+        <div style={MICRO}>{step === 1 ? "Step 1 of 2: the coverage" : "Step 2 of 2: check the draft"}</div>
+        {step === 2 && (
+          <button
+            type="button"
+            onClick={() => {
+              setStep(1);
+              setError("");
+              setTurnstileToken(null);
+            }}
+            style={{ fontFamily: "inherit", fontSize: "13px", color: T.accent, background: "none", border: "none", padding: 0, cursor: "pointer" }}
+          >
+            Back to the coverage
+          </button>
+        )}
+      </div>
       <div style={{ marginTop: "12px", display: "flex", flexDirection: "column", gap: "12px" }}>
+        {step === 2 && (<>
         <div>
           <label htmlFor="cc-brand" style={labelStyle}>
             Brand name
@@ -228,9 +318,24 @@ export default function CoverageForm() {
             maxLength={WAITLIST_LIMITS.domain}
             placeholder="clientdomain.com"
             value={domain}
-            onChange={(e) => setDomain(e.target.value)}
+            onChange={(e) => {
+              setDomain(e.target.value);
+              // The draft's check was for the domain it found; a typed one is
+              // checked by the run route, with the same sentence.
+              setDomainRefusal(null);
+            }}
             required
           />
+          {!domain.trim() && (
+            <p style={{ margin: "6px 0 0", fontSize: "12.5px", color: T.badFg, lineHeight: 1.5 }}>
+              We could not find the client&rsquo;s site in the coverage. Add it to run the reading.
+            </p>
+          )}
+          {domainRefusal && (
+            <p role="alert" style={{ margin: "6px 0 0", fontSize: "12.5px", color: T.badFg, lineHeight: 1.5 }}>
+              {domainRefusal}
+            </p>
+          )}
         </div>
         <div>
           <label htmlFor="cc-topic" style={labelStyle}>
@@ -280,10 +385,46 @@ export default function CoverageForm() {
             <option value="UK">United Kingdom</option>
             <option value="US">United States</option>
           </select>
+          {marketLine && (
+            <p style={{ margin: "6px 0 0", fontSize: "12.5px", color: T.soft, lineHeight: 1.5 }}>{marketLine}</p>
+          )}
         </div>
+        <fieldset style={{ border: "none", margin: 0, padding: 0 }}>
+          <legend style={labelStyle}>Coverage we report on</legend>
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            {rows.map((r, i) => (
+              <label key={r.url} style={{ display: "flex", gap: "8px", alignItems: "flex-start", fontSize: "13.5px", color: T.ink, lineHeight: 1.45, wordBreak: "break-all" }}>
+                <input
+                  id={`cc-row-${i}`}
+                  type="checkbox"
+                  checked={r.ticked}
+                  disabled={!r.ticked && tickedCount >= MAX_COVERAGE_URLS}
+                  onChange={(e) => setRows(rows.map((x, j) => (j === i ? { ...x, ticked: e.target.checked } : x)))}
+                  style={{ marginTop: "3px" }}
+                />
+                <span>
+                  {r.url}
+                  {unread.includes(r.url) && <span style={{ color: T.soft }}> - could not be read, still counted</span>}
+                </span>
+              </label>
+            ))}
+          </div>
+          {reportLimit && (
+            <p style={{ margin: "8px 0 0", fontSize: "12.5px", color: T.soft, lineHeight: 1.5 }}>
+              {`${reportLimit}. ${count(rows.length, "link")} found; tick the ${MAX_COVERAGE_URLS} to check.`}
+            </p>
+          )}
+          {unread.length > 0 && (
+            <p style={{ margin: "8px 0 0", fontSize: "12.5px", color: T.soft, lineHeight: 1.5 }}>
+              {`We could not read ${count(unread.length, "page")} (a paywall or a block, usually). It still counts as coverage; it just added nothing to the draft.`}
+            </p>
+          )}
+        </fieldset>
+        </>)}
+        {step === 1 && (
         <div>
           <label htmlFor="cc-links" style={labelStyle}>
-            Coverage <span style={{ fontWeight: 400, color: T.soft }}>optional</span>
+            Coverage
           </label>
           <textarea
             id="cc-links"
@@ -359,14 +500,19 @@ export default function CoverageForm() {
           {coverageFound > 0 && (
             <p role="status" style={{ margin: "8px 0 0", fontSize: "12.5px", color: coverageFound > MAX_COVERAGE_URLS ? T.badFg : T.soft, lineHeight: 1.5 }}>
               {coverageFound > MAX_COVERAGE_URLS
-                ? `${count(coverageFound, "link")} found, and the reading reports on the first ${MAX_COVERAGE_URLS}.`
+                ? `${count(coverageFound, "link")} found. The reading reports on ${MAX_COVERAGE_URLS}, and you pick which on the next step.`
                 : `${count(coverageKept, "link")} ready to check.`}
             </p>
           )}
+          <p style={{ margin: "10px 0 0", fontSize: "12.5px", color: T.soft, lineHeight: 1.5 }}>
+            {`We read each piece and draft the rest for you to check: the brand, what they should be named for, and ${MAX_AGENCY_PROMPTS} prompts. Nothing is asked of the engines until you run it.`}
+          </p>
         </div>
+        )}
+        {step === 2 && (
         <div>
           <label htmlFor="cc-prompts" style={labelStyle}>
-            Your own prompts <span style={{ fontWeight: 400, color: T.soft }}>optional</span>
+            Prompts <span style={{ fontWeight: 400, color: T.soft }}>drafted from the coverage, edit freely</span>
           </label>
           <textarea
             id="cc-prompts"
@@ -377,7 +523,7 @@ export default function CoverageForm() {
             onChange={(e) => setPrompts(e.target.value)}
           />
           <p style={{ margin: "6px 0 0", fontSize: "12.5px", color: T.soft, lineHeight: 1.5 }}>
-            {`One per line, up to ${MAX_AGENCY_PROMPTS}. Leave it empty and we ask our own ${MAX_AGENCY_PROMPTS} - the same ones every time, so a later reading can be compared against this one.`}
+            {`One per line, up to ${MAX_AGENCY_PROMPTS}. Clear them and we ask our own ${MAX_AGENCY_PROMPTS} - the same ones every time, so a later reading can be compared against this one.`}
           </p>
           {promptLines.length > 0 && (
             <p role="status" style={{ margin: "8px 0 0", fontSize: "12.5px", color: promptLines.length > MAX_AGENCY_PROMPTS ? T.badFg : T.soft, lineHeight: 1.5 }}>
@@ -387,9 +533,11 @@ export default function CoverageForm() {
             </p>
           )}
         </div>
+        )}
       </div>
 
-      <Turnstile onToken={setTurnstileToken} />
+      {/* Keyed on the step: a token is spent by the draft, so step 2 mounts a fresh widget for the run. */}
+      <Turnstile key={step} onToken={setTurnstileToken} />
 
       {error && (
         <p role="alert" style={{ margin: "12px 0 0", fontSize: "13px", color: T.badFg, lineHeight: 1.55 }}>
@@ -415,7 +563,7 @@ export default function CoverageForm() {
           cursor: busy ? "default" : "pointer",
         }}
       >
-        {busy ? "Starting the reading" : "Take the reading"}
+        {step === 1 ? (busy ? "Reading the coverage" : "Build the draft") : busy ? "Starting the reading" : "Run the reading"}
       </button>
       <p style={{ margin: "10px 0 0", fontSize: "12.5px", color: T.soft, lineHeight: 1.55 }}>
         Free, and no email. The reading opens on its own link, which keeps working - so you can send it on or come

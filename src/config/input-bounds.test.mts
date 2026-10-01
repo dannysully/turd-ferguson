@@ -236,6 +236,14 @@ const EXEMPT: Record<string, Exemption> = {
     why: "Hide for 30 days's hidden cta. type=hidden, nobody types in it; ask.ts readHideCta accepts only the five cta_events ctas.",
     holds: [{ file: "lib/tracking/ask.ts", needs: "export const readHideCta" }],
   },
+  // R140 (1 Oct 2026): step 2's coverage ticks. type=checkbox, nobody types in
+  // it and it carries no value; what is posted is the ticked rows' urls, which
+  // came from parseCoverageCsv and are cut to MAX_COVERAGE_URLS by tickedRows
+  // and again by the run route.
+  "cc-row-${i}": {
+    why: "Step 2's coverage tick. type=checkbox, nothing typed; tickedRows caps the posted urls at MAX_COVERAGE_URLS and the run route caps them again.",
+    holds: [{ file: "app/api/coverage-check/route.ts", needs: "parsed.rows.slice(0, MAX_COVERAGE_URLS)" }],
+  },
   "cc-coverage": {
     why: [
       "type=file, which maxLength does not apply to at all. It is bounded by bytes",

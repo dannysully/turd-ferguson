@@ -77,8 +77,11 @@ test("rule 1: the walk finds the model calls it is written about", () => {
   // for candidate Google head keywords. Seven since 30 Sep 2026:
   // `clusterKeywordCandidates`, the decision being BRIEF-3 C1 step 1 (Danny,
   // 29 Sep 2026, danny.md lines 96-97 and 109) - one call a scan for the
-  // cluster keyword's candidates. An eighth needs its own decision.
-  assert.equal(calls.length, 7, "anthropic.ts makes seven model calls; an eighth needs a decision, not a default");
+  // cluster keyword's candidates. Eight since 1 Oct 2026: `readCoverage`, the
+  // decision being R140 (Danny, 30 Sep 2026, danny.md lines 128-133) - one
+  // call per /coverage-check draft, behind Turnstile, checkCeilings and a
+  // per-IP draft cap, debited to model_call_debits. A ninth needs its own.
+  assert.equal(calls.length, 8, "anthropic.ts makes eight model calls; a ninth needs a decision, not a default");
   assert.deepEqual(
     [...new Set(calls.map((c) => c.method))],
     ["parse"],

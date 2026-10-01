@@ -10,7 +10,7 @@ import { clientIp, hashIp } from "@/lib/scan/ip";
 import { runScan } from "@/lib/scan/pipeline";
 import { getSettings } from "@/lib/scan/settings";
 import { verifyTurnstile } from "@/lib/scan/turnstile";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { recentReadingRefusal } from "@/lib/coverage/domain-ceiling";
 
 /**
  * Start a campaign benchmark.
@@ -36,17 +36,6 @@ export const dynamic = "force-dynamic";
  * the round trip. Same figure and same reason as the confirm route.
  */
 export const maxDuration = 300;
-
-/**
- * How long a domain's free reading lasts before another may be started.
- *
- * Thirty days because that is the shape of the thing being measured: a
- * campaign lands, the engines take time to pick it up, and a second free
- * reading a week later measures the lag rather than the campaign. Named here
- * rather than typed into the sentence that refuses, so the number the visitor
- * reads and the number enforced cannot come apart.
- */
-const FREE_RUN_DAYS = 30;
 
 function fail(status: number, code: string, message: string) {
   return Response.json({ error: code, message }, { status });
@@ -185,29 +174,10 @@ export async function POST(req: Request) {
    * token for is the feature, and starting a fresh one for the same domain is
    * what this refuses.
    */
-  const db = supabaseAdmin();
-  const domainSince = new Date(Date.now() - FREE_RUN_DAYS * 24 * 60 * 60 * 1000).toISOString();
-  const { data: recent, error: recentErr } = await db
-    .from("campaigns")
-    .select("created_at")
-    .eq("domain", domain)
-    .gte("created_at", domainSince)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (recentErr) {
-    // The read failing is ours, not theirs. Refusing a benchmark because our
-    // own ceiling query broke would be charging the visitor for our outage, so
-    // this logs and lets them through - the IP ceiling below is still standing.
-    console.warn("[coverage] could not check the per-domain ceiling: " + recentErr.message);
-  } else if (recent) {
-    return fail(
-      429,
-      "domain_recently_read",
-      `We have already taken a free reading for ${domain} in the last ${FREE_RUN_DAYS} days. ` +
-        "Open that reading's link to run it again, or get in touch and we will take another.",
-    );
-  }
+  // The ceiling and its sentence live in domain-ceiling.ts, shared with the
+  // draft route (R140), which checks it as soon as it knows the domain.
+  const recent = await recentReadingRefusal(domain);
+  if (recent) return fail(429, "domain_recently_read", recent);
 
   const settings = await getSettings();
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();

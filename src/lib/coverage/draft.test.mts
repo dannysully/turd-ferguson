@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { test } from "node:test";
 
 import { MAX_COVERAGE_URLS, parseCoverageCsv } from "./csv.ts";
@@ -72,6 +74,29 @@ test("outbound links leave the publication and are resolved and decoded", () => 
     "https://www.brightbook.com/?utm=a&b=2",
     "https://twitter.com/brightbook",
   ]);
+});
+
+/**
+ * The draft route, read as source: node cannot load it (its `@/` imports), so
+ * the order of its gates is what is held. Turnstile before the parse, the parse
+ * before any spend; the model call only when a page was read; and no exit
+ * between reading the pieces and the response, so a fetch failure still
+ * returns a draft.
+ */
+test("draft route: refuses without Turnstile, and a fetch failure still returns a draft", () => {
+  const src = readFileSync(join(import.meta.dirname, "../../app/api/coverage-check/draft/route.ts"), "utf8");
+  const at = (s: string) => {
+    const i = src.indexOf(s);
+    assert.ok(i >= 0, `${s} is not in the draft route`);
+    return i;
+  };
+  assert.ok(at("verifyTurnstile(") < at("parseCoverageCsv("), "Turnstile must be checked before the coverage is parsed");
+  assert.ok(at('fail(403, "turnstile_failed"') < at("readPieces("), "no page may be fetched without Turnstile");
+  assert.ok(at("checkCeilings(") < at("readPieces("), "the ceilings stand in front of the fetch");
+  assert.ok(at("DRAFTS_PER_IP_PER_DAY)") < at("readPieces("), "the per-IP cap stands in front of the fetch");
+  assert.match(src, /if \(read\.length\) \{[\s\S]*?readCoverage\(/, "the model call runs only when a page was read");
+  const tail = src.slice(at("readPieces("));
+  assert.doesNotMatch(tail, /return fail\(/, "an exit after the fetch would turn an unreadable page into no draft");
 });
 
 test("client domain: the brand's own domain, the most linked, or blank - never a guess", () => {

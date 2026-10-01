@@ -102,6 +102,9 @@ const GUARDED = [
   "scan/start",
   "coverage-check",
   "coverage-check/[token]/rerun",
+  // 1 Oct 2026, R140: step 2's draft - one model call over the placed pieces,
+  // no engine read. Behind Turnstile, checkCeilings and DRAFTS_PER_IP_PER_DAY.
+  "coverage-check/draft",
 ];
 
 /**

@@ -19,8 +19,8 @@ const MODEL = "claude-opus-5";
  * effort is the right setting: it keeps the five model calls in this file
  * inside the scan's budget without trading away accuracy.
  *
- * Seven, not three - `readBrand`, `generateQuestions`, `keywordCandidates`
- * (27 Sep 2026, R39), `clusterKeywordCandidates` (30 Sep 2026, BRIEF-3 C1),
+ * Eight, not three - `readBrand`, `generateQuestions`, `readCoverage` (1 Oct
+ * 2026, R140), `keywordCandidates` (27 Sep 2026, R39), `clusterKeywordCandidates` (30 Sep 2026, BRIEF-3 C1),
  * `extractBrands`, `classifyBrands` and `classifySourceDomains`. The count said three while the
  * file had carried five for some time, which is the drifted-count species: the
  * number is not the point, the point is that "every call here is low effort"
@@ -394,6 +394,69 @@ export async function generateQuestions(input: {
   questions = withoutBrand(questions, input.brand, input.domain);
   if (!questions.length) throw new Error("could not build the question set: every question named the brand");
   return { questions, calls: billed.calls };
+}
+
+// ------------------------------------------------------------ coverage draft
+
+const CoverageDraft = z.object({
+  brand: z.string().describe("The brand the coverage is about, as the pieces write it. Empty when no piece makes it clear"),
+  claim: z
+    .string()
+    .describe("What the brand should be referenced for: a capability or a claim, two to six words, never a headline"),
+  segment: z.string().describe("Who it is for, two to five words. Empty when the pieces do not say"),
+  prompts: z
+    .array(z.object({ prompt: z.string(), kind: QuestionKind }))
+    .describe(`Exactly ${QUESTION_COUNT} prompts, one of each kind`),
+});
+export type CoverageDraftRead = z.infer<typeof CoverageDraft>;
+
+/**
+ * The draft /coverage-check's step 2 opens on (R140, Danny, 30 Sep 2026,
+ * danny.md lines 128-133): one call over the text of the placed pieces. Every
+ * field it returns is editable before anything is run, and nothing here runs
+ * against an engine. The prompts follow generateQuestions' rules - a
+ * recommendation each, one per kind, broad, no brand, the current year only -
+ * and freshenYears is applied here for the reason it is there.
+ */
+export async function readCoverage(input: { text: string; market: Market }, billed: { calls: number } = { calls: 0 }): Promise<CoverageDraftRead> {
+  const marketName = input.market === "UK" ? "the United Kingdom" : "the United States";
+  const year = currentYear();
+  const res = await withRetry(() => anthropic(billed).messages.parse({
+    model: MODEL,
+    max_tokens: 4000,
+    output_config: { effort: EFFORT, format: zodOutputFormat(CoverageDraft) },
+    system: [
+      "You read press coverage a PR team placed for a client and draft the check",
+      "that asks AI engines whether the coverage got the client recommended.",
+      "",
+      "brand: the company the pieces are about, as they write its name.",
+      "claim: what the client should be named for - a capability or a claim a",
+      "buyer would search for, two to six words. 'same-day settlement', not",
+      "'Brand announces exciting news'. Never a headline.",
+      "segment: who it is for, as a buyer would say it. Empty if not stated.",
+      "",
+      `Then write ${QUESTION_COUNT} prompts a buyer in ${marketName} would ask ChatGPT,`,
+      "Gemini, Perplexity or Google when choosing a supplier for that claim.",
+      "EVERY PROMPT ASKS FOR A RECOMMENDATION - 'best ...', 'who are the best",
+      "...', 'top ... for ...', 'which ... should i use for ...'. Keep them broad:",
+      "the claim narrowed by at most one thing. Exactly one of each kind:",
+      "category, positioning, sector, outcome, comparison.",
+      "Never a definition question ('what is', 'how does ... work').",
+      `The current year is ${year}. Only add a year where a buyer would, and if`,
+      `you do it must be ${year}.`,
+      "Lower case, plain, no question marks, the spelling of the market.",
+      "Do not name the brand in any prompt.",
+    ].join("\n"),
+    messages: [{ role: "user", content: `Market: ${marketName}\n\nThe coverage:\n\n${input.text}` }],
+  }));
+
+  const out = res.parsed_output;
+  if (!out) throw new Error("could not read a draft from that coverage");
+  const prompts = withoutBrand(
+    out.prompts.slice(0, QUESTION_COUNT).map((p) => ({ question: freshenYears(p.prompt, year), kind: p.kind })),
+    out.brand,
+  ).map((p) => ({ prompt: p.question, kind: p.kind }));
+  return { ...out, prompts };
 }
 
 // ---------------------------------------------------------- keyword candidates

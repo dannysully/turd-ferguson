@@ -1,5 +1,7 @@
 import "server-only";
 
+import { outboundLinks } from "../coverage/draft";
+
 import { checkHost } from "./address";
 import { decodeEntities, toProse } from "./prose";
 
@@ -363,6 +365,39 @@ function failureFor(
   if (first?.why === "status") return new UnreachableDomain(domain, "blocked", first.status);
   if (first?.why === "not_html") return new UnreachableDomain(domain, "not_html");
   return new UnreachableDomain(domain, "dns");
+}
+
+/** One placed piece as the coverage draft reads it. A piece that could not be read still counts as coverage. */
+export type PieceRead = { url: string; ok: true; text: string; links: string[] } | { url: string; ok: false };
+
+/**
+ * Read placed pieces for the /coverage-check draft (R140), through the same
+ * guarded fetch as readSite - every host checked, every redirect hop checked,
+ * bytes capped - inside one 8 second budget for all of them, in parallel.
+ * Never throws: a paywall, a block or a timeout is `ok: false` for that piece,
+ * and step 2 names it.
+ */
+export async function readPieces(urls: string[]): Promise<PieceRead[]> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TOTAL_BUDGET_MS);
+  try {
+    const got = await Promise.allSettled(
+      urls.map((u) => {
+        const url = /^https?:\/\//i.test(u) ? u : `https://${u}`;
+        // No trusted host: every hostname, the first included, goes through checkHost.
+        return getText(url, controller.signal, "");
+      }),
+    );
+    return urls.map((url, i): PieceRead => {
+      const page = got[i]!;
+      if (page.status !== "fulfilled" || !page.value.ok) return { url, ok: false };
+      const text = toProse(page.value.html).slice(0, 12_000);
+      if (text.length < 200) return { url, ok: false };
+      return { url, ok: true, text, links: outboundLinks(page.value.html, page.value.url) };
+    });
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /**
