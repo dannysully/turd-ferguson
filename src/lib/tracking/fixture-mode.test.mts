@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
-import { expandFixture, fixtureMode, fixtureState } from "./fixture-mode.ts";
+import { expandFixture, fixtureLive, fixtureMode, fixtureState } from "./fixture-mode.ts";
 import { overview } from "./figures.ts";
 import { ANGLES } from "./limits.ts";
 
@@ -90,4 +90,23 @@ test("R138: TRACKING_FIXTURE_STATE=ungrouped serves the client with no clusters 
   assert.ok(u.data.questions.every((q) => q.cluster_id === null));
   assert.equal(u.placements.length, 0);
   assert.ok(fx.data.questions.some((q) => q.cluster_id), "the default fixture is untouched");
+});
+
+test("R146: TRACKING_FIXTURE_ROLE signs the fixture in as each member; removed is refused, a typo throws", () => {
+  assert.equal(fixtureState(fx, {}).member.role, "owner");
+  assert.ok(fixtureLive(fx, fx.member.email), "the default session is a live member");
+  for (const role of ["editor", "viewer"] as const) {
+    const f = fixtureState(fx, { TRACKING_FIXTURE_ROLE: role });
+    assert.equal(f.member.role, role);
+    assert.notEqual(f.member.email, fx.member.email);
+    assert.ok(fixtureLive(f, f.member.email), `${role} sees the client`);
+  }
+  const gone = fixtureState(fx, { TRACKING_FIXTURE_ROLE: "removed" });
+  assert.ok(fx.members.some((m) => m.email === gone.member.email && m.removed_at), "removed signs in as the removed member");
+  assert.equal(fixtureLive(gone, gone.member.email), false, "a removed member is not live, so every client page 404s");
+  assert.equal(fixtureLive(fx, "stranger@example.com"), false);
+  assert.throws(() => fixtureState(fx, { TRACKING_FIXTURE_ROLE: "admin" }), /no such member/);
+  const both = fixtureState(fx, { TRACKING_FIXTURE_ROLE: "viewer", TRACKING_FIXTURE_STATE: "ungrouped" });
+  assert.equal(both.member.role, "viewer");
+  assert.equal(both.data.clusters.length, 0);
 });

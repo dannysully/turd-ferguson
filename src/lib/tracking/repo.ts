@@ -5,7 +5,7 @@ import { join } from "node:path";
 
 import { trackingDay } from "./decide.ts";
 import type { Day, Range } from "./figures.ts";
-import { expandFixture, fixtureMode, fixtureState, type Fixture } from "./fixture-mode.ts";
+import { expandFixture, fixtureLive, fixtureMode, fixtureState, type Fixture } from "./fixture-mode.ts";
 import { type MemberClient, clientsFor, sessionEmail } from "./member.ts";
 import type { LatestAnswers } from "./latest-answers.ts";
 import type { PlacementRow } from "./placement-figures.ts";
@@ -58,7 +58,7 @@ const fixtureRepo: TrackingRepo = {
   },
   async clientsFor(email) {
     const f = fixture();
-    return email === f.member.email ? [{ ...f.client, role: f.member.role }] : [];
+    return fixtureLive(f, email) ? [{ ...f.client, role: f.member.role }] : [];
   },
   async loadOverview(clientId) {
     // The fixture holds both periods whole; the figures cut the range.

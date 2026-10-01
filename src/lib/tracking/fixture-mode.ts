@@ -49,8 +49,34 @@ export type FixturePlacement = Omit<PlacementRow, "url_key"> & { cluster_id: str
  * "Ungrouped prompts" state. Placements hang off clusters, so they go too.
  */
 export function fixtureState(f: Fixture, env: Record<string, string | undefined> = process.env): Fixture {
-  if (env.TRACKING_FIXTURE_STATE !== "ungrouped") return f;
-  return { ...f, placements: [], data: { ...f.data, clusters: [], questions: f.data.questions.map((q) => ({ ...q, cluster_id: null })) } };
+  const as = fixtureAs(f, env);
+  if (env.TRACKING_FIXTURE_STATE !== "ungrouped") return as;
+  return { ...as, placements: [], data: { ...as.data, clusters: [], questions: as.data.questions.map((q) => ({ ...q, cluster_id: null })) } };
+}
+
+/**
+ * R146 (1 Oct 2026, BRIEF-4 P6): `TRACKING_FIXTURE_ROLE=editor|viewer|removed`
+ * signs the fixture session in as that member of the team, so the role
+ * journeys run on the real pages. `removed` is the removed member, whom
+ * fixtureLive refuses, so every client page 404s for them. Unset is the
+ * owner; anything else throws rather than silently running as the owner.
+ */
+function fixtureAs(f: Fixture, env: Record<string, string | undefined>): Fixture {
+  const want = env.TRACKING_FIXTURE_ROLE;
+  if (!want || want === "owner") return f;
+  const m =
+    want === "removed"
+      ? f.members.find((x) => x.removed_at)
+      : want === "editor" || want === "viewer"
+        ? f.members.find((x) => x.role === want && !x.removed_at)
+        : undefined;
+  if (!m) throw new Error(`TRACKING_FIXTURE_ROLE=${want}: the fixture has no such member (owner, editor, viewer or removed)`);
+  return { ...f, member: { email: m.email, role: m.role } };
+}
+
+/** Whether this email is a live member of the fixture's team. */
+export function fixtureLive(f: Fixture, email: string): boolean {
+  return email === f.member.email && f.members.some((m) => m.email === email && !m.removed_at);
 }
 
 type RawAnswer = [Day, string, string, 0 | 1, string[], string[]];
