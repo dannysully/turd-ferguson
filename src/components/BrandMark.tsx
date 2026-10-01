@@ -11,8 +11,10 @@ import { T } from "@/config/tokens";
  * stroke, and the design rules allow one gradient per page at most - spending
  * it on the logo, on every page, is not where it earns anything.
  *
- * Static. It used to rotate on a loop; the boards draw it plain, and the one
- * beat this page gets belongs to the charts, not to the chrome.
+ * Static, except the header's: R174 (Danny, 1 Oct 2026, danny.md lines
+ * 187-188) gives that one `spin` - one turn every 7s, and one on hover or
+ * focus of the logo link, off under reduced motion (globals.css,
+ * `.brand-mark--spin`; docs/rules.md). Footer and in-page lockups stay still.
  *
  * Sizing follows the Nomada lockup, where the asterisk's ink is about 1.15x
  * the wordmark's ascender height - an accent beside the word, not a badge in
@@ -26,9 +28,10 @@ import { T } from "@/config/tokens";
  * rotation keyframes, which 7224dcf removed, and they had carried no style
  * since. Everything here is inline.
  */
-export default function BrandMark({ size = 18, colour = T.accent }: { id: string; size?: number; colour?: string }) {
+export default function BrandMark({ size = 18, colour = T.accent, spin = false }: { id: string; size?: number; colour?: string; spin?: boolean }) {
   return (
     <svg
+      className={spin ? "brand-mark--spin" : undefined}
       width={size}
       height={size}
       viewBox="0 0 32 32"

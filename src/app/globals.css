@@ -106,12 +106,35 @@ details summary::-webkit-details-marker {
 }
 
 /* ─── Brand mark: six-point asterisk ─── */
-/* Static. It used to turn once every 8s, and on hover continuously.
-   The boards draw a plain three-line asterisk, and the brief gives each page
-   one beat tied to its own content - a logo turning forever in the chrome is
-   ambient decoration that never resolves, and being in the header it is on
-   screen the whole time somebody reads. The page's one beat is the chart
-   draw. */
+/* R174 (Danny, 1 Oct 2026, danny.md lines 187-188; overrides the "Static"
+   note that stood here, and recorded in docs/rules.md so it is not removed
+   again): the header mark only (BrandMark spin, id hdr) turns once, 360deg
+   over 1.1s ease-in-out, then rests 5.9s - a 7.0s cycle. Hover or focus of
+   the logo link plays one turn from rest. Off under reduced motion, hover
+   included. Transform on the svg about its centre, so no layout shift. The
+   footer mark and in-page lockups stay static. */
+.brand-mark--spin {
+  transform-origin: 50% 50%;
+  animation: brand-spin 7s infinite;
+}
+a:hover > .brand-mark--spin,
+a:focus-visible > .brand-mark--spin {
+  animation: brand-turn 1.1s ease-in-out 1;
+}
+/* 1.1s of 7s is 15.714%. */
+@keyframes brand-spin {
+  0% { transform: rotate(0deg); animation-timing-function: ease-in-out; }
+  15.714%, 100% { transform: rotate(360deg); }
+}
+@keyframes brand-turn {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .brand-mark--spin,
+  a:hover > .brand-mark--spin,
+  a:focus-visible > .brand-mark--spin { animation: none; }
+}
 
 /* ─── Tier names ─── */
 .tier-name { white-space: nowrap; font-weight: 700; }

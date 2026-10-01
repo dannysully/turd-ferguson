@@ -70,7 +70,7 @@ const linkStyle: React.CSSProperties = {
 function Logo({ dark }: { dark: boolean }) {
   return (
     <Link href="/" className={dark ? "on-dark" : undefined} style={{ display: "flex", alignItems: "center", gap: dark ? "4px" : "3px", textDecoration: "none" }}>
-      <BrandMark id="hdr" size={15} colour={dark ? D.accent : undefined} />
+      <BrandMark id="hdr" spin size={15} colour={dark ? D.accent : undefined} />
       <span style={{ fontSize: "15px", fontWeight: 700, letterSpacing: "-0.022em", color: dark ? T.surface : T.ink }}>
         <TierName tier="cited" />
       </span>
