@@ -3,7 +3,7 @@ import { test } from "node:test";
 
 import { COMPANY_LINE, CONTACT_EMAIL } from "../../config/contact.ts";
 import { TIER_PLAIN } from "../tier-text.ts";
-import { flagFor, LIFECYCLE_EMAILS, previews, welcome } from "./lifecycle.ts";
+import { flagFor, flagOn, LIFECYCLE_EMAILS, previews, welcome } from "./lifecycle.ts";
 
 /** R159 (1 Oct 2026): the lifecycle templates' shared rules, on the preview fixtures. Nothing is sent. */
 
@@ -60,4 +60,26 @@ test("the welcome carries the sign-in link on its one button and the 3-step stri
 test("the templates do not send: no mail client, network or flag write in the module", async () => {
   const src = await import("node:fs").then((fs) => fs.readFileSync(new URL("./lifecycle.ts", import.meta.url), "utf8"));
   assert.doesNotMatch(src, /resend|fetch\(|\.from\(|process\.env/i);
+});
+
+test("a flag is on only for jsonb true; a missing row or any other value is off", () => {
+  assert.equal(flagOn(true), true);
+  for (const v of [undefined, null, false, "true", 1, {}, []]) assert.equal(flagOn(v), false, JSON.stringify(v));
+});
+
+/** Part 3 (1 Oct 2026): the flags ship off, and each send site asks its own flag first. */
+test("every flag ships off, and each send site asks its flag before sending", async () => {
+  const fs = await import("node:fs");
+  const read = (rel: string) => fs.readFileSync(new URL(rel, import.meta.url), "utf8");
+  const dir = new URL("../../../supabase/migrations/", import.meta.url);
+  const sql = fs.readdirSync(dir).map((f) => fs.readFileSync(new URL(f, dir), "utf8")).join("\n");
+  for (const n of LIFECYCLE_EMAILS) {
+    assert.match(sql, new RegExp(`\\('${flagFor(n)}', 'false'::jsonb\\)`), `${flagFor(n)} not inserted as false`);
+    assert.doesNotMatch(sql, new RegExp(`'${flagFor(n)}', 'true'`), `${flagFor(n)} switched on in a migration`);
+  }
+  const signup = read("../checkout/signup.ts");
+  assert.equal(signup.match(/sendLifecycle\(/g)?.length, 2, "welcome and plan_ended are the two send sites");
+  assert.match(signup, /lifecycleOn\(db, "welcome"\)[\s\S]{0,300}sendLifecycle\(\{ memberEmail: o\.email, mail: welcome\(/);
+  assert.match(signup, /lifecycleOn\(db, "plan_ended"\)[\s\S]{0,800}sendLifecycle\(\{ memberEmail: m\.email as string, mail \}\)/);
+  assert.match(signup, /: await sendLoginLink\(\{ memberEmail: o\.email, link \}\)/, "the login link stays the default while welcome is off");
 });

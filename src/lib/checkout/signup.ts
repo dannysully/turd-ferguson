@@ -6,6 +6,9 @@ import { sendOrderEmail } from "@/lib/checkout/order-mail";
 import { clustersToMake, orderEmailText, orderRow, packsOn, signupResume, subscriptionScanToken, type CompletedOrder } from "@/lib/checkout/webhook";
 import { dayAfter, slugFor, trackingDay } from "@/lib/tracking/decide";
 import { angleFor, clusterLimitFor, insertCluster, insertKeyword, insertPrompts, namesBrandIn, PROMPTS_PER_CLUSTER } from "@/lib/tracking/limits";
+import { planEnded, welcome } from "@/lib/email/lifecycle";
+import { lifecycleOn, sendLifecycle } from "@/lib/email/lifecycle-mail";
+import type { TierKey } from "@/lib/tier-text";
 import { sendLoginLink } from "@/lib/tracking/login-mail";
 import { LOGIN_TTL_MS, hashToken, newToken } from "@/lib/tracking/session";
 
@@ -192,7 +195,14 @@ async function clientFromOrder(db: SupabaseClient, o: CompletedOrder): Promise<{
   const { error: tErr } = await db
     .from("dashboard_login_tokens")
     .insert({ token_hash: hashToken(token), email: o.email, ip_hash: null, expires_at: new Date(Date.now() + LOGIN_TTL_MS).toISOString(), used_at: null });
-  const sent = !tErr && (await sendLoginLink({ memberEmail: o.email, link: `${siteUrl()}/app/auth?token=${token}` }));
+  // The welcome replaces the bare link only once its flag is on (R159; off until Danny approves it).
+  const link = `${siteUrl()}/app/auth?token=${token}`;
+  const welcomeOn = !tErr && (await lifecycleOn(db, "welcome"));
+  const sent =
+    !tErr &&
+    (welcomeOn
+      ? await sendLifecycle({ memberEmail: o.email, mail: welcome({ tier: tier as TierKey, clusters, domain, link }) })
+      : await sendLoginLink({ memberEmail: o.email, link }));
 
   return {
     ok: true,
@@ -200,7 +210,7 @@ async function clientFromOrder(db: SupabaseClient, o: CompletedOrder): Promise<{
     outcome:
       `${scan ? "from the scan" : "no scan, from the website on the order"}: ${domain} at ${tier}, first check ${startedOn}; ` +
       `cluster 1 "${clusterName}" with ${rows.length} prompt(s)${clusters > 1 ? `, ${clusters - 1} more "${NEEDS_A_KEYWORD}"` : ""}` +
-      `${chosen && rows.length && clusters === 1 ? "" : " - pick keywords and prompts in /admin/tracking"}; ${o.email} is owner; login link ${sent ? "sent" : "NOT sent"}.`,
+      `${chosen && rows.length && clusters === 1 ? "" : " - pick keywords and prompts in /admin/tracking"}; ${o.email} is owner; ${welcomeOn ? "welcome email" : "login link"} ${sent ? "sent" : "NOT sent"}.`,
   };
 }
 
@@ -272,12 +282,28 @@ export async function onSubscriptionUpdated(db: SupabaseClient, sub: Record<stri
   return !error;
 }
 
-/** Cancelled: the client ends. Nothing is deleted. */
+/**
+ * Cancelled: the client ends. Nothing is deleted. plan_ended goes to its live
+ * owners only when this call ended it (not a client already ended) and its
+ * flag is on (R159; off until Danny approves it). A failed send is logged, not retried.
+ */
 export async function onSubscriptionDeleted(db: SupabaseClient, sub: Record<string, unknown>): Promise<boolean> {
   const clientId = await clientOfSubscription(db, sub);
   if (clientId === false) return false;
   if (!clientId) return true;
-  const { error } = await db.from("client_domains").update({ status: "ended" }).eq("id", clientId);
-  if (error) console.error(`[stripe] client not ended: ${error.message}`);
-  return !error;
+  const { data: ended, error } = await db.from("client_domains").update({ status: "ended" }).eq("id", clientId).neq("status", "ended").select("account_id, domain, tier");
+  if (error) {
+    console.error(`[stripe] client not ended: ${error.message}`);
+    return false;
+  }
+  const row = ended?.[0];
+  if (row && (await lifecycleOn(db, "plan_ended"))) {
+    const { data: owners, error: oErr } = await db.from("dashboard_members").select("email").eq("account_id", row.account_id).eq("role", "owner").is("removed_at", null);
+    if (oErr) console.error(`[stripe] plan_ended not sent, owners not read: ${oErr.message}`);
+    const mail = planEnded({ tier: (TIERS.includes(row.tier as string) ? row.tier : "tracked") as TierKey, domain: row.domain as string });
+    for (const m of owners ?? []) {
+      if (!(await sendLifecycle({ memberEmail: m.email as string, mail }))) console.warn(`[stripe] plan_ended not sent for ${clientId}`);
+    }
+  }
+  return true;
 }

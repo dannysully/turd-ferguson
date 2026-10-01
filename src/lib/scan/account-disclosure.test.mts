@@ -175,6 +175,9 @@ const RECORDED: Record<string, string> = {
   // 1 Oct 2026, R142 part 2 (BRIEF-4 P2 Team): the owner's own client, already membership-checked.
   "src/app/api/app/[client]/member/route.ts :: account_id":
     "the member route's team lookup; the 303 carries only the toast word and the email the owner typed.",
+  // 1 Oct 2026, R159 part 3: plan_ended finds the ended client's live owners.
+  "src/lib/checkout/signup.ts :: account_id, domain, tier":
+    "the Stripe webhook's subscription-deleted handler finds the ended client's owners to mail; the webhook answers Stripe with a status only, and no visitor makes the request.",
 };
 
 /**

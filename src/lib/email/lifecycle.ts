@@ -23,6 +23,9 @@ export type LifecycleEmail = (typeof LIFECYCLE_EMAILS)[number];
 /** The app_settings key that turns one on. Default false; only Danny turns one on. */
 export const flagFor = (name: LifecycleEmail) => `email_${name}_enabled`;
 
+/** On only for a jsonb true: a missing row, a string or anything else is off. */
+export const flagOn = (value: unknown) => value === true;
+
 export type Rendered = { subject: string; html: string; text: string };
 
 const ORIGIN = "https://alwayscited.com";
