@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
 import { expandFixture } from "./fixture-mode.ts";
-import { fixtureStop, fixtureWrites } from "./fixture-writes.ts";
+import { fixtureEditPrompts, fixtureFillSlot, fixtureStop, fixtureWrites } from "./fixture-writes.ts";
 import { addDays } from "./figures.ts";
 
 /**
@@ -29,9 +29,9 @@ test("R168: writes are on only with both switches exactly 1, outside production"
 });
 
 test("R168: the stop and undo routes ask the writable fixture before refusing", () => {
-  for (const route of ["stop", "setup"]) {
+  for (const route of ["stop", "prompt", "edit", "setup"]) {
     const src = readFileSync(new URL(`../../app/api/app/[client]/${route}/route.ts`, import.meta.url), "utf8");
-    assert.match(src, route === "stop" ? /writeFixture\(/ : /confirmFixtureSetup\(\)/, `${route} writes to the fixture`);
+    assert.match(src, route === "setup" ? /confirmFixtureSetup\(\)/ : /writeFixture\(/, `${route} writes to the fixture`);
   }
 });
 
@@ -76,4 +76,34 @@ test("R168: a cluster stops with its keyword and live prompts; undo brings back 
   const mine = u.fixture.data.questions.filter((q) => q.cluster_id === c.id);
   assert.equal(mine.filter((q) => q.stopped_on !== null).length, 1, "the prompt stopped on its own stays stopped");
   assert.equal(u.fixture.data.keywords.find((k) => k.id === c.keyword_id)!.stopped_on, null);
+});
+
+test("R168 part 2: a free slot takes a new prompt from tomorrow, at the stopped prompt's angle; the rules refuse as slot.ts does", () => {
+  const c = first.cluster_id!;
+  const s = fixtureStop(fx, { kind: "prompt", id: first.id, today: fx.today, role: "owner", undo: false });
+  assert.ok(s.ok);
+  const text = "Which tool sends invoices fastest?";
+  assert.equal(fixtureFillSlot(fx, { clusterId: c, angle: "outcome", text, today: fx.today, role: "owner" }).ok, false, "a cluster with 5 live prompts has no slot");
+  const a = fixtureFillSlot(s.fixture, { clusterId: c, angle: "outcome", text: `  ${text}  `, today: fx.today, role: "editor" });
+  assert.ok(a.ok && a.id);
+  const row = a.fixture.data.questions.find((q) => q.id === a.id)!;
+  assert.deepEqual([row.text, row.added_on, row.angle, row.cluster_id, row.stopped_on], [text, day, "outcome", c, null]);
+  assert.ok(!fx.data.questions.some((q) => q.id === a.id), "a new id");
+  const other = fx.data.questions.find((q) => q.cluster_id === c && q.id !== first.id)!.text;
+  assert.equal(fixtureFillSlot(s.fixture, { clusterId: c, angle: null, text: "short", today: fx.today, role: "owner" }).ok, false, "too short");
+  assert.equal(fixtureFillSlot(s.fixture, { clusterId: c, angle: null, text: other, today: fx.today, role: "owner" }).ok, false, "already tracked");
+  assert.equal(fixtureFillSlot(s.fixture, { clusterId: c, angle: null, text, today: fx.today, role: "viewer" }).ok, false, "viewer");
+  assert.equal(fixtureFillSlot(s.fixture, { clusterId: "nope", angle: null, text, today: fx.today, role: "owner" }).ok, false, "not this client's");
+});
+
+test("R168 part 2: a pending cluster's prompts are rewritten in place; a prompt with readings is fixed", () => {
+  const c = first.cluster_id!;
+  const edits = [{ id: first.id, text: "Which invoicing app do freelancers pick first?" }];
+  const fresh = { ...fx, data: { ...fx.data, answers: fx.data.answers.filter((x) => x.question_id !== first.id) } };
+  const e = fixtureEditPrompts(fresh, { clusterId: c, edits, role: "owner" });
+  assert.ok(e.ok);
+  assert.equal(e.fixture.data.questions.find((q) => q.id === first.id)!.text, edits[0]!.text);
+  assert.equal(e.fixture.data.questions.filter((q, i) => q !== fresh.data.questions[i]).length, 1, "only that prompt");
+  assert.deepEqual(fixtureEditPrompts(fx, { clusterId: c, edits, role: "owner" }), { ok: false, message: "It already has readings, so its text is fixed. Stop it and add a new one." });
+  assert.equal(fixtureEditPrompts(fresh, { clusterId: c, edits, role: "viewer" }).ok, false);
 });

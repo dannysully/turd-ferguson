@@ -74,7 +74,7 @@ function fixture(): Fixture {
  * R168: apply one write to the fixture held in memory. Null when the fixture
  * is read-only (TRACKING_FIXTURE_WRITE unset), so the route answers as before.
  */
-export function writeFixture(apply: (f: Fixture) => FixtureWritten): FixtureWritten | null {
+export function writeFixture<W extends FixtureWritten>(apply: (f: Fixture) => W): W | null {
   if (!fixtureWrites()) return null;
   const s = store();
   const r = apply(s.fixture);
