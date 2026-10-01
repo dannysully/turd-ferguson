@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { siteUrl } from "@/lib/scan/verify-email";
 import { sendOrderEmail } from "@/lib/checkout/order-mail";
-import { orderEmailText, orderRow, packsOn, subscriptionScanToken, type CompletedOrder } from "@/lib/checkout/webhook";
+import { orderEmailText, orderRow, packsOn, signupResume, subscriptionScanToken, type CompletedOrder } from "@/lib/checkout/webhook";
 import { dayAfter, slugFor, trackingDay } from "@/lib/tracking/decide";
 import { angleFor, clusterLimitFor, insertCluster, insertKeyword, insertPrompts, namesBrandIn, PROMPTS_PER_CLUSTER } from "@/lib/tracking/limits";
 import { sendLoginLink } from "@/lib/tracking/login-mail";
@@ -75,10 +75,33 @@ async function clientFromScan(db: SupabaseClient, o: CompletedOrder): Promise<{ 
   const clientId = client.id as string;
 
   const chosen = scan.cluster_keyword_status === "chosen" && typeof scan.cluster_keyword === "string" && scan.cluster_keyword.trim();
-  const cluster = await insertCluster(db, clientId, { name: chosen ? (scan.cluster_keyword as string).trim() : NEEDS_A_KEYWORD, tier, started_on: startedOn });
-  if (!cluster.ok) return { ok: false, outcome: `client made, cluster refused: ${cluster.message}`, clientId };
-  const clusterId = cluster.ids[0]!;
-  if (chosen) {
+  const clusterName = chosen ? (scan.cluster_keyword as string).trim() : NEEDS_A_KEYWORD;
+
+  // A Stripe retry of a signup that failed part way picks up where it stopped (signupResume).
+  const { data: prior, error: pErr } = await db
+    .from("tracked_clusters")
+    .select("id, keyword_id")
+    .eq("client_domain_id", clientId)
+    .eq("name", clusterName)
+    .is("stopped_on", null)
+    .order("created_at", { ascending: true })
+    .limit(1);
+  if (pErr) return { ok: false, outcome: `could not read the client's clusters: ${pErr.message}`, clientId };
+  let existing: Parameters<typeof signupResume>[0] = null;
+  if (prior?.[0]) {
+    const { count, error: nErr } = await db.from("tracked_questions").select("id", { count: "exact", head: true }).eq("cluster_id", prior[0].id).is("stopped_on", null);
+    if (nErr) return { ok: false, outcome: `could not count the cluster's prompts: ${nErr.message}`, clientId };
+    existing = { id: prior[0].id as string, keywordId: (prior[0].keyword_id as string | null) ?? null, livePrompts: count ?? 0 };
+  }
+  const resume = signupResume(existing);
+
+  let clusterId = resume.clusterId;
+  if (!clusterId) {
+    const cluster = await insertCluster(db, clientId, { name: clusterName, tier, started_on: startedOn });
+    if (!cluster.ok) return { ok: false, outcome: `client made, cluster refused: ${cluster.message}`, clientId };
+    clusterId = cluster.ids[0]!;
+  }
+  if (chosen && resume.keyword) {
     const kw = await insertKeyword(db, clientId, clusterId, {
       keyword: (scan.cluster_keyword as string).trim(),
       added_on: startedOn,
@@ -98,7 +121,7 @@ async function clientFromScan(db: SupabaseClient, o: CompletedOrder): Promise<{ 
     .filter((q) => q.text.length >= 8 && q.text.length <= 300 && !namesBrandIn(q.text, { brand: scan.brand_name as string | null, domain: scan.domain as string }))
     .slice(0, PROMPTS_PER_CLUSTER)
     .map((q) => ({ text: q.text, angle: q.angle, source: "scan", added_on: startedOn, added_by: "nomada" }));
-  const prompts = await insertPrompts(db, clientId, clusterId, rows);
+  const prompts = resume.prompts ? await insertPrompts(db, clientId, clusterId, rows) : ({ ok: true } as const);
   if (!prompts.ok) return { ok: false, outcome: `cluster made, prompts refused: ${prompts.message}`, clientId };
 
   const { error: memErr } = await db
@@ -126,29 +149,47 @@ export async function onCheckoutCompleted(db: SupabaseClient, o: CompletedOrder,
   const r = await clientFromScan(db, o);
   if (!r.ok) {
     console.error(`[stripe] signup failed for ${eventId}: ${r.outcome}`);
+    // A paid order whose signup keeps failing was silent: no order row, no
+    // order email, only Stripe's retries (R148 pass 8, 1 Oct 2026). The first
+    // failure for a Session writes its order row and tells Danny; a retry finds
+    // the row and stays quiet. Still false, so Stripe retries the signup.
+    const order = await writeOrder(db, o, r.clientId ?? null);
+    if (order.inserted) {
+      const mail = orderEmailText(o, `FAILED, Stripe will retry it: ${r.outcome} Order row: ${order.text}.`, siteUrl());
+      await sendOrderEmail({ ...mail, subject: `SIGNUP FAILED - ${mail.subject}`, replyTo: o.email });
+    }
     return false;
   }
   if (r.clientId) {
     const { error } = await db.from("stripe_events").update({ client_domain_id: r.clientId }).eq("id", eventId);
     if (error) console.warn(`[stripe] event ${eventId} not linked to its client: ${error.message}`);
   }
-  const mail = orderEmailText(o, `${r.outcome} Order row: ${await writeOrder(db, o, r.clientId ?? null)}.`, siteUrl());
+  const order = await writeOrder(db, o, r.clientId ?? null);
+  const mail = orderEmailText(o, `${r.outcome} Order row: ${order.text}.`, siteUrl());
   await sendOrderEmail({ ...mail, replyTo: o.email });
   return true;
 }
 
-async function writeOrder(db: SupabaseClient, o: CompletedOrder, clientId: string | null): Promise<string> {
+/** inserted is false when the Session's row was already there (a retry), or was not written. */
+async function writeOrder(db: SupabaseClient, o: CompletedOrder, clientId: string | null): Promise<{ text: string; inserted: boolean }> {
   const built = orderRow(o, clientId);
   if (!built.row) {
     console.error(`[stripe] order row not written for ${o.sessionId}: ${built.reason}`);
-    return `not written (${built.reason})`;
+    // No row means nothing marks a retry, so a failing signup mails on each one: noisy beats silent.
+    return { text: `not written (${built.reason})`, inserted: true };
   }
-  const { error } = await db.from("orders").upsert(built.row, { onConflict: "stripe_session_id", ignoreDuplicates: true });
+  const { data, error } = await db.from("orders").upsert(built.row, { onConflict: "stripe_session_id", ignoreDuplicates: true }).select("stripe_session_id");
   if (error) {
     console.error(`[stripe] order row not written for ${o.sessionId}: ${error.message}`);
-    return `NOT written (${error.message})`;
+    return { text: `NOT written (${error.message})`, inserted: true };
   }
-  return "written";
+  if (data?.length) return { text: "written", inserted: true };
+  // Written by an earlier, failed attempt: link the client this one made.
+  if (clientId) {
+    const { error: lErr } = await db.from("orders").update({ client_domain_id: clientId }).eq("stripe_session_id", o.sessionId).is("client_domain_id", null);
+    if (lErr) console.warn(`[stripe] order ${o.sessionId} not linked to its client: ${lErr.message}`);
+  }
+  return { text: "already written by an earlier attempt", inserted: false };
 }
 
 async function clientOfSubscription(db: SupabaseClient, sub: Record<string, unknown>): Promise<string | null | false> {

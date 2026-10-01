@@ -12,6 +12,7 @@ create table if not exists tracked_clusters (
   client_domain_id uuid not null references client_domains(id) on delete cascade,
   name             text not null check (char_length(name) between 2 and 120),
   keyword_id       uuid references tracked_keywords(id) on delete set null,
+  -- Original check below. Danny widened it in production on 29 Sep 2026 to allow 'tracked' (danny.md line 100); not re-run from here.
   tier             text not null check (tier in ('mentioned', 'cited', 'everywhere')),
   started_on       date not null,
   stopped_on       date,

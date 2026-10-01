@@ -134,6 +134,20 @@ export function orderRow(o: CompletedOrder, clientId: string | null): { row: Ord
   };
 }
 
+/**
+ * Where a signup picks up when Stripe retries it (R148 pass 8, 1 Oct 2026).
+ * A run that fails after the first cluster is made (keyword or prompts
+ * refused, owner not added) is retried; without this the retry made a second
+ * cluster of the same name, and once the cluster is reused its keyword would
+ * be refused forever ("already has its keyword"). So: the client's live
+ * cluster of that name is reused, and its keyword and prompts are written
+ * only if it has none yet.
+ */
+export function signupResume(existing: { id: string; keywordId: string | null; livePrompts: number } | null): { clusterId: string | null; keyword: boolean; prompts: boolean } {
+  if (!existing) return { clusterId: null, keyword: true, prompts: true };
+  return { clusterId: existing.id, keyword: !existing.keywordId, prompts: existing.livePrompts === 0 };
+}
+
 /** The subscription's scan token, set on it at checkout (subscription_data[metadata]). */
 export function subscriptionScanToken(sub: Record<string, unknown>): string | null {
   const t = str(((sub.metadata ?? {}) as Record<string, unknown>).scan_token);

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { checkoutRequest } from "./session.ts";
-import { completedOrder, handleWebhook, orderEmailText, orderRow, packsOn, signStripePayload, subscriptionScanToken, verifyStripeSignature, type WebhookDeps } from "./webhook.ts";
+import { completedOrder, handleWebhook, orderEmailText, orderRow, packsOn, signStripePayload, signupResume, subscriptionScanToken, verifyStripeSignature, type WebhookDeps } from "./webhook.ts";
 
 /**
  * BRIEF-3 C4 (30 Sep 2026): the webhook's rules against recorded fixtures.
@@ -190,4 +190,11 @@ test("checkout puts a scan token in the Session metadata only when it is one", (
   }
   const bad = checkoutRequest({ ...base, scan: "not-a-token" }, ctx);
   if (bad.kind === "session") assert.equal(bad.form.get("metadata[scan_token]"), null);
+});
+
+test("a retried signup reuses its first cluster and writes its keyword and prompts only once (R148 pass 8, 1 Oct 2026)", () => {
+  assert.deepEqual(signupResume(null), { clusterId: null, keyword: true, prompts: true }, "first run makes everything");
+  assert.deepEqual(signupResume({ id: "c1", keywordId: null, livePrompts: 0 }), { clusterId: "c1", keyword: true, prompts: true }, "cluster made, keyword refused");
+  assert.deepEqual(signupResume({ id: "c1", keywordId: "k1", livePrompts: 0 }), { clusterId: "c1", keyword: false, prompts: true }, "keyword made, prompts refused");
+  assert.deepEqual(signupResume({ id: "c1", keywordId: "k1", livePrompts: 5 }), { clusterId: "c1", keyword: false, prompts: false }, "owner not added: only the rest runs");
 });
