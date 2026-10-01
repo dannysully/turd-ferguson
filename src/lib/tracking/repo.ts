@@ -5,7 +5,7 @@ import { join } from "node:path";
 
 import { trackingDay } from "./decide.ts";
 import type { Day, Range } from "./figures.ts";
-import { expandFixture, fixtureLive, fixtureMode, fixtureState, type Fixture } from "./fixture-mode.ts";
+import { expandFixture, fixtureLive, fixtureMode, fixtureState, fixtureUnreadable, type Fixture } from "./fixture-mode.ts";
 import { type MemberClient, clientsFor, sessionEmail } from "./member.ts";
 import type { LatestAnswers } from "./latest-answers.ts";
 import type { PlacementRow } from "./placement-figures.ts";
@@ -61,6 +61,7 @@ const fixtureRepo: TrackingRepo = {
     return fixtureLive(f, email) ? [{ ...f.client, role: f.member.role }] : [];
   },
   async loadOverview(clientId) {
+    fixtureUnreadable();
     // The fixture holds both periods whole; the figures cut the range.
     return clientId === fixture().client.id ? fixture().data : { clusters: [], questions: [], keywords: [], answers: [], serp: [], lastRun: null, notes: [] };
   },

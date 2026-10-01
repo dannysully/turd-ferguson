@@ -45,6 +45,15 @@ export type FixtureMember = { email: string; name: string | null; role: string; 
 export type FixturePlacement = Omit<PlacementRow, "url_key"> & { cluster_id: string };
 
 /**
+ * R151 (1 Oct 2026): `TRACKING_FIXTURE_STATE=unreadable` makes the fixture's
+ * overview read throw, as overview-data.ts throws when Supabase refuses a
+ * read, so the /app error boundary can be swept without breaking a database.
+ */
+export function fixtureUnreadable(env: Record<string, string | undefined> = process.env): void {
+  if (env.TRACKING_FIXTURE_STATE === "unreadable") throw new Error("could not read the runs: fixture state unreadable");
+}
+
+/**
  * R138 (30 Sep 2026): `TRACKING_FIXTURE_STATE=ungrouped` serves the same
  * client with no cluster rows and no prompt in a cluster - the Overview's
  * "Ungrouped prompts" state. Placements hang off clusters, so they go too.

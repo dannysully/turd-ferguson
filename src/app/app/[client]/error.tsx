@@ -1,0 +1,85 @@
+"use client";
+
+import Link from "next/link";
+import { useParams } from "next/navigation";
+
+import BrandMark from "@/components/BrandMark";
+import { NAV, navHref } from "@/components/app/nav";
+import TierName from "@/components/TierName";
+import { CARD, MICRO, T } from "@/config/tokens";
+
+/**
+ * The dashboard's error boundary (R151, 1 Oct 2026). Before it, a read that
+ * threw anywhere under /app/[client] - overview-data.ts's "could not read the
+ * runs" - fell through to src/app/error.tsx, which drops the dashboard and
+ * offers only "Back to the homepage": a dead end for a signed-in client.
+ *
+ * Here the reader stays in the dashboard: the alwaystracked lockup, Try again
+ * (Next 16's retry, which re-fetches - see src/app/error.tsx), the Overview,
+ * and every other dashboard page, since a read that fails on one screen
+ * usually leaves the rest standing. The full Sidebar needs the client row,
+ * which is exactly what may not have loaded, so this draws a top bar built
+ * from the slug in the URL alone.
+ *
+ * Swept on TRACKING_FIXTURE_STATE=unreadable (fixture-mode.ts).
+ */
+export default function DashboardError({ error, retry }: { error: Error & { digest?: string }; retry: () => void }) {
+  const { client } = useParams<{ client: string }>();
+  const overview = navHref("Overview", client) ?? "/app";
+  const others = NAV.filter((n) => n !== "Overview").flatMap((item) => {
+    const href = navHref(item, client);
+    return href ? [{ item, href }] : [];
+  });
+
+  return (
+    <div className="app-shell" style={{ display: "flex", flexDirection: "column", minHeight: "100vh", color: T.ink, background: T.bg }}>
+      <header style={{ display: "flex", alignItems: "center", height: "60px", padding: "0 24px", background: T.surface, borderBottom: `1px solid ${T.line}` }}>
+        {/* Not a link, as the Sidebar's lockup is not: the site logo is the one tier lockup in a link (result-copy.test.mts). */}
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "17px", fontWeight: 700, letterSpacing: "-0.02em" }}>
+          <BrandMark id="app-error" size={15} />
+          <TierName tier="tracked" />
+        </div>
+      </header>
+
+      <div className="app-main" style={{ flex: "1 1 auto", padding: "36px 40px 48px", maxWidth: "720px" }}>
+        <div style={MICRO}>Error</div>
+        <h1 style={{ margin: "10px 0 0", fontSize: "28px", fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.2 }}>This page of your dashboard did not load.</h1>
+        <p style={{ margin: "12px 0 0", fontSize: "15px", lineHeight: 1.7, color: T.soft, maxWidth: "56ch" }}>
+          Trying again is worth doing first - most of what fails here is a read that timed out rather than anything saved wrongly. The other pages below may still open.
+        </p>
+
+        <div style={{ marginTop: "24px", display: "flex", gap: "10px", flexWrap: "wrap" }}>
+          <button type="button" onClick={() => retry()} style={{ fontSize: "15px", fontWeight: 600, color: "#ffffff", background: T.accent, border: "none", borderRadius: "10px", padding: "13px 26px", cursor: "pointer", fontFamily: "inherit" }}>
+            Try again
+          </button>
+          <Link href={overview} style={{ display: "inline-flex", alignItems: "center", fontSize: "15px", fontWeight: 600, color: T.ink, background: T.surface, border: `1px solid ${T.line}`, borderRadius: "10px", padding: "12px 25px", textDecoration: "none" }}>
+            Back to the Overview
+          </Link>
+        </div>
+
+        <nav aria-label="Other dashboard pages" style={{ marginTop: "28px" }}>
+          <div style={MICRO}>Or go to</div>
+          <ul style={{ listStyle: "none", margin: "8px 0 0", padding: 0, display: "flex", flexWrap: "wrap", gap: "4px 18px" }}>
+            {others.map((n) => (
+              <li key={n.item}>
+                <Link href={n.href} style={{ display: "inline-flex", alignItems: "center", fontSize: "14px", fontWeight: 600, color: T.accent, textDecoration: "none" }}>
+                  {n.item}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        {error.digest ? (
+          <div style={{ ...CARD, borderRadius: "14px", padding: "16px 20px", marginTop: "28px" }}>
+            <div style={MICRO}>If you tell us about this, quote this reference</div>
+            <p style={{ margin: "7px 0 0", fontSize: "14px", lineHeight: 1.6, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", overflowWrap: "anywhere" }}>{error.digest}</p>
+            <p style={{ margin: "7px 0 0", fontSize: "13px", lineHeight: 1.6, color: T.soft }}>
+              It is a hash of the error itself, so it matches our server log and contains nothing you typed. <Link href="/contact" style={{ color: T.accent }}>Tell us here</Link>.
+            </p>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}

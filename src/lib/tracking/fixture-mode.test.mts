@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
-import { expandFixture, fixtureLive, fixtureMode, fixtureState } from "./fixture-mode.ts";
+import { expandFixture, fixtureLive, fixtureMode, fixtureState, fixtureUnreadable } from "./fixture-mode.ts";
 import { addDays, overview } from "./figures.ts";
 import { ANGLES, PROMPTS_PER_CLUSTER } from "./limits.ts";
 
@@ -155,4 +155,9 @@ test("R146: TRACKING_FIXTURE_ROLE signs the fixture in as each member; removed i
   const both = fixtureState(fx, { TRACKING_FIXTURE_ROLE: "viewer", TRACKING_FIXTURE_STATE: "ungrouped" });
   assert.equal(both.member.role, "viewer");
   assert.equal(both.data.clusters.length, 0);
+});
+
+test("R151: TRACKING_FIXTURE_STATE=unreadable throws the overview read, as a refused Supabase read does; nothing else does", () => {
+  assert.throws(() => fixtureUnreadable({ TRACKING_FIXTURE_STATE: "unreadable" }), /could not read the runs/);
+  for (const state of [undefined, "new", "partial", "failed", "ungrouped"]) assert.doesNotThrow(() => fixtureUnreadable({ TRACKING_FIXTURE_STATE: state }));
 });
