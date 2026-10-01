@@ -86,6 +86,18 @@ export default function CheckoutOrder({ tier, tierPlain, plan, tierPage, include
   const [qty, setQty] = useState(initial.qty);
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+  // R151 (1 Oct 2026): the order posts to /api/checkout, which opens Stripe -
+  // a second or two with nothing moving, and a second click opened a second
+  // session. Busy from submit; back from Stripe restores this page from the
+  // bfcache with busy still set, so pageshow clears it.
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    const onShow = (e: PageTransitionEvent) => {
+      if (e.persisted) setBusy(false);
+    };
+    window.addEventListener("pageshow", onShow);
+    return () => window.removeEventListener("pageshow", onShow);
+  }, []);
 
   const perCluster = tier !== "tracked";
   const sel: Selection = { sector, qty, market };
@@ -173,7 +185,15 @@ export default function CheckoutOrder({ tier, tierPlain, plan, tierPage, include
           </a>
         </p>
       ) : price ? (
-        <form method="post" action="/api/checkout" style={rule}>
+        <form
+          method="post"
+          action="/api/checkout"
+          onSubmit={(e) => {
+            if (busy) e.preventDefault();
+            else setBusy(true);
+          }}
+          style={rule}
+        >
           <input type="hidden" id="checkout-tier" name="tier" value={tier} maxLength={CHECKOUT_LIMITS.tier} />
           <input type="hidden" id="checkout-market" name="market" value={market} maxLength={CHECKOUT_LIMITS.market} />
           {scan ? <input type="hidden" id="checkout-scan" name="scan" value={scan} maxLength={CHECKOUT_LIMITS.scan} /> : null}
@@ -262,8 +282,15 @@ export default function CheckoutOrder({ tier, tierPlain, plan, tierPage, include
             Billed monthly. 30 days&apos; notice to cancel{perCluster ? ", because placements may still be in progress" : ""}.
             {perCluster ? " A refund if the keyword turns out not to be workable." : ""}
           </p>
-          <button type="submit" style={{ ...button, width: "100%", marginTop: "16px", background: T.accent, color: T.surface, border: `1px solid ${T.accent}` }}>
-            Continue to payment
+          <button type="submit" aria-disabled={busy || undefined} style={{ ...button, width: "100%", marginTop: "16px", background: T.accent, color: T.surface, border: `1px solid ${T.accent}`, cursor: busy ? "progress" : "pointer" }}>
+            {busy ? (
+              <>
+                <span className="btn-spin" aria-hidden="true" />
+                Opening payment...
+              </>
+            ) : (
+              "Continue to payment"
+            )}
           </button>
           <p style={{ margin: "10px 0 0", textAlign: "center", fontSize: "13px", lineHeight: 1.6, color: T.soft }}>Got a promo code? Add it on the next page.</p>
         </form>
