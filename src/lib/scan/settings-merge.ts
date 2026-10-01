@@ -50,6 +50,13 @@ export type Settings = {
    * without anybody noticing, and a call count is what the column holds.
    */
   anthropic_calls_per_day: number;
+  /**
+   * Domains the coverage check's once-per-FREE_RUN_DAYS ceiling does not
+   * apply to (Danny, 1 Oct 2026, danny.md line 174). The IP ceiling still
+   * does. Lowercased and de-duplicated on the way in; a domain is never typed
+   * into this repo, only into the row.
+   */
+  coverage_ceiling_exempt_domains: string[];
 };
 
 export const SETTINGS_FALLBACK: Settings = {
@@ -66,6 +73,7 @@ export const SETTINGS_FALLBACK: Settings = {
   // runaway guard, and a ceiling that trips on an ordinary busy day would be
   // turned off the first time it did.
   anthropic_calls_per_day: 2500,
+  coverage_ceiling_exempt_domains: [],
 };
 
 /** The two keys whose value is a list of engine names rather than a scalar. */
@@ -175,6 +183,29 @@ function mergeEngineList(key: EngineKey, value: unknown, warn: (message: string)
 }
 
 /**
+ * The exempt-domain list, from whatever the cell holds.
+ *
+ * Not an array is refused and logged, like an engine list. A non-string or
+ * blank entry is dropped and logged. Entries are trimmed and lowercased so a
+ * capital typed into the table editor still matches the normalised domain the
+ * route checks, and read once each.
+ */
+function mergeDomainList(key: string, value: unknown, warn: (message: string) => void): string[] {
+  if (!Array.isArray(value)) {
+    warn(`app_settings.${key} is ${JSON.stringify(value)}, not an array; using the default`);
+    return [];
+  }
+  const strings = value
+    .filter((v): v is string => typeof v === "string")
+    .map((v) => v.trim().toLowerCase())
+    .filter(Boolean);
+  if (strings.length !== value.length) {
+    warn(`app_settings.${key} holds ${value.length - strings.length} entry(s) that are not domains; dropping them`);
+  }
+  return [...new Set(strings)];
+}
+
+/**
  * Fold the stored rows onto the defaults.
  *
  * `warn` is `console.warn` in production and an array push in the test, which
@@ -199,6 +230,7 @@ export function mergeSettings(
     ...SETTINGS_FALLBACK,
     scan_engines_free: [...SETTINGS_FALLBACK.scan_engines_free],
     scan_engines_gated: [...SETTINGS_FALLBACK.scan_engines_gated],
+    coverage_ceiling_exempt_domains: [...SETTINGS_FALLBACK.coverage_ceiling_exempt_domains],
   };
 
   for (const row of rows) {
@@ -220,6 +252,11 @@ export function mergeSettings(
 
     if (isEngineKey(key)) {
       out[key] = mergeEngineList(key, row.value, warn);
+      continue;
+    }
+
+    if (key === "coverage_ceiling_exempt_domains") {
+      out[key] = mergeDomainList(key, row.value, warn);
       continue;
     }
 

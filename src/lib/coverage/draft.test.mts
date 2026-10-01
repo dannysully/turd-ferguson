@@ -143,8 +143,9 @@ test("domain route: the run route's ceiling, said on blur, spending nothing", ()
   for (const spend of ["readPieces(", "readCoverage(", "runScan(", "startBenchmark(", "clientIp(", "recordModelCallDebit("]) {
     assert.ok(!route.includes(spend), `the domain route must not call ${spend}`);
   }
-  const ceiling = readFileSync(join(import.meta.dirname, "domain-ceiling.ts"), "utf8");
-  assert.match(ceiling, /return recentReadingLine\(domain\)/, "the refusal and the fixture share one sentence");
+  // The decision moved to domain-ceiling-decide.ts on 1 Oct 2026 (R165).
+  const ceiling = readFileSync(join(import.meta.dirname, "domain-ceiling-decide.ts"), "utf8");
+  assert.match(ceiling, /\? recentReadingLine\(domain\) : null/, "the refusal and the fixture share one sentence");
   const form = readFileSync(join(import.meta.dirname, "../../components/coverage/CoverageForm.tsx"), "utf8");
   assert.match(form, /onBlur=\{\(\) => void checkDomain\(domain\)\}/, "the client domain field asks on blur");
   assert.match(form, /"\/api\/coverage-check\/domain"/);
@@ -174,12 +175,14 @@ test("step 2 mirrors the confirm screen; step 1 keeps the page's introduction", 
 
 /**
  * R161 (Danny, 1 Oct 2026, danny.md line 170): one free reading per domain in
- * 7 days, not 30. domain-ceiling.ts is server-only, so it is read as text; the
- * refusal interpolates the constant, so the sentence follows it.
+ * 7 days, not 30. The constant and the sentence moved to
+ * domain-ceiling-decide.ts on 1 Oct 2026 (R165); the query stays in the
+ * server-only domain-ceiling.ts, read as text.
  */
 test("the per-domain free-reading window is 7 days, and the refusal says the constant", () => {
+  const decide = readFileSync(join(import.meta.dirname, "domain-ceiling-decide.ts"), "utf8");
+  assert.match(decide, /export const FREE_RUN_DAYS = 7;/);
+  assert.match(decide, /in the last \$\{FREE_RUN_DAYS\} days/);
   const ceiling = readFileSync(join(import.meta.dirname, "domain-ceiling.ts"), "utf8");
-  assert.match(ceiling, /export const FREE_RUN_DAYS = 7;/);
-  assert.match(ceiling, /in the last \$\{FREE_RUN_DAYS\} days/);
   assert.match(ceiling, /FREE_RUN_DAYS \* 24 \* 60 \* 60 \* 1000/, "the query enforces the same constant");
 });
