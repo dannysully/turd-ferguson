@@ -7,9 +7,10 @@ import { T } from "@/config/tokens";
 /**
  * R163: a spent or expired login link offers a new one in one click, to the
  * address the old one went to. Posts to /api/app/login as LoginForm does, so
- * the same hourly limit and the same one sentence back.
+ * the same hourly limit and the same one sentence back. /checkout/done uses it
+ * too, as "Send it again" (R166).
  */
-export default function SendNewLink({ email }: { email: string }) {
+export default function SendNewLink({ email, label }: { email: string; label?: string }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -46,7 +47,7 @@ export default function SendNewLink({ email }: { email: string }) {
             Sending...
           </>
         ) : (
-          `Send a new link to ${email}`
+          (label ?? `Send a new link to ${email}`)
         )}
       </button>
       <p role="status" aria-live="polite" style={{ margin: 0, fontSize: "14px", color: T.soft, minHeight: "20px" }}>
