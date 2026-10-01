@@ -8,8 +8,10 @@ import { TIER_PLAIN, type TierKey } from "@/lib/tier-text";
 import { upsellMode } from "@/lib/tracking/ask";
 import { trackingDay } from "@/lib/tracking/decide";
 import { fixtureMode } from "@/lib/tracking/fixture-mode";
+import { fixtureTeam } from "@/lib/tracking/fixture-writes";
 import { sendInvite } from "@/lib/tracking/invite-mail";
 import { clientsFor, sessionEmail } from "@/lib/tracking/member";
+import { writeFixture } from "@/lib/tracking/repo";
 import { type TeamDone, changeRole, invite, inviteMail, invitesToday, readTeam, readTeamForm, refuseActor, refuseChange, refuseInvite, removeMember, teamReturn } from "@/lib/tracking/team";
 
 export const runtime = "nodejs";
@@ -20,7 +22,8 @@ export const dynamic = "force-dynamic";
  * Posted by plain HTML forms on Settings, so it works with JS off; the answer
  * is a 303 back to the page with the toast in the URL. Session and membership
  * as the stop route; owners only. The rules are team.ts; the invite mail is
- * invite-mail.ts. The fixture is read-only: nothing is written or sent.
+ * invite-mail.ts. The fixture is read-only unless TRACKING_FIXTURE_WRITE=1
+ * (R168), which holds the change in memory; on the fixture nothing is sent.
  */
 export async function POST(req: Request, ctx: { params: Promise<{ client: string }> }) {
   const { client: slug } = await ctx.params;
@@ -28,7 +31,13 @@ export async function POST(req: Request, ctx: { params: Promise<{ client: string
   const form = await req.formData().catch(() => null);
   const f = form ? readTeamForm((k) => form.get(k)) : null;
   const back = (done: TeamDone) => NextResponse.redirect(new URL(teamReturn(slug, done, f?.email ?? null), req.url), 303);
-  if (!f || fixtureMode()) return back("refused");
+  if (!f) return back("refused");
+  if (fixtureMode()) {
+    // R168: invite, role and remove held in memory on the writable fixture; sendInvite is never reached here.
+    const r = writeFixture((fx) => fixtureTeam(fx, { op: f.op, email: f.email, role: f.role, now: new Date().toISOString() }));
+    if (r && !r.ok) console.warn(`[app] fixture team ${f.op} refused: ${r.message}`);
+    return back(r?.ok ? (f.op === "invite" ? "invited" : f.op === "role" ? "role" : "removed") : "refused");
+  }
 
   const email = await sessionEmail();
   if (!email) return NextResponse.redirect(new URL("/app/login", req.url), 303);

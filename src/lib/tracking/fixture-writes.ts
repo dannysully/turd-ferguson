@@ -3,6 +3,7 @@ import { type Edit, refuseEdits } from "./edit.ts";
 import { angleFor, refuseCluster, refuseEdit, refusePrompts } from "./limits.ts";
 import { refuseSlotText } from "./slot.ts";
 import { type StopKind, refuseRole, refuseStop, refuseUndo, stopDay } from "./stop.ts";
+import { type InviteRole, type TeamOp, refuseActor, refuseChange, refuseInvite } from "./team.ts";
 
 /**
  * R168 (Danny, 2 Oct 2026, danny.md lines 177-179): `TRACKING_FIXTURE_WRITE=1`
@@ -106,6 +107,34 @@ export function fixtureEditPrompts(f: Fixture, p: { clusterId: string; edits: re
   }
   const text = new Map(verdict.changed.map((e) => [e.id, e.text]));
   return written(f, { questions: questions.map((q) => (text.has(q.id) ? { ...q, text: text.get(q.id)! } : q)) });
+}
+
+/**
+ * The member route's invite, changeRole and removeMember on fixture.members,
+ * under team.ts's rules. An invite revives a removed row with the new role, as
+ * the upsert does. No mail: sendInvite is never reached on the fixture. The
+ * daily invite cap is not counted here - the fixture keeps no event rows.
+ */
+export function fixtureTeam(f: Fixture, p: { op: TeamOp; email: string; role: InviteRole | null; now: string }): FixtureWritten {
+  const actor = refuseActor(f.member.role);
+  if (actor) return { ok: false, message: actor };
+  const rows = f.members.filter((m) => !m.removed_at).map((m) => ({ email: m.email, role: m.role, removed_at: null }));
+  if (p.op === "invite") {
+    const no = refuseInvite({ rows, email: p.email, invitesToday: 0 });
+    if (no) return { ok: false, message: no };
+    if (!p.role) return { ok: false, message: "Pick a role." };
+    const had = f.members.some((m) => m.email === p.email);
+    const members = had
+      ? f.members.map((m) => (m.email === p.email ? { ...m, role: p.role!, removed_at: null } : m))
+      : [...f.members, { email: p.email, name: null, role: p.role, last_login_at: null, removed_at: null }];
+    return { ok: true, fixture: { ...f, members } };
+  }
+  const no = refuseChange({ rows, actor: f.member.email, email: p.email, op: p.op, role: p.role });
+  if (no) return { ok: false, message: no };
+  if (p.op === "role" && !p.role) return { ok: false, message: "Pick a role." };
+  const hit = (m: Fixture["members"][number]) => m.email === p.email && !m.removed_at;
+  const members = f.members.map((m) => (!hit(m) ? m : p.op === "role" ? { ...m, role: p.role! } : { ...m, removed_at: p.now }));
+  return { ok: true, fixture: { ...f, members } };
 }
 
 /** A prompt id the fixture has not used, in readStopForm's alphabet. */

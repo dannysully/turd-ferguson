@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
 import { expandFixture } from "./fixture-mode.ts";
-import { fixtureEditPrompts, fixtureFillSlot, fixtureStop, fixtureWrites } from "./fixture-writes.ts";
+import { fixtureEditPrompts, fixtureFillSlot, fixtureStop, fixtureTeam, fixtureWrites } from "./fixture-writes.ts";
 import { addDays } from "./figures.ts";
 
 /**
@@ -29,7 +29,7 @@ test("R168: writes are on only with both switches exactly 1, outside production"
 });
 
 test("R168: the stop and undo routes ask the writable fixture before refusing", () => {
-  for (const route of ["stop", "prompt", "edit", "setup"]) {
+  for (const route of ["stop", "prompt", "edit", "member", "setup"]) {
     const src = readFileSync(new URL(`../../app/api/app/[client]/${route}/route.ts`, import.meta.url), "utf8");
     assert.match(src, route === "setup" ? /confirmFixtureSetup\(\)/ : /writeFixture\(/, `${route} writes to the fixture`);
   }
@@ -106,4 +106,26 @@ test("R168 part 2: a pending cluster's prompts are rewritten in place; a prompt 
   assert.equal(e.fixture.data.questions.filter((q, i) => q !== fresh.data.questions[i]).length, 1, "only that prompt");
   assert.deepEqual(fixtureEditPrompts(fx, { clusterId: c, edits, role: "owner" }), { ok: false, message: "It already has readings, so its text is fixed. Stop it and add a new one." });
   assert.equal(fixtureEditPrompts(fresh, { clusterId: c, edits, role: "viewer" }).ok, false);
+});
+
+test("R168 part 3: invite, role and remove change fixture.members under team.ts's rules", () => {
+  const now = "2026-10-02T00:00:00Z";
+  const live = (f: typeof fx) => f.members.filter((m) => !m.removed_at).map((m) => `${m.email}:${m.role}`);
+  const i = fixtureTeam(fx, { op: "invite", email: "new@example.com", role: "viewer", now });
+  assert.ok(i.ok);
+  assert.ok(live(i.fixture).includes("new@example.com:viewer"));
+  const back = fixtureTeam(fx, { op: "invite", email: "gone@example.com", role: "viewer", now });
+  assert.ok(back.ok);
+  assert.equal(back.fixture.members.filter((m) => m.email === "gone@example.com").length, 1, "a removed row is revived, not duplicated");
+  assert.ok(live(back.fixture).includes("gone@example.com:viewer"));
+  assert.equal(fixtureTeam(fx, { op: "invite", email: "editor@example.com", role: "viewer", now }).ok, false, "already on the team");
+  const r = fixtureTeam(fx, { op: "role", email: "editor@example.com", role: "viewer", now });
+  assert.ok(r.ok && live(r.fixture).includes("editor@example.com:viewer"));
+  assert.equal(fixtureTeam(fx, { op: "role", email: "viewer@example.com", role: "viewer", now }).ok, false, "already a viewer");
+  const x = fixtureTeam(fx, { op: "remove", email: "viewer@example.com", role: null, now });
+  assert.ok(x.ok);
+  assert.equal(x.fixture.members.find((m) => m.email === "viewer@example.com")!.removed_at, now, "removing never deletes");
+  assert.equal(fixtureTeam(fx, { op: "remove", email: fx.member.email, role: null, now }).ok, false, "never yourself");
+  const editor = { ...fx, member: { email: "editor@example.com", role: "editor" } };
+  assert.deepEqual(fixtureTeam(editor, { op: "invite", email: "new@example.com", role: "viewer", now }), { ok: false, message: "Only owners can change the team." });
 });
