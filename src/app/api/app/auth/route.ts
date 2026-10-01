@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { clientsFor } from "@/lib/tracking/member";
 import { SESSION_TTL_MS, hashToken, isTokenShape, newToken, sessionCookie } from "@/lib/tracking/session";
 
 export const runtime = "nodejs";
@@ -20,8 +21,11 @@ export const dynamic = "force-dynamic";
 export async function POST(req: Request) {
   const form = await req.formData().catch(() => null);
   const token = form?.get("token");
-  const failed = NextResponse.redirect(new URL("/app/login?link=expired", req.url), 303);
-  if (!isTokenShape(token)) return failed;
+  if (!isTokenShape(token)) return NextResponse.redirect(new URL("/app/login?link=expired", req.url), 303);
+  // R163: back to the link's own page, which reads the token and says spent
+  // (with a one-click new link) or, with failed=1, shows the button rather
+  // than submitting itself again.
+  const failed = NextResponse.redirect(new URL(`/app/auth?token=${token}&failed=1`, req.url), 303);
 
   const db = supabaseAdmin();
   const { data: claimed, error } = await db
@@ -57,7 +61,12 @@ export async function POST(req: Request) {
     .is("removed_at", null);
   if (lErr) console.warn(`[app] could not record the sign-in: ${lErr.message}`);
 
-  const res = NextResponse.redirect(new URL("/app", req.url), 303);
+  // R163: straight to the client's dashboard, not /app and a second redirect.
+  // A failed read falls back to /app, which makes the same choice. No /setup
+  // page exists yet, so there is no setup-confirmed detour to take.
+  const clients = await clientsFor(email).catch(() => null);
+  const to = clients === null ? "/app" : clients.length ? `/app/${clients[0]!.slug}` : "/app/login?access=none";
+  const res = NextResponse.redirect(new URL(to, req.url), 303);
   res.cookies.set(sessionCookie(session));
   return res;
 }

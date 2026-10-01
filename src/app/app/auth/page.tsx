@@ -2,7 +2,12 @@ import type { Metadata } from "next";
 import BrandMark from "@/components/BrandMark";
 import TierName from "@/components/TierName";
 import { T } from "@/config/tokens";
+import SubmitButton from "@/components/app/SubmitButton";
+import { trackingRepo } from "@/lib/tracking/repo";
 import { TOKEN_CHARS, isTokenShape } from "@/lib/tracking/session";
+
+import AutoSubmit from "./AutoSubmit";
+import SendNewLink from "./SendNewLink";
 
 export const dynamic = "force-dynamic";
 
@@ -12,14 +17,25 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+const BUTTON = { display: "inline-flex", alignItems: "center", gap: "8px", padding: "12px 16px", borderRadius: "10px", border: "none", background: T.accent, color: "#ffffff", fontWeight: 600, fontSize: "15px" } as const;
+
 /**
- * Where the login link lands (T3). It does not log anybody in on its own: mail
- * scanners open links on delivery, so the single-use token is spent by the
- * button below, a POST, and never by this GET.
+ * Where the login link lands (T3). The GET spends nothing: mail scanners open
+ * links on delivery, so the single-use token is spent by the form below, a
+ * POST. R163 (1 Oct 2026, danny.md line 172): with script that form submits
+ * itself on load; without, the button is there. The GET reads the token's
+ * state first, so a spent or expired link offers a new one in one click
+ * instead of posting into a failure. `failed=1` is the POST's own way back
+ * here, so a claim that failed for any other reason shows the button rather
+ * than submitting again in a loop.
  */
 export default async function AppAuth({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  const { token } = await searchParams;
-  const ok = isTokenShape(token);
+  const { token, failed } = await searchParams;
+  const shaped = isTokenShape(token);
+  const link = shaped ? await trackingRepo().linkState(token) : null;
+  const ok = shaped && (link === null || link.state === "fresh");
+  const spent = link?.state === "spent" ? link : null;
+  const auto = ok && link?.state === "fresh" && failed !== "1";
   return (
     <section style={{ maxWidth: "420px", margin: "0 auto", padding: "72px 24px 96px", color: T.ink }}>
       {/* R148 pass 6 (1 Oct 2026): the same lockup /app/login carries, since neither has the site header. */}
@@ -27,17 +43,22 @@ export default async function AppAuth({ searchParams }: { searchParams: Promise<
         <BrandMark id="app-auth" size={15} />
         <TierName tier="tracked" />
       </div>
-      <h1 style={{ fontSize: "28px", fontWeight: 700, margin: "0 0 16px" }}>{ok ? "Log in" : "That link is not valid"}</h1>
+      <h1 style={{ fontSize: "28px", fontWeight: 700, margin: "0 0 16px" }}>
+        {ok ? "Log in" : spent ? "That link has already been used" : "That link is not valid"}
+      </h1>
       {ok ? (
         <form method="post" action="/api/app/auth">
           <input type="hidden" name="token" value={token} maxLength={TOKEN_CHARS} />
-          <button
-            type="submit"
-            style={{ padding: "12px 16px", borderRadius: "10px", border: "none", background: T.accent, color: "#ffffff", fontWeight: 600, fontSize: "15px" }}
-          >
+          <SubmitButton busy="Opening your dashboard..." style={BUTTON}>
             Open my dashboard
-          </button>
+          </SubmitButton>
+          {auto ? <AutoSubmit /> : null}
         </form>
+      ) : spent ? (
+        <>
+          <p style={{ margin: "0 0 24px", color: T.soft, fontSize: "15px" }}>Each link works once, for 15 minutes.</p>
+          <SendNewLink email={spent.email} />
+        </>
       ) : (
         // R148 pass 6 (1 Oct 2026): was a 21px text link, the only way on; now a 48px button-shaped link like "Open my dashboard".
         <a

@@ -8,6 +8,8 @@ import type { Day, Range } from "./figures.ts";
 import { expandFixture, fixtureLive, fixtureMode, fixtureState, fixtureUnreadable, type Fixture } from "./fixture-mode.ts";
 import { type MemberClient, clientsFor, sessionEmail } from "./member.ts";
 import type { LatestAnswers } from "./latest-answers.ts";
+import { loadLinkState } from "./login-link.ts";
+import { type LinkState, fixtureLinkState } from "./login-link-state.ts";
 import type { PlacementRow } from "./placement-figures.ts";
 import { urlKey } from "./placements.ts";
 import { loadPlacements } from "./placements-data.ts";
@@ -41,9 +43,11 @@ export interface TrackingRepo {
   settings(clientId: string): Promise<SettingsData>;
   /** The tracking day the dashboard treats as today. */
   today(): Day;
+  /** A login link's state, read without spending it (R163); null when the read failed. */
+  linkState(token: string): Promise<LinkState | null>;
 }
 
-const supabaseRepo: TrackingRepo = { sessionEmail, clientsFor, loadOverview, latestAnswers: loadLatestAnswers, clusterNotes: loadClusterNotes, upgradeContext: loadUpgradeContext, placements: loadPlacements, settings: loadSettings, today: () => trackingDay() };
+const supabaseRepo: TrackingRepo = { sessionEmail, clientsFor, linkState: loadLinkState, loadOverview, latestAnswers: loadLatestAnswers, clusterNotes: loadClusterNotes, upgradeContext: loadUpgradeContext, placements: loadPlacements, settings: loadSettings, today: () => trackingDay() };
 
 let cached: Fixture | null = null;
 function fixture(): Fixture {
@@ -100,6 +104,9 @@ const fixtureRepo: TrackingRepo = {
   },
   today() {
     return fixture().today;
+  },
+  async linkState(token) {
+    return fixtureLinkState(token, fixture().member.email);
   },
 };
 
