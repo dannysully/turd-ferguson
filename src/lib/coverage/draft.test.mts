@@ -130,3 +130,23 @@ test("client domain: the brand's own domain, the most linked, or blank - never a
     "a link back to a publication is never the client",
   );
 });
+
+/**
+ * R140 part 4: a typed client domain is checked against the 30-day ceiling on
+ * blur, through the same function and sentence the run route uses, and the
+ * route that answers it spends nothing and reads no address.
+ */
+test("domain route: the run route's ceiling, said on blur, spending nothing", () => {
+  const route = readFileSync(join(import.meta.dirname, "../../app/api/coverage-check/domain/route.ts"), "utf8");
+  assert.match(route, /recentReadingRefusal\(domain\)/, "the domain route asks the shared ceiling");
+  assert.match(route, /normalizeDomain\(/, "the domain is normalised as the run route normalises it");
+  for (const spend of ["readPieces(", "readCoverage(", "runScan(", "startBenchmark(", "clientIp(", "recordModelCallDebit("]) {
+    assert.ok(!route.includes(spend), `the domain route must not call ${spend}`);
+  }
+  const ceiling = readFileSync(join(import.meta.dirname, "domain-ceiling.ts"), "utf8");
+  assert.match(ceiling, /return recentReadingLine\(domain\)/, "the refusal and the fixture share one sentence");
+  const form = readFileSync(join(import.meta.dirname, "../../components/coverage/CoverageForm.tsx"), "utf8");
+  assert.match(form, /onBlur=\{\(\) => void checkDomain\(domain\)\}/, "the client domain field asks on blur");
+  assert.match(form, /"\/api\/coverage-check\/domain"/);
+  assert.match(form, /json\.error === "domain_recently_read"/, "the run route's refusal lands under the field too");
+});

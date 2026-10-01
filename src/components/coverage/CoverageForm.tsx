@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import Turnstile from "@/components/scan/Turnstile";
 import { COVERAGE_LIMITS, WAITLIST_LIMITS } from "@/config/contact";
@@ -82,6 +82,8 @@ export default function CoverageForm() {
   const [unread, setUnread] = useState<string[]>([]);
   const [reportLimit, setReportLimit] = useState<string | null>(null);
   const [domainRefusal, setDomainRefusal] = useState<string | null>(null);
+  /** The client domain whose 30-day ceiling was last asked about (checkDomain). */
+  const askedFor = useRef("");
 
   /**
    * What the file turned out to hold, said here rather than after the reading
@@ -216,6 +218,8 @@ export default function CoverageForm() {
       setReportLimit(json.reportLimit ?? null);
       setUnread(json.unread ?? []);
       setDomainRefusal(json.domainRefusal ?? null);
+      // Already checked by the draft route; a blur without an edit asks nothing.
+      askedFor.current = (json.clientDomain ?? "").trim();
       // Turnstile tokens are single use and the run route checks its own.
       setTurnstileToken(null);
       setStep(2);
@@ -223,6 +227,30 @@ export default function CoverageForm() {
       setError("We could not reach the draft. Check your connection and try again.");
     } finally {
       setBusy(false);
+    }
+  }
+
+  /**
+   * The 30-day ceiling for a domain the visitor typed (R140 part 4), asked as
+   * the field loses focus so the refusal sits under it before the run. The
+   * draft already checked the domain it found. An answer for a domain the
+   * field no longer holds is dropped, and a failed check says nothing: the run
+   * route asks again and gives the same sentence.
+   */
+  async function checkDomain(value: string) {
+    const typed = value.trim();
+    if (!typed || typed === askedFor.current) return;
+    askedFor.current = typed;
+    try {
+      const res = await fetch("/api/coverage-check/domain", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ domain: typed }),
+      });
+      const json = (await res.json()) as { refusal?: string | null };
+      if (askedFor.current === typed) setDomainRefusal(res.ok ? (json.refusal ?? null) : null);
+    } catch {
+      // Said by the run route instead.
     }
   }
 
@@ -254,7 +282,12 @@ export default function CoverageForm() {
           turnstileToken,
         }),
       });
-      const json = (await res.json()) as { token?: string; message?: string };
+      const json = (await res.json()) as { token?: string; message?: string; error?: string };
+      if (json.error === "domain_recently_read" && json.message) {
+        // Under the field it is about, as the blur check would have put it.
+        setDomainRefusal(json.message);
+        return;
+      }
       if (!res.ok || !json.token) {
         // The server's own sentence, which knows why it refused. A generic
         // "something went wrong" here would replace "you have used today's
@@ -321,9 +354,11 @@ export default function CoverageForm() {
             onChange={(e) => {
               setDomain(e.target.value);
               // The draft's check was for the domain it found; a typed one is
-              // checked by the run route, with the same sentence.
+              // asked about on blur, below.
               setDomainRefusal(null);
+              askedFor.current = "";
             }}
+            onBlur={() => void checkDomain(domain)}
             required
           />
           {!domain.trim() && (

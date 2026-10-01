@@ -38,6 +38,14 @@ export async function recentReadingRefusal(domain: string): Promise<string | nul
     return null;
   }
   if (!data) return null;
+  return recentReadingLine(domain);
+}
+
+/**
+ * The refusal sentence on its own, so the domain route's local fixture draws
+ * the same words rather than a copy of them.
+ */
+export function recentReadingLine(domain: string): string {
   return (
     `We have already taken a free reading for ${domain} in the last ${FREE_RUN_DAYS} days. ` +
     "Open that reading's link to run it again, or get in touch and we will take another."
