@@ -240,6 +240,18 @@ const EXEMPT: Record<string, { why: string; evidence: RegExp; where: string }> =
     where: "src/lib/tracking/session.ts",
   },
   /**
+   * 1 October 2026, R142 part 2 (BRIEF-4 P2 Team): an owner's invite - one
+   * Resend message to the address invited, and no scan.
+   */
+  "app/[client]/member": {
+    why:
+      "Sends one invite mail when a signed-in owner of the client adds someone to its team, and starts " +
+      "no scan. At most INVITES_PER_OWNER_PER_DAY an owner a day, counted off dashboard_events " +
+      "member_invite rows before the write, and MEMBERS_PER_ACCOUNT live members an account.",
+    evidence: /export const INVITES_PER_OWNER_PER_DAY = \d+/,
+    where: "src/lib/tracking/team.ts",
+  },
+  /**
    * 30 September 2026, BRIEF-2 T11 /ask: a member's ask - one Resend message,
    * to us or the account's agency contact, and no scan.
    */
@@ -542,8 +554,12 @@ test("the kill switch is read in one place, so its reach is exactly the guarded 
      * Ten the same day: `app/[client]/ask`, a member's ask (BRIEF-2 T11). One
      * Resend message to us or the account's agency contact, three a member a
      * day; it starts no scan, so the decision is not moved.
+     *
+     * Eleven on 1 Oct 2026: `app/[client]/member`, an owner's team invite
+     * (R142 part 2, BRIEF-4 P2). One Resend message to the address invited,
+     * twenty an owner a day; it starts no scan, so the decision is not moved.
      */
-    10,
+    11,
     "the number of spending doors the kill switch does not reach has changed - see docs/blocked.md",
   );
 });

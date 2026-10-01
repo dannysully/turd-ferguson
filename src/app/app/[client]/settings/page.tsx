@@ -10,6 +10,7 @@ import { CLUSTER_BASE } from "@/lib/tracking/limits";
 import { rangeFrom } from "@/lib/tracking/overview-data";
 import { placedTier } from "@/lib/tracking/placement-figures";
 import { trackingRepo } from "@/lib/tracking/repo";
+import { teamToast } from "@/lib/tracking/team";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +26,8 @@ export const runtime = "nodejs";
  * membership rule as the overview: a slug the session is not a live member
  * of is a 404.
  */
-export default async function ClientSettings({ params }: { params: Promise<{ client: string }> }) {
+export default async function ClientSettings({ params, searchParams }: { params: Promise<{ client: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const sp = await searchParams;
   const repo = trackingRepo();
   const email = await repo.sessionEmail();
   if (!email) redirect("/app/login");
@@ -58,6 +60,9 @@ export default async function ClientSettings({ params }: { params: Promise<{ cli
           members={settings.members}
           email={email}
           mode={upgrade.mode}
+          slug={slug}
+          owner={client.role === "owner"}
+          toast={teamToast(sp.team, sp.who, settings.members.find((m) => m.email === sp.who)?.role ?? null)}
         />
       </div>
     </div>

@@ -49,10 +49,12 @@ const CALLS = walk(join(ROOT, "src"))
 /**
  * Floor, 1 Oct 2026: 7 calls - clientsFor, the login route's read, the auth
  * route's last_login_at, the admin list, admin remove and add, the checkout
- * signup's owner upsert. 5 of them reads or updates.
+ * signup's owner upsert. 5 of them reads or updates. 11 and 8 later the same
+ * day (R142 part 2): team.ts's live-team read, role change and remove, and the
+ * invite's upsert that revives a removed row.
  */
-const CALL_FLOOR = 7;
-const FILTERED_FLOOR = 5;
+const CALL_FLOOR = 11;
+const FILTERED_FLOOR = 8;
 
 test("census floor: the walk still finds the dashboard_members calls", () => {
   assert.ok(CALLS.length >= CALL_FLOOR, `${CALLS.length} calls, floor ${CALL_FLOOR}`);

@@ -301,6 +301,13 @@ const NO_CALLER: { route: string; method: string; why: string; earns: () => bool
     earns: () => readFileSync(join(ROOT, "src/components/app/Clusters.tsx"), "utf8").includes("action={`/api/app/${encodeURIComponent(slug)}/cluster`}"),
   },
   {
+    route: "/api/app/[client]/member",
+    method: "POST",
+    // R142 part 2, 1 Oct 2026 (BRIEF-4 P2 Team): invite, change a role, remove.
+    why: "Posted by the plain HTML Invite someone, Make editor/viewer and Remove forms on Settings, which the fetch scanner does not read.",
+    earns: () => readFileSync(join(ROOT, "src/components/app/Settings.tsx"), "utf8").includes("const action = `/api/app/${encodeURIComponent(slug)}/member`;"),
+  },
+  {
     route: "/api/checkout",
     method: "POST",
     // R91, 29 Sep 2026. It opens a live Stripe Checkout - the one route

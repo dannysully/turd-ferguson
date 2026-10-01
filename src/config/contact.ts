@@ -110,7 +110,7 @@ export const WAITLIST_LIMITS = { domain: 253, topic: 200, email: 254, website: 2
  * `note`: Add a note on the one-cluster page (T7 part 4b, 30 Sep 2026) - tracking_notes' own
  * check is 1 to 200 characters, and note.ts refuses past it before the insert.
  */
-export const APP_LIMITS = { search: 120, note: 200 };
+export const APP_LIMITS = { search: 120, note: 200, email: 254 };
 
 export const CHECKOUT_LIMITS = { email: 254, keyword: { min: 2, max: 120 }, tier: 20, sector: 60, clusters: 4, market: 4, scan: 32 };
 

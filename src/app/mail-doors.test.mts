@@ -107,7 +107,7 @@ const files = sourceFiles(SRC).map((f) => ({
 const SENDERS: Record<
   string,
   {
-    reach: "anonymous" | "behind the ceilings" | "open, limited per caller" | "signed by Stripe" | "signed-in member, limited per member" | "the tracking runner, once a client a Sunday";
+    reach: "anonymous" | "behind the ceilings" | "open, limited per caller" | "signed by Stripe" | "signed-in member, limited per member" | "signed-in owner, limited per owner" | "the tracking runner, once a client a Sunday";
     bound: string;
     evidence: RegExp;
     where: string;
@@ -188,6 +188,20 @@ const SENDERS: Record<
    * (never an address the request carries), and is capped per member a day,
    * counted off cta_events `asked` rows before anything is sent.
    */
+  /**
+   * 1 Oct 2026, R142 part 2 (BRIEF-4 P2 Team): the team invite. The one
+   * sender here whose recipient is typed by the caller - but only a signed-in
+   * owner of the client can post it, and it is capped per owner a day.
+   */
+  "src/lib/tracking/invite-mail.ts": {
+    reach: "signed-in owner, limited per owner",
+    bound:
+      "Needs a dashboard session and the owner role on the client. Mails the address the owner invited, " +
+      "with no login token, owner as reply-to. At most INVITES_PER_OWNER_PER_DAY invites an owner a day, " +
+      "counted off dashboard_events member_invite rows before the write, and MEMBERS_PER_ACCOUNT live members.",
+    evidence: /export const INVITES_PER_OWNER_PER_DAY = \d+/,
+    where: "src/lib/tracking/team.ts",
+  },
   "src/lib/tracking/ask-mail.ts": {
     reach: "signed-in member, limited per member",
     bound:

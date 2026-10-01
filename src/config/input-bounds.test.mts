@@ -236,6 +236,23 @@ const EXEMPT: Record<string, Exemption> = {
     why: "Hide for 30 days's hidden cta. type=hidden, nobody types in it; ask.ts readHideCta accepts only the five cta_events ctas.",
     holds: [{ file: "lib/tracking/ask.ts", needs: "export const readHideCta" }],
   },
+  // R142 part 2 (1 Oct 2026): Settings' team forms carry the op, the member's
+  // email and the new role as hidden fields. Nobody types in them; team.ts
+  // readTeamForm accepts only the three ops, an email that passes readEmail
+  // (trimmed, format-checked, at most EMAIL_MAX) and Editor or Viewer.
+  ...Object.fromEntries(
+    ["tm-role-op-${i}", "tm-role-email-${i}", "tm-role-role-${i}", "tm-rm-op-${i}", "tm-rm-email-${i}", "tm-inv-op"].map((id) => [
+      id,
+      {
+        why: [
+          "a Settings team form's hidden field: the op, a listed member's email or the new role.",
+          "type=hidden, which maxLength does not apply to and nobody types in. team.ts readTeamForm",
+          "accepts only invite/role/remove, an email readEmail passes, and editor or viewer.",
+        ].join(" "),
+        holds: [{ file: "lib/tracking/team.ts", needs: "e.length <= EMAIL_MAX && isPlausibleEmail(e)" }],
+      },
+    ]),
+  ),
   // R140 (1 Oct 2026): step 2's coverage ticks. type=checkbox, nobody types in
   // it and it carries no value; what is posted is the ticked rows' urls, which
   // came from parseCoverageCsv and are cut to MAX_COVERAGE_URLS by tickedRows

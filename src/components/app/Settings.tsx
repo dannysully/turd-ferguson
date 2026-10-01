@@ -1,4 +1,5 @@
 import TierName, { type TierKey } from "@/components/TierName";
+import { APP_LIMITS } from "@/config/contact";
 import { T } from "@/config/tokens";
 import type { UpsellMode } from "@/lib/tracking/ask";
 import { formatDay } from "@/lib/tracking/figures";
@@ -8,9 +9,11 @@ import type { Member } from "@/lib/tracking/settings-data";
 /**
  * Settings (R142 part 1, 1 Oct 2026; BRIEF-4 P2). No board: the Clusters
  * page's shell - title block, bordered sections at 18px, hairlines. Account
- * and Team are read-only for everyone in this part; inviting, roles and
- * removal (part 2) and Billing (part 3) follow. Everything here is server
- * drawn, so it all works with JS off.
+ * is read-only for everyone. Team is read-only for editors and viewers; an
+ * owner invites, changes a role and removes (part 2), each a plain form posted
+ * to /api/app/[client]/member, with "Remove" behind a <details> confirm.
+ * Billing (part 3) follows. Everything here is server drawn, so it all works
+ * with JS off.
  */
 
 const SECTION = { background: T.surface, border: `1px solid ${T.line}`, borderRadius: "18px", overflow: "hidden" } as const;
@@ -21,6 +24,9 @@ const ROW = { display: "flex", alignItems: "baseline", justifyContent: "space-be
 /** A London calendar day from a timestamp, as the rest of /app writes days. */
 const dayOf = (iso: string) => formatDay(new Date(iso).toLocaleDateString("en-CA", { timeZone: "Europe/London" }), true);
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+const BUTTON = { height: "40px", padding: "0 14px", border: `1px solid ${T.line}`, borderRadius: "10px", background: T.surface, color: T.ink, fontFamily: "inherit", fontSize: "13px", fontWeight: 600, cursor: "pointer" } as const;
+const DARK = { ...BUTTON, border: 0, background: T.ink, color: T.surface } as const;
+const FIELD = { height: "40px", padding: "0 12px", border: `1px solid ${T.line}`, borderRadius: "10px", background: T.surface, color: T.ink, fontFamily: "inherit", fontSize: "14px", boxSizing: "border-box" } as const;
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -43,6 +49,9 @@ export default function Settings({
   members,
   email,
   mode,
+  slug,
+  owner,
+  toast,
 }: {
   domain: string;
   brand: string | null;
@@ -56,7 +65,14 @@ export default function Settings({
   /** The signed-in member, for "You". */
   email: string;
   mode: UpsellMode;
+  slug: string;
+  /** The signed-in member is an owner: the team forms are drawn. */
+  owner: boolean;
+  /** team.ts teamToast's words, or null. */
+  toast: string | null;
 }) {
+  const action = `/api/app/${encodeURIComponent(slug)}/member`;
+  const owners = members.filter((m) => m.role === "owner").length;
   const names = [brand?.trim() || domain, ...aliases.filter((a) => a !== brand)];
   return (
     <div className="app-col" style={{ display: "flex", flexDirection: "column", gap: "20px", minWidth: 0, maxWidth: "880px" }}>
@@ -64,6 +80,11 @@ export default function Settings({
         <h1 style={{ margin: 0, fontSize: "28px", fontWeight: 700, letterSpacing: "-0.03em", color: T.ink }}>Settings</h1>
         <p style={{ margin: 0, fontSize: "14px", lineHeight: 1.5, color: T.soft }}>Your plan, the names we match and who can see this dashboard.</p>
       </header>
+      {toast ? (
+        <p role="status" style={{ margin: 0, padding: "12px 16px", borderRadius: "14px", background: T.ink, color: T.surface, fontSize: "14px", lineHeight: 1.4, alignSelf: "flex-start", maxWidth: "100%", boxSizing: "border-box", overflowWrap: "anywhere" }}>
+          {toast}
+        </p>
+      ) : null}
 
       <section aria-labelledby="set-account" style={SECTION}>
         <h2 id="set-account" style={HEAD}>Account</h2>
@@ -101,8 +122,8 @@ export default function Settings({
           <p style={{ margin: 0, padding: "18px 24px", fontSize: "14px", color: T.soft }}>No members to show.</p>
         ) : (
           <ul style={{ margin: 0, padding: 0, listStyle: "none" }}>
-            {members.map((m) => (
-              <li key={m.email} className="set-member" style={{ ...ROW, alignItems: "center", flexWrap: "nowrap" }}>
+            {members.map((m, i) => (
+              <li key={m.email} className="set-member" style={{ ...ROW, alignItems: "center", flexWrap: owner ? "wrap" : "nowrap" }}>
                 <span style={{ display: "flex", flexDirection: "column", gap: "2px", minWidth: 0, flex: "1 1 auto" }}>
                   <span style={{ fontWeight: 600, color: T.ink, overflowWrap: "anywhere" }}>
                     {m.name ?? m.email}
@@ -110,14 +131,57 @@ export default function Settings({
                   </span>
                   {m.name ? <span style={{ fontSize: "13px", color: T.soft, overflowWrap: "anywhere" }}>{m.email}</span> : null}
                 </span>
-                <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "2px", fontSize: "13px", flexShrink: 0, textAlign: "right" }}>
+                <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "2px", fontSize: "13px", flexShrink: 0, textAlign: "right", marginLeft: "auto" }}>
                   <span style={{ fontWeight: 600, color: T.ink }}>{cap(m.role)}</span>
                   <span style={{ color: T.soft }}>{m.last_login_at ? `Last signed in ${dayOf(m.last_login_at)}` : "Not signed in yet"}</span>
                 </span>
+                {/* Owners change someone else's row; never their own, never the last owner. Owners are made in admin. */}
+                {owner && m.email !== email && !(m.role === "owner" && owners <= 1) ? (
+                  <span className="set-manage" style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: "8px", flexShrink: 0, marginLeft: "auto" }}>
+                    {m.role !== "owner" ? (
+                      <form method="post" action={action} style={{ margin: 0 }}>
+                        <input type="hidden" id={`tm-role-op-${i}`} name="op" value="role" />
+                        <input type="hidden" id={`tm-role-email-${i}`} name="email" value={m.email} />
+                        <input type="hidden" id={`tm-role-role-${i}`} name="role" value={m.role === "editor" ? "viewer" : "editor"} />
+                        <button type="submit" style={BUTTON}>{m.role === "editor" ? "Make viewer" : "Make editor"}</button>
+                      </form>
+                    ) : null}
+                    <details>
+                      <summary style={{ ...BUTTON, display: "flex", alignItems: "center", listStyle: "none" }}>Remove</summary>
+                      <form method="post" action={action} style={{ margin: "8px 0 0", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "8px", textAlign: "right" }}>
+                        <input type="hidden" id={`tm-rm-op-${i}`} name="op" value="remove" />
+                        <input type="hidden" id={`tm-rm-email-${i}`} name="email" value={m.email} />
+                        <span style={{ fontSize: "13px", color: T.soft, maxWidth: "260px" }}>They lose access to this dashboard at once.</span>
+                        <button type="submit" style={DARK}>Remove {m.name ?? m.email}</button>
+                      </form>
+                    </details>
+                  </span>
+                ) : null}
               </li>
             ))}
           </ul>
         )}
+        {owner ? (
+          <details className="set-invite" style={{ borderTop: `1px solid ${T.line}`, padding: "14px 24px" }}>
+            <summary style={{ ...BUTTON, display: "inline-flex", alignItems: "center", listStyle: "none" }}>Invite someone</summary>
+            <form method="post" action={action} style={{ margin: "14px 0 0", display: "flex", flexWrap: "wrap", alignItems: "flex-end", gap: "12px" }}>
+              <input type="hidden" id="tm-inv-op" name="op" value="invite" />
+              <label style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "13px", color: T.soft, flex: "1 1 240px" }}>
+                Email
+                <input type="email" id="tm-inv-email" name="email" required maxLength={APP_LIMITS.email} autoComplete="off" style={{ ...FIELD, width: "100%" }} />
+              </label>
+              <label style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "13px", color: T.soft }}>
+                Role
+                <select name="role" defaultValue="editor" style={FIELD}>
+                  <option value="editor">Editor</option>
+                  <option value="viewer">Viewer</option>
+                </select>
+              </label>
+              <button type="submit" style={DARK}>Send invite</button>
+              <span style={{ flexBasis: "100%", fontSize: "13px", color: T.soft }}>Editors can add and stop prompts; viewers can only read. We email them; they sign in with that address.</span>
+            </form>
+          </details>
+        ) : null}
       </section>
 
       <section aria-labelledby="set-out" style={SECTION}>
@@ -125,7 +189,7 @@ export default function Settings({
         <div style={ROW}>
           <span style={{ color: T.soft }}>Signed in as {email}</span>
           <form method="post" action="/api/app/logout" style={{ margin: 0 }}>
-            <button type="submit" style={{ height: "40px", padding: "0 14px", border: `1px solid ${T.line}`, borderRadius: "10px", background: T.surface, color: T.ink, fontFamily: "inherit", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>
+            <button type="submit" style={BUTTON}>
               Sign out
             </button>
           </form>

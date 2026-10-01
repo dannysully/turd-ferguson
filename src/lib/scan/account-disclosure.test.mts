@@ -170,6 +170,9 @@ const RECORDED: Record<string, string> = {
   // 1 Oct 2026, R142 (BRIEF-4 P2): Settings' team list. The id picks the account's members and is dropped.
   "src/lib/tracking/settings-data.ts :: account_id, brand_aliases":
     "finds the client's account server-side to list its live members; SettingsData carries no account_id.",
+  // 1 Oct 2026, R142 part 2 (BRIEF-4 P2 Team): the owner's own client, already membership-checked.
+  "src/app/api/app/[client]/member/route.ts :: account_id":
+    "the member route's team lookup; the 303 carries only the toast word and the email the owner typed.",
 };
 
 /**
@@ -199,6 +202,12 @@ const MENTIONED: Record<string, string> = {
   "src/lib/tracking/settings-data.ts":
     "R142 (1 Oct 2026): reads the column to list the client's live members for Settings; " +
     "used only in the member read's filter, and SettingsData returns emails, names, roles and sign-in days, never the id.",
+  "src/app/api/app/[client]/member/route.ts":
+    "R142 part 2 (1 Oct 2026): reads the owner's own client's account_id to read and change its team. " +
+    "Used only in team.ts filters and writes; the route answers with a 303 carrying a toast word and an email, never the id.",
+  "src/lib/tracking/team.ts":
+    "R142 part 2 (1 Oct 2026): filters and writes dashboard_members by the account_id the member route passes; " +
+    "returns emails, roles and removed_at only, never the id.",
   "src/lib/checkout/signup.ts":
     "C4 (30 Sep 2026): writes the column on client_domains and dashboard_members when a " +
     "paid checkout from a scan becomes a client. Writes, behind the Stripe signature; " +

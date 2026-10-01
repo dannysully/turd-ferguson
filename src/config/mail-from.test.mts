@@ -232,6 +232,11 @@ const SENDERS: { file: string; sends: number; why: string }[] = [
     why: "a signed-in member's ask, 30 Sep 2026 (BRIEF-2 T11 /ask) - to us, or to the account's agency contact in agency mode, member as reply-to, 3 per member a day",
   },
   {
+    file: "src/lib/tracking/invite-mail.ts",
+    sends: 1,
+    why: "the team invite, 1 Oct 2026 (R142 part 2, BRIEF-4 P2) - to the address a signed-in owner invited, owner as reply-to, no login token, 20 per owner a day",
+  },
+  {
     file: "src/lib/tracking/link-mail.ts",
     sends: 1,
     why: "the Sunday placement link check's alert, 30 Sep 2026 (BRIEF-2 T12, R96) - to us at the contact destination, from the tracking runner, one per client a Sunday when a link has gone",
@@ -257,8 +262,9 @@ test("every send takes its From from the one reader", () => {
   // 5 since 29 Sep 2026: the dashboard login link (T3). 6 since 30 Sep 2026:
   // the order email from the Stripe webhook (C4). 7 since 30 Sep 2026: a
   // member's ask from the dashboard (T11 /ask). 8 since 30 Sep 2026: the
-  // Sunday link check's alert (T12, R96).
-  assert.equal(all.length, 8, `expected 8 sends, the walk found ${all.length}`);
+  // Sunday link check's alert (T12, R96). 9 since 1 Oct 2026: the team
+  // invite (R142 part 2, BRIEF-4 P2).
+  assert.equal(all.length, 9, `expected 9 sends, the walk found ${all.length}`);
 
   for (const s of all) {
     assert.equal(s.from, "mailFrom()", `${s.file} sets its own From: ${s.from}`);
@@ -314,6 +320,10 @@ const RECIPIENTS: { to: string; why: string }[] = [
     why: "us, or the account's agency contact (T11 /ask, 30 Sep 2026) - accounts.upsell_contact_email, which only Nomada writes through /admin/tracking setUpsell; the /ask route reads it from the member's own account, never from the request",
   },
   {
+    to: "input.to",
+    why: "the address a signed-in owner invited to their own client's dashboard (R142 part 2, 1 Oct 2026; BRIEF-4 P2) - typed by the owner, not a stranger: the member route checks session, membership and the owner role, writes the member row first, and caps it at INVITES_PER_OWNER_PER_DAY",
+  },
+  {
     to: "input.memberEmail",
     why: "a dashboard member's stored address (T3, 29 Sep 2026) - the login route reads it back from dashboard_members, which only Nomada writes through /admin/tracking, and passes that rather than the typed one",
   },
@@ -324,8 +334,9 @@ test("every send is addressed to somebody we are allowed to write to", () => {
   // 5 since 29 Sep 2026: the dashboard login link (T3). 6 since 30 Sep 2026:
   // the order email from the Stripe webhook (C4). 7 since 30 Sep 2026: a
   // member's ask from the dashboard (T11 /ask). 8 since 30 Sep 2026: the
-  // Sunday link check's alert (T12, R96), to the contact destination.
-  assert.equal(all.length, 8, `expected 8 sends, the walk found ${all.length}`);
+  // Sunday link check's alert (T12, R96), to the contact destination. 9 since
+  // 1 Oct 2026: the team invite (R142 part 2), to the address an owner invited.
+  assert.equal(all.length, 9, `expected 9 sends, the walk found ${all.length}`);
 
   const allowed = new Map(RECIPIENTS.map((r) => [r.to, r.why]));
   for (const s of all) {
