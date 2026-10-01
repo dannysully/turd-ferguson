@@ -6,6 +6,7 @@ import { requestScan } from "@/app/actions/waitlist";
 import { WAITLIST_LIMITS } from "@/config/contact";
 import { FREE_ENGINE_LABELS, listOf } from "@/config/scan-shape";
 import { T } from "@/config/tokens";
+import { isPlausibleDomain, normalizeDomain } from "@/lib/scan/domain";
 
 import { DomainScreen, TopicScreen, btn, field, label } from "./screens";
 
@@ -40,11 +41,12 @@ export default function RequestScanForm({ initialDomain = "" }: { initialDomain?
    */
   const [website, setWebsite] = useState("");
 
-  const DOMAIN = /^(https?:\/\/)?([a-z0-9-]+\.)+[a-z]{2,}(\/.*)?$/i;
-
   function onDomain(e: React.FormEvent) {
     e.preventDefault();
-    if (!DOMAIN.test(domain.trim())) {
+    // The pair requestScan and the live checker judge with (R151, 1 Oct 2026).
+    // This was a private regex, which refused "example.com:8080" and other
+    // addresses the action downstream accepts once normalised.
+    if (!isPlausibleDomain(normalizeDomain(domain))) {
       setError("Enter a domain, like example.com");
       return;
     }
