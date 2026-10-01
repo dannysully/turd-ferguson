@@ -283,6 +283,19 @@ for (const width of [1280, 390]) {
       );
       assert.deepEqual(stops.filter((s) => !s.ring || !s.inMain), [], "every stop is in main with a visible focus");
       assert.equal(await page.getByRole("button", { name: "US $" }).first().getAttribute("aria-pressed"), "true");
+      // R151 (1 Oct 2026, 11:10Z): what a screen reader hears at each stop - every
+      // field by its label, and the pills inside a named group, not "US $" alone.
+      const unlabelled = await page.evaluate(() =>
+        [...document.querySelectorAll("main input:not([type=hidden]), main select, main textarea")]
+          .filter((e) => !(e.id && document.querySelector(`label[for="${e.id}"]`)) && !e.closest("label") && !e.getAttribute("aria-label"))
+          .map((e) => e.getAttribute("name") ?? e.tagName),
+      );
+      assert.deepEqual(unlabelled, [], "every checkout field has a label");
+      assert.equal(
+        await page.getByRole("button", { name: "US $" }).first().evaluate((e) => e.closest('[role="group"]')?.getAttribute("aria-label") ?? null),
+        "Prices in",
+        "the market pills are a group with a name",
+      );
       await page.getByRole("button", { name: "UK £" }).first().focus();
       await page.keyboard.press("Space");
       assert.match((await page.locator('[data-figure="checkout-price"]').first().textContent()) ?? "", /^£\d.*plus VAT$/);
