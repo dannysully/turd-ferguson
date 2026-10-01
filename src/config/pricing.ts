@@ -31,9 +31,9 @@ export const CONTACT_URL = "/contact";
 /**
  * /contact for one tier, as `?tier=<plain tier word>` - the one pattern for
  * carrying a tier to the form, read back by ContactTier and posted with the
- * enquiry. alwaystracked uses it because it is set up by hand, with no
- * checkout (Danny, 26 Sep 2026); the sector tiles' call CTAs add their picks
- * (R69).
+ * enquiry. The sector tiles' call CTAs add their picks (R69). alwaystracked
+ * used it until it had a checkout (Danny, 26 Sep 2026; R91); since R148
+ * (1 Oct 2026) no alwaystracked CTA does.
  */
 export const CONTACT_TIER_PARAM = "tier";
 export function contactUrlFor(tier: TierKey): string {

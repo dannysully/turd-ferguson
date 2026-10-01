@@ -1,8 +1,8 @@
-import { MarketPrice, MarketToggle, PackLine, SectorPrice, SelectionCta } from "@/components/SectorPrice";
+import { MarketCta, MarketPrice, MarketToggle, PackLine, SectorPrice, SelectionCta } from "@/components/SectorPrice";
 import TierEngines from "@/components/TierEngines";
 import TierName, { TierText, type TierKey } from "@/components/TierName";
 import { ALWAYS_ON, ALWAYS_ON_SUPPORT } from "@/config/always-on";
-import { CLUSTERS_LINE, TIERS, contactUrlFor } from "@/config/pricing";
+import { CLUSTERS_LINE, TIERS, checkoutUrlFor } from "@/config/pricing";
 import { CARD, SHELL, T } from "@/config/tokens";
 
 import { D, PACKAGES_WASH } from "./dark";
@@ -55,8 +55,10 @@ const ctaStyle = (emphasis?: boolean): React.CSSProperties => ({
 });
 
 // Labels are each tier's `action` in pricing.ts (R79); only the targets live here.
+// alwaystracked goes to the order form, as its tier page does - it went to
+// /contact from before checkout existed (R148 journey pass, 1 Oct 2026).
 const CTA_HREF: Partial<Record<TierKey, string>> = {
-  tracked: contactUrlFor("tracked"),
+  tracked: checkoutUrlFor("tracked"),
   everywhere: "/contact",
 };
 
@@ -269,9 +271,9 @@ export default function Packages({ full = false }: { full?: boolean }) {
                         {t.action}
                       </SelectionCta>
                     ) : (
-                      <a href={CTA_HREF[t.key] ?? t.href} className="pkg-btn" style={ctaStyle(t.emphasis)}>
+                      <MarketCta href={CTA_HREF[t.key] ?? t.href} className="pkg-btn" style={ctaStyle(t.emphasis)}>
                         {t.action}
-                      </a>
+                      </MarketCta>
                     )}
                     </div>
                   </th>

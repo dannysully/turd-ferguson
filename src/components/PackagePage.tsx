@@ -1,4 +1,4 @@
-import { MarketPrice, MarketToggle, PackLine, SectorPrice, SelectionCta } from "@/components/SectorPrice";
+import { MarketCta, MarketPrice, MarketToggle, PackLine, SectorPrice, SelectionCta } from "@/components/SectorPrice";
 import DeliverableTiles, { type Tile } from "@/components/DeliverableTiles";
 import TierEngines from "@/components/TierEngines";
 import WalkthroughForm from "@/components/scan/WalkthroughForm";
@@ -186,11 +186,12 @@ export default function PackagePage({
               {tier.action}
             </SelectionCta>
           ) : (
-            <a href={tier.key === "tracked" ? checkoutUrlFor("tracked") : CONTACT_URL} className="btn-primary" style={CTA_STYLE}>
+            <MarketCta href={tier.key === "tracked" ? checkoutUrlFor("tracked") : CONTACT_URL} className="btn-primary" style={CTA_STYLE}>
               {/* The tier's own verb from pricing.ts (R79). alwayseverywhere's
-                  still goes to /contact as a call - only the label moved. */}
+                  still goes to /contact as a call - only the label moved. The
+                  market picked on the page travels with it (R148). */}
               {tier.action}
-            </a>
+            </MarketCta>
           )}
           <Link
             href="/#scan"

@@ -544,6 +544,12 @@ html[data-motion="on"] .tb-now { animation: tbNow 10s infinite both; }
   .tb-meta, .tb-pill, .tb-was-rank { display: none; }
 }
 
+/* The market toggle's pills reach the 44px tap target on a phone (R148/R151
+   journey pass, 1 Oct 2026: they were 30px at 390). */
+@media (max-width: 640px) {
+  .mkt-btn { min-height: 44px; }
+}
+
 /* PR agencies: the hero's coverage fan-out (PRAgencies.dc.html, Q12, 25 Sep
    2026) - pieces, the wires, the answers they feed, 340px / 1fr / 380px. On a
    phone the wires go (they only mean anything between two columns) and the

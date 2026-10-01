@@ -107,6 +107,7 @@ export function MarketToggle({ tone = "light", style }: { tone?: "light" | "dark
         <button
           key={x}
           type="button"
+          className="mkt-btn"
           aria-pressed={m === x}
           onClick={() => setMarket(x)}
           style={{
@@ -265,6 +266,22 @@ export function SectorPrice({
  * when they price as a call. Before mount - and with no script - it is the
  * plain `href`, which is what every CTA was.
  */
+/**
+ * A link to a flat-priced order form that carries the market the visitor
+ * picked, so a UK pick reaches /checkout as UK rather than falling back to
+ * the US default (R148 journey pass, 1 Oct 2026). Before mount, and for the
+ * default market, the plain href.
+ */
+export function MarketCta({ href, className, style, children }: { href: string; className?: string; style?: React.CSSProperties; children: React.ReactNode }) {
+  const m = useMarket();
+  const mounted = useMounted();
+  return (
+    <a href={mounted ? withSelection(href, { ...SELECTION_DEFAULT, market: m }) : href} className={className} style={style}>
+      {children}
+    </a>
+  );
+}
+
 export function SelectionCta({
   tier,
   href,
