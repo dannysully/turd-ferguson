@@ -150,3 +150,24 @@ test("domain route: the run route's ceiling, said on blur, spending nothing", ()
   assert.match(form, /"\/api\/coverage-check\/domain"/);
   assert.match(form, /json\.error === "domain_recently_read"/, "the run route's refusal lands under the field too");
 });
+
+/**
+ * R140 part 5: step 2 in the scan confirm screen's layout - its own heading on
+ * the left, the fields and the run in the card, the coverage and the prompts as
+ * headed sections below - while step 1 keeps the page's introduction.
+ */
+test("step 2 mirrors the confirm screen; step 1 keeps the page's introduction", () => {
+  const form = readFileSync(join(import.meta.dirname, "../../components/coverage/CoverageForm.tsx"), "utf8");
+  const step2 = form.slice(form.indexOf("if (step === 1) {"));
+  const at = (s: string) => {
+    const i = step2.indexOf(s);
+    assert.ok(i >= 0, `${s} is not in step 2`);
+    return i;
+  };
+  assert.ok(at("{intro}") < at("This is what we read off the coverage. Correct it before we run."), "step 1 draws the page's intro, step 2 its own heading");
+  assert.ok(at("The coverage we report on") > at('id="cc-market"'), "the coverage is a section below the card");
+  assert.ok(at("The prompts we ask") > at("The coverage we report on"), "the prompts come after the coverage, as on the confirm screen");
+  assert.equal(step2.split("{runControls}").length - 1, 2, "both steps run from the card");
+  const page = readFileSync(join(import.meta.dirname, "../../app/coverage-check/page.tsx"), "utf8");
+  assert.match(page, /<CoverageForm\s+intro=\{/, "the page hands its introduction to the form");
+});

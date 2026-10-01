@@ -123,7 +123,10 @@ const pill = (bg: string, fg: string): React.CSSProperties => ({
 export default function CoverageCheckPage() {
   return (
     <main style={{ ...SHELL, paddingTop: "42px", paddingBottom: "44px", display: "flex", flexDirection: "column", gap: "26px" }}>
-      <div className="board-head" style={{ ...GRID12, alignItems: "start" }}>
+      {/* The form owns this grid since R140 part 5: step 2 replaces this
+          introduction with the draft's own, in the confirm screen's layout. */}
+      <CoverageForm
+        intro={
         <div style={{ gridColumn: "span 7" }}>
           <div style={MICRO}>Free coverage check</div>
           <h1 style={{ margin: "10px 0 0", fontSize: "36px", fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.18, color: T.ink }}>
@@ -137,11 +140,8 @@ export default function CoverageCheckPage() {
             instead. Dated, stored and re-runnable, so the next reading is a comparison rather than another snapshot.
           </p>
         </div>
-
-        <div style={{ ...CARD, gridColumn: "span 5", padding: "22px" }}>
-          <CoverageForm />
-        </div>
-      </div>
+        }
+      />
 
       <section>
         <div className="board-head" style={{ ...GRID12, marginBottom: "14px" }}>

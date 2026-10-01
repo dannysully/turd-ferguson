@@ -5,7 +5,7 @@ import { useRef, useState } from "react";
 
 import Turnstile from "@/components/scan/Turnstile";
 import { COVERAGE_LIMITS, WAITLIST_LIMITS } from "@/config/contact";
-import { MICRO, T } from "@/config/tokens";
+import { CARD, GRID12, H2, MICRO, T } from "@/config/tokens";
 import { MAX_COVERAGE_BYTES, MAX_COVERAGE_ROWS, MAX_COVERAGE_URLS, parseCoverageCsv } from "@/lib/coverage/csv";
 import { type DraftRow, runBlocker, tickedRows } from "@/lib/coverage/draft";
 import { MAX_AGENCY_PROMPTS } from "@/lib/coverage/prompts";
@@ -41,7 +41,7 @@ const field: React.CSSProperties = {
 
 const labelStyle: React.CSSProperties = { ...MICRO, display: "block", marginBottom: "6px" };
 
-export default function CoverageForm() {
+export default function CoverageForm({ intro }: { intro: React.ReactNode }) {
   const router = useRouter();
   const [brand, setBrand] = useState("");
   const [domain, setDomain] = useState("");
@@ -303,275 +303,9 @@ export default function CoverageForm() {
     }
   }
 
-  return (
-    <form onSubmit={step === 1 ? onDraft : onSubmit} noValidate>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "12px" }}>
-        <div style={MICRO}>{step === 1 ? "Step 1 of 2: the coverage" : "Step 2 of 2: check the draft"}</div>
-        {step === 2 && (
-          <button
-            type="button"
-            onClick={() => {
-              setStep(1);
-              setError("");
-              setTurnstileToken(null);
-            }}
-            style={{ fontFamily: "inherit", fontSize: "13px", color: T.accent, background: "none", border: "none", padding: 0, cursor: "pointer" }}
-          >
-            Back to the coverage
-          </button>
-        )}
-      </div>
-      <div style={{ marginTop: "12px", display: "flex", flexDirection: "column", gap: "12px" }}>
-        {step === 2 && (<>
-        <div>
-          <label htmlFor="cc-brand" style={labelStyle}>
-            Brand name
-          </label>
-          {/* Bounded here as well as on the server, for the reason the file
-              input above is: the server's limit is the one that counts, and
-              this one exists so a visitor is stopped at the field rather than
-              by a refusal that reads as if they left it blank. */}
-          <input
-            id="cc-brand"
-            style={field}
-            maxLength={COVERAGE_LIMITS.brand.max}
-            placeholder="Your client"
-            value={brand}
-            onChange={(e) => setBrand(e.target.value)}
-            required
-          />
-        </div>
-        <div>
-          <label htmlFor="cc-domain" style={labelStyle}>
-            Client domain
-          </label>
-          <input
-            id="cc-domain"
-            style={field}
-            maxLength={WAITLIST_LIMITS.domain}
-            placeholder="clientdomain.com"
-            value={domain}
-            onChange={(e) => {
-              setDomain(e.target.value);
-              // The draft's check was for the domain it found; a typed one is
-              // asked about on blur, below.
-              setDomainRefusal(null);
-              askedFor.current = "";
-            }}
-            onBlur={() => void checkDomain(domain)}
-            required
-          />
-          {!domain.trim() && (
-            <p style={{ margin: "6px 0 0", fontSize: "12.5px", color: T.badFg, lineHeight: 1.5 }}>
-              We could not find the client&rsquo;s site in the coverage. Add it to run the reading.
-            </p>
-          )}
-          {domainRefusal && (
-            <p role="alert" style={{ margin: "6px 0 0", fontSize: "12.5px", color: T.badFg, lineHeight: 1.5 }}>
-              {domainRefusal}
-            </p>
-          )}
-        </div>
-        <div>
-          <label htmlFor="cc-topic" style={labelStyle}>
-            What the client should be referenced for
-          </label>
-          <input
-            id="cc-topic"
-            style={field}
-            maxLength={COVERAGE_LIMITS.topic.max}
-            placeholder="same-day settlement"
-            value={topic}
-            onChange={(e) => setTopic(e.target.value)}
-            required
-          />
-          <p style={{ margin: "6px 0 0", fontSize: "12.5px", color: T.soft, lineHeight: 1.5 }}>
-            The thing you want the answer to name them for. A capability or a claim, not a headline -
-            &ldquo;same-day settlement&rdquo;, not &ldquo;Brand announces exciting news&rdquo;.
-          </p>
-        </div>
-        <div>
-          <label htmlFor="cc-segment" style={labelStyle}>
-            Who it is for <span style={{ fontWeight: 400, color: T.soft }}>optional</span>
-          </label>
-          <input
-            id="cc-segment"
-            style={field}
-            maxLength={COVERAGE_LIMITS.segment.max}
-            placeholder="independent retailers"
-            value={segment}
-            onChange={(e) => setSegment(e.target.value)}
-          />
-          <p style={{ margin: "6px 0 0", fontSize: "12.5px", color: T.soft, lineHeight: 1.5 }}>
-            Sharpens the buying question. Without it we ask the broader form, which is a weaker question but still a
-            real one.
-          </p>
-        </div>
-        <div>
-          <label htmlFor="cc-market" style={labelStyle}>
-            Market
-          </label>
-          <select
-            id="cc-market"
-            style={field}
-            value={market}
-            onChange={(e) => setMarket(e.target.value === "US" ? "US" : "UK")}
-          >
-            <option value="UK">United Kingdom</option>
-            <option value="US">United States</option>
-          </select>
-          {marketLine && (
-            <p style={{ margin: "6px 0 0", fontSize: "12.5px", color: T.soft, lineHeight: 1.5 }}>{marketLine}</p>
-          )}
-        </div>
-        <fieldset style={{ border: "none", margin: 0, padding: 0 }}>
-          <legend style={labelStyle}>Coverage we report on</legend>
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            {rows.map((r, i) => (
-              <label key={r.url} style={{ display: "flex", gap: "8px", alignItems: "flex-start", fontSize: "13.5px", color: T.ink, lineHeight: 1.45 }}>
-                <input
-                  id={`cc-row-${i}`}
-                  type="checkbox"
-                  checked={r.ticked}
-                  disabled={!r.ticked && tickedCount >= MAX_COVERAGE_URLS}
-                  onChange={(e) => setRows(rows.map((x, j) => (j === i ? { ...x, ticked: e.target.checked } : x)))}
-                  style={{ marginTop: "3px" }}
-                />
-                <span>
-                  {/* A long URL may break anywhere; the words after it break only between words. */}
-                  <span style={{ wordBreak: "break-all" }}>{r.url}</span>
-                  {unread.includes(r.url) && <span style={{ color: T.soft }}> - could not be read, still counted</span>}
-                </span>
-              </label>
-            ))}
-          </div>
-          {reportLimit && (
-            <p style={{ margin: "8px 0 0", fontSize: "12.5px", color: T.soft, lineHeight: 1.5 }}>
-              {`${reportLimit}. ${count(rows.length, "link")} found; tick the ${MAX_COVERAGE_URLS} to check.`}
-            </p>
-          )}
-          {unread.length > 0 && (
-            <p style={{ margin: "8px 0 0", fontSize: "12.5px", color: T.soft, lineHeight: 1.5 }}>
-              {`We could not read ${count(unread.length, "page")} (a paywall or a block, usually). It still counts as coverage; it just added nothing to the draft.`}
-            </p>
-          )}
-        </fieldset>
-        </>)}
-        {step === 1 && (
-        <div>
-          <label htmlFor="cc-links" style={labelStyle}>
-            Coverage
-          </label>
-          <textarea
-            id="cc-links"
-            style={{ ...field, minHeight: "96px", resize: "vertical" }}
-            maxLength={COVERAGE_LIMITS.links.max}
-            /* No scheme, deliberately. `parseCoverageCsv` and `comparableUrl` both
-                accept a bare host, and `route-closure.test.mts` reads an https
-                literal in a component as an origin the page loads - which this
-                is not, it is example text in a placeholder. The shorter form
-                is also what somebody pasting out of a coverage report has. */
-            placeholder={"publication.com/the-piece-you-placed\nanother.com/and-the-next"}
-            value={pasted}
-            onChange={(e) => setPasted(e.target.value)}
-          />
-          <p style={{ margin: "6px 0 0", fontSize: "12.5px", color: T.soft, lineHeight: 1.5 }}>
-            {`One URL per line, up to ${MAX_COVERAGE_URLS}. We report on each one: whether the engines cited that page, or the publication, or neither.`}
-          </p>
-          {/* The board's dashed drop zone. The native input stays, stretched
-              transparent over the zone, so a dropped file, a click and the
-              keyboard all reach the real control; the label is its name,
-              which the bare "Choose file" button never had. */}
-          <label
-            htmlFor="cc-coverage"
-            className="cc-drop"
-            style={{
-              position: "relative",
-              display: "block",
-              marginTop: "10px",
-              border: `1px dashed ${T.soft}`,
-              borderRadius: "12px",
-              padding: "14px",
-              textAlign: "center",
-              background: T.surface,
-              fontSize: "13px",
-              color: T.soft,
-              cursor: "pointer",
-            }}
-          >
-            Or drop a CSV of URLs here, or{" "}
-            <span style={{ fontWeight: 600, color: T.accent }}>choose a file</span>
-            <input
-              id="cc-coverage"
-              type="file"
-              accept=".csv,.txt,text/csv,text/plain"
-              onChange={onFile}
-              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0, cursor: "pointer" }}
-            />
-          </label>
-          {/* The parse result, and the only feedback a chosen file gets. It is
-              polite rather than assertive because it is usually good news -
-              "2 links found" - and it must not cut across the file picker
-              closing. The case it exists for is the file whose link column
-              holds headlines: that note is the difference between an upload
-              that stored nothing and one that looks identical to a success,
-              and until now it was drawn in red and said out loud to nobody.
-              The colour is not the signal either way; the sentence is. */}
-          <p
-            role="status"
-            style={{
-              margin: "6px 0 0",
-              fontSize: "12.5px",
-              color: fileUnread ? T.badFg : T.soft,
-              lineHeight: 1.5,
-            }}
-          >
-            {fileNote || "A CSV of the URLs you placed. Any column will do; we find the links."}
-          </p>
-          {/* What will actually be read, from both fields at once. Said before
-              the submit rather than after the reading starts, because this is
-              the last moment anybody can do anything about it - and a list
-              silently cut to five is the same class of defect as a file whose
-              link column held headlines. */}
-          {coverageFound > 0 && (
-            <p role="status" style={{ margin: "8px 0 0", fontSize: "12.5px", color: coverageFound > MAX_COVERAGE_URLS ? T.badFg : T.soft, lineHeight: 1.5 }}>
-              {coverageFound > MAX_COVERAGE_URLS
-                ? `${count(coverageFound, "link")} found. The reading reports on ${MAX_COVERAGE_URLS}, and you pick which on the next step.`
-                : `${count(coverageKept, "link")} ready to check.`}
-            </p>
-          )}
-          <p style={{ margin: "10px 0 0", fontSize: "12.5px", color: T.soft, lineHeight: 1.5 }}>
-            {`We read each piece and draft the rest for you to check: the brand, what they should be named for, and ${MAX_AGENCY_PROMPTS} prompts. Nothing is asked of the engines until you run it.`}
-          </p>
-        </div>
-        )}
-        {step === 2 && (
-        <div>
-          <label htmlFor="cc-prompts" style={labelStyle}>
-            Prompts <span style={{ fontWeight: 400, color: T.soft }}>drafted from the coverage, edit freely</span>
-          </label>
-          <textarea
-            id="cc-prompts"
-            style={{ ...field, minHeight: "96px", resize: "vertical" }}
-            maxLength={COVERAGE_LIMITS.prompts.max}
-            placeholder={"who offers same-day settlement for independent retailers\nbest payment providers for small shops"}
-            value={prompts}
-            onChange={(e) => setPrompts(e.target.value)}
-          />
-          <p style={{ margin: "6px 0 0", fontSize: "12.5px", color: T.soft, lineHeight: 1.5 }}>
-            {`One per line, up to ${MAX_AGENCY_PROMPTS}. Clear them and we ask our own ${MAX_AGENCY_PROMPTS} - the same ones every time, so a later reading can be compared against this one.`}
-          </p>
-          {promptLines.length > 0 && (
-            <p role="status" style={{ margin: "8px 0 0", fontSize: "12.5px", color: promptLines.length > MAX_AGENCY_PROMPTS ? T.badFg : T.soft, lineHeight: 1.5 }}>
-              {promptLines.length > MAX_AGENCY_PROMPTS
-                ? `${count(promptLines.length, "prompt")} written, and we ask the first ${MAX_AGENCY_PROMPTS}.`
-                : `${count(promptsKept, "prompt")}, asked as you wrote them.`}
-            </p>
-          )}
-        </div>
-        )}
-      </div>
-
+  /** The run controls, in the card on both steps: the widget, the refusal, the button and its foot line. */
+  const runControls = (
+    <>
       {/* Keyed on the step: a token is spent by the draft, so step 2 mounts a fresh widget for the run. */}
       <Turnstile key={step} onToken={setTurnstileToken} />
 
@@ -605,6 +339,333 @@ export default function CoverageForm() {
         Free, and no email. The reading opens on its own link, which keeps working - so you can send it on or come
         back to it.
       </p>
+    </>
+  );
+
+  /**
+   * Step 1: the page's own introduction on the left and the coverage in the
+   * card, the same grid and the same DOM the page drew before the form owned it.
+   */
+  if (step === 1) {
+    return (
+      <div className="board-head" style={{ ...GRID12, alignItems: "start" }}>
+        {intro}
+        <div style={{ ...CARD, gridColumn: "span 5", padding: "22px" }}>
+          <form onSubmit={onDraft} noValidate>
+            <div style={MICRO}>Step 1 of 2: the coverage</div>
+            <div style={{ marginTop: "12px", display: "flex", flexDirection: "column", gap: "12px" }}>
+              <div>
+                <label htmlFor="cc-links" style={labelStyle}>
+                  Coverage
+                </label>
+                <textarea
+                  id="cc-links"
+                  style={{ ...field, minHeight: "96px", resize: "vertical" }}
+                  maxLength={COVERAGE_LIMITS.links.max}
+                  /* No scheme, deliberately. `parseCoverageCsv` and `comparableUrl` both
+                      accept a bare host, and `route-closure.test.mts` reads an https
+                      literal in a component as an origin the page loads - which this
+                      is not, it is example text in a placeholder. The shorter form
+                      is also what somebody pasting out of a coverage report has. */
+                  placeholder={"publication.com/the-piece-you-placed\nanother.com/and-the-next"}
+                  value={pasted}
+                  onChange={(e) => setPasted(e.target.value)}
+                />
+                <p style={{ margin: "6px 0 0", fontSize: "12.5px", color: T.soft, lineHeight: 1.5 }}>
+                  {`One URL per line, up to ${MAX_COVERAGE_URLS}. We report on each one: whether the engines cited that page, or the publication, or neither.`}
+                </p>
+                {/* The board's dashed drop zone. The native input stays, stretched
+                    transparent over the zone, so a dropped file, a click and the
+                    keyboard all reach the real control; the label is its name,
+                    which the bare "Choose file" button never had. */}
+                <label
+                  htmlFor="cc-coverage"
+                  className="cc-drop"
+                  style={{
+                    position: "relative",
+                    display: "block",
+                    marginTop: "10px",
+                    border: `1px dashed ${T.soft}`,
+                    borderRadius: "12px",
+                    padding: "14px",
+                    textAlign: "center",
+                    background: T.surface,
+                    fontSize: "13px",
+                    color: T.soft,
+                    cursor: "pointer",
+                  }}
+                >
+                  Or drop a CSV of URLs here, or{" "}
+                  <span style={{ fontWeight: 600, color: T.accent }}>choose a file</span>
+                  <input
+                    id="cc-coverage"
+                    type="file"
+                    accept=".csv,.txt,text/csv,text/plain"
+                    onChange={onFile}
+                    style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0, cursor: "pointer" }}
+                  />
+                </label>
+                {/* The parse result, and the only feedback a chosen file gets. It is
+                    polite rather than assertive because it is usually good news -
+                    "2 links found" - and it must not cut across the file picker
+                    closing. The case it exists for is the file whose link column
+                    holds headlines: that note is the difference between an upload
+                    that stored nothing and one that looks identical to a success,
+                    and until now it was drawn in red and said out loud to nobody.
+                    The colour is not the signal either way; the sentence is. */}
+                <p
+                  role="status"
+                  style={{
+                    margin: "6px 0 0",
+                    fontSize: "12.5px",
+                    color: fileUnread ? T.badFg : T.soft,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {fileNote || "A CSV of the URLs you placed. Any column will do; we find the links."}
+                </p>
+                {/* What will actually be read, from both fields at once. Said before
+                    the submit rather than after the reading starts, because this is
+                    the last moment anybody can do anything about it - and a list
+                    silently cut to five is the same class of defect as a file whose
+                    link column held headlines. */}
+                {coverageFound > 0 && (
+                  <p role="status" style={{ margin: "8px 0 0", fontSize: "12.5px", color: coverageFound > MAX_COVERAGE_URLS ? T.badFg : T.soft, lineHeight: 1.5 }}>
+                    {coverageFound > MAX_COVERAGE_URLS
+                      ? `${count(coverageFound, "link")} found. The reading reports on ${MAX_COVERAGE_URLS}, and you pick which on the next step.`
+                      : `${count(coverageKept, "link")} ready to check.`}
+                  </p>
+                )}
+                <p style={{ margin: "10px 0 0", fontSize: "12.5px", color: T.soft, lineHeight: 1.5 }}>
+                  {`We read each piece and draft the rest for you to check: the brand, what they should be named for, and ${MAX_AGENCY_PROMPTS} prompts. Nothing is asked of the engines until you run it.`}
+                </p>
+              </div>
+            </div>
+            {runControls}
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  /**
+   * Step 2, in the scan's confirm screen layout (ConfirmScreen.tsx, R140):
+   * what was read and why it matters on the left, the fields and the run in
+   * the card, then the coverage and the prompts as headed sections below - the
+   * confirm screen's keyword and prompts sections, on the same grid.
+   */
+  return (
+    <form onSubmit={onSubmit} noValidate style={{ display: "flex", flexDirection: "column", gap: "26px" }}>
+      <div className="board-head" style={{ ...GRID12, alignItems: "start" }}>
+        <div style={{ gridColumn: "span 7", fontSize: "14.5px", maxWidth: "62ch" }}>
+          <div style={MICRO}>Step 2 of 2: check the draft</div>
+          <h1 style={{ margin: "10px 0 0", fontSize: "32px", fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.2, color: T.ink }}>
+            This is what we read off the coverage. Correct it before we run.
+          </h1>
+          <p style={{ margin: "12px 0 0", lineHeight: 1.65, color: T.soft }}>
+            The prompts come from what the pieces say the client is for. If that is wrong, every answer after it is
+            measuring the wrong thing - so it is worth ten seconds now.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setStep(1);
+              setError("");
+              setTurnstileToken(null);
+            }}
+            style={{ marginTop: "12px", fontFamily: "inherit", fontSize: "13px", fontWeight: 600, color: T.accent, background: "none", border: "none", padding: 0, cursor: "pointer" }}
+          >
+            Back to the coverage
+          </button>
+        </div>
+
+        <div style={{ ...CARD, gridColumn: "span 5", padding: "22px" }}>
+          <div style={MICRO}>Who the reading is for</div>
+          <div style={{ marginTop: "12px", display: "flex", flexDirection: "column", gap: "12px" }}>
+            <div>
+              <label htmlFor="cc-brand" style={labelStyle}>
+                Brand name
+              </label>
+              {/* Bounded here as well as on the server, for the reason the file
+                  input is: the server's limit is the one that counts, and this
+                  one exists so a visitor is stopped at the field rather than by
+                  a refusal that reads as if they left it blank. */}
+              <input
+                id="cc-brand"
+                style={field}
+                maxLength={COVERAGE_LIMITS.brand.max}
+                placeholder="Your client"
+                value={brand}
+                onChange={(e) => setBrand(e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="cc-domain" style={labelStyle}>
+                Client domain
+              </label>
+              <input
+                id="cc-domain"
+                style={field}
+                maxLength={WAITLIST_LIMITS.domain}
+                placeholder="clientdomain.com"
+                value={domain}
+                onChange={(e) => {
+                  setDomain(e.target.value);
+                  // The draft's check was for the domain it found; a typed one is
+                  // asked about on blur, below.
+                  setDomainRefusal(null);
+                  askedFor.current = "";
+                }}
+                onBlur={() => void checkDomain(domain)}
+                required
+              />
+              {!domain.trim() && (
+                <p style={{ margin: "6px 0 0", fontSize: "12.5px", color: T.badFg, lineHeight: 1.5 }}>
+                  We could not find the client&rsquo;s site in the coverage. Add it to run the reading.
+                </p>
+              )}
+              {domainRefusal && (
+                <p role="alert" style={{ margin: "6px 0 0", fontSize: "12.5px", color: T.badFg, lineHeight: 1.5 }}>
+                  {domainRefusal}
+                </p>
+              )}
+            </div>
+            <div>
+              <label htmlFor="cc-topic" style={labelStyle}>
+                What the client should be referenced for
+              </label>
+              <input
+                id="cc-topic"
+                style={field}
+                maxLength={COVERAGE_LIMITS.topic.max}
+                placeholder="same-day settlement"
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+                required
+              />
+              <p style={{ margin: "6px 0 0", fontSize: "12.5px", color: T.soft, lineHeight: 1.5 }}>
+                The thing you want the answer to name them for. A capability or a claim, not a headline -
+                &ldquo;same-day settlement&rdquo;, not &ldquo;Brand announces exciting news&rdquo;.
+              </p>
+            </div>
+            <div>
+              <label htmlFor="cc-segment" style={labelStyle}>
+                Who it is for <span style={{ fontWeight: 400, color: T.soft }}>optional</span>
+              </label>
+              <input
+                id="cc-segment"
+                style={field}
+                maxLength={COVERAGE_LIMITS.segment.max}
+                placeholder="independent retailers"
+                value={segment}
+                onChange={(e) => setSegment(e.target.value)}
+              />
+              <p style={{ margin: "6px 0 0", fontSize: "12.5px", color: T.soft, lineHeight: 1.5 }}>
+                Sharpens the buying question. Without it we ask the broader form, which is a weaker question but still a
+                real one.
+              </p>
+            </div>
+            <div>
+              <label htmlFor="cc-market" style={labelStyle}>
+                Market
+              </label>
+              <select
+                id="cc-market"
+                style={field}
+                value={market}
+                onChange={(e) => setMarket(e.target.value === "US" ? "US" : "UK")}
+              >
+                <option value="UK">United Kingdom</option>
+                <option value="US">United States</option>
+              </select>
+              {marketLine && (
+                <p style={{ margin: "6px 0 0", fontSize: "12.5px", color: T.soft, lineHeight: 1.5 }}>{marketLine}</p>
+              )}
+            </div>
+          </div>
+          {runControls}
+        </div>
+      </div>
+
+      <section>
+        <div className="board-head" style={{ ...GRID12, marginBottom: "14px" }}>
+          <h2 style={{ ...H2, gridColumn: "span 4" }}>The coverage we report on</h2>
+          <p style={{ gridColumn: "span 8", margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
+            {`Each ticked piece gets a row in the reading: cited as a page, cited as the publication, or neither. Up to ${MAX_COVERAGE_URLS}.`}
+          </p>
+        </div>
+        <fieldset style={{ ...CARD, margin: 0, padding: 0, overflow: "hidden", minWidth: 0 }}>
+          <legend className="sr-only">Coverage we report on</legend>
+          {rows.map((r, i) => (
+            <label
+              key={r.url}
+              style={{
+                display: "flex",
+                gap: "10px",
+                alignItems: "flex-start",
+                padding: "13px 22px",
+                borderTop: i ? `1px solid ${T.hair}` : undefined,
+                fontSize: "14px",
+                color: T.ink,
+                lineHeight: 1.45,
+              }}
+            >
+              <input
+                id={`cc-row-${i}`}
+                type="checkbox"
+                checked={r.ticked}
+                disabled={!r.ticked && tickedCount >= MAX_COVERAGE_URLS}
+                onChange={(e) => setRows(rows.map((x, j) => (j === i ? { ...x, ticked: e.target.checked } : x)))}
+                style={{ marginTop: "3px" }}
+              />
+              <span>
+                {/* A long URL may break anywhere; the words after it break only between words. */}
+                <span style={{ wordBreak: "break-all" }}>{r.url}</span>
+                {unread.includes(r.url) && <span style={{ color: T.soft }}> - could not be read, still counted</span>}
+              </span>
+            </label>
+          ))}
+          {(reportLimit || unread.length > 0) && (
+            <div style={{ padding: "13px 22px", borderTop: `1px solid ${T.hair}`, fontSize: "12.5px", color: T.soft, lineHeight: 1.5 }}>
+              {reportLimit && <p style={{ margin: 0 }}>{`${reportLimit}. ${count(rows.length, "link")} found; tick the ${MAX_COVERAGE_URLS} to check.`}</p>}
+              {unread.length > 0 && (
+                <p style={{ margin: reportLimit ? "6px 0 0" : 0 }}>
+                  {`We could not read ${count(unread.length, "page")} (a paywall or a block, usually). It still counts as coverage; it just added nothing to the draft.`}
+                </p>
+              )}
+            </div>
+          )}
+        </fieldset>
+      </section>
+
+      <section>
+        <div className="board-head" style={{ ...GRID12, marginBottom: "14px" }}>
+          <h2 style={{ ...H2, gridColumn: "span 4" }}>
+            <label htmlFor="cc-prompts">The prompts we ask</label>
+          </h2>
+          <p style={{ gridColumn: "span 8", margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
+            {`Drafted from the coverage, one per line - edit freely. Clear them and we ask our own ${MAX_AGENCY_PROMPTS}, the same ones every time, so a later reading can be compared against this one.`}
+          </p>
+        </div>
+        <div style={{ ...CARD, padding: "22px" }}>
+          <textarea
+            id="cc-prompts"
+            style={{ ...field, minHeight: "150px", resize: "vertical" }}
+            maxLength={COVERAGE_LIMITS.prompts.max}
+            placeholder={"who offers same-day settlement for independent retailers\nbest payment providers for small shops"}
+            value={prompts}
+            onChange={(e) => setPrompts(e.target.value)}
+          />
+          {promptLines.length > 0 && (
+            <p role="status" style={{ margin: "8px 0 0", fontSize: "12.5px", color: promptLines.length > MAX_AGENCY_PROMPTS ? T.badFg : T.soft, lineHeight: 1.5 }}>
+              {promptLines.length > MAX_AGENCY_PROMPTS
+                ? `${count(promptLines.length, "prompt")} written, and we ask the first ${MAX_AGENCY_PROMPTS}.`
+                : `${count(promptsKept, "prompt")}, asked as you wrote them.`}
+            </p>
+          )}
+        </div>
+      </section>
     </form>
   );
 }
