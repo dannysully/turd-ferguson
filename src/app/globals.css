@@ -548,6 +548,16 @@ html[data-motion="on"] .tb-now { animation: tbNow 10s infinite both; }
    journey pass, 1 Oct 2026: they were 30px at 390). */
 @media (max-width: 640px) {
   .mkt-btn { min-height: 44px; }
+  /* The tiles' sector select and cluster stepper likewise (R151, 1 Oct 2026:
+     32px on /alwayscited, 36px on /packages at 390). Their inline sizes are
+     the desktop ones, so this has to win over them. */
+  .sp-ctl { min-height: 44px !important; height: auto !important; }
+  .sp-step { min-width: 44px !important; }
+  .sp-grp { height: auto !important; }
+  /* /packages' columns are ~118px at 390, narrower than two 44px buttons and
+     the count, so there the count takes its own line above them. */
+  .sp-grp-compact { flex-wrap: wrap; justify-content: center; }
+  .sp-grp-compact > span { order: -1; flex-basis: 100%; padding-bottom: 2px; }
 }
 
 /* PR agencies: the hero's coverage fan-out (PRAgencies.dc.html, Q12, 25 Sep

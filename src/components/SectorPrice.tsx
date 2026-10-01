@@ -226,6 +226,7 @@ export function SectorPrice({
           </label>
           <select
             id={id}
+            className="sp-ctl"
             value={sector}
             onChange={(e) => setSector(e.target.value)}
             style={{
@@ -243,14 +244,14 @@ export function SectorPrice({
               </option>
             ))}
           </select>
-          <div role="group" aria-label="Keyword clusters" style={{ display: "inline-flex", alignItems: "center", gap: "2px", ...(compact ? { flex: "0 0 auto", height: "36px" } : { flexShrink: 0 }) }}>
-            <button type="button" aria-label="One fewer cluster" disabled={qty <= 1} onClick={() => setQty((q) => Math.max(1, q - 1))} style={{ ...control, width: "32px", cursor: "pointer" }}>
+          <div role="group" aria-label="Keyword clusters" className={compact ? "sp-grp sp-grp-compact" : "sp-grp"} style={{ display: "inline-flex", alignItems: "center", gap: "2px", ...(compact ? { flex: "0 0 auto", height: "36px" } : { flexShrink: 0 }) }}>
+            <button type="button" className="sp-ctl sp-step" aria-label="One fewer cluster" disabled={qty <= 1} onClick={() => setQty((q) => Math.max(1, q - 1))} style={{ ...control, width: "32px", cursor: "pointer" }}>
               −
             </button>
             <span style={{ minWidth: "58px", textAlign: "center", fontSize: "12.5px", fontWeight: 600 }} aria-live="polite">
               {qty > MAX_CLUSTERS ? `${MAX_CLUSTERS + 1}+` : qty} {qty === 1 ? "cluster" : "clusters"}
             </span>
-            <button type="button" aria-label="One more cluster" disabled={qty > MAX_CLUSTERS} onClick={() => setQty((q) => Math.min(MAX_CLUSTERS + 1, q + 1))} style={{ ...control, width: "32px", cursor: "pointer" }}>
+            <button type="button" className="sp-ctl sp-step" aria-label="One more cluster" disabled={qty > MAX_CLUSTERS} onClick={() => setQty((q) => Math.min(MAX_CLUSTERS + 1, q + 1))} style={{ ...control, width: "32px", cursor: "pointer" }}>
               +
             </button>
           </div>
