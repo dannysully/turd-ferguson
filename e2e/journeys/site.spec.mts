@@ -312,7 +312,11 @@ for (const width of [1280, 390]) {
         ["/app/login?link=expired", /^Log in to your dashboard$/, "Email me a link"],
         ["/app/login?access=none", /^Log in to your dashboard$/, "Email me a link"],
         ["/app/auth", /^That link is not valid$/, "Ask for a new link"],
-        [`/app/auth?token=${"0".repeat(64)}`, /^Log in$/, "Open my dashboard"],
+        // R148 pass 11 (1 Oct 2026): since R163 (c6c1dbd) the GET reads the
+        // token's row, and a well-shaped token with no row is "not valid", not
+        // "Log in". The fresh face (auto-submit, "Open my dashboard") needs a
+        // real token, so it is held by e2e/app/auth.spec.mts on the fixture.
+        [`/app/auth?token=${"0".repeat(64)}`, /^That link is not valid$/, "Ask for a new link"],
       ];
       for (const [route, h1, action] of LEG) {
         const { page, ctx, status } = await open(width, route);
