@@ -27,7 +27,7 @@ import { trackOffer } from "../../src/components/scan/track-offer.ts";
 
 const ROOT = path.resolve(import.meta.dirname, "..", "..");
 const require = createRequire(path.join(os.homedir(), "code/.parity/package.json"));
-type Locator = { click(): Promise<void>; inputValue(): Promise<string>; evaluate<R>(fn: (el: Element) => R): Promise<R>; count(): Promise<number>; first(): Locator; getAttribute(n: string): Promise<string | null>; isVisible(): Promise<boolean>; boundingBox(): Promise<{ height: number; width: number } | null>; textContent(): Promise<string | null> };
+type Locator = { click(): Promise<void>; focus(): Promise<void>; inputValue(): Promise<string>; evaluate<R>(fn: (el: Element) => R): Promise<R>; count(): Promise<number>; first(): Locator; getAttribute(n: string): Promise<string | null>; isVisible(): Promise<boolean>; boundingBox(): Promise<{ height: number; width: number } | null>; textContent(): Promise<string | null> };
 type Page = {
   goto(url: string, o?: object): Promise<{ status(): number } | null>;
   url(): string;
@@ -36,6 +36,7 @@ type Page = {
   locator(sel: string, o?: { hasText?: string | RegExp }): Locator;
   getByRole(role: string, o: { name: string | RegExp }): Locator;
   waitForTimeout(ms: number): Promise<void>;
+  keyboard: { press(key: string): Promise<void> };
 };
 type Context = { newPage(): Promise<Page>; close(): Promise<void> };
 type Browser = { newContext(o: object): Promise<Context>; close(): Promise<void> };
@@ -231,6 +232,43 @@ for (const width of [1280, 390]) {
         assert.ok((await overflow(page)) <= 0, "no sideways scroll on the result");
         await ctx.close();
       }
+    });
+
+    // Pass 5 (R148/R151, 1 Oct 2026): the order card by keyboard alone - WCAG
+    // 2.4.1 skip link, 2.4.7 a visible focus at every stop, 4.1.2 the toggle's
+    // pressed state - and the toggle re-prices on Space with focus kept.
+    test("(7) /checkout by keyboard: skip link, every stop visible, toggle on Space", async () => {
+      const { page, ctx, status } = await open(width, "/checkout?tier=alwaystracked");
+      assert.equal(status, 200);
+      await page.keyboard.press("Tab");
+      await page.keyboard.press("Enter");
+      const stops: { text: string; ring: boolean; inMain: boolean }[] = [];
+      for (let i = 0; i < 12; i++) {
+        await page.keyboard.press("Tab");
+        const s = await page.evaluate(() => {
+          const e = document.activeElement as HTMLElement;
+          const cs = getComputedStyle(e);
+          return {
+            text: (e.getAttribute("name") || e.textContent || "").trim().slice(0, 30),
+            ring: (cs.outlineStyle !== "none" && parseFloat(cs.outlineWidth) > 0) || cs.boxShadow !== "none",
+            inMain: !!e.closest("main"),
+          };
+        });
+        stops.push(s);
+        if (s.text === "Continue to payment") break;
+      }
+      assert.deepEqual(
+        stops.map((s) => s.text),
+        ["What the plan includes", "US $", "UK £", "email", "keyword", "Continue to payment"],
+        "after the skip link: plan link, toggle, email, keyword, button",
+      );
+      assert.deepEqual(stops.filter((s) => !s.ring || !s.inMain), [], "every stop is in main with a visible focus");
+      assert.equal(await page.getByRole("button", { name: "US $" }).first().getAttribute("aria-pressed"), "true");
+      await page.getByRole("button", { name: "UK £" }).first().focus();
+      await page.keyboard.press("Space");
+      assert.match((await page.locator('[data-figure="checkout-price"]').first().textContent()) ?? "", /^£\d.*plus VAT$/);
+      assert.equal(await page.evaluate(() => document.activeElement?.textContent), "UK £", "focus stays on the pill");
+      await ctx.close();
     });
   });
 }
