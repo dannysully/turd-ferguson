@@ -31,11 +31,12 @@ import OverviewChart, { type ChartDay } from "./OverviewChart";
 import { SEE_ALL, navFrom } from "./nav";
 
 /** R132: a card's link to its full page, or "Coming soon" unlinked while that page is not built (R130's rule). */
-function SeeAll({ card, clientPath }: { card: keyof typeof SEE_ALL; clientPath: string | null }) {
+function SeeAll({ card, clientPath, keep }: { card: keyof typeof SEE_ALL; clientPath: string | null; keep: string }) {
   const to = clientPath ? navFrom(SEE_ALL[card], clientPath) : null;
   if (to)
     return (
-      <Link href={to} style={{ fontSize: "14px", fontWeight: 600, color: T.accent, textDecoration: "none", whiteSpace: "nowrap" }}>
+      // BRIEF-4: from/to/compare kept, so the full page opens on the panel's range.
+      <Link href={`${to}?${keep}`} style={{ fontSize: "14px", fontWeight: 600, color: T.accent, textDecoration: "none", whiteSpace: "nowrap" }}>
         See all
       </Link>
     );
@@ -381,7 +382,7 @@ export default function Overview({
               <h2 id="lb-h" style={H2}>
                 Who is named instead
               </h2>
-              <SeeAll card="Who is named instead" clientPath={clientPath} />
+              <SeeAll card="Who is named instead" clientPath={clientPath} keep={new URLSearchParams(rangeQuery).toString()} />
             </div>
             <p style={{ margin: 0, fontSize: "14px", color: T.soft }}>Share of every brand mention across your prompts.</p>
           </div>
@@ -460,7 +461,7 @@ export default function Overview({
               <h2 id="cited-h" style={H2}>
                 Pages the engines cite most
               </h2>
-              <SeeAll card="Pages the engines cite most" clientPath={clientPath} />
+              <SeeAll card="Pages the engines cite most" clientPath={clientPath} keep={new URLSearchParams(rangeQuery).toString()} />
             </div>
             <p style={{ margin: 0, fontSize: "14px", color: T.soft }}>Times cited in answers to your prompts.</p>
           </div>

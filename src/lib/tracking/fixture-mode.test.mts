@@ -74,7 +74,9 @@ test("the fixture is cluster-shaped: 10 clusters, each one keyword and one promp
 
 test("the fixture names only the made-up brands and domains", () => {
   const brands = new Set(fx.data.answers.flatMap((a) => a.brands));
-  assert.deepEqual([...brands].sort(), ["Brightbook", "Countwise", "Ledgerline", "Sumly", "Tallyroo"]);
+  // R143 (1 Oct 2026): Tallyroo is the client, so as the runner writes rows it
+  // is never among the other brands; expandFixture drops it from them.
+  assert.deepEqual([...brands].sort(), ["Brightbook", "Countwise", "Ledgerline", "Sumly"]);
   assert.equal(fx.client.domain, "tallyroo.com");
   assert.match(fx.member.email, /@example\.com$/);
 });

@@ -1708,4 +1708,12 @@ html[data-motion="on"] .res-dial { animation: resDial 1.4s .3s cubic-bezier(.2,.
   .app-dp-foot { flex-direction: column; align-items: stretch !important; position: sticky; bottom: 0; border-radius: 0 !important; }
   .app-headline { padding: 22px 20px !important; gap: 12px !important; }
   .app-brand { grid-template-columns: 20px minmax(0, 1fr) 40px 70px !important; padding: 10px 16px !important; }
+  /* R143 Who is named on a phone (BRIEF-4 P3): brand, answers and change on
+     one line; the engines and the prompt count under it. */
+  .app-nm-grid { grid-template-columns: minmax(0, 1fr) auto auto !important; gap: 8px 12px !important; padding-left: 16px !important; padding-right: 16px !important; }
+  .app-nm-answers .app-show-sm { display: inline !important; }
+  .app-nm-engines { padding-left: 20px; }
+  .app-nm-prompts { grid-column: 2 / 4; }
+  /* Ten cluster chips would fill the first screen; each filter row scrolls sideways instead. */
+  .app-nm-filters { flex-wrap: nowrap !important; overflow-x: auto; scrollbar-width: none; }
 }

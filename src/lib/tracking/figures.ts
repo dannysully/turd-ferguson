@@ -7,6 +7,8 @@
  * both the current and the comparison period.
  */
 
+import { brandKey, pickDisplayName } from "../scan/brand-name.ts";
+
 export type Day = string;
 
 export type AnswerRow = {
@@ -104,7 +106,8 @@ export function shareOfVoice(rows: AnswerRow[], r: Range): Rate & { rank: number
   for (const a of rows) {
     if (!a.answered || !within(a.run_date, r)) continue;
     if (a.named) mine++;
-    for (const b of a.brands) counts.set(b.toLowerCase(), (counts.get(b.toLowerCase()) ?? 0) + 1);
+    // R143 (1 Oct 2026): spellings fold by the scan's brandKey, as brandBoard's rows do.
+    for (const b of a.brands) counts.set(brandKey(b), (counts.get(brandKey(b)) ?? 0) + 1);
   }
   const others = [...counts.values()];
   const total = mine + others.reduce((s, n) => s + n, 0);
@@ -214,22 +217,28 @@ export function movers(rows: AnswerRow[], r: Range, before: Range | null): { id:
 /**
  * Who is named instead: every brand's share of all brand mentions, the client
  * included as `you`, with its change in points against the comparison.
+ * R143 (1 Oct 2026; BRIEF-4 P3): brands are keyed by the scan's folding rules
+ * (`brand-name.ts` brandKey), so "Xero" and "Xero." are one row, shown in the
+ * spelling the engines used most; `key` is that fold, `before` the mentions
+ * in the comparison range (0 is "New").
  */
-export function brandBoard(rows: AnswerRow[], r: Range, before: Range | null, you: string): { name: string; you: boolean; share: Rate; delta: number | null }[] {
+export function brandBoard(rows: AnswerRow[], r: Range, before: Range | null, you: string): { key: string; name: string; you: boolean; share: Rate; delta: number | null; before: number | null }[] {
+  const youKey = brandKey(you);
   const tally = (range: Range) => {
-    const counts = new Map<string, { name: string; n: number }>();
+    const counts = new Map<string, { names: Map<string, number>; n: number }>();
     let total = 0;
-    const bump = (name: string) => {
-      const key = name.toLowerCase();
-      const c = counts.get(key) ?? { name, n: 0 };
+    const bump = (name: string, key = brandKey(name)) => {
+      const c = counts.get(key) ?? { names: new Map<string, number>(), n: 0 };
       c.n++;
+      c.names.set(name, (c.names.get(name) ?? 0) + 1);
       counts.set(key, c);
       total++;
     };
     for (const a of rows) {
       if (!a.answered || !within(a.run_date, range)) continue;
-      if (a.named) bump(you);
-      for (const b of a.brands) bump(b);
+      if (a.named) bump(you, youKey);
+      // The client is counted once, off `named`; the runner never lists it among the others.
+      for (const b of a.brands) if (brandKey(b) !== youKey) bump(b);
     }
     return { counts, total };
   };
@@ -238,8 +247,9 @@ export function brandBoard(rows: AnswerRow[], r: Range, before: Range | null, yo
   return [...now.counts.entries()]
     .map(([key, c]) => {
       const share = rate(c.n, now.total);
-      const prev = was ? rate(was.counts.get(key)?.n ?? 0, was.total) : null;
-      return { name: c.name, you: key === you.toLowerCase(), share, delta: pointsDelta(share, prev) };
+      const prevN = was ? (was.counts.get(key)?.n ?? 0) : null;
+      const prev = was ? rate(prevN ?? 0, was.total) : null;
+      return { key, name: key === youKey ? you : pickDisplayName(c.names), you: key === youKey, share, delta: pointsDelta(share, prev), before: prevN };
     })
     .sort((x, y) => y.share.num - x.share.num);
 }

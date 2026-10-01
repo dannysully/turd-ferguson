@@ -30,7 +30,8 @@ export const NAV_TARGET: Record<string, string | typeof SOON | undefined> = {
   Overview: "",
   Clusters: "/clusters",
   Placements: "/placements",
-  "Who is named": SOON,
+  // R143 (1 Oct 2026; BRIEF-4 P3).
+  "Who is named": "/named",
   "Cited pages": SOON,
   Reports: SOON,
   Settings: "/settings",

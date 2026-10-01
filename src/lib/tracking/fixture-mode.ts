@@ -1,3 +1,4 @@
+import { brandKey, subjectKeys } from "../scan/brand-name.ts";
 import type { Day } from "./figures.ts";
 import type { ClusterNote, OverviewData } from "./overview-data.ts";
 import type { PlacementRow } from "./placement-figures.ts";
@@ -66,6 +67,7 @@ export function expandFixture(raw: {
   aliases?: string[];
   members?: FixtureMember[];
 }): Fixture {
+  const subject = subjectKeys(raw.client.brand, raw.client.domain);
   return {
     client: { ...raw.client, id: "fixture" },
     member: raw.member,
@@ -83,7 +85,11 @@ export function expandFixture(raw: {
         engine,
         answered: true,
         named: named === 1,
-        brands,
+        // R143 (1 Oct 2026): the runner never stores the client among the
+        // other brands (runner.ts drops every subjectKeys spelling), but the
+        // dataset lists Tallyroo there whenever it is named, which counted
+        // the client twice on Who is named. Restored as the runner writes it.
+        brands: brands.filter((b) => !subject.has(brandKey(b))),
         citations: urls.map((url) => ({ source_domain: new URL(url).hostname, url })),
       })),
     },
