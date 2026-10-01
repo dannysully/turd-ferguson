@@ -65,6 +65,10 @@ export async function POST(req: Request) {
     if (order.sector) b.set("sector", order.sector);
     if (order.quantity > 1) b.set("clusters", String(order.quantity));
     if (/^[0-9a-f]{32}$/i.test(order.scan)) b.set("scan", order.scan);
+    // The typed keyword comes back so a refused form keeps it (R151, 1 Oct 2026).
+    // The email does not: an address in a URL lands in request logs.
+    const keyword = order.keyword.trim().slice(0, CHECKOUT_LIMITS.keyword.max);
+    if (keyword) b.set("keyword", keyword);
     return Response.redirect(`${ORIGIN}/checkout?${b}`, 303);
   };
 
@@ -73,7 +77,7 @@ export async function POST(req: Request) {
     return isForm ? back("email") : Response.json({ error: "invalid", message: "A work email is needed." }, { status: 400 });
   }
   if (r.kind === "invalid") {
-    if (isForm) return back(r.message.includes("email") ? "email" : "keyword");
+    if (isForm) return back(r.message.includes("email") ? "email" : r.message.includes("keyword") ? "keyword" : "failed");
     return Response.json({ error: "invalid", message: r.message }, { status: 400 });
   }
   if (r.kind === "call") return go(call);

@@ -26,11 +26,17 @@ export const metadata: Metadata = {
  * form carries only those picks as hidden fields.
  */
 
+// A refused field's reason sits under that field, which takes focus; only
+// "failed" belongs to the whole form (R151, 1 Oct 2026: Baymard's inline,
+// specific errors). The email is never carried back, so its line says to
+// type it again; the keyword is.
 const ERRORS: Record<string, string> = {
-  email: "A work email is needed.",
-  keyword: "A keyword target is needed.",
+  email: "Type your work email again, in the form name@company.com.",
+  keyword: `A keyword target of at least ${CHECKOUT_LIMITS.keyword.min} characters is needed.`,
   failed: "The checkout did not open. Please try again, or book a call.",
 };
+
+const fieldError: React.CSSProperties = { display: "block", marginTop: "6px", fontSize: "13px", fontWeight: 400, letterSpacing: 0, textTransform: "none", color: T.badFg };
 
 const field: React.CSSProperties = {
   display: "block",
@@ -75,7 +81,8 @@ export default async function Checkout({ searchParams }: { searchParams: Promise
     if (quote.kind === "call") call = true;
     else price = `${formatPrice(quote.amount, sel.market)}/mo${vat}`;
   }
-  const error = q.error ? ERRORS[q.error] : undefined;
+  const error = q.error && q.error in ERRORS ? q.error : undefined;
+  const keyword = (q.keyword ?? "").slice(0, CHECKOUT_LIMITS.keyword.max);
   // The free scan this order came from, carried to the Session for the webhook (BRIEF-3 C4).
   const scan = /^[0-9a-f]{32}$/i.test(q.scan ?? "") ? q.scan!.toLowerCase() : null;
 
@@ -168,19 +175,52 @@ export default async function Checkout({ searchParams }: { searchParams: Promise
               <input type="hidden" id="checkout-quantity" name="quantity" value={String(sel.qty)} maxLength={CHECKOUT_LIMITS.clusters} />
             </>
           ) : null}
-          {error ? (
+          {error === "failed" ? (
             <p role="alert" style={{ margin: "0 0 14px", fontSize: "14px", color: T.badFg }}>
-              {error}
+              {ERRORS.failed}
             </p>
           ) : null}
           <div style={{ display: "grid", gap: "14px" }}>
             <label style={MICRO}>
               Work email
-              <input type="email" id="checkout-email" name="email" required maxLength={CHECKOUT_LIMITS.email} autoComplete="email" style={field} />
+              <input
+                type="email"
+                id="checkout-email"
+                name="email"
+                required
+                maxLength={CHECKOUT_LIMITS.email}
+                autoComplete="email"
+                autoFocus={error === "email"}
+                aria-invalid={error === "email" || undefined}
+                aria-describedby={error === "email" ? "checkout-email-error" : undefined}
+                style={field}
+              />
+              {error === "email" ? (
+                <span id="checkout-email-error" role="alert" style={fieldError}>
+                  {ERRORS.email}
+                </span>
+              ) : null}
             </label>
             <label style={MICRO}>
               {perCluster ? "Keyword target" : "Keyword target (optional)"}
-              <input type="text" id="checkout-keyword" name="keyword" required={perCluster} minLength={perCluster ? CHECKOUT_LIMITS.keyword.min : undefined} maxLength={CHECKOUT_LIMITS.keyword.max} style={field} />
+              <input
+                type="text"
+                id="checkout-keyword"
+                name="keyword"
+                defaultValue={keyword}
+                required={perCluster}
+                minLength={perCluster ? CHECKOUT_LIMITS.keyword.min : undefined}
+                maxLength={CHECKOUT_LIMITS.keyword.max}
+                autoFocus={error === "keyword"}
+                aria-invalid={error === "keyword" || undefined}
+                aria-describedby={error === "keyword" ? "checkout-keyword-error" : undefined}
+                style={field}
+              />
+              {error === "keyword" ? (
+                <span id="checkout-keyword-error" role="alert" style={fieldError}>
+                  {ERRORS.keyword}
+                </span>
+              ) : null}
             </label>
           </div>
           <ul style={{ margin: "18px 0 0", paddingLeft: "18px", fontSize: "14px", lineHeight: 1.7, color: T.soft }}>
