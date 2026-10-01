@@ -21,9 +21,14 @@ import assert from "node:assert/strict";
 
 const ROOT = path.resolve(import.meta.dirname, "..", "..");
 const require = createRequire(path.join(os.homedir(), "code/.parity/package.json"));
+type Locator = { click(): Promise<void>; count(): Promise<number>; getByRole(role: string, o?: object): Locator; first(): Locator };
 type Page = {
   goto(url: string, o?: object): Promise<{ status(): number } | null>;
   evaluate<R, A>(fn: (a: A) => R | Promise<R>, a: A): Promise<R>;
+  getByRole(role: string, o?: object): Locator;
+  waitForURL(url: RegExp, o?: object): Promise<void>;
+  waitForLoadState(state: string): Promise<void>;
+  url(): string;
 };
 type Context = { newPage(): Promise<Page>; close(): Promise<void> };
 type Browser = { newContext(o: object): Promise<Context>; close(): Promise<void> };
@@ -121,6 +126,72 @@ for (const width of [1280, 390]) {
         await page.goto(`${BASE}${HOME}/settings`, { waitUntil: "load" });
         const invite = await page.evaluate(() => [...document.querySelectorAll("button, summary")].some((b) => /^Invite/.test((b.textContent ?? "").trim())), null);
         assert.equal(invite, role === "owner", `${role} ${invite ? "sees" : "does not see"} Invite`);
+        await ctx.close();
+      });
+
+      // Pass 3 (1 Oct 2026, 04:20Z): the four journeys pass 2 left.
+      const text = (page: Page) => page.evaluate(() => document.body.innerText, null);
+
+      test("did my Google position move this month: on the Overview, no click", async () => {
+        const ctx = await browser.newContext({ viewport: { width, height: 900 } });
+        const page = await ctx.newPage();
+        await page.goto(BASE + HOME, { waitUntil: "load" });
+        // Each cluster card shows its Google position as #N beside the move chip.
+        assert.match(await text(page), /#\d+/);
+        await ctx.close();
+      });
+
+      test("add a cluster and see it pending: Add a cluster is 2 clicks, the pending one shows on the Overview", async () => {
+        const ctx = await browser.newContext({ viewport: { width, height: 900 } });
+        const page = await ctx.newPage();
+        // The fixture's c10 starts the day after `today`, so it is the pending cluster.
+        await page.goto(BASE + HOME, { waitUntil: "load" });
+        assert.match(await text(page), /payroll and accounting software/i);
+        assert.match(await text(page), /First check\s+tomorrow/);
+        assert.ok((await clicks(page, `${HOME}/clusters`, 1)) !== null, "Clusters is one click from the Overview");
+        await page.goto(`${BASE}${HOME}/clusters`, { waitUntil: "load" });
+        const add = page.getByRole("link", { name: "Add a cluster" });
+        if (role === "viewer") {
+          assert.equal(await add.count(), 0, "a viewer is not offered Add a cluster");
+        } else {
+          await add.click();
+          await page.waitForURL(/[?&]add=1/);
+          assert.equal(await page.getByRole("region", { name: "Add a cluster" }).count(), 1, "the Add a cluster panel opens");
+        }
+        await ctx.close();
+      });
+
+      test("stop a prompt: the stop control is on the open cluster, 2 clicks from the Overview", async () => {
+        const ctx = await browser.newContext({ viewport: { width, height: 900 } });
+        const page = await ctx.newPage();
+        await page.goto(`${BASE}${HOME}/clusters?open=c1`, { waitUntil: "load" });
+        // Only forms posting to the stop route: Log out and the upgrade prompts post too.
+        const stops = await page.evaluate(() => document.querySelectorAll("form[method=post][action*='/stop?'] button[type=submit]").length, null);
+        if (role === "viewer") assert.equal(stops, 0, "a viewer has no stop forms");
+        else assert.ok(stops >= 5, `${stops} stop forms on the open cluster`);
+        // Undo rides the toast after a real stop (stopped_on after today); the
+        // fixture holds no such prompt and this spec never posts, so Undo is
+        // checked by the route's own tests, not here.
+        await ctx.close();
+      });
+
+      test("change the date range and compare: 3 clicks, and the compare comes with it", async () => {
+        const ctx = await browser.newContext({ viewport: { width, height: 900 } });
+        const page = await ctx.newPage();
+        await page.goto(BASE + HOME, { waitUntil: "load" });
+        await page.getByRole("button", { name: "Change date range" }).first().click();
+        const dialog = page.getByRole("dialog", { name: "Choose a date range" });
+        await dialog.getByRole("button", { name: "Last 7 days" }).click();
+        await dialog.getByRole("button", { name: "Apply" }).click();
+        await page.waitForURL(/[?&]from=/);
+        await page.waitForLoadState("load");
+        // The previous period is the default compare, so it comes with no fourth
+        // click: the headline reads "up from", and names the span ("vs" at 1280;
+        // at 390 only the chart's "Dashed:" caption does - a pass-3 finding).
+        const t = await text(page);
+        assert.match(t, /Last 7 days/);
+        assert.match(t, /up from \d+%|down from \d+%|was \d+ of \d+/);
+        assert.match(t, /(vs|Dashed:) \d+ \w+ - \d+ \w+/);
         await ctx.close();
       });
     });
