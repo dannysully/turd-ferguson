@@ -441,9 +441,11 @@ const OFF_PALETTE: Record<string, Entry> = {
       "states the departure and measures it. Rule 5 below re-earns that measurement. Worth knowing: the " +
       "comparison it makes is against `T.soft` at 4.68, and the value the design system actually draws for body " +
       "prose is `#3f4451` at 9.74, so the departure over the board is 0.05 rather than the 5.11 the reason " +
-      "reads as. No board draws this value.",
+      "reads as. No board draws this value. Second site (R159, 1 Oct 2026): `src/lib/email/lifecycle.ts`, the " +
+      "lifecycle templates, which use the same mail palette but cannot import verify-email.ts's (it is " +
+      "server-only with `@/` imports, and the templates must render under node --test and the preview page).",
     boards: 0,
-    sites: { "src/lib/scan/verify-email.ts": 1 },
+    sites: { "src/lib/scan/verify-email.ts": 1, "src/lib/email/lifecycle.ts": 1 },
   },
   "rgba(220,38,38,0.1)": {
     why: "the ops page's error panel ground. The last of the hand-rolled status set - its amber joined `T.warnFg` when blocked.md 9 was answered - in the one file no page sweep reaches.",
