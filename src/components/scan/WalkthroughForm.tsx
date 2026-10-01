@@ -112,6 +112,23 @@ export default function WalkthroughForm(p: { token: string } | { from: string })
   ];
   const chosen = options.find((o) => o.key === kind) ?? options[0];
 
+  // R151 (1 Oct 2026): the WAI-ARIA APG radio group - one tab stop, the
+  // checked option, and the arrows (Home, End) move the choice and focus with
+  // it. Three separate tab stops read as three buttons, not one choice.
+  function onToggleKey(e: React.KeyboardEvent<HTMLButtonElement>) {
+    const at = options.findIndex((o) => o.key === kind);
+    const to =
+      e.key === "ArrowRight" || e.key === "ArrowDown" ? (at + 1) % options.length
+      : e.key === "ArrowLeft" || e.key === "ArrowUp" ? (at - 1 + options.length) % options.length
+      : e.key === "Home" ? 0
+      : e.key === "End" ? options.length - 1
+      : null;
+    if (to === null) return;
+    e.preventDefault();
+    setKind(options[to].key);
+    (e.currentTarget.parentElement?.children[to] as HTMLElement | undefined)?.focus();
+  }
+
   return (
     <form onSubmit={submit} noValidate>
       <div role="radiogroup" aria-label="How would you like to see it" className="wt-toggle">
@@ -121,6 +138,8 @@ export default function WalkthroughForm(p: { token: string } | { from: string })
             type="button"
             role="radio"
             aria-checked={kind === o.key}
+            tabIndex={kind === o.key ? 0 : -1}
+            onKeyDown={onToggleKey}
             onClick={() => setKind(o.key)}
             className={"wt-option" + (kind === o.key ? " wt-option--on" : "")}
           >
