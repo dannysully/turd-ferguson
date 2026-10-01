@@ -1,5 +1,6 @@
 import { brandKey, subjectKeys } from "../scan/brand-name.ts";
 import { addDays, type Day } from "./figures.ts";
+import { PROMPTS_PER_CLUSTER } from "./limits.ts";
 import type { ClusterNote, OverviewData } from "./overview-data.ts";
 import type { PlacementRow } from "./placement-figures.ts";
 
@@ -51,6 +52,7 @@ export type FixturePlacement = Omit<PlacementRow, "url_key"> & { cluster_id: str
 export function fixtureState(f: Fixture, env: Record<string, string | undefined> = process.env): Fixture {
   const as = fixtureAs(f, env);
   if (env.TRACKING_FIXTURE_STATE === "new") return dayZero(as);
+  if (env.TRACKING_FIXTURE_STATE === "signup") return signupNoKeyword(dayZero(as));
   if (env.TRACKING_FIXTURE_STATE !== "ungrouped") return as;
   return { ...as, placements: [], data: { ...as.data, clusters: [], questions: as.data.questions.map((q) => ({ ...q, cluster_id: null })) } };
 }
@@ -79,6 +81,26 @@ function dayZero(f: Fixture): Fixture {
       serp: [],
       lastRun: null,
       notes: [],
+    },
+  };
+}
+
+/**
+ * R148 pass 10 (1 Oct 2026): `TRACKING_FIXTURE_STATE=signup` is day zero as
+ * the webhook really builds it from a scan that chose no keyword (signup.ts):
+ * one cluster named "Needs a keyword" with no keyword and the scan's prompts
+ * (PROMPTS_PER_CLUSTER), nothing else.
+ */
+function signupNoKeyword(f: Fixture): Fixture {
+  const first = f.data.clusters[0]!;
+  return {
+    ...f,
+    data: {
+      ...f.data,
+      // signup.ts's NEEDS_A_KEYWORD; a literal because that file resolves "@/" imports (the test holds them equal).
+      clusters: [{ ...first, name: "Needs a keyword", keyword_id: null }],
+      questions: f.data.questions.filter((q) => q.cluster_id === first.id).slice(0, PROMPTS_PER_CLUSTER),
+      keywords: [],
     },
   };
 }

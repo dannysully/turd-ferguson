@@ -107,8 +107,40 @@ const role = process.env.TRACKING_FIXTURE_ROLE || "owner";
 // that run checks day zero instead:
 //   TRACKING_FIXTURE_STATE=new node --test e2e/journeys/app.spec.mts
 const dayZero = process.env.TRACKING_FIXTURE_STATE === "new";
+// Pass 10 (R148/R154, 1 Oct 2026): TRACKING_FIXTURE_STATE=signup is day zero as
+// the webhook builds it from a scan with no keyword - one "Needs a keyword"
+// cluster, its prompts, nothing else (docs/parity/run-signup.mjs).
+const signup = process.env.TRACKING_FIXTURE_STATE === "signup";
 
 for (const width of [1280, 390]) {
+  if (signup) {
+    describe(`signup with no keyword at ${width} as ${role}`, () => {
+      test("the first Overview offers a way to the prompts just set up", async () => {
+        const ctx = await browser.newContext({ viewport: { width, height: 900 } });
+        const page = await ctx.newPage();
+        await page.goto(BASE + HOME, { waitUntil: "load" });
+        const see = page.getByRole("link", { name: "See your prompts" });
+        assert.equal(await see.count(), 1);
+        assert.ok(((await see.boundingBox())?.height ?? 0) >= 44, "48px target");
+        await see.click();
+        await page.waitForURL(/\/clusters$/);
+        await ctx.close();
+      });
+      for (const route of [`${HOME}/clusters`, `${HOME}/clusters/c1`]) {
+        test(`${route} promises no Google check for a cluster with no keyword`, async () => {
+          const ctx = await browser.newContext({ viewport: { width, height: 900 } });
+          const page = await ctx.newPage();
+          const r = await page.goto(BASE + route, { waitUntil: "load" });
+          assert.equal(r?.status(), 200);
+          const t = await page.evaluate(() => document.querySelector("main")?.innerText ?? document.body.innerText, null);
+          assert.doesNotMatch(t, /None in the top 20|the keyword checked on Google/, "no reading of a keyword that does not exist");
+          if (route.endsWith("c1")) assert.match(t, /We add its Google keyword for you/);
+          await ctx.close();
+        });
+      }
+    });
+    continue;
+  }
   if (dayZero) {
     describe(`day zero at ${width} as ${role}`, () => {
       test("the Overview says when the first check runs, right under the top bar", async () => {

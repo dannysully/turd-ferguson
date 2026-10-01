@@ -4,7 +4,7 @@ import { test } from "node:test";
 
 import { expandFixture, fixtureLive, fixtureMode, fixtureState } from "./fixture-mode.ts";
 import { addDays, overview } from "./figures.ts";
-import { ANGLES } from "./limits.ts";
+import { ANGLES, PROMPTS_PER_CLUSTER } from "./limits.ts";
 
 /**
  * R93 / BRIEF-2 T9 (29 Sep 2026): the fixture switch, and the fixture itself.
@@ -102,6 +102,18 @@ test("R148 pass 7: TRACKING_FIXTURE_STATE=new is day zero - everything live star
   assert.deepEqual([n.data.answers.length, n.data.serp.length, n.data.notes.length, n.placements.length, n.clusterNotes.length], [0, 0, 0, 0, 0]);
   assert.equal(n.data.lastRun, null);
   assert.ok(fx.data.answers.length > 0, "the default fixture is untouched");
+});
+
+test("R148 pass 10: TRACKING_FIXTURE_STATE=signup is day zero as signup.ts builds it from a scan with no keyword", () => {
+  const s = fixtureState(fx, { TRACKING_FIXTURE_STATE: "signup" });
+  const src = readFileSync(new URL("../checkout/signup.ts", import.meta.url), "utf8");
+  const name = src.match(/export const NEEDS_A_KEYWORD = "([^"]+)"/)?.[1];
+  assert.ok(name, "signup.ts still exports NEEDS_A_KEYWORD");
+  assert.deepEqual(s.data.clusters.map((c) => [c.name, c.keyword_id]), [[name, null]]);
+  assert.equal(s.data.questions.length, PROMPTS_PER_CLUSTER);
+  assert.ok(s.data.questions.every((q) => q.cluster_id === s.data.clusters[0]!.id));
+  assert.deepEqual([s.data.keywords.length, s.data.answers.length, s.data.serp.length], [0, 0, 0]);
+  assert.equal(s.client.started_on, addDays(fx.today, 1));
 });
 
 test("R146: TRACKING_FIXTURE_ROLE signs the fixture in as each member; removed is refused, a typo throws", () => {

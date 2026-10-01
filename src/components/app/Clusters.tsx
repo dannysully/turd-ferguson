@@ -545,7 +545,7 @@ function ClusterRow({ c, brand, subject, open, toggle, since, act, refill, openH
           <span style={{ fontSize: "12px", color: T.soft }}>Google</span>
           <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <span style={{ fontSize: "17px", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{c.position === null ? "-" : `#${c.position}`}</span>
-            <Chip value={c.positionChange} unit="" none={pending ? "Tomorrow" : "New"} />
+            <Chip value={c.positionChange} unit="" none={c.keyword === null ? "No keyword" : pending ? "Tomorrow" : "New"} />
           </span>
         </span>
       </Link>
@@ -629,7 +629,7 @@ function ClusterRow({ c, brand, subject, open, toggle, since, act, refill, openH
               <span style={{ fontSize: "16px", fontWeight: 700, lineHeight: 1.3 }}>{c.keyword ?? "Needs a keyword"}</span>
               <span style={{ display: "flex", alignItems: "baseline", gap: "10px" }}>
                 <span style={{ fontSize: "36px", fontWeight: 700, letterSpacing: "-0.03em", fontVariantNumeric: "tabular-nums" }}>{c.position === null ? "-" : `#${c.position}`}</span>
-                <Chip value={c.positionChange} unit="" none={pending ? "Tomorrow" : "New"} />
+                <Chip value={c.positionChange} unit="" none={c.keyword === null ? "No keyword" : pending ? "Tomorrow" : "New"} />
               </span>
               <span style={{ fontSize: "13px", color: T.soft }}>
                 {/* R148 pass 9 (1 Oct 2026): a signup whose scan chose no keyword left "-" with no next step; nomada picks it (signup.ts order email). */}
@@ -645,7 +645,7 @@ function ClusterRow({ c, brand, subject, open, toggle, since, act, refill, openH
               {!pending && subject ? (
                 <span style={{ display: "flex", flexDirection: "column", gap: "2px", borderTop: `1px solid ${T.line}` }}>
                   <span style={{ fontSize: "12px", color: T.soft, paddingTop: "10px" }}>Your ranking page</span>
-                  <span style={{ fontSize: "13px", fontWeight: 500 }}>{c.position === null ? "None in the top 20" : subject.domain}</span>
+                  <span style={{ fontSize: "13px", fontWeight: 500 }}>{c.keyword === null ? "Once its keyword is added" : c.position === null ? "None in the top 20" : subject.domain}</span>
                 </span>
               ) : null}
             </div>

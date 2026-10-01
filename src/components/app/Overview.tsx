@@ -258,6 +258,12 @@ export default function Overview({
             {liveQuestions ? `${liveQuestions} prompts are set up on ${WORDS[engines.length] ?? engines.length} engines. ` : ""}
             The figures fill in from the first daily check, and history starts that day.
           </p>
+          {/* R148 pass 10 (1 Oct 2026): a new buyer's first view had no next step; the prompts it names are one click away. */}
+          {clustersPath && liveQuestions ? (
+            <Link href={clustersPath} style={{ display: "inline-flex", alignItems: "center", height: "48px", marginTop: "20px", padding: "0 18px", boxSizing: "border-box", borderRadius: "12px", background: T.surface, color: T.ink, fontSize: "14px", fontWeight: 600, textDecoration: "none" }}>
+              See your prompts
+            </Link>
+          ) : null}
         </section>
       </div>
     );
@@ -963,7 +969,7 @@ function ClusterCards({
                 <div style={{ width: "108px", flexShrink: 0, boxSizing: "border-box", padding: "10px 12px", borderRadius: "12px", border: `1px solid ${on ? T.washLine : T.line}`, background: T.bg, display: "flex", flexDirection: "column", gap: "4px", alignItems: "flex-start" }}>
                   <span style={{ fontSize: "11px", fontWeight: 600, color: T.soft }}>Google</span>
                   <span style={{ fontSize: "24px", fontWeight: 700, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }}>{c.position === null ? "-" : `#${c.position}`}</span>
-                  <Chip value={c.positionChange} unit="" none={pending ? "Tomorrow" : "New"} />
+                  <Chip value={c.positionChange} unit="" none={c.keyword === null ? "No keyword" : pending ? "Tomorrow" : "New"} />
                 </div>
               </div>
               {detail ? (
