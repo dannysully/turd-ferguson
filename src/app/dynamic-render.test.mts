@@ -172,7 +172,9 @@ test("the routes that cannot be rendered here are exactly the seven known ones",
   // Five since 30 Sep 2026: /admin/tracking/[client]/placements (R96 part 3), same auth.
   // Six since 30 Sep 2026: /admin/tracking/usage (R98 T10), same auth.
   // Seven since 1 Oct 2026: /admin/funnel (R152), same auth.
+  // Eight since 1 Oct 2026: /admin/emails (R159 part 2), same auth.
   assert.deepEqual(blocked, [
+    "/admin/emails",
     "/admin/funnel",
     "/admin/scans",
     "/admin/tracking",
