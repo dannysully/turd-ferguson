@@ -82,4 +82,12 @@ test("every flag ships off, and each send site asks its flag before sending", as
   assert.match(signup, /lifecycleOn\(db, "welcome"\)[\s\S]{0,300}sendLifecycle\(\{ memberEmail: o\.email, mail: welcome\(/);
   assert.match(signup, /lifecycleOn\(db, "plan_ended"\)[\s\S]{0,800}sendLifecycle\(\{ memberEmail: m\.email as string, mail \}\)/);
   assert.match(signup, /: await sendLoginLink\(\{ memberEmail: o\.email, link \}\)/, "the login link stays the default while welcome is off");
+  // The invite: branded only outside agency mode and with its flag on, else the plain inviteMail as before.
+  const member = read("../../app/api/app/[client]/member/route.ts");
+  assert.match(member, /!agency && \(await lifecycleOn\(db, "invite"\)\)\s*\? inviteEmail\([\s\S]{0,300}: inviteMail\(\{ inviter: email, domain: client\.domain, role: f\.role!, agency \}\)/);
+});
+
+test("the invite names who added you and the role", () => {
+  const t = all.invite.text;
+  assert.match(t, /sam@tallyroo\.com added you to the tallyroo\.com dashboard as a viewer/);
 });

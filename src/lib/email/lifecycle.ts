@@ -134,13 +134,14 @@ export function firstReading(d: { tier: TierKey; domain: string; named: number; 
   });
 }
 
-export function invite(d: { tier: TierKey; domain: string; link: string }): Rendered {
+/** Names alwayscited and the tier, so the member route sends it only outside agency mode. */
+export function invite(d: { tier: TierKey; domain: string; link: string; inviter: string; role: "editor" | "viewer" }): Rendered {
   return render({
     tier: d.tier,
     subject: `You've been added to the ${d.domain} dashboard`,
     preheader: "Sign in with this email address.",
     heading: `You've been added to the ${d.domain} dashboard`,
-    body: [`Someone on the ${d.domain} team added you. Sign in with this email address to see it.`],
+    body: [`${d.inviter} added you to the ${d.domain} dashboard as ${d.role === "editor" ? "an editor" : "a viewer"}. Sign in with this email address to see it.`],
     cta: { href: d.link, label: "Sign in" },
     footnote: "Sign in sends a one-time link to this address.",
   });
@@ -168,7 +169,7 @@ export function previews(): Record<LifecycleEmail, Rendered> {
     setup_reminder: setupReminder({ tier: "mentioned", domain, link }),
     setup_confirmed: setupConfirmed({ tier: "mentioned", clusters: ["invoicing software", "expense tracking", "payroll for small business"], link: `${ORIGIN}/app` }),
     first_reading: firstReading({ tier: "tracked", domain, named: 7, answers: 20, page1: 3, keywords: 10, link: `${ORIGIN}/app` }),
-    invite: invite({ tier: "tracked", domain, link: `${ORIGIN}/app/login` }),
+    invite: invite({ tier: "tracked", domain, link: `${ORIGIN}/app/login`, inviter: "sam@tallyroo.com", role: "viewer" }),
     plan_ended: planEnded({ tier: "cited", domain }),
   };
 }

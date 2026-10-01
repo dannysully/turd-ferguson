@@ -8,9 +8,10 @@ import { flagFor, flagOn, type LifecycleEmail, type Rendered } from "@/lib/email
 /**
  * The lifecycle emails' one sender (R159 part 3, 1 Oct 2026). Each call site
  * asks lifecycleOn first; every flag is false until Danny approves that
- * preview at /admin/emails, so nothing here sends until he does. Called only
- * from the signed Stripe webhook: the welcome to the owner signup.ts just
- * stored, plan_ended to the client's live owners.
+ * preview at /admin/emails, so nothing here sends until he does. sendLifecycle
+ * is called only from the signed Stripe webhook: the welcome to the owner
+ * signup.ts just stored, plan_ended to the client's live owners. The invite
+ * asks lifecycleOn too, but goes through invite-mail.ts and its owner caps.
  *
  * Returns false rather than throwing, as the other senders do.
  */

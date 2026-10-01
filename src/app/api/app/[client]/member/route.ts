@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 
+import { invite as inviteEmail } from "@/lib/email/lifecycle";
+import { lifecycleOn } from "@/lib/email/lifecycle-mail";
+import { siteUrl } from "@/lib/scan/verify-email";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { TIER_PLAIN, type TierKey } from "@/lib/tier-text";
 import { upsellMode } from "@/lib/tracking/ask";
 import { trackingDay } from "@/lib/tracking/decide";
 import { fixtureMode } from "@/lib/tracking/fixture-mode";
@@ -56,7 +60,12 @@ export async function POST(req: Request, ctx: { params: Promise<{ client: string
     if (aErr || !account) return refused(`could not read the account: ${aErr?.message ?? "none"}`);
     const r = await invite(db, { accountId, clientId: client.id, email: f.email, role: f.role!, by: email });
     if (!r.ok) return refused(r.message);
-    const mail = inviteMail({ inviter: email, domain: client.domain, role: f.role!, agency: upsellMode(account.upsell_mode) === "agency" });
+    const agency = upsellMode(account.upsell_mode) === "agency";
+    // The branded invite (R159) names alwayscited and the tier, so never in agency mode; off until its flag is on.
+    const mail =
+      !agency && (await lifecycleOn(db, "invite"))
+        ? inviteEmail({ tier: (client.tier in TIER_PLAIN ? client.tier : "tracked") as TierKey, domain: client.domain, link: `${siteUrl()}/app/login`, inviter: email, role: f.role! })
+        : inviteMail({ inviter: email, domain: client.domain, role: f.role!, agency });
     if (!(await sendInvite({ to: f.email, replyTo: email, ...mail }))) console.warn("[app] invite saved but the mail was not sent");
     return back("invited");
   }

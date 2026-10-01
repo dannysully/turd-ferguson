@@ -13,7 +13,7 @@ import { headerSafe } from "@/lib/email-header";
  * Returns false rather than throwing; the member is already on the team, so a
  * failed send is logged, and they can still sign in.
  */
-export async function sendInvite(input: { to: string; replyTo: string; subject: string; text: string }): Promise<boolean> {
+export async function sendInvite(input: { to: string; replyTo: string; subject: string; text: string; html?: string }): Promise<boolean> {
   const key = process.env.RESEND_API_KEY;
   if (!key) {
     console.error("[app] RESEND_API_KEY is not set, invite not sent");
@@ -26,6 +26,8 @@ export async function sendInvite(input: { to: string; replyTo: string; subject: 
       replyTo: input.replyTo,
       subject: headerSafe(input.subject),
       text: input.text,
+      // The lifecycle invite's HTML (R159), only when its flag is on and the account is not in agency mode.
+      ...(input.html ? { html: input.html } : {}),
     });
     if (error) {
       console.error("[app] invite rejected", error);
