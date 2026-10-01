@@ -171,7 +171,7 @@ for (const width of [1280, 390]) {
         else assert.ok(stops >= 5, `${stops} stop forms on the open cluster`);
         // Undo rides the toast after a real stop (stopped_on after today); the
         // fixture holds no such prompt and this spec never posts, so Undo is
-        // checked by the route's own tests, not here.
+        // held by src/lib/tracking/stop.test.mts, not here.
         await ctx.close();
       });
 
@@ -187,7 +187,7 @@ for (const width of [1280, 390]) {
         await page.waitForLoadState("load");
         // The previous period is the default compare, so it comes with no fourth
         // click: the headline reads "up from", and names the span ("vs" at 1280;
-        // at 390 only the chart's "Dashed:" caption does - a pass-3 finding).
+        // at 390 the chart's "Dashed:" caption, as Mobile.dc.html drops it from the face).
         const t = await text(page);
         assert.match(t, /Last 7 days/);
         assert.match(t, /up from \d+%|down from \d+%|was \d+ of \d+/);
