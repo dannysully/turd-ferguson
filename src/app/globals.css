@@ -1670,6 +1670,11 @@ html[data-motion="on"] .res-dial { animation: resDial 1.4s .3s cubic-bezier(.2,.
 @media (max-width: 860px) {
   .app-side { display: none !important; }
   .app-topbar, .app-tabs { display: flex; }
+  /* R148 pass 7 (1 Oct 2026): the shell wraps at min-height 100vh, so on a
+     short page (the day-zero Overview) align-content's stretch opened a
+     ~215px gap between the top bar and the page. Above 860px the stretch is
+     what keeps the sidebar full height, so it stays there. */
+  .app-shell { align-content: flex-start; }
   .app-main { padding: 16px 16px 96px !important; }
   .app-kw { white-space: normal !important; }
   .app-headline { padding: 28px 22px !important; gap: 28px !important; }

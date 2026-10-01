@@ -169,9 +169,10 @@ export default function OneCluster({
       </header>
 
       <section aria-label="Summary" className="app-cl-sum" style={{ ...CARD, display: "flex", flexWrap: "wrap" }}>
-        {fig("Answers naming you", "cl-named", big(`${c.now.num} of ${c.now.den}`), <Chip value={c.delta} unit=" pts" none={pending ? "Tomorrow" : "New"} />, c.before ? `${pct(c.now)} this period, ${pct(c.before)} the one before` : `${pct(c.now)} this period`, true)}
+        {/* R148 pass 7 (1 Oct 2026): before the first answer there is no count to give - "-", not "0 of 0" or "0 of 5". */}
+        {fig("Answers naming you", "cl-named", big(c.now.den ? `${c.now.num} of ${c.now.den}` : "-"), <Chip value={c.delta} unit=" pts" none={pending ? "Tomorrow" : "New"} />, !c.now.den ? "No answers yet" : c.before ? `${pct(c.now)} this period, ${pct(c.before)} the one before` : `${pct(c.now)} this period`, true)}
         {fig("Google position", "cl-google", big(c.position === null ? "-" : `#${c.position}`), <Chip value={c.positionChange} unit="" none={pending ? "Tomorrow" : "New"} />, `${posLine}${upFrom}`)}
-        {fig("Prompts naming you", "cl-prompts", big(`${c.promptsNamed.num} of ${c.promptsNamed.den}`), null, "Each named you on at least one engine")}
+        {fig("Prompts naming you", "cl-prompts", big(c.now.den ? `${c.promptsNamed.num} of ${c.promptsNamed.den}` : "-"), null, c.now.den ? "Each named you on at least one engine" : `${c.promptsNamed.den} prompts, none checked yet`)}
         {fig(
           "Most reliable engine",
           "cl-reliable",
@@ -250,10 +251,10 @@ export default function OneCluster({
                           <span style={{ display: "inline-flex", opacity: e.days ? 1 : 0.25 }}>
                             <EngineLogo engine={e.engine as Engine} size={16} />
                           </span>
-                          <span style={{ fontSize: "12px", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{e.days}</span>
+                          {p.daysChecked ? <span style={{ fontSize: "12px", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{e.days}</span> : null}
                         </span>
                       ))}
-                      <span style={{ fontSize: "12px", color: T.soft }}>{`days named, of ${p.daysChecked}`}</span>
+                      <span style={{ fontSize: "12px", color: T.soft }}>{p.daysChecked ? `days named, of ${p.daysChecked}` : "Not checked yet"}</span>
                     </span>
                   </span>
                   <span style={{ fontSize: "16px", fontWeight: 700, textAlign: "right", fontVariantNumeric: "tabular-nums" }} title={`${p.now.num} of ${p.now.den} answers`}>
