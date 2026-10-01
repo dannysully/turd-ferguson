@@ -633,7 +633,31 @@ export default function ProcessSequence(p: { heading?: string; standfirst?: stri
           The control is 44px tall for WCAG 2.5.8 even though the mark in it is
           3px. The active bar fills over the tier's time, so a reader can see
           how long they have; once the reader takes over it is simply full. */}
-      <div className="proc-rail" role="tablist" aria-label="The four tiers">
+      {/* R151 (1 Oct 2026): one Tab stop, as the WAI-ARIA APG tabs pattern
+          has it - only the playing tier is tabbable, and the arrows, Home and
+          End move between tiers, selecting as they go. Four stops with no
+          arrows was what docs/parity/r151-flow-keys.mjs found on the waiting
+          screen. */}
+      <div
+        className="proc-rail"
+        role="tablist"
+        aria-label="The four tiers"
+        onKeyDown={(e) => {
+          const last = BEATS.length - 1;
+          const to =
+            e.key === "ArrowRight" ? (beat === last ? 0 : beat + 1)
+            : e.key === "ArrowLeft" ? (beat === 0 ? last : beat - 1)
+            : e.key === "Home" ? 0
+            : e.key === "End" ? last
+            : null;
+          if (to === null) return;
+          e.preventDefault();
+          setBeat(to);
+          setBridging(false);
+          hold();
+          document.getElementById("proc-tab-" + BEATS[to].tier)?.focus();
+        }}
+      >
         {BEATS.map((b, n) => (
           <button
             key={b.tier}
@@ -642,6 +666,7 @@ export default function ProcessSequence(p: { heading?: string; standfirst?: stri
             id={"proc-tab-" + b.tier}
             aria-controls={"proc-beat-" + b.tier}
             aria-selected={n === beat}
+            tabIndex={n === beat ? 0 : -1}
             onClick={() => {
               setBeat(n);
               setBridging(false);
