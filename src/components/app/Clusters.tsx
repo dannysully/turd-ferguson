@@ -632,7 +632,8 @@ function ClusterRow({ c, brand, subject, open, toggle, since, act, refill, openH
                 <Chip value={c.positionChange} unit="" none={pending ? "Tomorrow" : "New"} />
               </span>
               <span style={{ fontSize: "13px", color: T.soft }}>
-                {c.positionBefore !== null && since ? `was #${c.positionBefore} on ${since}` : pending ? "First check tomorrow at 06:00" : `Tracked since ${formatDay(c.started_on)}`}
+                {/* R148 pass 9 (1 Oct 2026): a signup whose scan chose no keyword left "-" with no next step; nomada picks it (signup.ts order email). */}
+                {c.keyword === null ? "We add its Google keyword for you." : c.positionBefore !== null && since ? `was #${c.positionBefore} on ${since}` : pending ? "First check tomorrow at 06:00" : `Tracked since ${formatDay(c.started_on)}`}
               </span>
               {c.intent || vol ? (
                 <span style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
