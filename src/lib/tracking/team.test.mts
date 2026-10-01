@@ -61,8 +61,10 @@ test("no one changes or removes themselves, nor the last owner", () => {
 test("the return URL and toast carry fixed words and a checked email only", () => {
   assert.equal(teamReturn("tallyroo", "invited", "new@tallyroo.com"), `/app/tallyroo/settings?${new URLSearchParams({ team: "invited", who: "new@tallyroo.com" })}#set-team`);
   assert.equal(teamReturn("tallyroo", "refused", "new@tallyroo.com"), "/app/tallyroo/settings?team=refused#set-team");
-  assert.equal(teamToast("invited", "new@tallyroo.com", null), "Invited new@tallyroo.com.");
+  assert.equal(teamToast("invited", "new@tallyroo.com", "viewer"), "Invited new@tallyroo.com.");
+  assert.equal(teamToast("invited", "stranger@tallyroo.com", null), null, "R146: not on the team, so nobody was invited");
   assert.equal(teamToast("removed", "gone@tallyroo.com", null), "Removed gone@tallyroo.com.");
+  assert.equal(teamToast("removed", "still@tallyroo.com", "editor"), null, "R146: still on the team, so nobody was removed");
   assert.equal(teamToast("role", "vi@tallyroo.com", "viewer"), "vi@tallyroo.com is now a viewer.");
   assert.equal(teamToast("invited", "<script>@x", null), null);
   assert.equal(teamToast("role", "vi@tallyroo.com", null), null, "not a member any more: no claim about their role");

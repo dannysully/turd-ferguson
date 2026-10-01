@@ -83,13 +83,18 @@ export function teamReturn(slug: string, done: TeamDone, email: string | null): 
   return `/app/${encodeURIComponent(slug)}/settings?${q}#set-team`;
 }
 
-/** Fixed words; the only thing from the URL is an email that passes readEmail. */
+/**
+ * Fixed words; the only thing from the URL is an email that passes readEmail,
+ * and only where the team agrees with it (R146, 1 Oct 2026): "Invited" needs
+ * them on the team now and "Removed" needs them off it, so a typed link cannot
+ * put a stranger's address in a confirmation.
+ */
 export function teamToast(done: unknown, who: unknown, roleNow: string | null): string | null {
   const email = readEmail(who);
   if (done === "refused") return "That change did not go through. Reload the page and try again.";
   if (!email) return null;
-  if (done === "invited") return `Invited ${email}.`;
-  if (done === "removed") return `Removed ${email}.`;
+  if (done === "invited") return roleNow === null ? null : `Invited ${email}.`;
+  if (done === "removed") return roleNow === null ? `Removed ${email}.` : null;
   if (done === "role" && (roleNow === "editor" || roleNow === "viewer")) return `${email} is now ${roleNow === "editor" ? "an editor" : "a viewer"}.`;
   return null;
 }
