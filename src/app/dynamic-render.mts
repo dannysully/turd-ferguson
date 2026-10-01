@@ -182,6 +182,8 @@ export const STATES: Record<string, State> = {
   "/app/[client]/settings": { urls: ["/app/example/settings"] },
   // 1 Oct 2026, R143 (BRIEF-4 P3): Who is named, same session rule.
   "/app/[client]/named": { urls: ["/app/example/named", "/app/example/named?engine=chatgpt&all=1"] },
+  // 1 Oct 2026, R144 (BRIEF-4 P4): Cited pages, same session rule.
+  "/app/[client]/cited": { urls: ["/app/example/cited", "/app/example/cited?kind=others&all=1"] },
   // 29 Sep 2026, T4: the overview drawn from the local parity fixture - the
   // only way the sweeps see the signed-in overview's markup at all. A 404 in
   // a checkout that has not run docs/parity/T4/make-fixture.py.

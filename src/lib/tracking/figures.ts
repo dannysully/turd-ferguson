@@ -305,11 +305,42 @@ export type CitationRow ={ run_date: Day; engine: string; citations: { source_do
 
 /** The pages the engines cite most in the range: times cited, which engines cite it, and whether it is the client's own site. */
 export function citedPages(rows: CitationRow[], r: Range, domain: string, limit = 6): { page: string; count: number; engines: string[]; yours: boolean }[] {
+  return citedPageRows(rows, r, domain)
+    .slice(0, limit)
+    .map(({ page, count, engines, yours }) => ({ page, count, engines, yours }));
+}
+
+export type CitedPageRow = {
+  /** Host and path, lowercase host, no www, no query, no trailing slash - the placements url_key form. */
+  page: string;
+  host: string;
+  count: number;
+  engines: string[];
+  yours: boolean;
+  first: Day;
+  last: Day;
+  /** Per prompt: days cited for it of days it had an answer. Most days first. */
+  prompts: { id: string; daysCited: number; daysAnswered: number }[];
+};
+
+/**
+ * Every cited page in the range (R144, 1 Oct 2026; BRIEF-4 P4): the rows
+ * citedPages draws on the Overview, with nothing cut, plus first and last day
+ * cited and the prompts each page was cited for. citedPages is this list's
+ * head, so a page's count here is the panel's.
+ */
+export function citedPageRows(rows: (CitationRow & { question_id?: string; answered?: boolean })[], r: Range, domain: string): CitedPageRow[] {
   const bare = (h: string) => h.toLowerCase().replace(/^www\./, "");
   const own = bare(domain);
-  const pages = new Map<string, { count: number; engines: Set<string>; host: string }>();
+  const pages = new Map<string, { count: number; engines: Set<string>; host: string; first: Day; last: Day; prompts: Map<string, Set<Day>> }>();
+  const answered = new Map<string, Set<Day>>();
   for (const a of rows) {
     if (!within(a.run_date, r)) continue;
+    if (a.question_id && a.answered !== false) {
+      const d = answered.get(a.question_id) ?? new Set<Day>();
+      d.add(a.run_date);
+      answered.set(a.question_id, d);
+    }
     for (const c of a.citations) {
       const host = bare(c.source_domain || "");
       if (!host) continue;
@@ -322,16 +353,33 @@ export function citedPages(rows: CitationRow[], r: Range, domain: string, limit 
           // an unparseable URL counts against its domain
         }
       }
-      const p = pages.get(page) ?? { count: 0, engines: new Set<string>(), host };
+      const p = pages.get(page) ?? { count: 0, engines: new Set<string>(), host, first: a.run_date, last: a.run_date, prompts: new Map<string, Set<Day>>() };
       p.count++;
       p.engines.add(a.engine);
+      if (a.run_date < p.first) p.first = a.run_date;
+      if (a.run_date > p.last) p.last = a.run_date;
+      if (a.question_id) {
+        const d = p.prompts.get(a.question_id) ?? new Set<Day>();
+        d.add(a.run_date);
+        p.prompts.set(a.question_id, d);
+      }
       pages.set(page, p);
     }
   }
   return [...pages.entries()]
-    .map(([page, p]) => ({ page, count: p.count, engines: [...p.engines], yours: p.host === own || p.host.endsWith(`.${own}`) }))
-    .sort((x, y) => y.count - x.count)
-    .slice(0, limit);
+    .map(([page, p]) => ({
+      page,
+      host: p.host,
+      count: p.count,
+      engines: [...p.engines],
+      yours: p.host === own || p.host.endsWith(`.${own}`),
+      first: p.first,
+      last: p.last,
+      prompts: [...p.prompts.entries()]
+        .map(([id, d]) => ({ id, daysCited: d.size, daysAnswered: answered.get(id)?.size ?? d.size }))
+        .sort((x, y) => y.daysCited - x.daysCited || y.daysAnswered - x.daysAnswered),
+    }))
+    .sort((x, y) => y.count - x.count);
 }
 
 /** The chart's series: per day, the share of answers naming the client, per engine and across them all. */

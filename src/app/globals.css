@@ -1715,5 +1715,10 @@ html[data-motion="on"] .res-dial { animation: resDial 1.4s .3s cubic-bezier(.2,.
   .app-nm-engines { padding-left: 20px; }
   .app-nm-prompts { grid-column: 2 / 4; }
   /* Ten cluster chips would fill the first screen; each filter row scrolls sideways instead. */
+  /* R144 Cited pages on a phone: page and times cited on one line; engines, prompts and days under. */
+  .app-ct-grid { grid-template-columns: minmax(0, 1fr) auto !important; gap: 8px 12px !important; padding-left: 16px !important; padding-right: 16px !important; }
+  .app-ct-count .app-show-sm { display: inline !important; }
+  .app-ct-engines { padding-left: 20px; }
+  .app-ct-span { grid-column: 1 / 3; text-align: left !important; padding-left: 20px; }
   .app-nm-filters { flex-wrap: nowrap !important; overflow-x: auto; scrollbar-width: none; }
 }
