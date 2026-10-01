@@ -187,7 +187,7 @@ export default function Clusters({
               );
             })}
           </nav>
-          <form method="get" role="search" style={{ display: "flex", alignItems: "center", gap: "8px", width: "280px", maxWidth: "100%", height: "40px", boxSizing: "border-box", padding: "0 12px", border: `1px solid ${T.line}`, borderRadius: "12px", background: T.surface }}>
+          <form method="get" role="search" className="app-search" style={{ display: "flex", alignItems: "center", gap: "8px", width: "280px", maxWidth: "100%", height: "40px", boxSizing: "border-box", padding: "0 12px", border: `1px solid ${T.line}`, borderRadius: "12px", background: T.surface }}>
             <input id="cl-from" type="hidden" name="from" value={range.from} />
             <input id="cl-to" type="hidden" name="to" value={range.to} />
             {compareMode === "prev" ? null : <input id="cl-compare" type="hidden" name="compare" value={compareMode} />}

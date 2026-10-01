@@ -185,6 +185,7 @@ export default function Cited({
                         {placed ? (
                           <Link href={`${appPath}/placements?${new URLSearchParams({ ...base, cluster: placed })}`} className="app-tap" style={{ ...TAG, background: T.chip, border: `1px solid ${T.line}`, color: T.ink, textDecoration: "none" }}>
                             Placement
+                            <span className="sr-only">{` on ${p.page}`}</span>
                           </Link>
                         ) : null}
                       </span>

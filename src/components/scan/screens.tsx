@@ -21,7 +21,7 @@ import { D } from "@/components/home/dark";
  * readOnly renders the screen non-interactive but styled exactly as live.
  */
 
-export const field: React.CSSProperties = { width: "100%", padding: "0.875rem 1rem", fontSize: "1rem", color: T.ink, background: T.surface, border: `1.5px solid ${T.line}`, borderRadius: "12px", fontFamily: "inherit", outline: "none" };
+export const field: React.CSSProperties = { width: "100%", padding: "0.875rem 1rem", fontSize: "1rem", color: T.ink, background: T.surface, border: `1.5px solid ${T.line}`, borderRadius: "12px", fontFamily: "inherit" };
 /* A micro-label, per the boards: 12px/600 on soft, sentence case. */
 export const label: React.CSSProperties = { display: "block", fontSize: "12px", fontWeight: 600, letterSpacing: "0.002em", color: T.soft, marginBottom: "7px" };
 export const btn: React.CSSProperties = { border: "none", cursor: "pointer", padding: "0.875rem 2rem" };

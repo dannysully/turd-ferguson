@@ -39,6 +39,7 @@ function SeeAll({ card, clientPath, keep }: { card: keyof typeof SEE_ALL; client
       // BRIEF-4: from/to/compare kept, so the full page opens on the panel's range.
       <Link href={`${to}?${keep}`} style={{ fontSize: "14px", fontWeight: 600, color: T.accent, textDecoration: "none", whiteSpace: "nowrap" }}>
         See all
+        <span className="sr-only">{`: ${card}`}</span>
       </Link>
     );
   return (
@@ -980,6 +981,7 @@ function ClusterCards({
                   ) : (
                     <Link href={href(c.id)} scroll={false} className="app-over" style={{ fontSize: "12px", fontWeight: 600, color: T.accent, textDecoration: "none", whiteSpace: "nowrap" }}>
                       Chart this
+                      <span className="sr-only">{`: ${title}`}</span>
                     </Link>
                   )}
                 </span>

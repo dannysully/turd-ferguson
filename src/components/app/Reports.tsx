@@ -89,6 +89,7 @@ export default function Reports({
               >
                 <DownloadIcon color={i === 0 ? T.surface : T.ink} />
                 {FILES[k]}
+                <span className="sr-only">{`, ${span(range)}`}</span>
               </a>
             ))}
           </div>
@@ -147,6 +148,8 @@ export default function Reports({
                       <a key={k} href={csv(k, m.range)} download style={{ ...LINK, display: "inline-flex", alignItems: "center", gap: "6px" }}>
                         <DownloadIcon color={T.accent} />
                         {FILES[k]}
+                        {/* R151 keyboard sweep: every month's three links read the same to a screen reader without it. */}
+                        <span className="sr-only">{`, ${m.label}`}</span>
                       </a>
                     ))}
                   </div>
