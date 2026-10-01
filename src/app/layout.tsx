@@ -81,9 +81,15 @@ export default function RootLayout({
         */}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ld(siteGraph) }} />
         <SiteChrome>
+          {/* R151 (1 Oct 2026): keyboard users skip the header's 13 stops
+              (WCAG 2.2 2.4.1). Hidden until focused; .btn-primary's colours,
+              so the stylesheet records no new ground. */}
+          <a href="#main" className="btn-primary sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:px-4 focus:py-3 focus:text-sm">
+            Skip to content
+          </a>
           <Header />
         </SiteChrome>
-        <main className="flex-1">{children}</main>
+        <main id="main" tabIndex={-1} className="flex-1 outline-none">{children}</main>
         <SiteChrome>
           <Footer />
         </SiteChrome>

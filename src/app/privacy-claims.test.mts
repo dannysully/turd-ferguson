@@ -509,6 +509,29 @@ const THIRD_PARTIES: { origin: string; vendor: string; why: string }[] = [
   },
 ];
 
+/**
+ * Where a form submission's redirect may land, which is form-action and
+ * nothing else. Not a third party the page loads: the browser navigates there
+ * and the visitor leaves the site, so the sentence on /legal about scripts is
+ * untouched by it and the rules below read form-action apart. Pinned as its
+ * own list so a new target is still a deliberate edit (R155, Danny, 1 Oct
+ * 2026: with 'self' alone Chrome blocked /checkout's 303 to Stripe).
+ */
+const FORM_TARGETS: { origin: string; why: string }[] = [
+  { origin: "https://checkout.stripe.com", why: "/api/checkout answers /checkout's form with a 303 to Stripe's hosted checkout." },
+  { origin: "https://billing.stripe.com", why: "Stripe's billing portal, named in Danny's R155 fix alongside checkout." },
+];
+
+test("form-action permits 'self' and exactly the recorded Stripe pages", () => {
+  const fa = directives().find((d) => d.name === "form-action");
+  assert.ok(fa, "the CSP parse cannot see form-action");
+  assert.deepEqual(
+    [...fa!.sources].sort(),
+    ["'self'", ...FORM_TARGETS.map((t) => t.origin)].sort(),
+    "form-action names a target that is not in FORM_TARGETS, or a recorded one is gone. Each is a place a form on this site may send the visitor.",
+  );
+});
+
 /** Source expressions that are not a third party: us, or no fetch at all. */
 const FIRST_PARTY = /^(?:'self'|'none'|'unsafe-inline'|'unsafe-eval'|blob:|data:|ws:)$/;
 
@@ -568,6 +591,7 @@ test("the CSP parse read the real policy, so an empty set cannot pass as a stric
 test("the browser may reach exactly one third party, and it is the one on the page", () => {
   const found = new Set<string>();
   for (const { name, sources } of directives()) {
+    if (name === "form-action") continue; // navigation targets, pinned by FORM_TARGETS above
     for (const src of sources) {
       if (FIRST_PARTY.test(src)) continue;
       if (!/^https?:\/\//.test(src)) continue; // 'unsafe-eval' and friends behind a template hole

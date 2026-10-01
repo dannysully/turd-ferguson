@@ -1,4 +1,13 @@
 @import "tailwindcss";
+/* docs/ is notes and run transcripts, not source: Tailwind's scan was turning
+   class names quoted there into CSS (R151, 1 Oct 2026 - a transcript put a
+   white focus ground into the stylesheet and tripped the colour census).
+   Never quote a utility in a comment here either: this file is scanned too. */
+@source not "../../docs";
+/* The same for the old build folders the builder moves aside (they are not
+   gitignored, so Tailwind reads them): their captured HTML kept an earlier
+   skip link's classes alive in every new build (R155, 1 Oct 2026). */
+@source not "../../.next-old-*";
 
 @theme {
   /* Brand purple - the accent half of the logo lockup */

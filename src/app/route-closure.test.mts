@@ -251,7 +251,12 @@ test("the shipped CSP permits every subresource the site loads", (t) => {
 
   // The other direction: a third-party origin allowed long after the thing
   // that needed it went. An allowance nobody uses is a hole nobody is watching.
-  const allowed = [...new Set([...csp!.matchAll(/https?:\/\/[^\s;]+/g)].map((m) => m[0]))];
+  // form-action is left out: its origins are where a form's redirect may land
+  // (Stripe's hosted checkout, R155, 1 Oct 2026), not anything client code
+  // loads, and privacy-claims pins them as FORM_TARGETS.
+  const subresources = csp!.split(";").filter((d) => !/^\s*form-action\b/.test(d)).join(";");
+  assert.ok(subresources.length < csp!.length, "the CSP no longer has a form-action directive, so the line above excludes nothing");
+  const allowed = [...new Set([...subresources.matchAll(/https?:\/\/[^\s;]+/g)].map((m) => m[0]))];
   const stale = allowed.filter((origin) => !loaded.some((l) => origin.startsWith(l.origin)));
   assert.deepEqual(
     stale,

@@ -80,8 +80,19 @@ const isDev = process.env.NODE_ENV === "development";
  * What it does buy are the four directives that need no nonce and cannot
  * break a render:
  *   base-uri 'self'    an injected <base> cannot re-point every relative URL
- *   form-action 'self' an injected form cannot post the contact form or a
- *                      scan email address to someone else
+ *   form-action        an injected form cannot post the contact form or a
+ *                      scan email address to someone else. 'self' plus
+ *                      Stripe's two hosted pages, because Chrome enforces
+ *                      form-action on the redirect a form submission
+ *                      follows: /checkout's form posts to /api/checkout,
+ *                      which 303s to checkout.stripe.com, and with 'self'
+ *                      alone the browser blocked "Continue to payment"
+ *                      (R155, severity 1, Danny, 1 Oct 2026, danny.md line
+ *                      155). billing.stripe.com is the billing portal's
+ *                      host, named in the same fix. Navigation targets, not
+ *                      subresources - nothing is fetched from them by a page
+ *                      here - so the third-party censuses read them apart
+ *                      (FORM_TARGETS in src/app/privacy-claims.test.mts).
  *   object-src 'none'  no plugin-embedded script
  *   frame-ancestors    clickjacking, and the directive browsers honour in
  *                      preference to the X-Frame-Options above
@@ -105,7 +116,7 @@ const CSP = [
   "worker-src 'self' blob:",
   "manifest-src 'self'",
   "base-uri 'self'",
-  "form-action 'self'",
+  "form-action 'self' https://checkout.stripe.com https://billing.stripe.com",
   "object-src 'none'",
   "frame-ancestors 'self'",
   // Omitted in development: it upgrades http subresources, which is not
