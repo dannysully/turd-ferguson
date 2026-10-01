@@ -578,7 +578,11 @@ export default async function CampaignReadingPage({ params }: { params: Promise<
           </div>
 
           <div style={{ marginBottom: history.length > 1 ? "14px" : 0 }}>
-            <RerunButton token={token} />
+            <RerunButton
+              token={token}
+              primary={!complete}
+              label={stalled && history.length <= 1 ? "Take the first reading" : "Take another reading"}
+            />
           </div>
         </section>
       )}

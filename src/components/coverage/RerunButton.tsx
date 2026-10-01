@@ -18,7 +18,21 @@ import { T } from "@/config/tokens";
  * same one, the new reading is now the newest, and the server re-renders it as
  * queued with the poll already attached.
  */
-export default function RerunButton({ token }: { token: string }) {
+export default function RerunButton({
+  token,
+  primary = true,
+  label = "Take another reading",
+}: {
+  token: string;
+  /**
+   * Filled only where this is the page's one action - a failed or stalled
+   * reading, where nothing else moves the page on. Beside a complete reading
+   * the walkthrough is the primary action, and two filled buttons left the
+   * reader choosing between them (R151, 1 Oct).
+   */
+  primary?: boolean;
+  label?: string;
+}) {
   const router = useRouter();
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -59,15 +73,16 @@ export default function RerunButton({ token }: { token: string }) {
           fontSize: "14px",
           fontWeight: 600,
           fontFamily: "inherit",
-          color: "#ffffff",
-          background: T.accent,
-          border: "none",
+          color: primary ? "#ffffff" : T.accent,
+          background: primary ? T.accent : "#ffffff",
+          border: primary ? "none" : `1px solid ${T.accent}`,
           borderRadius: "10px",
           padding: "11px 18px",
+          minHeight: "44px",
           cursor: busy ? "default" : "pointer",
         }}
       >
-        {busy ? "Starting" : "Take another reading"}
+        {busy ? "Starting" : label}
       </button>
       <Turnstile onToken={setTurnstileToken} />
       {/* Announced. This button says "Starting", goes back to "Take another
