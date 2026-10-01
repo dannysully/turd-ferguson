@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/app/AppLink";
 
 import TierName from "@/components/TierName";
 import { TIERS } from "@/config/pricing";

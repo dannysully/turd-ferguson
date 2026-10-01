@@ -1,8 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 
+import { PendingBar } from "@/components/app/AppLink";
 import { T } from "@/config/tokens";
 import {
   COMPARE_OPTIONS,
@@ -42,6 +43,8 @@ const ARROW: React.CSSProperties = { position: "absolute", top: 0, width: "36px"
 
 export default function DatePicker({ range, compare, today, startedOn, className, grow = true, children }: { range: Range; compare: Compare; today: Day; startedOn: Day | null; className?: string; /** Fill the row, as the Overview header does; the cluster pages keep the face its own width. */ grow?: boolean; children: React.ReactNode }) {
   const router = useRouter();
+  // R151: pending while the server re-reads the new range, so Apply shows it took.
+  const [loading, startLoading] = useTransition();
   const b = bounds(today, startedOn);
   const [open, setOpen] = useState(false);
   // Open under the face's right edge when there is room to its left (the Overview header), else under its left edge (the one-cluster page, where the face wraps to the left).
@@ -96,7 +99,7 @@ export default function DatePicker({ range, compare, today, startedOn, className
     q.delete("compare");
     for (const [k, v] of Object.entries(rangeQuery({ from: pick.from, to: pick.to }, cmp))) q.set(k, v);
     setOpen(false);
-    router.push(`?${q}`);
+    startLoading(() => router.push(`?${q}`));
   };
 
   const day = (c: Cell, i: number) => {
@@ -133,6 +136,7 @@ export default function DatePicker({ range, compare, today, startedOn, className
         aria-label="Change date range"
         aria-haspopup="dialog"
         aria-expanded={open}
+        aria-busy={loading || undefined}
         onClick={() => {
           if (!open) {
             reset();
@@ -147,6 +151,7 @@ export default function DatePicker({ range, compare, today, startedOn, className
           <path d="M6 9l6 6 6-6" />
         </svg>
       </button>
+      <PendingBar on={loading} />
       {open ? (
         <>
           <div aria-hidden="true" onClick={close} style={{ position: "fixed", inset: 0, zIndex: 29 }} />

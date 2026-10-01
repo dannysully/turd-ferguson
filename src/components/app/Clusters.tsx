@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/app/AppLink";
 import { rangeLabel } from "@/lib/tracking/date-range";
 
 import DatePicker from "./DatePicker";

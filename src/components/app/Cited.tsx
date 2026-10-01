@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/app/AppLink";
 
 import EngineLogo from "@/components/EngineLogo";
 import { T } from "@/config/tokens";
