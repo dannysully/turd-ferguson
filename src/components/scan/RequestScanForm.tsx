@@ -148,8 +148,10 @@ export default function RequestScanForm({ initialDomain = "" }: { initialDomain?
             onChange={(e) => setEmail(e.target.value)}
             style={field}
             required
+            aria-invalid={Boolean(error)}
+            aria-describedby={error ? "rq-email-error" : undefined}
           />
-          {error && <p role="alert" style={{ fontSize: "0.8125rem", color: T.badFg, marginTop: "0.5rem" }}>{error}</p>}
+          {error && <p id="rq-email-error" role="alert" style={{ fontSize: "0.8125rem", color: T.badFg, marginTop: "0.5rem" }}>{error}</p>}
 
           <div
             style={{ position: "absolute", left: "-9999px", width: "1px", height: "1px", overflow: "hidden" }}

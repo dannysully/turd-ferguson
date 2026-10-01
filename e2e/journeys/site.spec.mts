@@ -138,6 +138,27 @@ for (const width of [1280, 390]) {
       }
     });
 
+    // R151 (1 Oct 2026, 8a07c17): a refused order comes back to the form the
+    // way /api/checkout sends it - the reason under its field, which has focus,
+    // and the keyword still typed. Opened as the redirect's URL, so nothing is
+    // posted.
+    test("(2b) a refused order keeps the keyword and says why at the field", async () => {
+      for (const [error, url] of [
+        ["email", "/checkout?tier=alwaystracked&market=uk&error=email&keyword=kept%20words"],
+        ["keyword", "/checkout?tier=alwayscited&market=us&sector=business&error=keyword&keyword=k"],
+      ] as const) {
+        const co = await open(width, url);
+        assert.equal(co.status, 200, url);
+        const input = co.page.locator(`#checkout-${error}`);
+        assert.equal(await input.getAttribute("aria-invalid"), "true", `${error} marked invalid`);
+        assert.equal(await input.getAttribute("aria-describedby"), `checkout-${error}-error`);
+        assert.ok(((await co.page.locator(`#checkout-${error}-error`).textContent()) ?? "").length > 0, `${error} reason shown`);
+        assert.equal(await co.page.locator("#checkout-keyword").first().evaluate((i) => (i as HTMLInputElement).value), error === "email" ? "kept words" : "k", "keyword kept");
+        assert.equal(await co.page.locator("#checkout-email").first().evaluate((i) => (i as HTMLInputElement).value), "", "the email is never carried in the URL");
+        await co.ctx.close();
+      }
+    });
+
     test("(3) /packages -> every tier's CTA opens, alwaystracked's at the order form", async () => {
       const { page, ctx, status } = await open(width, "/packages");
       assert.equal(status, 200);
