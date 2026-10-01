@@ -8,6 +8,7 @@ import { rangeLabel } from "@/lib/tracking/date-range";
 import { type Day, type Range, type Rate, comparisonRange, formatDay } from "@/lib/tracking/figures";
 import { NAMED_TOP, namedPage } from "@/lib/tracking/named-figures";
 import type { Compare, OverviewData } from "@/lib/tracking/overview-data";
+import { partialRunNote } from "@/lib/tracking/run-note";
 
 import DatePicker from "./DatePicker";
 import { Chip } from "./Overview";
@@ -57,6 +58,7 @@ export default function Named({
   open: string | null;
 }) {
   const before = comparisonRange(range, compareMode);
+  const partial = partialRunNote(data.lastRun, range, today);
   const cards = clusterCards({ clusters: data.clusters ?? [], questions: data.questions, keywords: data.keywords, answers: data.answers, serp: data.serp, range, before, today, engines });
   const picked = cluster ? cards.find((c) => c.id === cluster) ?? null : null;
   const only = picked ? new Set(picked.prompts.map((p) => p.id)) : null;
@@ -89,6 +91,7 @@ export default function Named({
         <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
           <h1 style={{ margin: 0, fontSize: "28px", fontWeight: 700, letterSpacing: "-0.03em", color: T.ink }}>Who is named</h1>
           <p style={{ margin: 0, fontSize: "14px", lineHeight: 1.5, color: T.soft, maxWidth: "680px" }}>Every brand the engines name in answers to your prompts, with its share of every brand mention.</p>
+          {partial ? <p style={{ margin: 0, fontSize: "14px", lineHeight: 1.5, color: T.soft, maxWidth: "680px" }}>{partial}</p> : null}
         </div>
         <DatePicker range={range} compare={compareMode} today={today} startedOn={startedOn} grow={false}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={T.ink} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

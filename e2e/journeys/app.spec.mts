@@ -157,6 +157,16 @@ for (const width of [1280, 390]) {
         else (assert.match(t, /Last checked .+ Next check at 06:00\./), assert.doesNotMatch(t, /Checked today/));
         await ctx.close();
       });
+      for (const route of [`${HOME}/clusters`, `${HOME}/named`, `${HOME}/cited`])
+        test(`${route} ${errorState === "partial" ? "says" : "does not say"} today's check was partial`, async () => {
+          const ctx = await browser.newContext({ viewport: { width, height: 900 } });
+          const page = await ctx.newPage();
+          await page.goto(BASE + route, { waitUntil: "load" });
+          const t = await page.evaluate(() => document.querySelector("main")?.innerText ?? document.body.innerText, null);
+          if (errorState === "partial") assert.match(t, /Today's check was partial\. Some reads did not come back/);
+          else assert.doesNotMatch(t, /was partial/);
+          await ctx.close();
+        });
       test("a cluster's Google AI Overview tab does not say the engine gave no answer", async () => {
         const ctx = await browser.newContext({ viewport: { width, height: 900 } });
         const page = await ctx.newPage();

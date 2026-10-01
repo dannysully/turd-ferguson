@@ -24,6 +24,7 @@ import { type ClusterCard, clusterCards, clusterChart, clusterSummary } from "@/
 import { rangeLabel } from "@/lib/tracking/date-range";
 import type { Compare, OverviewData } from "@/lib/tracking/overview-data";
 import { type PlacementRow, chartMarkers } from "@/lib/tracking/placement-figures";
+import { MISSING_READS } from "@/lib/tracking/run-note";
 
 import ClusterChart from "./ClusterChart";
 import DatePicker from "./DatePicker";
@@ -240,7 +241,7 @@ export default function Overview({
 
   // R151 (1 Oct 2026): a partial run (decide.ts runOutcome - some reads failed after the retry)
   // said "Checked today" like a whole one. The figures skip an unanswered read, so say so.
-  const missing = data.lastRun?.status === "partial" ? " Some reads did not come back; they are left out of the figures, not counted as misses." : "";
+  const missing = data.lastRun?.status === "partial" ? ` ${MISSING_READS}` : "";
   const checked = data.lastRun?.finished_at
     ? data.lastRun.run_date === today
       ? `Checked today at ${londonTime(data.lastRun.finished_at)}.${missing} Next check tomorrow at 06:00.`

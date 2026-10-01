@@ -15,6 +15,7 @@ import { type Range, comparisonRange, daysIn, formatDay } from "@/lib/tracking/f
 import { type KeywordCheck, draftPrompts } from "@/lib/tracking/add-cluster";
 import { ANGLES, BRANDED_CHIP, BRANDED_NOTE, type Subject, namesBrandIn } from "@/lib/tracking/limits";
 import type { Compare, OverviewData } from "@/lib/tracking/overview-data";
+import { partialRunNote } from "@/lib/tracking/run-note";
 
 import type { TierKey } from "@/components/TierName";
 import type { UpsellMode } from "@/lib/tracking/ask";
@@ -112,6 +113,7 @@ export default function Clusters({
   upgrade?: { tier: TierKey; mode: UpsellMode; hidden: ReadonlySet<PromptCta>; startedOn: string; domain: string } | null;
 }) {
   const before = comparisonRange(range, compareMode);
+  const partial = partialRunNote(data.lastRun, range, today);
   const cards = clusterCards({ clusters: data.clusters ?? [], questions: data.questions, keywords: data.keywords, answers: data.answers, serp: data.serp, range, before, today, engines });
   const shown = filterClusters(cards, filter, q);
   // The board opens on the first cluster; `?open=` with no id closes them all.
@@ -153,6 +155,7 @@ export default function Clusters({
           <p style={{ margin: 0, fontSize: "14px", lineHeight: 1.5, color: T.soft, maxWidth: "680px" }}>
             Each cluster is one Google keyword and 5 prompts about it. Every prompt is asked on {engineNames.length > 1 ? `${engineNames.slice(0, -1).join(", ")} and ${engineNames[engineNames.length - 1]}` : engineNames[0]} each morning, and every keyword is checked on Google. Changes start at the next daily check.
           </p>
+          {partial ? <p style={{ margin: 0, fontSize: "14px", lineHeight: 1.5, color: T.soft, maxWidth: "680px" }}>{partial}</p> : null}
         </div>
         {/* T5 (30 Sep 2026): the server-drawn face opens boards/DatePicker.dc.html; JS off still shows the range. */}
         <DatePicker range={range} compare={compareMode} today={today} startedOn={startedOn ?? null} grow={false}>

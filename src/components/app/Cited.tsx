@@ -9,6 +9,7 @@ import { type Day, type Range, citedPageRows, comparisonRange, formatDay } from 
 import { NAMED_TOP } from "@/lib/tracking/named-figures";
 import type { Compare, OverviewData } from "@/lib/tracking/overview-data";
 import type { PlacementRow } from "@/lib/tracking/placement-figures";
+import { partialRunNote } from "@/lib/tracking/run-note";
 
 import DatePicker from "./DatePicker";
 
@@ -64,6 +65,7 @@ export default function Cited({
   open: string | null;
 }) {
   const before = comparisonRange(range, compareMode);
+  const partial = partialRunNote(data.lastRun, range, today);
   const cards = clusterCards({ clusters: data.clusters ?? [], questions: data.questions, keywords: data.keywords, answers: data.answers, serp: data.serp, range, before, today, engines });
   const picked = cluster ? (cards.find((c) => c.id === cluster) ?? null) : null;
   const only = picked ? new Set(picked.prompts.map((p) => p.id)) : null;
@@ -97,6 +99,7 @@ export default function Cited({
         <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
           <h1 style={{ margin: 0, fontSize: "28px", fontWeight: 700, letterSpacing: "-0.03em", color: T.ink }}>Cited pages</h1>
           <p style={{ margin: 0, fontSize: "14px", lineHeight: 1.5, color: T.soft, maxWidth: "680px" }}>Every page the engines cite in answers to your prompts, and how often.</p>
+          {partial ? <p style={{ margin: 0, fontSize: "14px", lineHeight: 1.5, color: T.soft, maxWidth: "680px" }}>{partial}</p> : null}
         </div>
         <DatePicker range={range} compare={compareMode} today={today} startedOn={startedOn} grow={false}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={T.ink} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
