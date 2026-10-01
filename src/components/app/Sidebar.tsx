@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import Link from "@/components/app/AppLink";
 import BrandMark from "@/components/BrandMark";
 import EngineLogo from "@/components/EngineLogo";
 import TierName, { type TierKey } from "@/components/TierName";
@@ -135,6 +136,9 @@ export default function Sidebar({
   const name = client.brand ?? client.domain;
   // R130 (30 Sep 2026): a built screen is a link; an unbuilt one is drawn
   // disabled with "Coming soon" - no href, not focusable, aria-disabled.
+  // R151 (1 Oct): the nav and tabs are AppLinks, so moving between screens is
+  // a soft navigation with the pending bar, not a full reload. The client
+  // switcher stays a plain <a>: a different client is a fresh page.
   const hrefOf = (item: string) => navHref(item, client.slug);
   return (
     <>
@@ -189,7 +193,7 @@ export default function Sidebar({
               );
             }
             return (
-              <a
+              <Link
                 key={item}
                 href={href}
                 aria-current={on ? "page" : undefined}
@@ -199,7 +203,7 @@ export default function Sidebar({
                   <NavIcon item={item} size={18} />
                 </span>
                 {item}
-              </a>
+              </Link>
             );
           })}
         </nav>
@@ -271,10 +275,10 @@ export default function Sidebar({
             );
           }
           return (
-            <a key={item} href={href} aria-current={on ? "page" : undefined} style={{ ...tab, color: on ? T.accent : T.soft }}>
+            <Link key={item} href={href} aria-current={on ? "page" : undefined} style={{ ...tab, color: on ? T.accent : T.soft }}>
               <NavIcon item={item} size={20} />
               {item}
-            </a>
+            </Link>
           );
         })}
       </nav>
