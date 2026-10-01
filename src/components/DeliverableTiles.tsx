@@ -45,11 +45,16 @@ function TileCard({ tile, open, onToggle }: { tile: Tile; open: boolean; onToggl
             aria-controls={id}
             onClick={onToggle}
             style={{
+              // A 44px-tall tap target on phones (R151, 1 Oct 2026; was 33px):
+              // the extra padding is cancelled by negative margins, so the word
+              // sits where it did and the card does not grow.
               marginTop: "auto",
+              marginBottom: "-11px",
+              marginLeft: "-8px",
               alignSelf: "flex-start",
               background: "none",
               border: "none",
-              padding: "12px 0 0",
+              padding: "12px 8px 11px",
               fontFamily: "inherit",
               fontSize: "13px",
               fontWeight: 600,
