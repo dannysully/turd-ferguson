@@ -99,7 +99,7 @@ for (const width of [1280, 390]) {
     // The "Track this cluster" click itself needs a cluster scan, and both inbox
     // tokens predate them (pass 3). So the leg after the click: the exact href
     // trackOffer gives the card, opened on production for each market's token -
-    // tokens in the inbox's order, the .co.uk scan then the US .com one.
+    // tokens in the inbox's order, the UK domain's scan then the US one.
     test("(1b) a result's Track this cluster link lands on the order form with its scan and market", async () => {
       for (const [market, token] of [["UK", TOKENS[0]], ["US", TOKENS[1]]] as const) {
         const { href } = trackOffer(market, { us: 0, uk: 0 }, "/checkout?tier=alwaystracked", token);

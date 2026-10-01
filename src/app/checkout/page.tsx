@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import TierName, { TIER_PLAIN } from "@/components/TierName";
-import { CHECKOUT_LIMITS } from "@/config/contact";
+import { CHECKOUT_LIMITS, COMPANY_LINE } from "@/config/contact";
 import { TIERS, TRACKED_PRICE, contactUrlFor } from "@/config/pricing";
 import { MARKETS, MAX_CLUSTERS, SECTORS, formatPrice, quoteFor } from "@/config/sector-pricing";
 import { parseSelection, tierFromPlain, withSelection } from "@/config/sector-selection";
@@ -191,6 +191,10 @@ export default async function Checkout({ searchParams }: { searchParams: Promise
           <button type="submit" style={{ ...button, marginTop: "18px", background: T.accent, color: T.surface, border: `1px solid ${T.accent}` }}>
             Continue to payment
           </button>
+          {/* Who is selling, at the button rather than only in the footer (R151, 1 Oct 2026). */}
+          <p style={{ margin: "12px 0 0", fontSize: "13px", lineHeight: 1.6, color: T.soft }}>
+            Sold by {COMPANY_LINE}. You pay on Stripe&apos;s page, not this one.
+          </p>
         </form>
       ) : null}
     </section>
