@@ -534,6 +534,7 @@ function Toast({ t, cards, ungrouped = [], act, dismiss }: { t: StopToast; cards
 function PendingEditor({ c, kw, lead, act, subject }: { c: ClusterCard; kw: string; lead: string; act: NonNullable<Act>; subject: Subject | null }) {
   const formId = `edit-${c.id}`;
   const live = c.prompts.filter((p) => p.stoppedOn === null);
+  const slots = c.prompts.filter((p) => p.stoppedOn !== null).slice(0, Math.max(0, 5 - live.length));
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "14px", padding: "4px 24px 22px" }}>
       <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", padding: "14px 16px", borderRadius: "12px", background: T.wash }}>
@@ -585,6 +586,20 @@ function PendingEditor({ c, kw, lead, act, subject }: { c: ClusterCard; kw: stri
             ) : (
               <input id={`${formId}-${p.id}`} form={formId} name={`p-${p.id}`} defaultValue={p.text} required minLength={PROMPT_MIN} maxLength={ADMIN_LIMITS.question} style={{ height: "44px", boxSizing: "border-box", padding: "0 12px", border: `1px solid ${T.line}`, borderRadius: "10px", fontFamily: "inherit", fontSize: "14px", color: T.ink, background: T.surface, minWidth: 0 }} />
             )}
+          </div>
+        ))}
+        {/* DS3: stopping a fixed prompt frees its place here too, so "add a new one" works before the first check. */}
+        {slots.map((p) => (
+          <div key={p.id} className="app-cl-edit" style={{ display: "grid", gridTemplateColumns: "120px minmax(0, 1fr)", alignItems: "center", gap: "12px" }}>
+            <label htmlFor={`slot-${p.id}`} style={{ fontSize: "12px", fontWeight: 700, letterSpacing: ".02em", textTransform: "uppercase", color: T.soft }}>
+              {p.angle ?? "Prompt"}
+            </label>
+            <form method="post" action={`${act.action.replace(/\/stop$/, "/prompt")}?${new URLSearchParams({ ...act.keep, kind: "cluster", id: c.id, ...(p.angle ? { angle: p.angle } : {}) })}`} style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", minWidth: 0 }}>
+              <input id={`slot-${p.id}`} name="text" required minLength={PROMPT_MIN} maxLength={ADMIN_LIMITS.question} placeholder={`A new ${p.angle ? `${p.angle} ` : ""}prompt about “${kw}”`} style={{ flex: "1 1 200px", minWidth: 0, height: "44px", boxSizing: "border-box", padding: "0 12px", border: `1px dashed ${T.washLine}`, borderRadius: "10px", fontFamily: "inherit", fontSize: "14px", color: T.ink, background: T.surface }} />
+              <SubmitButton busy="Adding..." style={{ flexShrink: 0, height: "44px", padding: "0 14px", border: 0, borderRadius: "10px", background: T.accent, color: T.surface, fontFamily: "inherit", fontSize: "13px", fontWeight: 600 }}>
+                Track this prompt
+              </SubmitButton>
+            </form>
           </div>
         ))}
       </div>
