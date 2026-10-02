@@ -195,6 +195,8 @@ export default function Overview({
 
   const header = (
     <header style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "24px", flexWrap: "wrap" }}>
+      {/* The phone draws no title (Mobile.dc.html), so the page keeps its h1 for screen readers there (R173 pass 3, DS34). */}
+      {cards ? <h1 className="sr-only app-show-sm">Overview</h1> : null}
       {/* R90 sweep: the lede wraps before the controls do, so the date and Download report stay on the title's row as on Main.dc.html. */}
       <div style={{ display: "flex", flexDirection: "column", gap: "4px", flex: "1 1 320px", minWidth: 0 }} className={cards ? "app-hide-sm" : undefined}>
         <h1 style={{ margin: 0, fontSize: "28px", fontWeight: 700, letterSpacing: "-0.03em", color: T.ink }}>Overview</h1>
