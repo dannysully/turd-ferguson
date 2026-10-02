@@ -220,7 +220,14 @@ export default function Placements({
                 </div>
               );
             })}
-            {rows.length === 0 ? <p style={{ margin: 0, padding: "14px 24px", borderTop: `1px solid ${T.hair}`, fontSize: "14px", color: T.soft }}>{`Nothing placed on this cluster yet. Each placement shows here from the day it is logged${clusters.length > 1 ? "; pick another cluster at the top of the page to see its placements" : ""}.`}</p> : null}
+            {/* DS23: a type the cluster has none of (a stale bookmark; the pills offer only kinds present) is a filter that matched nothing, not an empty cluster. */}
+            {rows.length === 0 && kind !== null && view.rows.length > 0 ? (
+              <p style={{ margin: 0, padding: "14px 24px", borderTop: `1px solid ${T.hair}`, fontSize: "14px", color: T.soft }}>
+                {`No ${KIND_WORDS[kind].toLowerCase()} placements on this cluster. `}
+                <a href={link(null, sel, "#placements-chart")} style={{ display: "inline-flex", alignItems: "center", color: T.accent, fontWeight: 600 }}>{view.rows.length === 1 ? "Show the 1 placement" : `Show all ${view.rows.length} placements`}</a>
+              </p>
+            ) : null}
+            {rows.length === 0 && (kind === null || view.rows.length === 0) ? <p style={{ margin: 0, padding: "14px 24px", borderTop: `1px solid ${T.hair}`, fontSize: "14px", color: T.soft }}>{`Nothing placed on this cluster yet. Each placement shows here from the day it is logged${clusters.length > 1 ? "; pick another cluster at the top of the page to see its placements" : ""}.`}</p> : null}
           </div>
         </div>
         <p style={{ margin: "14px 24px 8px", fontSize: "13px", lineHeight: 1.5, color: T.soft, maxWidth: "820px" }}>{PLACEMENTS_FOOTNOTE}</p>
