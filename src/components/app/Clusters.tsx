@@ -709,7 +709,8 @@ function PendingEditor({
           </SubmitButton>
         </div>
         <p role={ck ? "status" : undefined} style={{ margin: 0, fontSize: "13px", lineHeight: 1.5, color: ck ? (ck.ok ? T.goodFg : T.badFg) : T.soft }}>
-          {ck ? ck.message : typed && !c.keyword ? "This is the keyword you gave at checkout. Check it, or type another; we check it has Google search volume and a buying intent." : "Until the first check you can change it. We check it has Google search volume and a buying intent; the prompts stay as they are."}
+          {/* DS59 (2 Oct 2026, R173 pass 6): a cluster with no keyword read "Until the first check you can change it" - there was nothing to change. */}
+          {ck ? ck.message : typed && !c.keyword ? "This is the keyword you gave at checkout. Check it, or type another; we check it has Google search volume and a buying intent." : !c.keyword ? `Give this cluster the Google keyword its ${PROMPTS_PER_CLUSTER} prompts are about. We check it has Google search volume and a buying intent; the prompts stay as they are.` : "Until the first check you can change it. We check it has Google search volume and a buying intent; the prompts stay as they are."}
         </p>
       </form>
       {ck?.ok && rekey?.sig ? (
