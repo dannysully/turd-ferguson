@@ -267,7 +267,19 @@ export default function Clusters({
         ))}
         {shown.length === 0 ? (
           <div style={{ padding: "32px 24px", borderTop: `1px solid ${T.line}`, fontSize: "14px", color: T.soft }}>
-            {q.trim() ? `Nothing matches “${q.trim()}”. Clear the search to see every cluster.` : cards.length ? "No clusters match this filter." : "No clusters yet. nomada digital sets up your first one when tracking starts."}
+            {/* DS27: a filter pill can read 0 and still be picked, so its empty line names the filter and links back to All. */}
+            {q.trim() ? (
+              `Nothing matches “${q.trim()}”. Clear the search to see every cluster.`
+            ) : cards.length ? (
+              <>
+                {filter === "named" ? "No cluster is naming you in this range. " : "No cluster has a prompt that never names you in this range. "}
+                <Link href={`?${new URLSearchParams(base)}`} style={{ display: "inline-flex", alignItems: "center", color: T.accent, fontWeight: 600 }}>
+                  {cards.length === 1 ? "Show the 1 cluster" : `Show all ${cards.length} clusters`}
+                </Link>
+              </>
+            ) : (
+              "No clusters yet. nomada digital sets up your first one when tracking starts."
+            )}
           </div>
         ) : null}
         {prompt && cta ? <UpgradePrompt copy={prompt} cta={cta} slug={slug} items={items} keep={keep} /> : null}
