@@ -62,9 +62,13 @@ const KEYS: Record<string, Record<string, string>> = {
   "/clusters": {
     filter: 'f === "named" || f === "never" ? f : "all"',
     // "moved" added 2 Oct 2026 (R170 part 2): the /group route's 303 after Move into a cluster.
-    done: '(done === "stopped" || done === "undone" || done === "added" || done === "saved" || done === "moved" || done === "refused")',
+    // "unselected" added 2 Oct 2026 (DS13, R173 pass 2): the bulk bar posted with nothing ticked or no cluster picked.
+    done: '(done === "stopped" || done === "undone" || done === "added" || done === "saved" || done === "moved" || done === "refused" || done === "unselected")',
     kind: '(kind === "prompt" || kind === "cluster")',
-    id: "? { done, kind, id } : null", // a toast only names a row the list already has
+    id: "? { done, kind, id, count } : null", // a toast only names a row the list already has, or id=selected for a batch
+    // DS13, 2 Oct 2026: a bulk stop or move's counts, drawn only beside id=selected and as whole numbers within BULK_MAX.
+    ok: "ok >= 0 && ok <= ticked && ticked <= BULK_MAX",
+    ticked: "Number.isInteger(ticked)",
     kw: '(one("kw") ?? "").slice(0, 200)',
     add: 'one("add") === "1"',
     sig: '(one("sig") ?? "").slice(0, 64)',

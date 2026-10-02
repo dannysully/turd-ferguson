@@ -16,7 +16,7 @@ import { CLUSTER_BASE } from "@/lib/tracking/limits";
 import { rangeFrom } from "@/lib/tracking/overview-data";
 import { placedTier } from "@/lib/tracking/placement-figures";
 import { trackingRepo } from "@/lib/tracking/repo";
-import { refuseRole } from "@/lib/tracking/stop";
+import { BULK_ID, BULK_MAX, refuseRole } from "@/lib/tracking/stop";
 
 export const dynamic = "force-dynamic";
 
@@ -57,8 +57,12 @@ export default async function ClientClusters({
   const done = one("done");
   const kind = one("kind");
   const id = one("id");
+  // DS13: a bulk stop or move adds `ok` of `ticked`; only whole numbers within BULK_MAX are drawn.
+  const ok = Number(one("ok"));
+  const ticked = Number(one("ticked"));
+  const count = id === BULK_ID && Number.isInteger(ok) && Number.isInteger(ticked) && ok >= 0 && ok <= ticked && ticked <= BULK_MAX ? { n: ok, of: ticked } : undefined;
   const toast: StopToast | null =
-    (done === "stopped" || done === "undone" || done === "added" || done === "saved" || done === "moved" || done === "refused") && (kind === "prompt" || kind === "cluster") && id ? { done, kind, id } : null;
+    (done === "stopped" || done === "undone" || done === "added" || done === "saved" || done === "moved" || done === "refused" || done === "unselected") && (kind === "prompt" || kind === "cluster") && id ? { done, kind, id, count } : null;
 
   // Add a cluster (part 3b): `?add=1` opens the panel; the check's 303 adds `kw` and `ck`.
   const kw = (one("kw") ?? "").slice(0, 200);

@@ -4,7 +4,25 @@ import { test } from "node:test";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { liveOn } from "./decide.ts";
-import { readStopForm, refuseRole, refuseStop, refuseUndo, stop, stopDay, stopReturn, undoStop } from "./stop.ts";
+import { BULK_ID, BULK_MAX, readBulkIds, readStopForm, refuseRole, refuseStop, refuseUndo, stop, stopDay, stopReturn, undoStop } from "./stop.ts";
+
+// DS13 (R173 pass 2, 2 Oct 2026): the Ungrouped bulk form's ticked ids.
+test("readBulkIds keeps well-formed ids once each, drops the rest, caps at BULK_MAX", () => {
+  assert.deepEqual(readBulkIds(["a1", "a1", "b-2", "../x", "", 7, null, BULK_ID]), ["a1", "b-2"]);
+  const many = Array.from({ length: BULK_MAX + 5 }, (_, i) => `q${i}`);
+  assert.equal(readBulkIds(many).length, BULK_MAX);
+});
+
+test("a bulk return carries ok of ticked beside id=selected", () => {
+  const sp = new URLSearchParams({ kind: "prompt", id: BULK_ID, filter: "never" });
+  const f = readStopForm((k) => sp.get(k), 80)!;
+  const back = new URL(stopReturn("acme", f, "stopped", { n: 2, of: 3 }), "https://x.test");
+  assert.equal(back.searchParams.get("id"), BULK_ID);
+  assert.equal(back.searchParams.get("ok"), "2");
+  assert.equal(back.searchParams.get("ticked"), "3");
+  assert.equal(back.searchParams.get("n"), null, "n and of are the /ask toast's");
+  assert.equal(back.searchParams.get("filter"), "never");
+});
 
 // BRIEF-3 T6 part 2a (30 Sep 2026): stop and Undo. One test per refusal, then
 // the writers against an in-memory table set, so the rows they leave are read

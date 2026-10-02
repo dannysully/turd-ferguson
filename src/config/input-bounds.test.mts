@@ -301,6 +301,13 @@ const EXEMPT: Record<string, Exemption> = {
     why: "Step 2's coverage tick. type=checkbox, nothing typed; tickedRows caps the posted urls at MAX_COVERAGE_URLS and the run route caps them again.",
     holds: [{ file: "app/api/coverage-check/route.ts", needs: "parsed.rows.slice(0, MAX_COVERAGE_URLS)" }],
   },
+  // DS13 (R173 pass 2, 2 Oct 2026): the Ungrouped bulk ticks. type=checkbox,
+  // nothing typed; each carries a listed prompt's id, and the stop and group
+  // routes keep only well-formed ids, once each, at most BULK_MAX.
+  "ug-tick-${q.id}": {
+    why: "An ungrouped prompt's bulk tick. type=checkbox, nothing typed; readBulkIds keeps well-formed ids once each, capped at BULK_MAX, and each id still goes through the one-row stop or move rules.",
+    holds: [{ file: "lib/tracking/stop.ts", needs: "[...new Set(ids)].slice(0, BULK_MAX)" }],
+  },
   "cc-coverage": {
     why: [
       "type=file, which maxLength does not apply to at all. It is bounded by bytes",

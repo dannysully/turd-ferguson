@@ -83,11 +83,31 @@ export function readStopForm(get: (k: string) => string | null, search: number):
 }
 
 /** The toast states the page draws: what happened, to which row. Never free text from the URL. */
-export type StopDone = "stopped" | "undone" | "added" | "saved" | "moved" | "refused";
+export type StopDone = "stopped" | "undone" | "added" | "saved" | "moved" | "refused" | "unselected";
+
+/**
+ * DS13 (R173 pass 2, 2 Oct 2026, benchmark "bulk select on prompts (stop,
+ * move)"): the Ungrouped section's bulk form posts `id=selected` in the query
+ * and the ticked prompts as repeated `ids` fields in the body. Stop and Move
+ * then run their one-row writer once per id, so every rule still applies to
+ * each prompt. BULK_MAX caps one post; a client's ungrouped list is far shorter.
+ */
+export const BULK_ID = "selected";
+export const BULK_MAX = 100;
+
+/** The ticked ids: well formed, each once, at most BULK_MAX. Anything else is dropped. */
+export function readBulkIds(values: readonly unknown[]): string[] {
+  const ids = values.filter((v): v is string => typeof v === "string" && ID.test(v) && v !== BULK_ID);
+  return [...new Set(ids)].slice(0, BULK_MAX);
+}
+
+/** A bulk answer's counts: `n` of `of` ticked went through. */
+export type BulkCount = { n: number; of: number };
 
 /** Where the route sends the browser back to: the Clusters page, its state kept, with the toast. */
-export function stopReturn(slug: string, f: StopForm, done: StopDone): string {
-  const q = new URLSearchParams({ ...f.back, done, kind: f.kind, id: f.id });
+export function stopReturn(slug: string, f: StopForm, done: StopDone, count?: BulkCount): string {
+  // `ok` and `ticked`, not the /ask toast's `n` and `of`, so the two never read each other's counts.
+  const q = new URLSearchParams({ ...f.back, done, kind: f.kind, id: f.id, ...(count ? { ok: String(count.n), ticked: String(count.of) } : {}) });
   return `/app/${encodeURIComponent(slug)}/clusters?${q}`;
 }
 

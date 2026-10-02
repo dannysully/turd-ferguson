@@ -7,7 +7,7 @@ import { fixtureMode } from "@/lib/tracking/fixture-mode";
 import { fixtureStop } from "@/lib/tracking/fixture-writes";
 import { clientsFor, sessionEmail } from "@/lib/tracking/member";
 import { writeFixture } from "@/lib/tracking/repo";
-import { type StopDone, readStopForm, stop, stopReturn, undoStop } from "@/lib/tracking/stop";
+import { BULK_ID, type BulkCount, type StopDone, readBulkIds, readStopForm, stop, stopReturn, undoStop } from "@/lib/tracking/stop";
 import { recordUsage } from "@/lib/tracking/usage-record";
 
 export const runtime = "nodejs";
@@ -30,7 +30,34 @@ export async function POST(req: Request, ctx: { params: Promise<{ client: string
   const sp = new URL(req.url).searchParams;
   const f = readStopForm((k) => sp.get(k), APP_LIMITS.search);
   if (!f) return NextResponse.json({ error: "Not a stop this page can make." }, { status: 400 });
-  const back = (done: StopDone) => NextResponse.redirect(new URL(stopReturn(slug, f, done), req.url), 303);
+  const back = (done: StopDone, count?: BulkCount) => NextResponse.redirect(new URL(stopReturn(slug, f, done, count), req.url), 303);
+  if (f.id === BULK_ID) {
+    // DS13: the Ungrouped bulk form. Each ticked prompt goes through the one-row stop, so each is judged on its own.
+    if (f.kind !== "prompt" || f.undo) return NextResponse.json({ error: "Not a stop this page can make." }, { status: 400 });
+    const ids = readBulkIds((await req.formData().catch(() => null))?.getAll("ids") ?? []);
+    if (!ids.length) return back("unselected");
+    let n = 0;
+    if (fixtureMode()) {
+      for (const id of ids) {
+        const r = writeFixture((fx) => fixtureStop(fx, { kind: "prompt", id, today: fx.today, role: fx.member.role, undo: false }));
+        if (r?.ok) n++;
+        else if (r) console.warn(`[app] fixture bulk stop refused: ${r.message}`);
+      }
+      return back(n ? "stopped" : "refused", { n, of: ids.length });
+    }
+    const email = await sessionEmail();
+    if (!email) return NextResponse.redirect(new URL("/app/login", req.url), 303);
+    const client = (await clientsFor(email)).find((c) => c.slug === slug);
+    if (!client) return NextResponse.json({ error: "Not found." }, { status: 404 });
+    const today = trackingDay();
+    for (const id of ids) {
+      const r = await stop(supabaseAdmin(), { kind: "prompt", clientId: client.id, id, today, role: client.role, by: email });
+      if (r.ok) n++;
+      else console.warn(`[app] bulk stop refused: ${r.message}`);
+    }
+    if (n) await recordUsage(supabaseAdmin(), { clientId: client.id, email, event: "stop", path: "/clusters", today });
+    return back(n ? "stopped" : "refused", { n, of: ids.length });
+  }
   if (fixtureMode()) {
     // R168: with TRACKING_FIXTURE_WRITE=1 the stop is held in memory; otherwise the fixture refuses it.
     const r = writeFixture((fx) => fixtureStop(fx, { kind: f.kind, id: f.id, today: fx.today, role: fx.member.role, undo: f.undo }));

@@ -17,6 +17,7 @@ import { type KeywordCheck, draftPrompts } from "@/lib/tracking/add-cluster";
 import { ANGLES, BRANDED_CHIP, BRANDED_NOTE, PROMPTS_PER_CLUSTER, type Subject, namesBrandIn, refuseEdit } from "@/lib/tracking/limits";
 import type { Compare, OverviewData } from "@/lib/tracking/overview-data";
 import { partialRunNote } from "@/lib/tracking/run-note";
+import { BULK_ID, type BulkCount } from "@/lib/tracking/stop";
 
 import type { TierKey } from "@/components/TierName";
 import type { UpsellMode } from "@/lib/tracking/ask";
@@ -44,7 +45,7 @@ import UpgradePrompt from "./UpgradePrompt";
  * "Check keyword" form posts to /check, which 303s back with the verdict.
  */
 
-export type StopToast = { done: "stopped" | "undone" | "added" | "saved" | "moved" | "refused"; kind: "prompt" | "cluster"; id: string };
+export type StopToast = { done: "stopped" | "undone" | "added" | "saved" | "moved" | "refused" | "unselected"; kind: "prompt" | "cluster"; id: string; count?: BulkCount };
 
 const short = (t: string) => (t.length > 52 ? `${t.slice(0, 50)}…` : t);
 
@@ -294,6 +295,8 @@ export function moveTargets(cards: readonly ClusterCard[], rows: readonly Prompt
 }
 
 function Ungrouped({ rows, act, subject, targets }: { rows: PromptRow[]; act: Act; subject: Subject | null; targets: Target[] }) {
+  // DS13: ticks and a bulk bar once two or more live rows can be changed together.
+  const bulk = !!act && rows.filter((q) => q.stopped_on === null).length >= 2;
   return (
     <section aria-labelledby="ungrouped-h" style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: "18px", overflow: "hidden" }}>
       <div style={{ padding: "18px 24px 14px", display: "flex", flexDirection: "column", gap: "4px" }}>
@@ -304,11 +307,22 @@ function Ungrouped({ rows, act, subject, targets }: { rows: PromptRow[]; act: Ac
             : "Asked every morning like the rest, but in no cluster yet. Only owners and editors can stop these prompts or move them into a cluster - ask one of them to make a change."}
         </p>
       </div>
+      {bulk ? <BulkBar act={act!} targets={targets} /> : null}
       <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
         {rows.map((q) => {
           const stopping = q.stopped_on !== null;
           return (
-            <li key={q.id} style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap", padding: "10px 24px", borderTop: `1px solid ${T.line}`, minHeight: "44px", boxSizing: "border-box" }}>
+            <li key={q.id} style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap", padding: bulk ? "10px 24px 10px 12px" : "10px 24px", borderTop: `1px solid ${T.line}`, minHeight: "44px", boxSizing: "border-box" }}>
+              {bulk ? (
+                stopping ? (
+                  <span aria-hidden="true" style={{ width: "44px", flexShrink: 0 }} />
+                ) : (
+                  <label style={{ width: "44px", height: "44px", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                    <input id={`ug-tick-${q.id}`} type="checkbox" name="ids" value={q.id} form={BULK_FORM} style={{ width: "18px", height: "18px", margin: 0, accentColor: T.accent, cursor: "pointer" }} />
+                    <span className="sr-only">{`Tick “${short(q.text)}”`}</span>
+                  </label>
+                )
+              ) : null}
               <span style={{ flex: "1 1 260px", minWidth: 0, fontSize: "14px", color: stopping ? T.soft : T.ink, display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                 {q.text}
                 {subject && namesBrandIn(q.text, subject) ? <BrandedChip /> : null}
@@ -439,6 +453,45 @@ function StopForm({ act, kind, id, undo, label, children, style }: { act: NonNul
   );
 }
 
+const BULK_FORM = "ungrouped-bulk";
+
+/**
+ * DS13 (R173 pass 2, benchmark "bulk select on prompts (stop, move)"): one
+ * form for the ticked ungrouped prompts. The ticks sit in the rows and join it
+ * by `form=`, so the rows' own Stop and Move forms are not nested. Stop posts
+ * to /stop, Move to /group by formAction, both with id=selected; it all works
+ * with JS off.
+ */
+function BulkBar({ act, targets }: { act: NonNullable<Act>; targets: Target[] }) {
+  const q = new URLSearchParams({ ...act.keep, kind: "prompt", id: BULK_ID });
+  return (
+    <form id={BULK_FORM} method="post" action={`${act.action}?${q}`} aria-label="Change the ticked prompts" style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", padding: "0 24px 14px" }}>
+      <span style={{ fontSize: "13px", fontWeight: 600, color: T.ink, marginRight: "4px" }}>Ticked prompts:</span>
+      <button type="submit" style={{ ...BTN, height: "44px", cursor: "pointer", fontFamily: "inherit" }}>
+        {STOP_ICON}Stop ticked
+      </button>
+      {targets.length ? (
+        <>
+          <label htmlFor="bulk-cluster" className="sr-only">Cluster to move the ticked prompts into</label>
+          <select id="bulk-cluster" name="cluster" defaultValue="" style={{ height: "44px", maxWidth: "220px", padding: "0 10px", border: `1px solid ${T.line}`, borderRadius: "10px", background: T.surface, color: T.ink, fontSize: "13px", fontFamily: "inherit" }}>
+            <option value="" disabled>
+              Pick a cluster
+            </option>
+            {targets.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.label}
+              </option>
+            ))}
+          </select>
+          <button type="submit" formAction={`${act.action.replace(/\/stop$/, "/group")}?${q}`} style={{ ...BTN, height: "44px", cursor: "pointer", fontFamily: "inherit" }}>
+            Move ticked
+          </button>
+        </>
+      ) : null}
+    </form>
+  );
+}
+
 /** Move into a cluster: the prompt and page state in the action's query string as StopForm's, the picked cluster in the body. */
 function MoveForm({ act, id, text, targets }: { act: NonNullable<Act>; id: string; text: string; targets: Target[] }) {
   const q = new URLSearchParams({ ...act.keep, kind: "prompt", id });
@@ -478,6 +531,21 @@ const SQUARE: React.CSSProperties = { width: "36px", height: "36px", padding: 0,
 // DS4 (2 Oct 2026, R172 defect 3): a prompt's Stop and Undo say so in text at 44px, as the ungrouped rows and the pending editor's fixed row do.
 const STOP_BTN: React.CSSProperties = { ...SQUARE, width: "auto", height: "44px", gap: "6px", padding: "0 12px", fontSize: "13px", fontWeight: 600, justifySelf: "start" };
 
+/**
+ * DS13: the toast after a bulk stop or move - how many of those ticked went
+ * through. No toast Undo for a batch: each stopped row keeps its own Undo
+ * until the next check.
+ */
+export function bulkToast(t: Pick<StopToast, "done" | "count">): string {
+  if (t.done === "unselected") return "Nothing changed. Tick the prompts first, and pick a cluster before Move.";
+  const c = t.count;
+  if (t.done === "refused" || !c || c.n === 0) return "That change did not go through. Reload the page and try again.";
+  const what = c.n === c.of ? `${c.n} ${c.n === 1 ? "prompt" : "prompts"}` : `${c.n} of the ${c.of} ticked prompts`;
+  const rest = c.n === c.of ? "" : t.done === "moved" ? ` The rest stay ungrouped - a cluster holds ${PROMPTS_PER_CLUSTER} live prompts.` : " The rest were not changed.";
+  if (t.done === "moved") return `Moved ${what} into the cluster you picked. Each is asked every morning as before.${rest}`;
+  return `Stopped ${what}. Their history stays in your reports, and each has Undo on its row until the next check.${rest}`;
+}
+
 /** The board's toast: what the stop did, and Undo while it can still be undone. */
 function Toast({ t, cards, ungrouped = [], act, dismiss }: { t: StopToast; cards: ClusterCard[]; ungrouped?: PromptRow[]; act: Act; dismiss: string }) {
   const cluster = t.kind === "cluster" ? cards.find((c) => c.id === t.id) : cards.find((c) => c.prompts.some((p) => p.id === t.id));
@@ -485,9 +553,8 @@ function Toast({ t, cards, ungrouped = [], act, dismiss }: { t: StopToast; cards
   const prompt = t.kind === "prompt" ? (cluster?.prompts.find((p) => p.id === t.id) ?? (loose ? { text: loose.text, stoppedOn: loose.stopped_on } : undefined)) : undefined;
   const name = t.kind === "cluster" ? (cluster?.keyword ?? cluster?.name) : prompt?.text;
   const stoppedOn = t.kind === "cluster" ? cluster?.stoppedOn : prompt?.stoppedOn;
-  const canUndo = t.done === "stopped" && !!act && !!stoppedOn && stoppedOn > act.today;
-  const text =
-    t.done === "refused" || !name
+  const canUndo = t.id !== BULK_ID && t.done === "stopped" && !!act && !!stoppedOn && stoppedOn > act.today;
+  const text = t.id === BULK_ID ? bulkToast(t) : t.done === "refused" || !name
       ? "That change did not go through. Reload the page and try again."
       : t.done === "added" && t.kind === "cluster"
         ? `Now tracking “${short(name)}” and 5 prompts. First results after tomorrow’s 06:00 check.`

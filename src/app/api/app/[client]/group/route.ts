@@ -7,7 +7,7 @@ import { fixtureGroup } from "@/lib/tracking/fixture-writes";
 import { moveIntoCluster } from "@/lib/tracking/limits";
 import { clientsFor, sessionEmail } from "@/lib/tracking/member";
 import { writeFixture } from "@/lib/tracking/repo";
-import { type StopDone, readStopForm, stopReturn } from "@/lib/tracking/stop";
+import { BULK_ID, type StopDone, readBulkIds, readStopForm, stopReturn } from "@/lib/tracking/stop";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -29,12 +29,22 @@ export async function POST(req: Request, ctx: { params: Promise<{ client: string
   const f = readStopForm((k) => sp.get(k), APP_LIMITS.search);
   const form = await req.formData().catch(() => null);
   const clusterId = typeof form?.get("cluster") === "string" ? (form.get("cluster") as string) : "";
-  if (!f || f.kind !== "prompt" || f.undo || !ID.test(clusterId)) return NextResponse.json({ error: "Not a move this page can make." }, { status: 400 });
-  const back = (done: StopDone) => NextResponse.redirect(new URL(stopReturn(slug, f, done), req.url), 303);
+  if (!f || f.kind !== "prompt" || f.undo) return NextResponse.json({ error: "Not a move this page can make." }, { status: 400 });
+  // DS13: the Ungrouped bulk form posts id=selected and the ticked prompts as `ids`; each is moved, and judged, on its own, in order.
+  const bulk = f.id === BULK_ID;
+  const ids = bulk ? readBulkIds(form?.getAll("ids") ?? []) : [f.id];
+  const back = (done: StopDone, n = 0) => NextResponse.redirect(new URL(stopReturn(slug, f, done, bulk ? { n, of: ids.length } : undefined), req.url), 303);
+  // The bulk bar's cluster pick cannot be `required` - its Stop button shares the form - so a missing pick comes back as a toast.
+  if (bulk && (!ids.length || !ID.test(clusterId))) return back("unselected");
+  if (!ID.test(clusterId)) return NextResponse.json({ error: "Not a move this page can make." }, { status: 400 });
+  let n = 0;
   if (fixtureMode()) {
-    const r = writeFixture((fx) => fixtureGroup(fx, { clusterId, id: f.id, role: fx.member.role }));
-    if (r && !r.ok) console.warn(`[app] fixture move refused: ${r.message}`);
-    return back(r?.ok ? "moved" : "refused");
+    for (const id of ids) {
+      const r = writeFixture((fx) => fixtureGroup(fx, { clusterId, id, role: fx.member.role }));
+      if (r?.ok) n++;
+      else if (r) console.warn(`[app] fixture move refused: ${r.message}`);
+    }
+    return back(n ? "moved" : "refused", n);
   }
 
   const email = await sessionEmail();
@@ -42,10 +52,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ client: string
   const client = (await clientsFor(email)).find((c) => c.slug === slug);
   if (!client) return NextResponse.json({ error: "Not found." }, { status: 404 });
 
-  const r = await moveIntoCluster(supabaseAdmin(), { clientId: client.id, clusterId, id: f.id, role: client.role });
-  if (!r.ok) {
-    console.warn(`[app] move refused: ${r.message}`);
-    return back("refused");
+  for (const id of ids) {
+    const r = await moveIntoCluster(supabaseAdmin(), { clientId: client.id, clusterId, id, role: client.role });
+    if (r.ok) n++;
+    else console.warn(`[app] move refused: ${r.message}`);
   }
-  return back("moved");
+  return back(n ? "moved" : "refused", n);
 }
