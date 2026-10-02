@@ -107,7 +107,7 @@ export default function PlacementsChart({
           </h2>
           <p style={{ margin: 0, fontSize: "14px", color: T.soft }}>{`${series.weekly ? "Weekly" : "Daily"}. Each line down the chart is a placement going live. Pick one, here or in the table, to follow it.`}</p>
         </div>
-        <div style={{ display: "flex", gap: "16px", fontSize: "13px", fontWeight: 600, flexShrink: 0 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 16px", fontSize: "13px", fontWeight: 600 }}>
           <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
             <span style={{ width: "18px", borderTop: `3px solid ${T.accent}` }} />
             Answers naming you
