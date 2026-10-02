@@ -118,7 +118,10 @@ export default function Reports({
                   <span style={{ fontSize: "13px", color: T.soft }}>{span(m.range)}</span>
                 </div>
                 {empty ? (
-                  <p style={{ margin: 0, fontSize: "14px", color: T.soft }}>No readings this month.</p>
+                  // DS24: say what fills the card, or where the readings are - the bare "No readings this month." was a dead end.
+                  <p style={{ margin: 0, fontSize: "14px", lineHeight: 1.5, color: T.soft }}>
+                    {m.soFar ? "No readings this month yet. Checks run every day at 06:00, and this card fills in from the first one." : "No readings this month, so there is nothing to download. Later months are above."}
+                  </p>
                 ) : (
                   <dl className="app-rp-figs" style={{ margin: 0, display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "16px" }}>
                     <div style={{ display: "flex", flexDirection: "column", gap: "4px", minWidth: 0 }}>
