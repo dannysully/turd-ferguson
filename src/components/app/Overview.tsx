@@ -620,7 +620,8 @@ export default function Overview({
               </div>
             </div>
             <div className="app-hide-sm" style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", color: D.quiet, flexWrap: "wrap" }}>
-              {`Share of the cluster's ${5 * engines.length} answers naming you that day`}
+              {/* DS74 (2 Oct 2026): "up to" once a shown day had fewer answers - a partial check or a stopped prompt - so the count is never one a cell was not read on. */}
+              {`Share of the cluster's ${heatRows.some((c) => gridDays.some((_, col) => { const h = c.heat[gridFrom + col]; return h && h.den < 5 * engines.length; })) ? "up to " : ""}${5 * engines.length} answers naming you that day`}
               <span style={{ display: "flex", gap: "3px" }} aria-hidden="true">
                 {[0, 15, 30, 45, 60].map((p) => (
                   <span key={p} style={{ width: "11px", height: "11px", borderRadius: "3px", background: heat(p) }} />
