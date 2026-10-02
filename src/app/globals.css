@@ -1837,9 +1837,11 @@ html[data-motion="on"] .app-pending { animation: appPending 1.1s ease-in-out inf
    min-height is ignored on a plain inline link, so a link inside running text
    keeps its line. A small tag that is a link (.app-tap, Cited's "Placement")
    would turn into a blob at 44px, so it keeps its size and an invisible
-   ::before 44px tall takes the tap instead. */
+   ::before 44px tall takes the tap instead. DS28 (2 Oct 2026): a <summary>
+   is a control too - Settings' Remove and Invite someone and the one-cluster
+   disclosure were 40px at 390 (docs/parity/ds28-targets-sweep.mjs). */
 @media (max-width: 640px) {
-  .app-main :is(button, select, textarea, input:not([type="checkbox"], [type="radio"], [type="hidden"])) { min-height: 44px !important; }
+  .app-main :is(button, summary, select, textarea, input:not([type="checkbox"], [type="radio"], [type="hidden"])) { min-height: 44px !important; }
   /* Not the chart's day strip: 28 days share the chart's width, so a 44px
      floor pushed the flat (ungrouped) Overview 892px sideways at 390 (R151
      keyboard sweep, 1 Oct 2026). The day is read from the strip as a whole. */
