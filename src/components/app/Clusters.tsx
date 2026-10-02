@@ -296,7 +296,8 @@ export default function Clusters({
       </section>
       {ungrouped.length ? <Ungrouped rows={searchPrompts(ungrouped, q)} all={ungrouped} term={q.trim()} act={act} subject={subject} targets={moveTargets(cards, data.questions)} clusters={cards.filter((c) => c.stoppedOn === null).length} /> : null}
       <p style={{ margin: 0, fontSize: "13px", lineHeight: 1.5, color: T.soft, maxWidth: "820px" }}>
-        The number beside each engine is the days it named {brand} for that prompt, out of the days checked. Stopping a prompt or a cluster keeps its history in your reports. A new prompt or cluster starts at the next daily check.
+        {/* DS72 (R173 pass 10, 2 Oct 2026): with no cluster read yet there is no number beside any engine to explain. */}
+        {cards.some((c) => c.now.den > 0) ? `The number beside each engine is the days it named ${brand} for that prompt, out of the days checked. ` : ""}Stopping a prompt or a cluster keeps its history in your reports. A new prompt or cluster starts at the next daily check.
       </p>
       {toast ? <Toast t={toast} cards={cards} ungrouped={ungrouped} act={act} dismiss={`?${new URLSearchParams(keep)}`} /> : null}
     </div>
