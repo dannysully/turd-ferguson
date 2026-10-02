@@ -270,7 +270,12 @@ export default function Cited({
           <p style={{ margin: 0, padding: "0 24px 20px", fontSize: "14px", color: T.soft }}>
             {term && filtered.length
               ? `No cited page matches "${q.trim()}". Clear the search or try part of a site name.`
-              : picked || engine || kind !== "all" ? "No pages match these filters in this range. Clear a filter or pick another range." : "The figures fill in from the first daily check."}
+              : picked || engine || kind !== "all"
+                ? "No pages match these filters in this range. Clear a filter or pick another range."
+                : // DS78 (2 Oct 2026, R173 pass 13, uncited cold read): answered checks that cited nothing said the figures would fill in from the first check; Overview's next step.
+                  data.answers.some((a) => a.answered && a.run_date >= range.from && a.run_date <= range.to)
+                  ? "The engines answered your prompts without citing a page. Pick a longer range at the top of the page."
+                  : "The figures fill in from the first daily check."}
           </p>
         )}
       </section>
