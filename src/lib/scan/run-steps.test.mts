@@ -5,7 +5,7 @@ import { test } from "node:test";
 
 import { code, sourceFiles } from "../source-read.mts";
 
-import { DONE_PCT, RUN_STEPS, STEP, STEP_INDEX, stepCaption, stepPct } from "./run-steps.ts";
+import { ANSWERS_STEP, DONE_PCT, RUN_STEPS, STEP, STEP_INDEX, answersStored, stepCaption, stepPct } from "./run-steps.ts";
 
 /**
  * The step vocabulary, under test for the first time.
@@ -227,4 +227,26 @@ test("the zero exemption is still earned by a live caller", () => {
   const SRC = new URL("../../../", import.meta.url).pathname;
   const found = sourceFiles(SRC).some((f) => /\bsetProgress\(\s*0\s*\)/.test(code(readFileSync(join(SRC, f), "utf8"))));
   assert.ok(found, "nothing calls setProgress(0) any more - drop the exemption from the rule above");
+});
+
+/**
+ * The partial result (2 Oct 2026): /full serves a running scan from
+ * `ANSWERS_STEP` on, so the answers must be stored before that step is
+ * written. Read off pipeline.ts in source order, because a refactor that moved
+ * the upsert below the step write would draw a result with answers missing and
+ * nothing would fail.
+ */
+test("the result draws early only once the answers are stored", () => {
+  assert.equal(ANSWERS_STEP, STEP_INDEX.get(STEP.brands));
+  assert.equal(answersStored(STEP.brands), true);
+  assert.equal(answersStored(STEP.ranking), true);
+  for (const early of [STEP.questions, STEP.reading, STEP.sources, null, undefined, "", "constructor", 3]) {
+    assert.equal(answersStored(early), false, String(early) + " is before the answers are on the row");
+  }
+  const pipeline = code(readFileSync(join(process.cwd(), "src/lib/scan/pipeline.ts"), "utf8"));
+  const upsert = pipeline.indexOf('from("scan_answers").upsert(');
+  const citations = pipeline.indexOf('from("scan_citations").insert(');
+  const step = pipeline.indexOf("onStep?.(STEP.brands)");
+  assert.ok(upsert > 0 && citations > 0 && step > 0, "the walk found the three sites it orders");
+  assert.ok(upsert < step && citations < step, "answers and citations are stored before the brands step is written");
 });

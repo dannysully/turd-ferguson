@@ -352,6 +352,7 @@ export default function ConfirmScreen(p: {
     setQuestions((prev) => [...prev, { question: "", kind: "custom", topic: topic.trim(), own: true }]);
   }
 
+  const busy = writing || p.running;
   const primaryLabel = p.running
     ? "Starting"
     : writing
@@ -463,6 +464,8 @@ export default function ConfirmScreen(p: {
             className="btn-primary"
             onClick={() => (needsWriting ? void write(topic.trim(), market) : void run())}
             disabled={!canAct}
+            data-busy={busy ? "1" : undefined}
+            aria-busy={busy || undefined}
             style={{
               width: "100%",
               marginTop: "16px",
@@ -475,6 +478,10 @@ export default function ConfirmScreen(p: {
               cursor: canAct ? "pointer" : "default",
             }}
           >
+            {/* The same turning ring as the first step's Checking button
+                (ScanBox): writing takes a few seconds and the label alone
+                read as stuck (Danny, 2 Oct 2026). */}
+            {busy ? <span className="btn-spin" aria-hidden="true" /> : null}
             {primaryLabel}
           </button>
           <p style={{ margin: "10px 0 0", fontSize: "12.5px", color: T.soft }}>

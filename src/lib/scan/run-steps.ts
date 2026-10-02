@@ -127,6 +127,31 @@ export const STEP = Object.fromEntries(RUN_STEPS.map((s) => [s.key, s.key])) as 
 export const STEP_INDEX: ReadonlyMap<string, number> = new Map(RUN_STEPS.map((s, i) => [s.key, i]));
 
 /**
+ * The first step at which every engine answer is stored, so the result can be
+ * drawn while the rest of the run finishes (Danny, 2 Oct 2026: "load the
+ * results page as results become available").
+ *
+ * `readAndStore` upserts `scan_answers`, the Google ranks and the citations,
+ * then raises `brands`. So from `brands` on, the prompts, every answer and
+ * every cited page are final; what is still to come is who got named
+ * (`scan_brands`), what kind each source is (`scan_sources`), the placement
+ * list and the cluster keyword's rank. `run-steps.test.mts` holds the order in
+ * pipeline.ts, because a move of that upsert below the step write would show a
+ * visitor a result with answers missing.
+ *
+ * Derived, with a fallback past the last rung, so a renamed step means the
+ * result waits for the finished scan rather than drawing early.
+ */
+export const ANSWERS_STEP = STEP_INDEX.get(STEP.brands) ?? RUN_STEPS.length;
+
+/** Whether a running scan at this `scans.step` word has its answers stored. */
+export function answersStored(step: unknown): boolean {
+  if (typeof step !== "string") return false;
+  const i = STEP_INDEX.get(step);
+  return i !== undefined && i >= ANSWERS_STEP;
+}
+
+/**
  * A step number to a position in the ladder, clamped to one that exists.
  *
  * `NaN` is nonsense and answers with the first step; the infinities are not.

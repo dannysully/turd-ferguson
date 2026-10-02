@@ -1594,11 +1594,11 @@ html[data-motion="on"] .ways-now4 { animation: ways-now4 9s infinite both; }
 }
 /* The board's dark button, not the sitewide gradient: this is a side offer
    and the page's purple belongs to the scan. */
+/* Purple since 2 Oct 2026 (Danny): the button carries .btn-primary for the
+   ground and white text; this sets only its size beside the field. */
 .run-mail-btn {
   flex-shrink: 0;
   font-family: inherit;
-  background: #0f1115;
-  color: #ffffff;
   border: 0;
   font-size: 14px;
   font-weight: 600;
@@ -1607,7 +1607,7 @@ html[data-motion="on"] .ways-now4 { animation: ways-now4 9s infinite both; }
   min-height: 44px;
   cursor: pointer;
 }
-.run-mail-btn:hover { opacity: .88; }
+.run-mail-btn:hover { opacity: .88; transform: none; }
 .run-mail-btn:disabled { opacity: .7; cursor: default; }
 
 /* ── The scan result, top half (ScanResult.dc.html, Q09, 25 Sep 2026) ── */

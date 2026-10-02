@@ -1,4 +1,5 @@
 import { knownEngines } from "@/lib/scan/engines";
+import { answersStored } from "@/lib/scan/run-steps";
 import { buildUnlockPayload } from "@/lib/scan/unlock";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
@@ -28,7 +29,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ token: string 
   // address for.
   const { data: scan, error: readErr } = await db
     .from("scans")
-    .select("id, status, unlocked_at, gated_engines, gated_status")
+    .select("id, status, step, unlocked_at, gated_engines, gated_status")
     .eq("public_token", token)
     .maybeSingle();
 
@@ -47,7 +48,14 @@ export async function GET(_req: Request, ctx: { params: Promise<{ token: string 
    * public token is still the credential, as it is for the teaser. 403 now
    * means "not finished yet", which the screen already treats as no report.
    */
-  if (scan.status !== "complete") return Response.json({ error: "not_ready" }, { status: 403 });
+  /**
+   * Or a running scan whose answers are stored (2 Oct 2026, run-steps.ts
+   * `answersStored`): the result draws as soon as the prompts are answered and
+   * says what is still coming. `partial` tells the screen which sections are
+   * not final yet - who got named, the source kinds and the placement list.
+   */
+  const partial = scan.status === "running" && answersStored(scan.step);
+  if (scan.status !== "complete" && !partial) return Response.json({ error: "not_ready" }, { status: 403 });
 
   /**
    * A read that fails is not a report with nothing in it.
@@ -79,6 +87,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ token: string 
       // layer earlier, where it stops being published at all.
       gated_engines: knownEngines(scan.gated_engines as string[] | null),
       gated_status: scan.gated_status ?? "none",
+      partial,
       ...payload,
     },
     { headers: { "cache-control": "no-store" } },

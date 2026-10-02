@@ -89,7 +89,8 @@ export const OFFER_COPY = {
   // HeroSequence.dc.html (25 Sep): the wait is said under the scan's own
   // heading, and the offer is a card beside it that asks the question. The
   // close-this-tab sentence is not on the board and stays - see the test.
-  heading: "Would rather not wait?",
+  // "Rather not wait?" - Danny, 2 Oct 2026, over the board's wording.
+  heading: "Rather not wait?",
   body: "We will email the result the moment it is ready. You can close this tab and the scan keeps running.",
   label: "Email address",
   placeholder: "you@company.com",

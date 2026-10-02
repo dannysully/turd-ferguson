@@ -281,7 +281,7 @@ function ClusterLinks(p: { links: { named: boolean }[] }) {
   );
 }
 
-function KeywordNode(p: { r: RunScanResponse; chosen: boolean }) {
+function KeywordNode(p: { r: RunScanResponse; chosen: boolean; rank: string }) {
   const c = p.r.cluster_keyword;
   const head = <span style={{ fontSize: "12px", fontWeight: 600, color: T.soft }}>The Google keyword</span>;
   const box: React.CSSProperties = {
@@ -312,7 +312,7 @@ function KeywordNode(p: { r: RunScanResponse; chosen: boolean }) {
       {head}
       <span style={{ fontSize: "19px", fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.25, color: T.ink }}>{c.keyword}</span>
       <span style={{ display: "flex", alignItems: "baseline", gap: "10px", flexWrap: "wrap" }}>
-        <span style={{ fontSize: "44px", fontWeight: 700, letterSpacing: "-0.04em", lineHeight: 1.1, color: T.ink }}>{clusterRank(p.r)}</span>
+        <span style={{ fontSize: "44px", fontWeight: 700, letterSpacing: "-0.04em", lineHeight: 1.1, color: T.ink }}>{p.rank}</span>
         <span style={{ fontSize: "13px", color: T.soft }}>{"on Google, in the " + p.r.market}</span>
       </span>
       {c.intent || c.volume != null ? (
@@ -336,7 +336,7 @@ function KeywordNode(p: { r: RunScanResponse; chosen: boolean }) {
  * question table did. Only drawn on a scan from C1 on (`clusterState` not
  * null); an older scan keeps `QuestionTable`.
  */
-function ClusterSection(p: { r: RunScanResponse; chosen: boolean; onOpen: (idx: number) => void }) {
+function ClusterSection(p: { r: RunScanResponse; chosen: boolean; rank: string; onOpen: (idx: number) => void }) {
   const qs = p.r.questions ?? [];
   if (!qs.length) return null;
   const cols = "96px minmax(0, 1fr) 128px 104px";
@@ -381,7 +381,7 @@ function ClusterSection(p: { r: RunScanResponse; chosen: boolean; onOpen: (idx: 
             })}
           </div>
           <ClusterLinks links={clusterLinks(qs)} />
-          <KeywordNode r={p.r} chosen={p.chosen} />
+          <KeywordNode r={p.r} chosen={p.chosen} rank={p.rank} />
         </div>
         <div className="clu-foot" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px 24px", margin: "24px -24px 0", padding: "16px 24px", borderTop: "1px solid " + T.hair, background: "#fbfbfc", borderRadius: "0 0 18px 18px" }}>
           <span style={{ fontSize: "14px", lineHeight: 1.5, color: T.ink }}>
@@ -1012,14 +1012,53 @@ function TrackedSection(p: { token: string; r: RunScanResponse; cluster: ReturnT
 
 /* ── The whole page ── */
 
+/**
+ * A section the run has not finished yet (Danny, 2 Oct 2026). The result draws
+ * once the answers are stored; who got named, the source kinds and the
+ * placement list come after, so their sections hold this until then - with
+ * the same turning ring as the scan's buttons, so a visitor who scrolls past
+ * the prompts can see it is still working rather than empty.
+ */
+function Pending(p: { caption: string; error: string | null; what: string }) {
+  return (
+    <div
+      role="status"
+      aria-busy={p.error ? undefined : true}
+      style={{ ...CARD, padding: "28px 24px", minHeight: "140px", display: "flex", flexDirection: "column", justifyContent: "center", gap: "8px" }}
+    >
+      {p.error ? (
+        <span style={{ fontSize: "14px", lineHeight: 1.55, color: T.badFg }}>{p.error}</span>
+      ) : (
+        <>
+          <span style={{ display: "flex", alignItems: "center", fontSize: "15px", fontWeight: 600, color: T.ink }}>
+            <span className="btn-spin" aria-hidden="true" style={{ color: T.accent }} />
+            {"Still loading " + p.what}
+          </span>
+          <span style={{ fontSize: "13px", lineHeight: 1.55, color: T.soft }}>{p.caption + ". This fills in by itself, no need to refresh."}</span>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function ResultView(p: {
   r: RunScanResponse;
   domain: string;
   token: string;
   /** The count route has already answered zero. */
   noPlacements?: boolean;
+  /** Set while the run is still finishing: the answers are final, the brand and source work is not. */
+  pending?: { caption: string; error: string | null } | null;
 }) {
   const r = p.r;
+  const pending = p.pending ?? null;
+  /**
+   * The keyword's Google position is read alongside the engines and can land
+   * after the answers. Until the run finishes a missing rank is "Checking",
+   * not "Not in top 20" - the second is a finding, and it is not one yet.
+   */
+  const rankText =
+    pending && clusterState(r) === "chosen" && typeof r.cluster_keyword?.rank !== "number" ? "Checking" : clusterRank(r);
   const f = resultFigures(r, p.domain, { unlocked: true, noPlacements: p.noPlacements });
   const cluster = clusterState(r);
   const qs = r.questions ?? [];
@@ -1029,6 +1068,25 @@ export default function ResultView(p: {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "26px" }}>
+      {pending ? (
+        <div
+          role="status"
+          aria-live="polite"
+          style={{ display: "flex", alignItems: "center", gap: "4px", flexWrap: "wrap", background: T.wash, borderRadius: "12px", padding: "12px 16px", fontSize: "14px", lineHeight: 1.5, color: T.ink }}
+        >
+          {pending.error ? (
+            <span style={{ color: T.badFg }}>{pending.error}</span>
+          ) : (
+            <>
+              <span style={{ display: "flex", alignItems: "center", fontWeight: 600 }}>
+                <span className="btn-spin" aria-hidden="true" style={{ color: T.accent }} />
+                {"Still running: " + pending.caption.charAt(0).toLowerCase() + pending.caption.slice(1) + "."}
+              </span>
+              <span style={{ color: T.soft }}>The prompts and answers below are final. Where to get placed and who is named instead load in as they finish.</span>
+            </>
+          )}
+        </div>
+      ) : null}
       {/* Headline */}
       {/* ScanResult.dc.html: the headline beside three figure cards, both
           sitting on one bottom line. The board prints the domain and read date
@@ -1088,7 +1146,7 @@ export default function ResultView(p: {
           {cluster ? (
             <Metric
               label="Google, for the keyword"
-              value={clusterRank(r)}
+              value={rankText}
               note={
                 cluster === "chosen"
                   ? "Your organic position for " + (r.cluster_keyword?.keyword ?? "") + "."
@@ -1101,15 +1159,17 @@ export default function ResultView(p: {
         </div>
       </div>
 
-      {cluster ? <ClusterSection r={r} chosen={cluster === "chosen"} onOpen={setOpenIdx} /> : <QuestionTable r={r} onOpen={setOpenIdx} />}
+      {cluster ? <ClusterSection r={r} chosen={cluster === "chosen"} rank={rankText} onOpen={setOpenIdx} /> : <QuestionTable r={r} onOpen={setOpenIdx} />}
 
       {/* Where to get placed - the sources, cut down to the ones worth acting on. */}
       {/* 72px between sections on the board: the page's 26px gap plus 46. */}
       <section id="plan" style={{ marginTop: "46px" }}>
-        <Head title="Where to get placed" aside={opps.length ? selfServeLine(r) : null}>
+        <Head title="Where to get placed" aside={!pending && opps.length ? selfServeLine(r) : null}>
           Pages feeding answers you are missing from, where an article can run.
         </Head>
-        {opps.length ? (
+        {pending ? (
+          <Pending caption={pending.caption} error={pending.error} what="where to get placed" />
+        ) : opps.length ? (
           <div>
             <PlanCards r={r} rows={opps.slice(0, PLAN_ORDER.length)} />
             {opps.length > PLAN_ORDER.length ? <PlacementTable r={r} rows={opps.slice(PLAN_ORDER.length)} /> : null}
@@ -1121,7 +1181,14 @@ export default function ResultView(p: {
       </section>
 
       <div style={{ marginTop: "46px" }}>
-        <ShareOfVoice r={r} />
+        {pending ? (
+          <section>
+            <Head title="Who is being named instead">The same prompts scored for every brand in the category.</Head>
+            <Pending caption={pending.caption} error={pending.error} what="who is named instead" />
+          </section>
+        ) : (
+          <ShareOfVoice r={r} />
+        )}
       </div>
 
       <div style={{ marginTop: "46px" }}>

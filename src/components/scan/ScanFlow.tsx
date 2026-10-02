@@ -22,7 +22,7 @@ import { ENGINE_SPECS, isEngine, knownEngines } from "@/lib/scan/engines";
 // map used to be a hand-typed second copy of that vocabulary: a step renamed
 // in the pipeline read as `undefined` here and silently froze the progress bar
 // for the rest of the run. See lib/scan/run-steps.ts.
-import { RUN_STEPS, STEP_INDEX } from "@/lib/scan/run-steps";
+import { ANSWERS_STEP, RUN_STEPS, STEP_INDEX, stepCaption } from "@/lib/scan/run-steps";
 
 import ProcessSequence, { WAITING_TEMPO } from "@/components/ProcessSequence";
 
@@ -372,6 +372,15 @@ export default function ScanFlow(p: {
    * time.
    */
   const [landed, setLanded] = useState<EngineResult[]>([]);
+  /**
+   * The result is on screen and the run is still finishing (Danny, 2 Oct
+   * 2026). Set when the answers are stored (`ANSWERS_STEP`): the prompts and
+   * every answer are final, and the sections that wait on the brand and source
+   * work say they are still loading until the scan completes.
+   */
+  const [partial, setPartial] = useState(false);
+  /** The rest of a partial result did not arrive. Said in the sections that were waiting. */
+  const [restError, setRestError] = useState("");
   /** How many questions this run asks. Known once confirmed on this page; not on a reload mid-run. */
   const [runCount, setRunCount] = useState<number | null>(null);
 
@@ -520,6 +529,29 @@ export default function ScanFlow(p: {
         const rows = parseEngineResults(data.engine_results);
         setLanded((prev) => (rows.length > prev.length ? rows : prev));
 
+        /**
+         * The answers are stored: draw the result now and let the rest land
+         * into it. Both reads have to succeed, or this stays on the waiting
+         * screen and asks again next tick - a half-drawn result with no
+         * answers would be worse than the wait.
+         */
+        if (data.status === "running" && step !== undefined && step >= ANSWERS_STEP) {
+          try {
+            const [t, res] = await Promise.all([loadTeaser(), fetch("/api/scan/" + p.token + "/full", { cache: "no-store" })]);
+            if (stop) return;
+            if (res.ok) {
+              const body = await res.json();
+              setTeaser(t);
+              setFull(asFull(body));
+              setPartial(body.partial === true);
+              setPhase("result");
+              return;
+            }
+          } catch {
+            // Not yet. The waiting screen stays and the next tick tries again.
+          }
+        }
+
         if (data.status === "complete") {
           /**
            * `RUN_STEPS.length`, not a typed 3.
@@ -567,6 +599,51 @@ export default function ScanFlow(p: {
       clearTimeout(stuckTimer);
     };
   }, [phase, p.token, loadTeaser]);
+
+  // ---- a partial result: keep polling until the run finishes ----
+  useEffect(() => {
+    if (phase !== "result" || !partial) return;
+    let stop = false;
+    const stuckTimer = setTimeout(() => {
+      stop = true;
+      setRestError("The rest of this scan stopped before it finished. Refresh the page to check again.");
+    }, STUCK_MS);
+
+    async function poll() {
+      if (stop) return;
+      try {
+        const res = await fetch("/api/scan/" + p.token + "/status", { cache: "no-store" });
+        const data = await res.json();
+        const step = typeof data.step === "string" ? STEP_INDEX.get(data.step) : undefined;
+        if (step !== undefined) setProgress(step);
+
+        if (data.status === "complete") {
+          const [t, res] = await Promise.all([loadTeaser(), fetch("/api/scan/" + p.token + "/full", { cache: "no-store" })]);
+          if (stop) return;
+          if (res.ok) {
+            setTeaser(t);
+            setFull(asFull(await res.json()));
+            setPartial(false);
+            track("scan_completed", { cached: false });
+            return;
+          }
+        }
+        if (data.status === "failed") {
+          setRestError("The rest of this scan did not finish. The answers above are complete; you can run it again from the start.");
+          return;
+        }
+      } catch {
+        // A dropped poll is not a failed scan. Try again on the next tick.
+      }
+      if (!stop) setTimeout(poll, POLL_MS);
+    }
+
+    poll();
+    return () => {
+      stop = true;
+      clearTimeout(stuckTimer);
+    };
+  }, [phase, partial, p.token, loadTeaser]);
 
   /**
    * When to offer to email it - tied to the run, not to page load.
@@ -893,7 +970,7 @@ export default function ScanFlow(p: {
                 />
                 <button
                   type="submit"
-                  className="run-mail-btn"
+                  className="btn-primary run-mail-btn"
                   disabled={mailBusy}
                 >
                   {mailBusy ? OFFER_COPY.sending : OFFER_COPY.submit}
@@ -954,7 +1031,13 @@ export default function ScanFlow(p: {
         ) : null}
 
         {phase === "result" && result ? (
-          <ResultView r={result} domain={p.domain} token={p.token} noPlacements={noPlacements} />
+          <ResultView
+            r={result}
+            domain={p.domain}
+            token={p.token}
+            noPlacements={noPlacements}
+            pending={partial ? { caption: stepCaption(progress), error: restError || null } : null}
+          />
         ) : null}
 
         {phase === "result" && !result && error ? (

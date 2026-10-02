@@ -428,8 +428,8 @@ const CSS_COLOURS: Record<string, string> = {
     "var(--soft) on var(--bg) - 4.80:1, which clears AA for body text since blocked.md 9 was answered. It is a code sample in a product panel, and it is illustrative schema rather than anything a reader has to act on",
   ".ans-nav":
     "var(--ink) on var(--surface) - 18.66:1. The drawer's paging controls, which render only behind a completed scan and so are on no swept page",
-  ".run-mail-btn":
-    "#ffffff on #0f1115 - 18.66:1. The running screen's Email me button, HeroSequence.dc.html (Q08, 25 Sep 2026); running is a client phase, so on no swept page",
+  // .run-mail-btn left this set on 2 Oct 2026: the Email me button went purple
+  // (Danny) and takes its white text and ground from .btn-primary, measured above.
   ".wt-option":
     "var(--soft) on the .wt-toggle track, var(--chip) - 4.72:1. The unchosen half of the walkthrough switch, ScanResult.dc.html (Q10, 25 Sep 2026); the result is on no swept page",
   ".wt-option--on": "var(--ink) on var(--surface) - 18.66:1. The chosen half of the same switch",
@@ -465,7 +465,7 @@ const CSS_GROUNDS: Record<string, string> = {
   ".ans-drawer": "var(--surface), so text inside it lands on white and the surface tokens are the right ones for it",
   ".ans-drawer__head": "var(--surface), the same ground as the drawer it is stuck to the top of",
   ".ans-nav": "var(--surface), a control on the drawer's own ground",
-  ".run-mail-btn": "#0f1115, the board's dark button; its own white text is the only thing on it (Q08, 25 Sep 2026)",
+  // .run-mail-btn left this set on 2 Oct 2026: its ground is now .btn-primary's gradient.
   ".res-qbtn": "transparent - it takes the ground of the row it wraps, which is what the inline walk already measures",
   ".res-qbtn:hover:not(:disabled)": "var(--bg) on hover only. A hover state is not a resting ground, and the text on it is the row's own",
   // 28 Sep 2026 (R63): the topbar dropdown's item highlight. #0f1115 ink on
