@@ -372,6 +372,12 @@ const EXEMPT: Record<string, Exemption> = {
     why: "Settings' billing ask's hidden `about`. type=hidden, nobody types in it; ask.ts readAskAbout accepts only aliases or billing.",
     holds: [{ file: "lib/tracking/ask.ts", needs: 'raw === "aliases" || raw === "billing" ? raw : null' }],
   },
+  // R151 (2 Oct 2026): /app/login posts without script, so the page a
+  // signed-out visitor was going to rides the form as a hidden field.
+  "app-login-next": {
+    why: "The login form's hidden next path, set by the page from safeNext. type=hidden, nobody types in it; the login route passes it through safeNext again before it reaches a link or a redirect.",
+    holds: [{ file: "app/api/app/login/route.ts", needs: "const next = safeNext(body.next)" }],
+  },
   "set-out-all": {
     why: "Sign out of every device's hidden flag. type=hidden, nobody types in it; the logout route acts only on the exact value 1 and reads the email off the session row, never the form.",
     holds: [{ file: "app/api/app/logout/route.ts", needs: 'form?.get("everywhere") === "1"' }],

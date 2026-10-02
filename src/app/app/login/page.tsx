@@ -4,6 +4,7 @@ import TierName from "@/components/TierName";
 import { T } from "@/config/tokens";
 
 import { safeNext } from "@/lib/tracking/next-path";
+import { LOGIN_SENT } from "@/lib/tracking/session";
 
 import LoginForm from "./LoginForm";
 
@@ -23,7 +24,11 @@ export default async function AppLogin({ searchParams }: { searchParams: Promise
       ? "That link has expired or was already used. Ask for a new one below."
       : q.access === "none"
         ? "That address has no dashboard yet. If you think it should, reply to the email you got from us."
-        : q.out === "all"
+        : q.sent === "1"
+          ? LOGIN_SENT
+          : q.failed === "1"
+            ? "Something went wrong. Please try again."
+            : q.out === "all"
           ? "You are signed out on every device."
           : q.out === "1"
             ? "You are signed out."
@@ -41,7 +46,7 @@ export default async function AppLogin({ searchParams }: { searchParams: Promise
       </p>
       {note ? <p style={{ margin: "0 0 16px", fontSize: "14px", color: T.ink }}>{note}</p> : null}
       {/* R164: where a signed-out visitor was going, carried through the email link. */}
-      <LoginForm next={safeNext(q.next) ?? undefined} />
+      <LoginForm next={safeNext(q.next) ?? undefined} refused={q.email === "bad"} />
     </section>
   );
 }

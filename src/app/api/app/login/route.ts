@@ -1,3 +1,5 @@
+import { NextResponse } from "next/server";
+
 import { SCAN_LIMITS } from "@/config/contact";
 import { isPlausibleEmail, normalizeEmail } from "@/lib/email-address";
 import { clientIp, hashIp } from "@/lib/scan/ip";
@@ -18,17 +20,35 @@ export const dynamic = "force-dynamic";
  * found in dashboard_members, and at most LOGIN_PER_EMAIL_PER_HOUR links an
  * hour per address and LOGIN_PER_IP_PER_HOUR per hashed IP, counted off
  * dashboard_login_tokens.
+ *
+ * R151 (2 Oct 2026): also takes the login form posted without script, and
+ * answers that with a 303 back to /app/login carrying only the outcome - never
+ * the address - and the safe next path, so the page can say it.
  */
 export async function POST(req: Request) {
+  const isForm = !(req.headers.get("content-type") ?? "").includes("application/json");
   let body: { email?: string; next?: unknown };
-  try {
-    body = await req.json();
-  } catch {
-    return Response.json({ error: "bad_request" }, { status: 400 });
+  if (isForm) {
+    const form = await req.formData().catch(() => null);
+    if (!form) return Response.json({ error: "bad_request" }, { status: 400 });
+    body = { email: String(form.get("email") ?? ""), next: form.get("next") ?? undefined };
+  } else {
+    try {
+      body = await req.json();
+    } catch {
+      return Response.json({ error: "bad_request" }, { status: 400 });
+    }
   }
+  const answer = (json: { ok?: true; error?: string; message?: string }, status = 200) => {
+    if (!isForm) return Response.json(json, { status });
+    const q = new URLSearchParams(json.ok ? { sent: "1" } : json.error === "bad_email" ? { email: "bad" } : { failed: "1" });
+    const back = safeNext(body.next);
+    if (back) q.set("next", back);
+    return NextResponse.redirect(new URL(`/app/login?${q}`, req.url), 303);
+  };
   const email = normalizeEmail(body.email ?? "");
   if (email.length > SCAN_LIMITS.email || !isPlausibleEmail(email)) {
-    return Response.json({ error: "bad_email", message: "That email does not look right." }, { status: 400 });
+    return answer({ error: "bad_email", message: "That email does not look right." }, 400);
   }
 
   const db = supabaseAdmin();
@@ -41,17 +61,17 @@ export async function POST(req: Request) {
   ]);
   if (eErr || iErr) {
     console.warn(`[app] could not count login requests: ${(eErr ?? iErr)!.message}`);
-    return Response.json({ error: "read_failed", message: "Something went wrong. Please try again." }, { status: 502 });
+    return answer({ error: "read_failed", message: "Something went wrong. Please try again." }, 502);
   }
   if (!mayRequestLink(byEmail ?? 0, byIp ?? 0)) {
     console.warn(`[app] login link capped (${LOGIN_PER_EMAIL_PER_HOUR}/h per address)`);
-    return Response.json({ ok: true, message: LOGIN_SENT });
+    return answer({ ok: true, message: LOGIN_SENT });
   }
 
   const { data: member, error: mErr } = await db.from("dashboard_members").select("email").eq("email", email).is("removed_at", null).limit(1);
   if (mErr) {
     console.warn(`[app] could not read members: ${mErr.message}`);
-    return Response.json({ error: "read_failed", message: "Something went wrong. Please try again." }, { status: 502 });
+    return answer({ error: "read_failed", message: "Something went wrong. Please try again." }, 502);
   }
 
   // Every request is recorded, member or not, so the caps count strangers too.
@@ -66,7 +86,7 @@ export async function POST(req: Request) {
   });
   if (tErr) {
     console.warn(`[app] could not store a login token: ${tErr.message}`);
-    return Response.json({ error: "write_failed", message: "Something went wrong. Please try again." }, { status: 502 });
+    return answer({ error: "write_failed", message: "Something went wrong. Please try again." }, 502);
   }
 
   if (member?.length) {
@@ -75,5 +95,5 @@ export async function POST(req: Request) {
     const link = `${siteUrl()}/app/auth?token=${token}` + (next ? `&next=${encodeURIComponent(next)}` : "");
     await sendLoginLink({ memberEmail: member[0]!.email as string, link });
   }
-  return Response.json({ ok: true, message: LOGIN_SENT });
+  return answer({ ok: true, message: LOGIN_SENT });
 }

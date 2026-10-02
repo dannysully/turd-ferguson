@@ -16,12 +16,14 @@ const BAD_EMAIL = "That email does not look right.";
  * with focus moved back to it and the typed value kept (as /contact). It is
  * checked with the route's own validator before posting, so an empty or
  * impossible address is answered at once instead of by the browser's bubble.
+ * Without script it posts to the same route, which 303s back with the outcome
+ * and never the address; `refused` is that outcome for a bad address.
  */
-export default function LoginForm({ next }: { next?: string }) {
+export default function LoginForm({ next, refused }: { next?: string; refused?: boolean }) {
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [fieldError, setFieldError] = useState<string | null>(null);
+  const [fieldError, setFieldError] = useState<string | null>(refused ? BAD_EMAIL : null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   function refuse(text: string) {
@@ -54,7 +56,8 @@ export default function LoginForm({ next }: { next?: string }) {
   }
 
   return (
-    <form onSubmit={submit} noValidate style={{ display: "grid", gap: "12px" }}>
+    <form action="/api/app/login" method="post" onSubmit={submit} noValidate style={{ display: "grid", gap: "12px" }}>
+      {next ? <input type="hidden" id="app-login-next" name="next" value={next} /> : null}
       <label htmlFor="app-login-email" style={{ fontSize: "14px", fontWeight: 600 }}>
         Work email
       </label>
