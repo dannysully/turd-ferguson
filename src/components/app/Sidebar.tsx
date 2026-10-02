@@ -140,6 +140,7 @@ export default function Sidebar({
   // a soft navigation with the pending bar, not a full reload. The client
   // switcher stays a plain <a>: a different client is a fresh page.
   const hrefOf = (item: string) => navHref(item, client.slug);
+  const more = nav.filter((item) => !tabs.includes(item) && hrefOf(item));
   const chip: React.CSSProperties = { display: "flex", alignItems: "center", gap: "8px", height: "44px", padding: "0 10px", border: `1px solid ${T.line}`, borderRadius: "10px", fontSize: "14px", fontWeight: 700, boxSizing: "border-box", minWidth: 0 };
   const chipName = (
     <>
@@ -154,8 +155,9 @@ export default function Sidebar({
         {/* DS5 (2 Oct 2026, R172 pass 1): the sidebar's switcher is hidden on the phone shell, so
             a member of several clients could only reach the first. The chip opens the same list,
             a <details> so it works with JS off. */}
+        <span style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0, maxWidth: "70%" }}>
         {others.length ? (
-          <details className="app-switch" style={{ position: "relative", maxWidth: "60%", minWidth: 0 }}>
+          <details className="app-switch" style={{ position: "relative", minWidth: 0 }}>
             <summary aria-label={`${name}: switch client`} style={chip}>
               {chipName}
               <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0, color: T.soft }}>
@@ -172,8 +174,35 @@ export default function Sidebar({
             </nav>
           </details>
         ) : (
-          <span style={{ ...chip, maxWidth: "60%" }}>{chipName}</span>
+          <span style={chip}>{chipName}</span>
         )}
+        {/* DS6 (2 Oct 2026, R172 pass 1): the four tabs are Mobile.dc.html's; the sidebar items they
+            leave out (Who is named, Cited pages, Placements) and Log out had no way in on the phone
+            but the Overview's "See all". */}
+        {more.length ? (
+          <details className="app-more" style={{ position: "relative", flexShrink: 0 }}>
+            <summary style={{ ...chip, fontWeight: 600 }}>More</summary>
+            <nav aria-label="More of the dashboard" style={{ position: "absolute", right: 0, top: "calc(100% + 6px)", zIndex: 30, minWidth: "200px", display: "grid", padding: "6px", background: T.surface, border: `1px solid ${T.line}`, borderRadius: "12px", boxSizing: "border-box" }}>
+              {more.map((item) => {
+                const on = item === current;
+                return (
+                  <Link key={item} href={hrefOf(item)!} aria-current={on ? "page" : undefined} style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "44px", padding: "0 10px", borderRadius: "8px", fontSize: "14px", fontWeight: on ? 600 : 500, color: on ? T.accent : T.ink, background: on ? T.wash : "transparent", textDecoration: "none" }}>
+                    <span style={{ display: "flex", color: on ? T.accent : T.soft }}>
+                      <NavIcon item={item} size={18} />
+                    </span>
+                    {item}
+                  </Link>
+                );
+              })}
+              <form method="post" action="/api/app/logout" style={{ margin: "4px 0 0", borderTop: `1px solid ${T.line}`, paddingTop: "4px" }}>
+                <button type="submit" style={{ width: "100%", minHeight: "44px", padding: "0 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", fontSize: "14px", fontWeight: 500, color: T.accent, cursor: "pointer" }}>
+                  Log out
+                </button>
+              </form>
+            </nav>
+          </details>
+        ) : null}
+        </span>
       </header>
 
       <aside className="app-side" style={{ flex: "0 0 248px", position: "sticky", top: 0, height: "100vh", overflowY: "auto", boxSizing: "border-box", borderRight: `1px solid ${T.line}`, padding: "24px 16px", display: "flex", flexDirection: "column", gap: "24px", background: T.surface }}>
