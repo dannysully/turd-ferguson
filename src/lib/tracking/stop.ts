@@ -83,7 +83,7 @@ export function readStopForm(get: (k: string) => string | null, search: number):
 }
 
 /** The toast states the page draws: what happened, to which row. Never free text from the URL. */
-export type StopDone = "stopped" | "undone" | "added" | "saved" | "moved" | "refused" | "unselected";
+export type StopDone = "stopped" | "undone" | "added" | "saved" | "moved" | "refused" | "unselected" | "rekeyed";
 
 /**
  * DS13 (R173 pass 2, 2 Oct 2026, benchmark "bulk select on prompts (stop,

@@ -37,9 +37,11 @@ export async function POST(req: Request, ctx: { params: Promise<{ client: string
   const card = typeof form?.get("card") === "string" ? (form.get("card") as string).slice(0, 64) : "";
   const own = card && typeof form?.get("own") === "string" ? keywordForm((form.get("own") as string).slice(0, ADMIN_LIMITS.question)) : "";
   const notOwn = (t: string) => !own || keywordForm(t) !== own;
+  // R179 (2 Oct 2026): a pending cluster's Change keyword on Clusters posts `on=clusters`; its 303 opens that card with `rk`.
+  const onClusters = !!card && form?.get("on") === "clusters";
   const back = (c: KeywordCheck | null, sig?: string) => {
-    const q = new URLSearchParams({ ...(card ? { card } : { add: "1" }), ...(raw ? { kw: raw } : {}), ...(c ? verdictQuery(c) : {}), ...(sig ? { sig } : {}) });
-    const to = card ? `/app/${encodeURIComponent(slug)}/setup?${q}#card-${encodeURIComponent(card)}` : `/app/${encodeURIComponent(slug)}/clusters?${q}`;
+    const q = new URLSearchParams({ ...(onClusters ? { open: card, rk: card } : card ? { card } : { add: "1" }), ...(raw ? { kw: raw } : {}), ...(c ? verdictQuery(c) : {}), ...(sig ? { sig } : {}) });
+    const to = card && !onClusters ? `/app/${encodeURIComponent(slug)}/setup?${q}#card-${encodeURIComponent(card)}` : `/app/${encodeURIComponent(slug)}/clusters?${q}`;
     return NextResponse.redirect(new URL(to, req.url), 303);
   };
   if (!raw) return back(null);

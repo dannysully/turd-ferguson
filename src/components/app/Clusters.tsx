@@ -16,6 +16,7 @@ import { type Range, comparisonRange, daysIn, formatDay } from "@/lib/tracking/f
 import { type KeywordCheck, draftPrompts } from "@/lib/tracking/add-cluster";
 import { ANGLES, BRANDED_CHIP, BRANDED_NOTE, PROMPTS_PER_CLUSTER, type Subject, namesBrandIn, refuseEdit } from "@/lib/tracking/limits";
 import type { Compare, OverviewData } from "@/lib/tracking/overview-data";
+import { KEYWORD_FIXED_NOTE } from "@/lib/tracking/rekey";
 import { partialRunNote } from "@/lib/tracking/run-note";
 import { BULK_ID, type BulkCount } from "@/lib/tracking/stop";
 
@@ -45,7 +46,7 @@ import UpgradePrompt from "./UpgradePrompt";
  * "Check keyword" form posts to /check, which 303s back with the verdict.
  */
 
-export type StopToast = { done: "stopped" | "undone" | "added" | "saved" | "moved" | "refused" | "unselected"; kind: "prompt" | "cluster"; id: string; count?: BulkCount };
+export type StopToast = { done: "stopped" | "undone" | "added" | "saved" | "moved" | "refused" | "unselected" | "rekeyed"; kind: "prompt" | "cluster"; id: string; count?: BulkCount };
 
 const short = (t: string) => (t.length > 52 ? `${t.slice(0, 50)}…` : t);
 
@@ -82,6 +83,8 @@ export default function Clusters({
   canWrite,
   toast,
   adding = null,
+  rekey = null,
+  redraft = null,
   asked = null,
   askSent = false,
   packPrice = "",
@@ -106,6 +109,10 @@ export default function Clusters({
   canWrite: boolean;
   toast: StopToast | null;
   adding?: Adding | null;
+  /** R179: a pending card's Change keyword verdict, for the card it names. */
+  rekey?: Rekeying | null;
+  /** R179: the card whose prompt inputs open with fresh drafts from its keyword. */
+  redraft?: string | null;
   /** The /ask confirmation or refusal, built by the page from the 303's one word. */
   asked?: string | null;
   /** Whether that line says the ask went (the board's dark pill) or not. */
@@ -251,7 +258,7 @@ export default function Clusters({
           <span style={{ ...HEAD, textAlign: "right" }}>{since ? `Position, vs ${since}` : "Position"}</span>
         </div>
         {shown.map((c) => (
-          <ClusterRow key={c.id} c={c} brand={brand} subject={subject} open={c.id === openId} toggle={href({ open: c.id === openId ? "" : c.id })} since={since} act={act} refill={toast?.done === "stopped" && toast.kind === "prompt" ? toast.id : null} openHref={`/app/${encodeURIComponent(slug)}/clusters/${encodeURIComponent(c.id)}?${new URLSearchParams(base)}`} />
+          <ClusterRow key={c.id} c={c} brand={brand} subject={subject} open={c.id === openId} toggle={href({ open: c.id === openId ? "" : c.id })} since={since} act={act} refill={toast?.done === "stopped" && toast.kind === "prompt" ? toast.id : null} rekey={rekey?.card === c.id ? rekey : null} redraft={redraft === c.id} rekeyed={toast?.done === "rekeyed" && toast.id === c.id} openHref={`/app/${encodeURIComponent(slug)}/clusters/${encodeURIComponent(c.id)}?${new URLSearchParams(base)}`} />
         ))}
         {shown.length === 0 ? (
           <div style={{ padding: "32px 24px", borderTop: `1px solid ${T.line}`, fontSize: "14px", color: T.soft }}>
@@ -343,6 +350,7 @@ function Ungrouped({ rows, act, subject, targets }: { rows: PromptRow[]; act: Ac
 }
 
 export type Adding = { kw: string; check: KeywordCheck | null; sig: string };
+export type Rekeying = Adding & { card: string };
 
 /**
  * The board's Add a cluster panel (part 3b): the keyword and "Check keyword",
@@ -562,6 +570,8 @@ function Toast({ t, cards, ungrouped = [], act, dismiss }: { t: StopToast; cards
         ? `Now tracking “${short(name)}”. First results after tomorrow’s 06:00 check.`
         : t.done === "moved" && t.kind === "prompt" && cluster
         ? `Moved “${short(name)}” into ${cluster.keyword ?? cluster.name}. It is asked every morning as before.`
+        : t.done === "rekeyed"
+        ? `Keyword changed to “${short(name)}”. Its prompts are kept, and the first check uses it tomorrow at 06:00.`
         : t.done === "saved"
         ? "Saved. The first check uses these prompts tomorrow at 06:00."
         : t.done === "undone"
@@ -600,10 +610,33 @@ function Toast({ t, cards, ungrouped = [], act, dismiss }: { t: StopToast; cards
  * its own Stop, never as an input. The inputs join the edit form by `form=` too,
  * so a fixed row's stop form sits among them without nesting.
  */
-function PendingEditor({ c, kw, lead, act, subject }: { c: ClusterCard; kw: string; lead: string; act: NonNullable<Act>; subject: Subject | null }) {
+function PendingEditor({
+  c,
+  kw,
+  lead,
+  act,
+  subject,
+  rekey = null,
+  redraft = false,
+  rekeyed = false,
+}: {
+  c: ClusterCard;
+  kw: string;
+  lead: string;
+  act: NonNullable<Act>;
+  subject: Subject | null;
+  rekey?: Rekeying | null;
+  redraft?: boolean;
+  rekeyed?: boolean;
+}) {
   const formId = `edit-${c.id}`;
   const live = c.prompts.filter((p) => p.stoppedOn === null);
   const slots = c.prompts.filter((p) => p.stoppedOn !== null).slice(0, Math.max(0, 5 - live.length));
+  // R179: "Redraft" fills the unread prompts' inputs with fresh drafts from the keyword, by angle; nothing changes until Save changes.
+  const drafts = redraft && c.keyword ? draftPrompts(c.keyword) : null;
+  const draftFor = (p: { angle: string | null; text: string }, i: number) => (drafts ? (drafts[p.angle ? ANGLES.indexOf(p.angle as (typeof ANGLES)[number]) : i] ?? p.text) : p.text);
+  const ck = rekey?.check ?? null;
+  const route = (to: string) => act.action.replace(/\/stop$/, to);
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "14px", padding: "4px 24px 22px" }}>
       <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", padding: "14px 16px", borderRadius: "12px", background: T.wash }}>
@@ -627,9 +660,51 @@ function PendingEditor({ c, kw, lead, act, subject }: { c: ClusterCard; kw: stri
           </span>
         ) : null}
       </div>
+      {/* R179: Change keyword runs the same Check keyword; a signed pass offers "Use" on its own form. Both siblings, JS off. */}
+      <form method="post" action={route("/check")} style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        <input id={`rk-card-${c.id}`} type="hidden" name="card" value={c.id} />
+        <input id={`rk-own-${c.id}`} type="hidden" name="own" value={c.keyword ?? ""} />
+        <input id={`rk-on-${c.id}`} type="hidden" name="on" value="clusters" />
+        <label htmlFor={`rk-kw-${c.id}`} style={{ fontSize: "13px", fontWeight: 600, color: T.ink }}>
+          {c.keyword ? "Change keyword" : "Add its keyword"}
+        </label>
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+          <input id={`rk-kw-${c.id}`} name="keyword" defaultValue={rekey?.kw || (c.keyword ?? "")} required maxLength={ADMIN_LIMITS.question} placeholder="e.g. accounting software for dentists" style={{ flex: "1 1 240px", minWidth: 0, height: "44px", boxSizing: "border-box", padding: "0 12px", border: `1px solid ${T.line}`, borderRadius: "10px", fontFamily: "inherit", fontSize: "14px", color: T.ink, background: T.surface }} />
+          <SubmitButton busy="Checking..." style={{ height: "44px", padding: "0 16px", border: `1px solid ${T.ink}`, borderRadius: "10px", background: T.surface, color: T.ink, fontFamily: "inherit", fontSize: "13px", fontWeight: 600 }}>
+            Check keyword
+          </SubmitButton>
+        </div>
+        <p role={ck ? "status" : undefined} style={{ margin: 0, fontSize: "13px", lineHeight: 1.5, color: ck ? (ck.ok ? T.goodFg : T.badFg) : T.soft }}>
+          {ck ? ck.message : "Until the first check you can change it. We check it has Google search volume and a buying intent; the prompts stay as they are."}
+        </p>
+      </form>
+      {ck?.ok && rekey?.sig ? (
+        <form method="post" action={`${route("/keyword")}?${new URLSearchParams({ ...act.keep, kind: "cluster", id: c.id })}`}>
+          <input id={`rk-use-kw-${c.id}`} type="hidden" name="keyword" value={ck.keyword} />
+          <input id={`rk-use-vol-${c.id}`} type="hidden" name="vol" value={String(ck.volume)} />
+          <input id={`rk-use-intent-${c.id}`} type="hidden" name="intent" value={ck.intent} />
+          <input id={`rk-use-sig-${c.id}`} type="hidden" name="sig" value={rekey.sig} />
+          <SubmitButton busy="Saving..." style={{ height: "44px", padding: "0 16px", border: 0, borderRadius: "10px", background: T.accent, color: T.surface, fontFamily: "inherit", fontSize: "13px", fontWeight: 600 }}>
+            {`Use “${short(ck.keyword)}” for this cluster`}
+          </SubmitButton>
+        </form>
+      ) : null}
+      {rekeyed && c.keyword && live.some((p) => !p.fixed) ? (
+        <p style={{ margin: 0, fontSize: "13px", lineHeight: 1.5, color: T.ink }}>
+          {"Its prompts are kept. "}
+          <Link href={`?${new URLSearchParams({ ...act.keep, open: c.id, redraft: c.id })}`} scroll={false} style={{ color: T.accent, fontWeight: 600 }}>
+            {`Redraft them from “${short(c.keyword)}”`}
+          </Link>
+        </p>
+      ) : null}
+      {drafts ? (
+        <p role="status" style={{ margin: 0, fontSize: "13px", lineHeight: 1.5, color: T.ink }}>
+          Fresh drafts are in the boxes below. Save changes to keep them, or leave the page to keep the old prompts.
+        </p>
+      ) : null}
       <form id={formId} method="post" action={`${act.action.replace(/\/stop$/, "/edit")}?${new URLSearchParams({ ...act.keep, kind: "cluster", id: c.id })}`} />
       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-        {live.map((p) => (
+        {live.map((p, i) => (
           <div key={p.id} className="app-cl-edit" style={{ display: "grid", gridTemplateColumns: "120px minmax(0, 1fr)", alignItems: "center", gap: "12px" }}>
             <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "4px" }}>
               {p.fixed ? (
@@ -653,7 +728,7 @@ function PendingEditor({ c, kw, lead, act, subject }: { c: ClusterCard; kw: stri
                 </StopForm>
               </span>
             ) : (
-              <input id={`${formId}-${p.id}`} form={formId} name={`p-${p.id}`} defaultValue={p.text} required minLength={PROMPT_MIN} maxLength={ADMIN_LIMITS.question} style={{ height: "44px", boxSizing: "border-box", padding: "0 12px", border: `1px solid ${T.line}`, borderRadius: "10px", fontFamily: "inherit", fontSize: "14px", color: T.ink, background: T.surface, minWidth: 0 }} />
+              <input key={drafts ? "draft" : "kept"} id={`${formId}-${p.id}`} form={formId} name={`p-${p.id}`} defaultValue={draftFor(p, i)} required minLength={PROMPT_MIN} maxLength={ADMIN_LIMITS.question} style={{ height: "44px", boxSizing: "border-box", padding: "0 12px", border: `1px solid ${T.line}`, borderRadius: "10px", fontFamily: "inherit", fontSize: "14px", color: T.ink, background: T.surface, minWidth: 0 }} />
             )}
           </div>
         ))}
@@ -690,7 +765,33 @@ function PendingEditor({ c, kw, lead, act, subject }: { c: ClusterCard; kw: stri
  * stop frees its slot at once, and that slot opens with the old text in it to
  * edit, as a new row with its own history.
  */
-function ClusterRow({ c, brand, subject, open, toggle, since, act, refill, openHref }: { c: ClusterCard; brand: string; subject: Subject | null; open: boolean; toggle: string; since: string | null; act: Act; refill: string | null; openHref: string }) {
+function ClusterRow({
+  c,
+  brand,
+  subject,
+  open,
+  toggle,
+  since,
+  act,
+  refill,
+  rekey = null,
+  redraft = false,
+  rekeyed = false,
+  openHref,
+}: {
+  c: ClusterCard;
+  brand: string;
+  subject: Subject | null;
+  open: boolean;
+  toggle: string;
+  since: string | null;
+  act: Act;
+  refill: string | null;
+  rekey?: Rekeying | null;
+  redraft?: boolean;
+  rekeyed?: boolean;
+  openHref: string;
+}) {
   const pending = c.status === "pending";
   // A stop made today shows until tomorrow's check, with Undo; the slot is already free.
   const stopped = c.stoppedOn !== null;
@@ -750,7 +851,7 @@ function ClusterRow({ c, brand, subject, open, toggle, since, act, refill, openH
       </Link>
 
       {open && pending && act && !stopped ? (
-        <PendingEditor c={c} kw={kw} lead={lead} act={act} subject={subject} />
+        <PendingEditor c={c} kw={kw} lead={lead} act={act} subject={subject} rekey={rekey} redraft={redraft} rekeyed={rekeyed} />
       ) : open ? (
         <div style={{ display: "flex", flexDirection: "column", gap: "14px", padding: "4px 24px 22px" }}>
           <div className="app-cl-body" style={{ display: "flex", alignItems: "center" }}>
@@ -839,6 +940,15 @@ function ClusterRow({ c, brand, subject, open, toggle, since, act, refill, openH
                 <span style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
                   {c.intent ? <span style={{ padding: "3px 9px", borderRadius: "999px", background: T.wash, color: T.accent, fontSize: "12px", fontWeight: 600 }}>{cap(c.intent)}</span> : null}
                   {c.volume !== null ? <span style={{ padding: "3px 9px", borderRadius: "999px", background: T.chip, color: T.ink, fontSize: "12px", fontWeight: 600 }}>{`${c.volume.toLocaleString("en-GB")} a month`}</span> : null}
+                </span>
+              ) : null}
+              {/* R179: after the first reading the keyword is fixed; the way to a new one is a new cluster, and the stop has Undo until the next check. */}
+              {act && !pending && !stopped ? (
+                <span style={{ display: "flex", flexDirection: "column", gap: "8px", borderTop: `1px solid ${T.line}`, paddingTop: "10px" }}>
+                  <span style={{ fontSize: "12px", lineHeight: 1.5, color: T.soft }}>{KEYWORD_FIXED_NOTE}</span>
+                  <StopForm act={act} kind="cluster" id={c.id} style={{ ...STOP_BTN, width: "100%", justifyContent: "center" }}>
+                    Stop this cluster and add a new one
+                  </StopForm>
                 </span>
               ) : null}
               {/* R90 sweep: Questions.dc.html closes the card on the ranking page, as OneCluster does. */}

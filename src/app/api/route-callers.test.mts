@@ -315,6 +315,15 @@ const NO_CALLER: { route: string; method: string; why: string; earns: () => bool
     earns: () => readFileSync(join(ROOT, "src/components/app/Clusters.tsx"), "utf8").includes("action={`/api/app/${encodeURIComponent(slug)}/cluster`}"),
   },
   {
+    route: "/api/app/[client]/keyword",
+    method: "POST",
+    // R179, 2 Oct 2026: Use this keyword, after a pending cluster's Change keyword passes - on a setup card and on Clusters.
+    why: "Posted by the plain HTML Use this keyword forms on a setup card and a pending Clusters card, which the fetch scanner does not read.",
+    earns: () =>
+      readFileSync(join(ROOT, "src/app/app/[client]/setup/page.tsx"), "utf8").includes("action={`/api/app/${encodeURIComponent(slug)}/keyword?") &&
+      readFileSync(join(ROOT, "src/components/app/Clusters.tsx"), "utf8").includes('route("/keyword")'),
+  },
+  {
     route: "/api/app/[client]/member",
     method: "POST",
     // R142 part 2, 1 Oct 2026 (BRIEF-4 P2 Team): invite, change a role, remove.

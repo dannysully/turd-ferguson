@@ -82,6 +82,9 @@ export default async function ClientSetup({
   const market = MARKETS[isMarket(client.market) ? client.market : "US"].label;
   const check = at ? verdictFromQuery(one, keywordForm(kw), `the ${market}`) : null;
   const sig = (one("sig") ?? "").slice(0, 64);
+  // R179: the keyword route's 303 after "Use this keyword" names the card and what happened.
+  const rekey = at ? one("rekey") : null;
+  const rekeyLine = rekey === "rekeyed" ? "Keyword set on this cluster. Its prompts are kept." : rekey === "refused" ? "That change did not go through. Check the keyword again, or tell us before you confirm." : null;
   const brand = client.brand ?? client.domain;
 
   return (
@@ -143,10 +146,23 @@ export default async function ClientSetup({
                   <p role={at?.id === c.id && check ? "status" : undefined} style={{ margin: 0, fontSize: "13px", lineHeight: 1.5, color: at?.id === c.id && check ? (check.ok ? T.goodFg : T.badFg) : T.soft }}>
                     {at?.id === c.id && check
                       ? check.ok
-                        ? `${check.message} Confirm below and we set it on this cluster.`
+                        ? `${check.message} Use it to set it on this cluster now; its prompts are kept.`
                         : check.message
-                      : "We check it has Google search volume and a buying intent."}
+                      : at?.id === c.id && rekeyLine
+                        ? rekeyLine
+                        : "We check it has Google search volume and a buying intent."}
                   </p>
+                </form>
+              ) : null}
+              {canWrite && !confirmed && at?.id === c.id && check?.ok && sig ? (
+                <form method="post" action={`/api/app/${encodeURIComponent(slug)}/keyword?${new URLSearchParams({ kind: "cluster", id: c.id, to: "setup" })}`} style={{ marginTop: "10px" }}>
+                  <input id={`setup-use-kw-${i}`} type="hidden" name="keyword" value={check.keyword} />
+                  <input id={`setup-use-vol-${i}`} type="hidden" name="vol" value={String(check.volume)} />
+                  <input id={`setup-use-intent-${i}`} type="hidden" name="intent" value={check.intent} />
+                  <input id={`setup-use-sig-${i}`} type="hidden" name="sig" value={sig} />
+                  <SubmitButton busy="Saving..." style={CHECK_BUTTON}>
+                    {`Use “${check.keyword}” for this cluster`}
+                  </SubmitButton>
                 </form>
               ) : null}
             </div>

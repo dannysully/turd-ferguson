@@ -447,11 +447,22 @@ test("keyword volumes (R39): a capital cannot miss, and no number is null not ze
  * `unlock.ts` names the key too, as a reader carrying it to the client, which
  * is why the sweep reads the object literal off .update/.insert/.upsert.
  */
+/*
+ * Updated 2 Oct 2026 (R179): `tracked_keywords` has a `search_volume` column of
+ * its own - a tracked cluster keyword's checked volume - and rekey.ts writes it
+ * when a pending cluster's keyword changes. That is not scan_questions, so it is
+ * listed here by file and held to that table: the write must sit in a
+ * `.from("tracked_keywords")` chain, or the sweep counts it as a second writer.
+ */
+const OTHER_TABLE: Record<string, string> = { "src/lib/tracking/rekey.ts": "tracked_keywords" };
+
 test("one thing writes scan_questions.search_volume, and it writes target_keyword with it", () => {
   const writers: string[] = [];
   for (const file of sourceFiles(ROOT)) {
     const src = code(readFileSync(join(ROOT, file), "utf8"));
     for (const m of src.matchAll(/\.(?:update|insert|upsert)\(\s*\{[^}]*(?<![\w])search_volume\s*:[^}]*\}/g)) {
+      const table = OTHER_TABLE[file];
+      if (table && new RegExp(`\\.from\\("${table}"\\)\\s*$`).test(src.slice(0, m.index))) continue;
       writers.push(file);
       assert.match(m[0], /(?<![\w])target_keyword\s*:/, file + " writes search_volume without target_keyword");
     }

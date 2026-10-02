@@ -235,6 +235,41 @@ const EXEMPT: Record<string, Exemption> = {
       },
     ]),
   ),
+  // R179 (2 Oct 2026): Change keyword on a pending Clusters card posts the
+  // same hidden card and own as a setup card, plus on=clusters, to the check
+  // route; a signed pass then rides to the keyword route as hidden fields, on
+  // Clusters and on a setup card alike. The keyword route refuses unless
+  // verifyCheck passes for this client and today.
+  "rk-card-${c.id}": {
+    why: "A pending Clusters card's hidden cluster id for Check keyword. type=hidden, nobody types in it; the check route clamps it to 64 and the page draws a verdict only on the card whose id matches.",
+    holds: [{ file: "app/api/app/[client]/check/route.ts", needs: '(form.get("card") as string).slice(0, 64)' }],
+  },
+  "rk-own-${c.id}": {
+    why: "A pending Clusters card's hidden current keyword. type=hidden, nobody types in it; the check route clamps it to ADMIN_LIMITS.question and uses it only to leave that keyword out of the tracked list.",
+    holds: [{ file: "app/api/app/[client]/check/route.ts", needs: '(form.get("own") as string).slice(0, ADMIN_LIMITS.question)' }],
+  },
+  "rk-on-${c.id}": {
+    why: "A fixed hidden word, on=clusters. type=hidden; the check route only compares it to \"clusters\" to pick where its 303 goes.",
+    holds: [{ file: "app/api/app/[client]/check/route.ts", needs: 'form?.get("on") === "clusters"' }],
+  },
+  ...Object.fromEntries(
+    (["kw", "vol", "intent", "sig"] as const).flatMap((f) => [
+      [
+        `rk-use-${f}-\${c.id}`,
+        {
+          why: `Use this keyword's hidden ${f} on a pending Clusters card, from its signed Check keyword pass. type=hidden, nobody types in it; the keyword route clamps it to ADMIN_LIMITS.question and refuses unless verifyCheck passes for this client and today.`,
+          holds: [{ file: "app/api/app/[client]/keyword/route.ts", needs: "verifyCheck(" }],
+        },
+      ],
+      [
+        `setup-use-${f}-\${i}`,
+        {
+          why: `Use this keyword's hidden ${f} on a setup card, from its signed Check keyword pass. type=hidden, nobody types in it; the keyword route clamps it to ADMIN_LIMITS.question and refuses unless verifyCheck passes for this client and today.`,
+          holds: [{ file: "app/api/app/[client]/keyword/route.ts", needs: "verifyCheck(" }],
+        },
+      ],
+    ]),
+  ),
   // T11 /ask (30 Sep 2026): "Ask us to pick one" carries the refused keyword
   // back as a hidden field. The ask route trims it and clamps it to
   // ADMIN_LIMITS.question in readAskKeyword before it goes in the mail.

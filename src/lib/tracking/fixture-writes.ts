@@ -4,6 +4,7 @@ import { type KeywordCheck, precheckKeyword, refuseDrafts, signCheck, verifyChec
 import { fixtureMode, type Fixture } from "./fixture-mode.ts";
 import { type Edit, refuseEdits } from "./edit.ts";
 import { ANGLES, angleFor, freeAngle, refuseCluster, refuseEdit, refuseGrouping, refuseKeyword, refusePrompts } from "./limits.ts";
+import { refuseRekey } from "./rekey.ts";
 import { refuseSlotText } from "./slot.ts";
 import { type StopKind, refuseRole, refuseStop, refuseUndo, stopDay } from "./stop.ts";
 import { type InviteRole, type TeamOp, refuseActor, refuseChange, refuseInvite } from "./team.ts";
@@ -212,6 +213,34 @@ export function fixtureGroup(f: Fixture, p: { clusterId: string; id: string; rol
   if (refused) return { ok: false, message: refused };
   const angle = freeAngle(mine.map((q) => q.angle));
   return written(f, { questions: questions.map((q) => (q.id === p.id ? { ...q, cluster_id: p.clusterId, angle: q.angle ?? angle } : q)) });
+}
+
+/** rekey.ts's changeKeyword on the fixture: a verified check, refuseRekey's rules, the keyword changed in place or added, prompts kept. */
+export function fixtureRekey(f: Fixture, p: { clusterId: string; keyword: string; volume: number; intent: string; sig: string | null; role: string }): FixtureWritten {
+  if (!verifyCheck({ clientId: f.client.id, keyword: p.keyword, volume: p.volume, intent: p.intent, day: f.today }, p.sig, FIXTURE_CHECK_KEY)) {
+    return { ok: false, message: "The keyword check did not verify." };
+  }
+  const { clusters, keywords, serp } = f.data;
+  const c = clusters.find((x) => x.id === p.clusterId) ?? null;
+  const keyword = keywordForm(p.keyword);
+  const own = c?.keyword_id ?? null;
+  const live = keywords.filter((k) => k.stopped_on === null);
+  const refused = refuseRekey({
+    role: p.role,
+    cluster: c,
+    today: f.today,
+    readings: own ? serp.filter((s) => s.keyword_id === own).length : 0,
+    taken: live.some((k) => k.id !== own && keywordForm(k.keyword) === keyword),
+  });
+  if (refused) return { ok: false, message: refused };
+  const ownLive = !!own && live.some((k) => k.id === own);
+  const kId = ownLive ? own! : unused(keywords.map((k) => k.id), "fk");
+  return written(f, {
+    keywords: ownLive
+      ? keywords.map((k) => (k.id === own ? { ...k, keyword, search_volume: p.volume, intent: p.intent } : k))
+      : [...keywords, { id: kId, keyword, added_on: c!.started_on, stopped_on: null, search_volume: p.volume, intent: p.intent }],
+    clusters: clusters.map((x) => (x.id === p.clusterId ? { ...x, name: keyword, keyword_id: kId } : x)),
+  });
 }
 
 function unused(ids: readonly string[], prefix: string): string {

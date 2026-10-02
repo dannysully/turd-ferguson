@@ -62,12 +62,16 @@ export default async function ClientClusters({
   const ticked = Number(one("ticked"));
   const count = id === BULK_ID && Number.isInteger(ok) && Number.isInteger(ticked) && ok >= 0 && ok <= ticked && ticked <= BULK_MAX ? { n: ok, of: ticked } : undefined;
   const toast: StopToast | null =
-    (done === "stopped" || done === "undone" || done === "added" || done === "saved" || done === "moved" || done === "refused" || done === "unselected") && (kind === "prompt" || kind === "cluster") && id ? { done, kind, id, count } : null;
+    (done === "stopped" || done === "undone" || done === "added" || done === "saved" || done === "moved" || done === "refused" || done === "unselected" || done === "rekeyed") && (kind === "prompt" || kind === "cluster") && id ? { done, kind, id, count } : null;
 
   // Add a cluster (part 3b): `?add=1` opens the panel; the check's 303 adds `kw` and `ck`.
   const kw = (one("kw") ?? "").slice(0, 200);
   const market = MARKETS[isMarket(client.market) ? client.market : "US"].label;
   const adding = one("add") === "1" ? { kw, check: verdictFromQuery(one, keywordForm(kw), `the ${market}`), sig: (one("sig") ?? "").slice(0, 64) } : null;
+  // R179: a pending card's Change keyword comes back with `rk` naming the card; `redraft` names the card whose inputs take fresh drafts.
+  const rk = (one("rk") ?? "").slice(0, 64);
+  const rekey = rk && !adding ? { card: rk, kw, check: verdictFromQuery(one, keywordForm(kw), `the ${market}`), sig: (one("sig") ?? "").slice(0, 64) } : null;
+  const redraft = (one("redraft") ?? "").slice(0, 64) || null;
   // T11 /ask: the 303 carries a few words (who, and for "Ask about these" the count and noun); the line is built here.
   const ask = one("ask");
   const n = Number(one("n"));
@@ -97,6 +101,8 @@ export default async function ClientClusters({
           canWrite={refuseRole(client.role) === null}
           toast={toast}
           adding={adding}
+          rekey={rekey}
+          redraft={redraft}
           asked={asked}
           askSent={ask === "sent"}
           packPrice={packPrice}

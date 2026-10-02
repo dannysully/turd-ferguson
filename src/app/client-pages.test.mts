@@ -63,7 +63,8 @@ const KEYS: Record<string, Record<string, string>> = {
     filter: 'f === "named" || f === "never" ? f : "all"',
     // "moved" added 2 Oct 2026 (R170 part 2): the /group route's 303 after Move into a cluster.
     // "unselected" added 2 Oct 2026 (DS13, R173 pass 2): the bulk bar posted with nothing ticked or no cluster picked.
-    done: '(done === "stopped" || done === "undone" || done === "added" || done === "saved" || done === "moved" || done === "refused" || done === "unselected")',
+    // "rekeyed" added 2 Oct 2026 (R179): the keyword route's 303 after Use this keyword on a pending card.
+    done: '(done === "stopped" || done === "undone" || done === "added" || done === "saved" || done === "moved" || done === "refused" || done === "unselected" || done === "rekeyed")',
     kind: '(kind === "prompt" || kind === "cluster")',
     id: "? { done, kind, id, count } : null", // a toast only names a row the list already has, or id=selected for a batch
     // DS13, 2 Oct 2026: a bulk stop or move's counts, drawn only beside id=selected and as whole numbers within BULK_MAX.
@@ -78,6 +79,10 @@ const KEYS: Record<string, Record<string, string>> = {
     to: 'one("to") === "agency"',
     open: "open={one(\"open\")}", // matched by c.id === openId in Clusters.tsx, nothing is echoed
     q: 'clusterSearch(one("q"))',
+    // R179, 2 Oct 2026: Change keyword on a pending card. `rk` is the check route's 303 naming the card (drawn only on
+    // the card whose id matches, its verdict rebuilt by verdictFromQuery); `redraft` names the card whose inputs take drafts.
+    rk: '(one("rk") ?? "").slice(0, 64)',
+    redraft: '(one("redraft") ?? "").slice(0, 64)',
   },
   "/clusters/[cluster]": {
     prompt: "promptIndex(sp.prompt, detail.card.prompts.length)",
@@ -115,6 +120,8 @@ const KEYS: Record<string, Record<string, string>> = {
     card: 'cards.find((c) => c.id === one("card"))',
     kw: '(one("kw") ?? "").slice(0, 200)',
     sig: '(one("sig") ?? "").slice(0, 64)',
+    // 2 Oct 2026, R179: the keyword route's 303 after Use this keyword - one of two words, on the card `card` names.
+    rekey: 'rekey === "rekeyed" ? "Keyword set on this cluster.',
   },
 };
 
