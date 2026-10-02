@@ -130,6 +130,8 @@ const KEYS: Record<string, Record<string, string>> = {
     // 2 Oct 2026, R179: the keyword route's 303 after Use this keyword - one of two words, on the card `card` names.
     rekey: 'rekey === "rekeyed" ? "Keyword set on this cluster.',
   },
+  // 2 Oct 2026, R173 pass 3, DS36: the catch-all reads no key; its query rides only into loginHref's next.
+  "/[...rest]": {},
 };
 
 /** Role reads on a page, and what each may decide. A page reading a role anywhere else fails. */
@@ -149,8 +151,9 @@ const ROLE_READS: Record<string, string[]> = {
  * Raised 1 Oct 2026 (R166 part 3b): 9 pages and 33 keys - /setup and its confirm.
  * Raised 2 Oct 2026 (R166 part 5): 36 keys - /setup's card, kw and sig.
  * Raised 2 Oct 2026 (R173 pass 2): 37 keys - the Overview's setup.
+ * Raised 2 Oct 2026 (R173 pass 3, DS36): 10 pages - the [...rest] catch-all.
  */
-const PAGE_FLOOR = 9;
+const PAGE_FLOOR = 10;
 const KEY_FLOOR = 37;
 
 /** The query keys a page reads by name, as written. */
