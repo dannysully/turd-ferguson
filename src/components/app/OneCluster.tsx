@@ -234,7 +234,8 @@ export default function OneCluster({
             <p style={LEDE}>One per angle, each asking for a recommendation. Pick one to see every check and what each engine said.</p>
           </div>
           <Link href={`${clustersPath}?${new URLSearchParams({ ...rangeQuery, open: c.id })}`} style={{ fontSize: "14px", fontWeight: 600, color: T.accent, textDecoration: "none", flexShrink: 0 }}>
-            Manage prompts
+            {/* DS69 (2 Oct 2026, R173 pass 8): a viewer was offered "Manage prompts" and could manage nothing there. */}
+            {canWrite ? "Manage prompts" : "See them on Clusters"}
           </Link>
         </div>
         <div className="app-pair" style={{ display: "flex", alignItems: "center", flexWrap: "wrap" }}>

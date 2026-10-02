@@ -244,7 +244,9 @@ for (const width of [1280, 390]) {
         const t = await page.evaluate(() => document.body.innerText, null);
         assert.deepEqual(t.match(/.{0,30}(\b0 of \d+\b|days named, of 0).{0,30}/g), null, "no zero counts before a reading");
         assert.match(t, /Not checked yet/);
-        assert.ok(await page.getByRole("link", { name: /Manage prompts/ }).count(), "Manage prompts is offered");
+        // DS69 (2 Oct 2026): a viewer's link says where it goes, not "Manage".
+        const way = role === "viewer" ? /See them on Clusters/ : /Manage prompts/;
+        assert.ok(await page.getByRole("link", { name: way }).count(), `${way} is offered`);
         await ctx.close();
       });
       // R151/R154 (1 Oct 2026, 11:10Z sweep, docs/parity/r151-empty-app.mjs):
