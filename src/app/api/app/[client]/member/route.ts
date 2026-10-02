@@ -12,6 +12,7 @@ import { fixtureTeam } from "@/lib/tracking/fixture-writes";
 import { sendInvite } from "@/lib/tracking/invite-mail";
 import { clientsFor, sessionEmail } from "@/lib/tracking/member";
 import { writeFixture } from "@/lib/tracking/repo";
+import { readKept } from "@/lib/tracking/stop";
 import { type TeamDone, changeRole, invite, inviteMail, invitesToday, readTeam, readTeamForm, refuseActor, refuseChange, refuseInvite, removeMember, teamReturn } from "@/lib/tracking/team";
 
 export const runtime = "nodejs";
@@ -30,7 +31,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ client: string
   if (!/^[A-Za-z0-9-]{1,64}$/.test(slug)) return NextResponse.json({ error: "Not found." }, { status: 404 });
   const form = await req.formData().catch(() => null);
   const f = form ? readTeamForm((k) => form.get(k)) : null;
-  const back = (done: TeamDone) => NextResponse.redirect(new URL(teamReturn(slug, done, f?.email ?? null), req.url), 303);
+  // DS40: the form's action carries the page's stated range; only from, to and compare come back.
+  const sp = new URL(req.url).searchParams;
+  const kept = readKept((k) => sp.get(k), 0);
+  const back = (done: TeamDone) => NextResponse.redirect(new URL(teamReturn(slug, done, f?.email ?? null, kept), req.url), 303);
   if (!f) return back("refused");
   if (fixtureMode()) {
     // R168: invite, role and remove held in memory on the writable fixture; sendInvite is never reached here.

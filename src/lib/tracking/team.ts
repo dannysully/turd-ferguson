@@ -78,8 +78,10 @@ export function refuseChange(p: { rows: TeamRow[]; actor: string; email: string;
 
 export type TeamDone = "invited" | "removed" | "role" | "refused";
 
-export function teamReturn(slug: string, done: TeamDone, email: string | null): string {
-  const q = new URLSearchParams({ team: done, ...(email && done !== "refused" ? { who: email } : {}) });
+export function teamReturn(slug: string, done: TeamDone, email: string | null, keep: Record<string, string> = {}): string {
+  // DS40 (2 Oct 2026, R173 pass 4): the range the form posted with (readKept's from, to, compare) comes back too.
+  const range = Object.fromEntries(Object.entries(keep).filter(([k]) => k === "from" || k === "to" || k === "compare"));
+  const q = new URLSearchParams({ ...range, team: done, ...(email && done !== "refused" ? { who: email } : {}) });
   return `/app/${encodeURIComponent(slug)}/settings?${q}#set-team`;
 }
 

@@ -61,6 +61,8 @@ test("no one changes or removes themselves, nor the last owner", () => {
 test("the return URL and toast carry fixed words and a checked email only", () => {
   assert.equal(teamReturn("tallyroo", "invited", "new@tallyroo.com"), `/app/tallyroo/settings?${new URLSearchParams({ team: "invited", who: "new@tallyroo.com" })}#set-team`);
   assert.equal(teamReturn("tallyroo", "refused", "new@tallyroo.com"), "/app/tallyroo/settings?team=refused#set-team");
+  // DS40 (2 Oct 2026): a stated range comes back ahead of the toast; any other kept key does not.
+  assert.equal(teamReturn("tallyroo", "refused", null, { from: "2026-09-20", to: "2026-09-26", compare: "none", filter: "named", q: "x" }), "/app/tallyroo/settings?from=2026-09-20&to=2026-09-26&compare=none&team=refused#set-team");
   assert.equal(teamToast("invited", "new@tallyroo.com", "viewer"), "Invited new@tallyroo.com.");
   assert.equal(teamToast("invited", "stranger@tallyroo.com", null), null, "R146: not on the team, so nobody was invited");
   assert.equal(teamToast("removed", "gone@tallyroo.com", null), "Removed gone@tallyroo.com.");

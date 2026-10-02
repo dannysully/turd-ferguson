@@ -65,6 +65,7 @@ export default async function ClientSettings({ params, searchParams }: { params:
           mode={upgrade.mode}
           slug={slug}
           owner={client.role === "owner"}
+          keep={rangeQuery(sp, today)}
           toast={
             sp.ask === "sent"
               ? askToast(sp.via === "agency" ? "your account contact" : "nomada digital", email)

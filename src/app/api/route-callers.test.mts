@@ -332,7 +332,8 @@ const NO_CALLER: { route: string; method: string; why: string; earns: () => bool
     method: "POST",
     // R142 part 2, 1 Oct 2026 (BRIEF-4 P2 Team): invite, change a role, remove.
     why: "Posted by the plain HTML Invite someone, Make editor/viewer and Remove forms on Settings, which the fetch scanner does not read.",
-    earns: () => readFileSync(join(ROOT, "src/components/app/Settings.tsx"), "utf8").includes("const action = `/api/app/${encodeURIComponent(slug)}/member`;"),
+    // DS40, 2 Oct 2026: the action now carries the page's stated range (`keep`), so the 303 lands back on it.
+    earns: () => readFileSync(join(ROOT, "src/components/app/Settings.tsx"), "utf8").includes("const action = `/api/app/${encodeURIComponent(slug)}/member${keep}`;"),
   },
   {
     route: "/api/checkout",

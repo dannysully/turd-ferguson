@@ -56,6 +56,7 @@ export default function Settings({
   slug,
   owner,
   toast,
+  keep = "",
 }: {
   domain: string;
   brand: string | null;
@@ -74,8 +75,10 @@ export default function Settings({
   owner: boolean;
   /** team.ts teamToast's words, or null. */
   toast: string | null;
+  /** The stated range as rangeQuery's "?from=&to=&compare=" or "" (DS40): the team forms post it so their 303 keeps it. */
+  keep?: string;
 }) {
-  const action = `/api/app/${encodeURIComponent(slug)}/member`;
+  const action = `/api/app/${encodeURIComponent(slug)}/member${keep}`;
   const askAction = `/api/app/${encodeURIComponent(slug)}/ask`;
   const owners = members.filter((m) => m.role === "owner").length;
   const names = [brand?.trim() || domain, ...aliases.filter((a) => a !== brand)];
