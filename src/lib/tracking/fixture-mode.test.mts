@@ -204,3 +204,14 @@ test("DS19: TRACKING_FIXTURE_STATE=uncited keeps every reading and cites no page
   assert.ok(u.data.answers.every((a) => a.citations.length === 0));
   assert.deepEqual(u.data.answers.map((a) => [a.question_id, a.engine, a.run_date, a.named]), fx.data.answers.map((a) => [a.question_id, a.engine, a.run_date, a.named]));
 });
+
+test("DS44: TRACKING_FIXTURE_STATE=long keeps every reading and puts rivals, cited pages and placements past ten", () => {
+  assert.ok(FIXTURE_STATES.includes("long"));
+  const l = fixtureState(fx, { TRACKING_FIXTURE_STATE: "long" });
+  const key = (f: typeof fx) => f.data.answers.map((a) => [a.question_id, a.engine, a.run_date, a.named, a.answered]);
+  assert.deepEqual(key(l), key(fx));
+  const brands = new Set(l.data.answers.flatMap((a) => a.brands));
+  const pages = new Set(l.data.answers.flatMap((a) => a.citations.map((c) => c.url)));
+  assert.ok(brands.size > 10 && pages.size > 10 && l.placements.length > 10, `${brands.size} brands, ${pages.size} pages, ${l.placements.length} placements`);
+  assert.ok(l.placements.every((p) => p.cluster_id === "c1"));
+});

@@ -82,8 +82,47 @@ export function fixtureUnreadable(env: Record<string, string | undefined> = proc
  * no answer cites a page - an engine answering without linking anything - so
  * the Overview's empty "Pages the engines cite most" card can be swept.
  */
+/**
+ * DS44 (2 Oct 2026, R173 pass 5): `TRACKING_FIXTURE_STATE=long` keeps every
+ * reading and adds rivals, cited pages and placements past ten of each, so the
+ * benchmark "lists over 10 rows have search/sort/filter with counts" can be
+ * swept - the default names 5 brands, cites 6 pages and has 6 placements.
+ */
 /** Every TRACKING_FIXTURE_STATE, unset being `default`. Anything else serves the default. */
-export const FIXTURE_STATES = ["default", "signup", "signup-typed", "new", "partial", "failed", "unreadable", "stopped", "ungrouped", "pilot-mixed", "uncited"] as const;
+export const FIXTURE_STATES = ["default", "signup", "signup-typed", "new", "partial", "failed", "unreadable", "stopped", "ungrouped", "pilot-mixed", "uncited", "long"] as const;
+
+const LONG_RIVALS = 18;
+const LONG_PAGES = 16;
+const LONG_PLACEMENTS = 12;
+
+function longLists(f: Fixture): Fixture {
+  const kinds = ["guest_post", "link_insertion", "on_site"] as const;
+  const extra: FixturePlacement[] = Array.from({ length: LONG_PLACEMENTS }, (_, i) => ({
+    id: `pl${i + 1}`,
+    cluster_id: "c1",
+    kind: kinds[i % kinds.length]!,
+    url: `https://trade-site-${i + 1}.example/accounting-apps-${i + 1}`,
+    status: "live",
+    scheduled_on: null,
+    live_on: addDays(f.today, -(i * 3 + 2)),
+  }));
+  return {
+    ...f,
+    placements: [...f.placements, ...extra],
+    data: {
+      ...f.data,
+      answers: f.data.answers.map((a, i) =>
+        a.answered
+          ? {
+              ...a,
+              brands: [...a.brands, `Rival ${String((i % LONG_RIVALS) + 1).padStart(2, "0")}`],
+              citations: [...a.citations, { source_domain: `rival-guide-${(i % LONG_PAGES) + 1}.example`, url: `https://rival-guide-${(i % LONG_PAGES) + 1}.example/best-apps` }],
+            }
+          : a,
+      ),
+    },
+  };
+}
 
 /**
  * R180 (2 Oct 2026): `signup-typed` is the webhook's client from an order with
@@ -105,6 +144,7 @@ export function fixtureState(f: Fixture, env: Record<string, string | undefined>
   if (env.TRACKING_FIXTURE_STATE === "failed") return failedReads(as, "failed");
   if (env.TRACKING_FIXTURE_STATE === "stopped") return stoppedPrompt(as);
   if (env.TRACKING_FIXTURE_STATE === "uncited") return { ...as, data: { ...as.data, answers: as.data.answers.map((a) => ({ ...a, citations: [] })) } };
+  if (env.TRACKING_FIXTURE_STATE === "long") return longLists(as);
   if (env.TRACKING_FIXTURE_STATE !== "ungrouped") return as;
   return { ...as, placements: [], data: { ...as.data, clusters: [], questions: as.data.questions.map((q) => ({ ...q, cluster_id: null })) } };
 }
