@@ -116,7 +116,8 @@ export default function OneCluster({
   const tabs = latest?.day ? answerTabs(latest.rows, engines, brand) : [];
   const tab = tabs.find((t) => t.engine === engine) ?? tabs[0] ?? null;
   const kw = c.keyword ?? c.name;
-  const posLine = c.position === null ? (c.keyword ? "Not in the top 20" : "No keyword yet") : domain;
+  // DS66 (2 Oct 2026, R173 pass 7): a pending cluster read "Not in the top 20" before its first check; the prompt rows' words.
+  const posLine = c.position === null ? (!c.keyword ? "No keyword yet" : pending ? "Not checked yet" : "Not in the top 20") : domain;
   const upFrom = c.positionBefore !== null && detail.positionBeforeOn ? `, ${c.positionChange && c.positionChange > 0 ? "up" : c.positionChange && c.positionChange < 0 ? "down" : "same as"} from #${c.positionBefore} on ${formatDay(detail.positionBeforeOn)}` : "";
   const mid = (c.prompts.length * PITCH - 4) / 2;
 
