@@ -186,25 +186,30 @@ export default function Named({
                         <span style={{ overflowWrap: "break-word", minWidth: 0 }}>{r.name}</span>
                         {r.you ? <span style={{ padding: "1px 8px", borderRadius: "999px", background: T.surface, border: `1px solid ${T.washLine}`, fontSize: "11px", fontWeight: 700, color: T.ink }}>You</span> : null}
                       </span>
-                      <span className="app-nm-answers" style={{ textAlign: "right", fontSize: "14px", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
+                      <span className="app-hide-sm" style={{ textAlign: "right", fontSize: "14px", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
                         {r.answers.toLocaleString("en-GB")}
-                        <span className="app-show-sm" style={{ fontWeight: 400, color: T.soft }}>{" answers"}</span>
                       </span>
-                      <span className="app-hide-sm" style={{ textAlign: "right", fontSize: "14px", fontWeight: 600, fontVariantNumeric: "tabular-nums" }} title={basisLine(r.share, "mentions")}>
+                      {/* DS46 (2 Oct 2026): share stays on a phone - the page, its footnote and the pts chip beside it are about share; answers move under it. */}
+                      <span style={{ textAlign: "right", fontSize: "14px", fontWeight: 600, fontVariantNumeric: "tabular-nums" }} title={basisLine(r.share, "mentions")}>
                         {pct(r.share)}
                       </span>
                       <span className="app-nm-change" style={{ display: "flex", justifyContent: "flex-end" }}>
                         {r.isNew ? <span style={{ fontSize: "12px", fontWeight: 600, color: T.soft }}>New</span> : before && r.answers ? <Chip value={r.delta} unit=" pts" none="-" /> : null}
                       </span>
-                      <span className="app-nm-engines" style={{ display: "flex", gap: "4px", alignItems: "center" }}>
-                        {engines.map((e) => (
-                          <span key={e} style={{ display: "inline-flex", opacity: r.engines.includes(e) ? 1 : 0.22 }}>
-                            <EngineLogo engine={e} size={16} title={`${ENGINE_SPECS[e].label}${r.engines.includes(e) ? " named" : " did not name"} ${r.name}`} />
-                          </span>
-                        ))}
-                      </span>
-                      <span className="app-nm-prompts" style={{ textAlign: "right", fontSize: "13px", color: T.soft, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
-                        {`${r.prompts.length} prompt${r.prompts.length === 1 ? "" : "s"}`}
+                      {/* Two grid cells on a desktop; one line on a phone, so the counts never overlap the engines. */}
+                      <span className="app-nm-sub" style={{ display: "contents" }}>
+                        <span className="app-nm-engines" style={{ display: "flex", gap: "4px", alignItems: "center" }}>
+                          {engines.map((e) => (
+                            <span key={e} style={{ display: "inline-flex", opacity: r.engines.includes(e) ? 1 : 0.22 }}>
+                              <EngineLogo engine={e} size={16} title={`${ENGINE_SPECS[e].label}${r.engines.includes(e) ? " named" : " did not name"} ${r.name}`} />
+                            </span>
+                          ))}
+                        </span>
+                        <span className="app-nm-prompts" style={{ textAlign: "right", fontSize: "13px", color: T.soft, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
+                          <span className="app-show-sm" style={{ whiteSpace: "nowrap" }}>{`${r.answers.toLocaleString("en-GB")} answer${r.answers === 1 ? "" : "s"},`}</span>
+                          <span className="app-show-sm"> </span>
+                          <span style={{ whiteSpace: "nowrap" }}>{`${r.prompts.length} prompt${r.prompts.length === 1 ? "" : "s"}`}</span>
+                        </span>
                       </span>
                     </Link>
                     {/* First in the open row: a rival can be named in dozens of prompts, and these pages are the question asked (task 8). */}
