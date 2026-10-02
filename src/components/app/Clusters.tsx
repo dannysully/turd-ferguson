@@ -668,7 +668,7 @@ function PendingEditor({
         ) : null}
       </div>
       {/* R179: Change keyword runs the same Check keyword; a signed pass offers "Use" on its own form. Both siblings, JS off. */}
-      <form method="post" action={route("/check")} style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+      <form method="post" action={`${route("/check")}?${new URLSearchParams(act.keep)}`} style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
         <input id={`rk-card-${c.id}`} type="hidden" name="card" value={c.id} />
         <input id={`rk-own-${c.id}`} type="hidden" name="own" value={c.keyword ?? ""} />
         <input id={`rk-on-${c.id}`} type="hidden" name="on" value="clusters" />

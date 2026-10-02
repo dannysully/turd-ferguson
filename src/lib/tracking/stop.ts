@@ -69,6 +69,11 @@ export function readStopForm(get: (k: string) => string | null, search: number):
   const kind = get("kind");
   const id = get("id") ?? "";
   if ((kind !== "prompt" && kind !== "cluster") || !ID.test(id)) return null;
+  return { kind, id, undo: get("undo") === "1", back: readKept(get, search) };
+}
+
+/** The page state alone, each key checked as above. Also read by /check's Change keyword return (2 Oct 2026). */
+export function readKept(get: (k: string) => string | null, search: number): Record<string, string> {
   const back: Record<string, string> = {};
   for (const k of KEPT) {
     const v = get(k);
@@ -79,7 +84,7 @@ export function readStopForm(get: (k: string) => string | null, search: number):
     if (k === "open" && !ID.test(v)) continue;
     back[k] = k === "q" ? v.slice(0, search) : v;
   }
-  return { kind, id, undo: get("undo") === "1", back };
+  return back;
 }
 
 /** The toast states the page draws: what happened, to which row. Never free text from the URL. */

@@ -4,7 +4,7 @@ import { test } from "node:test";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { liveOn } from "./decide.ts";
-import { BULK_ID, BULK_MAX, readBulkIds, readStopForm, refuseRole, refuseStop, refuseUndo, stop, stopDay, stopReturn, undoStop } from "./stop.ts";
+import { BULK_ID, BULK_MAX, readBulkIds, readKept, readStopForm, refuseRole, refuseStop, refuseUndo, stop, stopDay, stopReturn, undoStop } from "./stop.ts";
 
 // DS13 (R173 pass 2, 2 Oct 2026): the Ungrouped bulk form's ticked ids.
 test("readBulkIds keeps well-formed ids once each, drops the rest, caps at BULK_MAX", () => {
@@ -207,6 +207,13 @@ test("the stop form is read without trusting it: bad kinds and ids are refused, 
   assert.deepEqual(Object.keys(f.back).sort(), ["compare", "from", "open", "q"]);
   assert.equal(f.back.q.length, 120);
   assert.equal(readStopForm(formOf({ kind: "prompt", id: "q1" }), 120)!.undo, false);
+});
+
+// R173 pass 2 (2 Oct 2026): /check's Change keyword return reads the same page state with no kind or id.
+test("readKept is the page state alone, checked the same way, and needs no kind or id", () => {
+  const kept = readKept(formOf({ from: "2026-09-03", to: "2026-09-30", filter: "never", q: "dent", open: "../x", kind: "cluster", card: "c-1" }), 120);
+  assert.deepEqual(kept, { from: "2026-09-03", to: "2026-09-30", filter: "never", q: "dent" });
+  assert.deepEqual(readKept(formOf({}), 120), {});
 });
 
 test("the route returns to the Clusters page with the toast as fixed words, never free text", () => {
