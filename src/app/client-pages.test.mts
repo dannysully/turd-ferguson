@@ -101,6 +101,8 @@ const KEYS: Record<string, Record<string, string>> = {
     kind: 'k === "yours" || k === "others" ? k : "all"',
     all: 'one("all") === "1"',
     open: 'openPage(one("open"))',
+    // DS20, 2 Oct 2026 (R173 pass 2, "lists over 10 rows have search"): the page search, cut as the Clusters search is.
+    q: 'clusterSearch(one("q"))',
   },
   "/reports": {},
   "/settings": {

@@ -4,6 +4,7 @@ import EngineLogo from "@/components/EngineLogo";
 import { T } from "@/config/tokens";
 import { ENGINE_SPECS, type Engine } from "@/lib/scan/engines";
 import { clusterCards } from "@/lib/tracking/cluster-figures";
+import { APP_LIMITS } from "@/config/contact";
 import { rangeLabel } from "@/lib/tracking/date-range";
 import { type Day, type Range, citedPageRows, comparisonRange, formatDay } from "@/lib/tracking/figures";
 import { NAMED_TOP } from "@/lib/tracking/named-figures";
@@ -21,7 +22,8 @@ import DatePicker from "./DatePicker";
  * count here is the panel's for the same range. Pages are host and path as
  * text - never a link to someone else's page, never a query string. No
  * price, marketplace, difficulty or "you could place this" here, by the brief.
- * Filters, "Show all" and the accordion are links, so JS off works.
+ * Filters, "Show all" and the accordion are links, so JS off works. DS20
+ * (2 Oct 2026): `?q=` searches host and path, a GET form like Clusters'.
  */
 
 export type CitedKind = "all" | "yours" | "others";
@@ -47,6 +49,7 @@ export default function Cited({
   kind,
   all,
   open,
+  q,
 }: {
   domain: string;
   engines: readonly Engine[];
@@ -63,17 +66,21 @@ export default function Cited({
   all: boolean;
   /** The open row's page, as the URL carries it. */
   open: string | null;
+  /** DS20: the search, already cut to APP_LIMITS.search; matches host and path. */
+  q: string;
 }) {
   const before = comparisonRange(range, compareMode);
   const partial = partialRunNote(data.lastRun, range, today);
   const cards = clusterCards({ clusters: data.clusters ?? [], questions: data.questions, keywords: data.keywords, answers: data.answers, serp: data.serp, range, before, today, engines });
   const picked = cluster ? (cards.find((c) => c.id === cluster) ?? null) : null;
   const only = picked ? new Set(picked.prompts.map((p) => p.id)) : null;
-  const rows = citedPageRows(
+  const filtered = citedPageRows(
     data.answers.filter((a) => (!only || only.has(a.question_id)) && (!engine || a.engine === engine)),
     range,
     domain,
   ).filter((p) => kind === "all" || (kind === "yours") === p.yours);
+  const term = q.trim().toLowerCase();
+  const rows = term ? filtered.filter((p) => p.page.toLowerCase().includes(term)) : filtered;
   const live = new Map(placements.filter((p) => p.status === "live" && p.url_key).map((p) => [p.url_key, p.cluster_id]));
 
   const where = new Map<string, { clusterId: string; keyword: string; index: number }>();
@@ -81,7 +88,7 @@ export default function Cited({
   const text = new Map(data.questions.map((q) => [q.id, q.text]));
 
   const base: Record<string, string> = { from: range.from, to: range.to, ...(compareMode === "prev" ? {} : { compare: compareMode }) };
-  const state = { ...base, ...(picked ? { cluster: picked.id } : {}), ...(engine ? { engine } : {}), ...(kind === "all" ? {} : { kind }), ...(all ? { all: "1" } : {}) };
+  const state = { ...base, ...(picked ? { cluster: picked.id } : {}), ...(engine ? { engine } : {}), ...(kind === "all" ? {} : { kind }), ...(term ? { q } : {}), ...(all ? { all: "1" } : {}) };
   const href = (over: Record<string, string | null>) => {
     const q: Record<string, string> = { ...state };
     for (const [k, v] of Object.entries(over)) if (v === null) delete q[k];
@@ -152,11 +159,29 @@ export default function Cited({
             </Link>
           ))}
         </nav>
+        <form method="get" role="search" className="app-search" style={{ display: "flex", alignItems: "center", gap: "8px", width: "320px", maxWidth: "100%", height: "44px", boxSizing: "border-box", padding: "0 12px", border: `1px solid ${T.line}`, borderRadius: "12px", background: T.surface }}>
+          <input id="ct-from" type="hidden" name="from" value={range.from} />
+          <input id="ct-to" type="hidden" name="to" value={range.to} />
+          {compareMode === "prev" ? null : <input id="ct-compare" type="hidden" name="compare" value={compareMode} />}
+          {picked ? <input id="ct-cluster" type="hidden" name="cluster" value={picked.id} /> : null}
+          {engine ? <input id="ct-engine" type="hidden" name="engine" value={engine} /> : null}
+          {kind === "all" ? null : <input id="ct-kind" type="hidden" name="kind" value={kind} />}
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={T.soft} strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="7" />
+            <path d="M20 20l-4-4" />
+          </svg>
+          <label htmlFor="ct-search" className="sr-only">
+            Search cited pages
+          </label>
+          <input id="ct-search" name="q" defaultValue={q} maxLength={APP_LIMITS.search} placeholder="Search pages, e.g. a site name" style={{ flexGrow: 1, minWidth: 0, border: 0, outline: 0, fontFamily: "inherit", fontSize: "14px", color: T.ink, background: "transparent" }} />
+        </form>
       </div>
 
       <section aria-labelledby="ct-h" style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: "18px", overflow: "hidden" }}>
         <h2 id="ct-h" style={{ margin: 0, padding: "18px 24px 14px", fontSize: "15px", fontWeight: 600, color: T.ink }}>
-          {rows.length ? `${rows.length.toLocaleString("en-GB")} page${rows.length === 1 ? "" : "s"} cited ${total.toLocaleString("en-GB")} time${total === 1 ? "" : "s"}.` : "No pages cited in this range."}
+          {rows.length
+            ? `${term ? `${rows.length.toLocaleString("en-GB")} of ${filtered.length.toLocaleString("en-GB")} pages match "${q.trim()}", cited` : `${rows.length.toLocaleString("en-GB")} page${rows.length === 1 ? "" : "s"} cited`} ${total.toLocaleString("en-GB")} time${total === 1 ? "" : "s"}.`
+            : "No pages cited in this range."}
         </h2>
         {rows.length ? (
           <>
@@ -239,7 +264,9 @@ export default function Cited({
           </>
         ) : (
           <p style={{ margin: 0, padding: "0 24px 20px", fontSize: "14px", color: T.soft }}>
-            {picked || engine || kind !== "all" ? "No pages match these filters in this range. Clear a filter or pick another range." : "The figures fill in from the first daily check."}
+            {term && filtered.length
+              ? `No cited page matches "${q.trim()}". Clear the search or try part of a site name.`
+              : picked || engine || kind !== "all" ? "No pages match these filters in this range. Clear a filter or pick another range." : "The figures fill in from the first daily check."}
           </p>
         )}
       </section>

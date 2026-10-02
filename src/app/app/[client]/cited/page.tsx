@@ -7,6 +7,7 @@ import Sidebar from "@/components/app/Sidebar";
 import type { TierKey } from "@/components/TierName";
 import { enginesFor, trackingPackPrice } from "@/config/pricing";
 import { T } from "@/config/tokens";
+import { clusterSearch } from "@/lib/tracking/cluster-figures";
 import { CLUSTER_BASE } from "@/lib/tracking/limits";
 import { rangeFrom } from "@/lib/tracking/overview-data";
 import { placedTier } from "@/lib/tracking/placement-figures";
@@ -68,6 +69,7 @@ export default async function ClientCited({ params, searchParams }: { params: Pr
           kind={k === "yours" || k === "others" ? k : "all"}
           all={one("all") === "1"}
           open={openPage(one("open"))}
+          q={clusterSearch(one("q"))}
         />
       </div>
     </div>

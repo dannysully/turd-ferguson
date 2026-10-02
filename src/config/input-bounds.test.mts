@@ -192,6 +192,31 @@ const EXEMPT: Record<string, Exemption> = {
       },
     ]),
   ),
+  // DS20 (2 Oct 2026, R173 pass 2): the Cited pages search form carries the
+  // range and the three filters as hidden fields, as Clusters' does. Nobody
+  // types in them; the page re-reads each against its own whitelist.
+  ...Object.fromEntries(
+    (
+      [
+        ["from", "rangeFrom(sp, today)"],
+        ["to", "rangeFrom(sp, today)"],
+        ["compare", "rangeFrom(sp, today)"],
+        ["cluster", '(data.clusters ?? []).some((c) => c.id === one("cluster"))'],
+        ["engine", 'engines.find((e) => e === one("engine"))'],
+        ["kind", 'k === "yours" || k === "others" ? k : "all"'],
+      ] as const
+    ).map(([f, needs]) => [
+      `ct-${f}`,
+      {
+        why: [
+          `the Cited pages search form's hidden ${f}, copied from the current URL so a search keeps it.`,
+          "type=hidden, which maxLength does not apply to and nobody types in. The page",
+          "re-validates it: rangeFrom for the range, this client's clusters, its tier's engines, a two-value kind.",
+        ].join(" "),
+        holds: [{ file: "app/app/[client]/cited/page.tsx", needs }],
+      },
+    ]),
+  ),
   // T6 part 3c (30 Sep 2026): step 2 of Add a cluster carries the checked
   // verdict as hidden fields. Nobody types in them; the cluster route clamps
   // each to ADMIN_LIMITS.question and refuses the lot unless the HMAC over
