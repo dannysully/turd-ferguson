@@ -41,7 +41,7 @@ const SHADOW = `0 24px 60px -28px color-mix(in srgb, ${T.ink} 45%, transparent)`
 const BTN: React.CSSProperties = { display: "flex", alignItems: "center", height: "44px", padding: "0 16px", borderRadius: "12px", fontSize: "14px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" };
 const ARROW: React.CSSProperties = { position: "absolute", top: 0, width: "36px", height: "36px", border: `1px solid ${T.line}`, borderRadius: "10px", background: T.surface, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" };
 
-export default function DatePicker({ range, compare, today, startedOn, className, grow = true, children }: { range: Range; compare: Compare; today: Day; startedOn: Day | null; className?: string; /** Fill the row, as the Overview header does; the cluster pages keep the face its own width. */ grow?: boolean; children: React.ReactNode }) {
+export default function DatePicker({ range, compare, today, startedOn, className, grow = true, noCompare = false, children }: { range: Range; compare: Compare; today: Day; startedOn: Day | null; className?: string; /** Fill the row, as the Overview header does; the cluster pages keep the face its own width. */ grow?: boolean; /** DS25: Placements compares nothing (every span is go-live to now), so the foot drops "Compare with" and Apply writes no compare. */ noCompare?: boolean; children: React.ReactNode }) {
   const router = useRouter();
   // R151: pending while the server re-reads the new range, so Apply shows it took.
   const [loading, startLoading] = useTransition();
@@ -97,7 +97,7 @@ export default function DatePicker({ range, compare, today, startedOn, className
     if (pick.picking) return;
     const q = new URLSearchParams(window.location.search);
     q.delete("compare");
-    for (const [k, v] of Object.entries(rangeQuery({ from: pick.from, to: pick.to }, cmp))) q.set(k, v);
+    for (const [k, v] of Object.entries(rangeQuery({ from: pick.from, to: pick.to }, noCompare ? "prev" : cmp))) q.set(k, v);
     setOpen(false);
     startLoading(() => router.push(`?${q}`));
   };
@@ -212,6 +212,7 @@ export default function DatePicker({ range, compare, today, startedOn, className
             <div className="app-dp-foot" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px", padding: "14px 20px", borderTop: `1px solid ${T.line}`, background: T.surface, borderRadius: "0 0 18px 18px" }}>
               <div style={{ display: "flex", flexDirection: "column", gap: "6px", minWidth: 0 }}>
                 <div aria-live="polite" style={{ fontSize: "14px", fontWeight: 700 }}>{summary(pick)}</div>
+                {noCompare ? null : (
                 <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
                   <span style={{ fontSize: "13px", color: T.soft }}>Compare with</span>
                   <span style={{ display: "flex", gap: "2px", padding: "2px", borderRadius: "10px", background: T.chip }}>
@@ -225,7 +226,8 @@ export default function DatePicker({ range, compare, today, startedOn, className
                     })}
                   </span>
                 </div>
-                <div style={{ fontSize: "12px", color: T.soft }}>{pick.picking ? "" : compareText({ from: pick.from, to: pick.to }, cmp, startedOn)}</div>
+                )}
+                {noCompare ? null : <div style={{ fontSize: "12px", color: T.soft }}>{pick.picking ? "" : compareText({ from: pick.from, to: pick.to }, cmp, startedOn)}</div>}
               </div>
               <div style={{ display: "flex", gap: "8px" }}>
                 <button type="button" onClick={close} style={{ ...BTN, border: `1px solid ${T.line}`, background: T.surface, color: T.ink }}>

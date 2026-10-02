@@ -5,6 +5,7 @@ import { type Day, type Range, formatDay } from "@/lib/tracking/figures";
 import { KIND_WORDS, PLACEMENTS_FOOTNOTE, type PlacementsView, type Span, kindFilters, pageParts, shortDay, spanText } from "@/lib/tracking/placement-figures";
 import type { PlacementKind } from "@/lib/tracking/placements";
 
+import DatePicker from "./DatePicker";
 import PlacementsChart from "./PlacementsChart";
 
 /**
@@ -54,6 +55,8 @@ export default function Placements({
   brand,
   engines,
   range,
+  today,
+  startedOn,
   clusters,
   cluster,
   keyword,
@@ -69,6 +72,9 @@ export default function Placements({
   brand: string;
   engines: readonly Engine[];
   range: Range;
+  today: Day;
+  /** The client's tracking start, the picker's floor as on every other dashboard page. */
+  startedOn: Day | null;
   /** Every cluster the picker offers, with its link. */
   clusters: { id: string; name: string; href: string }[];
   cluster: { id: string; name: string; started_on: Day };
@@ -127,7 +133,8 @@ export default function Placements({
               ))}
             </nav>
           </details>
-          <span style={{ display: "flex", alignItems: "center", gap: "12px", height: "48px", padding: "0 14px", border: `1px solid ${T.line}`, borderRadius: "12px", background: T.surface }}>
+          {/* DS25: the range face was a static box drawn like a control; it is now the dashboard's picker, writing ?from=&to= over cluster, type and sel. */}
+          <DatePicker range={range} compare="prev" today={today} startedOn={startedOn} grow={false} noCompare>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={T.ink} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <rect x="3" y="5" width="18" height="16" rx="2" />
               <path d="M3 10h18M8 3v4M16 3v4" />
@@ -136,7 +143,7 @@ export default function Placements({
               <span style={{ fontSize: "14px", fontWeight: 700 }}>{range.from <= cluster.started_on ? "Since it started" : "Range"}</span>
               <span style={{ fontSize: "12px", color: T.soft }}>{`${formatDay(range.from)} - ${formatDay(range.to, true)}`}</span>
             </span>
-          </span>
+          </DatePicker>
         </div>
       </header>
 

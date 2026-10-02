@@ -61,6 +61,8 @@ export default async function ClientPlacements({
           brand={client.brand ?? client.domain}
           engines={engines}
           range={range}
+          today={today}
+          startedOn={client.started_on}
           clusters={screen.clusters.map((c) => ({ id: c.id, name: c.name, href: href(c.id) }))}
           cluster={screen.cluster}
           keyword={screen.keyword}
