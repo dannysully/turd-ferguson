@@ -230,6 +230,9 @@ export default function Clusters({
               </svg>
               Add a cluster
             </Link>
+          ) : used ? (
+            // DS61 (2 Oct 2026, R173 pass 6): a viewer saw no Add, Stop or Change and nothing saying why. The empty state says it already.
+            <p style={{ margin: 0, maxWidth: "360px", fontSize: "13px", lineHeight: 1.5, color: T.soft }}>Only owners and editors can add, change or stop clusters and prompts - ask one of them to make a change.</p>
           ) : null}
         </div>
       </div>
