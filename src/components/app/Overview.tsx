@@ -35,6 +35,9 @@ import Fig from "./Fig";
 import OverviewChart, { type ChartDay } from "./OverviewChart";
 import { SEE_ALL, navFrom } from "./nav";
 
+/** The Ungrouped prompts card's rows before it points to Clusters (DS58). */
+const UNGROUPED_ROWS = 10;
+
 /** R132: a card's link to its full page, or "Coming soon" unlinked while that page is not built (R130's rule). */
 function SeeAll({ card, clientPath, keep }: { card: keyof typeof SEE_ALL; clientPath: string | null; keep: string }) {
   const to = clientPath ? navFrom(SEE_ALL[card], clientPath) : null;
@@ -344,6 +347,9 @@ export default function Overview({
   // so it is the Overview board's cluster card - same card, same type scale - with a row per prompt.
   const ungroupedCard = (() => {
     const live = data.questions.filter((q) => q.stopped_on === null && q.added_on <= today);
+    // DS58 (2 Oct 2026, R173 pass 6): the card ran to 45 rows on the ungrouped state; the Overview's
+    // other lists show a few and point to the full page, which has the search (DS55).
+    const shown = live.slice(0, UNGROUPED_ROWS);
     const rate = new Map(moved.map((m) => [m.id, m]));
     return (
       <section aria-labelledby="ug-h" style={{ ...CARD, padding: "22px 24px 24px", display: "flex", flexDirection: "column", gap: "14px" }}>
@@ -362,7 +368,7 @@ export default function Overview({
           </div>
         </div>
         <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "4px" }}>
-          {live.map((q) => {
+          {shown.map((q) => {
             const m = rate.get(q.id);
             return (
               <li key={q.id} style={{ display: "flex", alignItems: "center", gap: "8px", minHeight: "22px" }}>
@@ -387,9 +393,10 @@ export default function Overview({
           })}
         </ul>
         <p style={{ margin: 0, fontSize: "13px", lineHeight: 1.5, color: T.soft }}>
+          {live.length > shown.length ? `Showing ${shown.length} of ${live.length}. ` : null}
           {clustersPath ? (
             <>
-              {"Group these into clusters on the "}
+              {live.length > shown.length ? "See them all and group them into clusters on the " : "Group these into clusters on the "}
               <Link href={clustersPath} style={{ fontWeight: 600, color: T.accent, textDecoration: "none" }}>
                 Clusters
               </Link>
