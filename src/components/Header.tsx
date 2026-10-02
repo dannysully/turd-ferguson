@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import BrandMark from "./BrandMark";
 import NavDropdown, { type NavItem } from "./NavDropdown";
@@ -31,6 +31,16 @@ import { D, HEADER_H, WASH, WASH_SIZE } from "./home/dark";
  * no hairline, links in D.muted, the lockup lifted with `.on-dark`. The wash
  * is painted here as well as on the hero, sized to the same box, so the two
  * read as one surface. Every other route keeps the light bar.
+ *
+ * Sticky on every site page (R175, Danny, 1 Oct 2026, danny.md line 188):
+ * top 0, never hides on scroll, z-index 40 - above page content, below the
+ * answer drawer and its backdrop (60/61); the mobile menu and dropdowns live
+ * inside it. On `/` the wash stays while the page is at the top and gives way
+ * to solid D.ground once scrolled past 8px, so stuck over the page the bar is
+ * one flat ground; with JS off it keeps the wash, which is D.ground at its
+ * edges. No drop shadow. globals.css offsets anchors and the guide nav by
+ * --header-h (HEADER_H) plus a margin: the bars measure 61-68.4px, not one
+ * height, so the offset clears the tallest rather than pinning a height.
  */
 
 const COMPARE_HREF = "/packages";
@@ -80,27 +90,37 @@ function Logo({ dark }: { dark: boolean }) {
 
 export default function Header() {
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const dark = usePathname() === "/";
   const links = dark ? { ...linkStyle, color: D.muted } : linkStyle;
   const bar = dark ? T.surface : T.ink;
 
+  useEffect(() => {
+    if (!dark) return;
+    const read = () => setScrolled(window.scrollY > 8);
+    read();
+    window.addEventListener("scroll", read, { passive: true });
+    return () => window.removeEventListener("scroll", read);
+  }, [dark]);
+
   return (
     <header
+      className="site-header"
       style={
         dark
           ? {
               backgroundColor: D.ground,
-              backgroundImage: WASH,
+              backgroundImage: scrolled ? "none" : WASH,
               backgroundSize: WASH_SIZE,
               backgroundRepeat: "no-repeat",
               minHeight: `${HEADER_H}px`,
-              boxSizing: "border-box",
             }
           : { background: T.bg, borderBottom: `1px solid ${T.line}` }
       }
     >
       <div
         style={{
+          width: "100%",
           maxWidth: "1180px",
           margin: "0 auto",
           padding: "14px 24px",
@@ -151,7 +171,7 @@ export default function Header() {
       </div>
 
       {open && (
-        <nav style={{ background: T.surface, borderTop: `1px solid ${T.line}`, padding: "1rem 1.5rem 1.5rem" }} aria-label="Mobile navigation">
+        <nav className="site-header__menu" style={{ background: T.surface, borderTop: `1px solid ${T.line}`, padding: "1rem 1.5rem 1.5rem" }} aria-label="Mobile navigation">
           <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "1rem" }}>
             {groups.map((g) => (
               <li key={g.label}>
