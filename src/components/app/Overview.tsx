@@ -258,7 +258,7 @@ export default function Overview({
   const checked = data.lastRun?.finished_at
     ? data.lastRun.run_date === today
       ? `Checked today at ${londonTime(data.lastRun.finished_at)}.${missing} Next check tomorrow at 06:00.`
-      : `Last checked ${formatDay(data.lastRun.run_date)} at ${londonTime(data.lastRun.finished_at)}.${missing} Next check at 06:00.`
+      : `Last checked ${formatDay(data.lastRun.run_date)} at ${londonTime(data.lastRun.finished_at)}.${missing} ${range.to === today ? "Nothing from today's check yet, so today is blank." : "Next check at 06:00."}`
     : "Your first check runs tomorrow at 06:00.";
   // Mobile.dc.html: "Checked today at 06:10", nothing after it. DS8 (2 Oct 2026, R172 pass 1): a
   // partial run is not on the board, and "some reads missing" alone left the phone guessing what
@@ -302,6 +302,10 @@ export default function Overview({
   const lflDelta = byCluster ? byCluster.lflDelta : o.lfl ? pointsDelta(o.lfl.now, o.lfl.before) : null;
   const gridDays = daysIn(range).slice(-28);
   const gridFrom = daysIn(range).length - gridDays.length;
+  // DS77 (2 Oct 2026, R173 pass 13, failed cold read): a day with no reading after a cluster started
+  // read "not tracked yet" in the heat grid, though the cluster was tracked and only the check missed.
+  const gapLabel = (startedOn: Day, d: Day) => (d >= startedOn ? "no reading" : "not tracked yet");
+  const heatGap = heatRows.some((c) => gridDays.some((d, col) => !c.heat[gridFrom + col] && d >= c.started_on));
   const questionsAnswered = o.questions.den;
   const direction = (d: number) => (d > 0 ? "up from" : d < 0 ? "down from" : "the same as");
   const headlineRate = fig.now;
@@ -602,7 +606,7 @@ export default function Overview({
                   {heatRows.map((c, row) =>
                     gridDays.map((d, col) => {
                       const cell = c.heat[gridFrom + col] ?? null;
-                      const label = `${c.keyword ?? c.name}, ${formatDay(d)}: ${cell ? `${cell.pct}% (${cell.num} of ${cell.den})` : "not tracked yet"}`;
+                      const label = `${c.keyword ?? c.name}, ${formatDay(d)}: ${cell ? `${cell.pct}% (${cell.num} of ${cell.den})` : gapLabel(c.started_on, d)}`;
                       return cell ? (
                         <rect key={`${c.id}-${d}`} x={col * 14} y={row * 14} width={11} height={11} rx={3} fill={heat(cell.pct)}>
                           <title>{label}</title>
@@ -632,7 +636,7 @@ export default function Overview({
               </span>
               0 to 60%+
               <span aria-hidden="true" style={{ display: "inline-flex", width: "10px", height: "10px", borderRadius: "2.5px", border: `1px solid ${D.quiet}`, opacity: 0.45, marginLeft: "6px" }} />
-              not tracked yet
+              {heatGap ? "no reading" : "not tracked yet"}
             </div>
           </div>
         ) : (
