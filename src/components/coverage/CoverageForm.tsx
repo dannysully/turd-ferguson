@@ -10,6 +10,7 @@ import { MAX_COVERAGE_BYTES, MAX_COVERAGE_ROWS, MAX_COVERAGE_URLS, parseCoverage
 import { type DraftRow, runBlocker, tickedRows } from "@/lib/coverage/draft";
 import { MAX_AGENCY_PROMPTS } from "@/lib/coverage/prompts";
 import { count } from "@/lib/plural";
+import { isPlausibleDomain, normalizeDomain } from "@/lib/scan/domain";
 
 /**
  * The campaign form, which now runs.
@@ -71,6 +72,23 @@ export default function CoverageForm({ intro }: { intro: React.ReactNode }) {
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  /**
+   * The field a refusal is about, when it is about one (R151): the sentence is
+   * drawn under that field, linked by aria-describedby, and focus moves there.
+   * Null means the run controls carry it, as a server refusal always has.
+   */
+  const [errorFor, setErrorFor] = useState<string | null>(null);
+
+  function refuse(text: string, id: string | null) {
+    setError(text);
+    setErrorFor(id);
+    if (id) document.getElementById(id)?.focus();
+  }
+
+  function clearError() {
+    setError("");
+    setErrorFor(null);
+  }
   /**
    * Two steps since 1 Oct 2026 (R140, Danny, danny.md lines 128-133). Step 1
    * is the coverage alone; step 2 is the draft the route built from it, every
@@ -148,12 +166,12 @@ export default function CoverageForm({ intro }: { intro: React.ReactNode }) {
       setCsv("");
       setFileNote("");
       setFileUnread(false);
-      setError("That file is too large. A list of URLs, not the articles themselves.");
+      refuse("That file is too large. A list of URLs, not the articles themselves.", "cc-coverage");
       return;
     }
     const text = await file.text();
     setCsv(text);
-    setError("");
+    clearError();
     const { note, unread } = noteFor(file.name, text);
     setFileNote(note);
     setFileUnread(unread);
@@ -177,9 +195,9 @@ export default function CoverageForm({ intro }: { intro: React.ReactNode }) {
   /** Step 1: the coverage goes to the draft route, and step 2 opens on what it sends back. */
   async function onDraft(e: React.FormEvent) {
     e.preventDefault();
-    setError("");
+    clearError();
     if (!coverageFound) {
-      setError("Paste the URLs of the pieces you placed, or drop a CSV of them.");
+      refuse("Paste the URLs of the pieces you placed, or drop a CSV of them.", "cc-links");
       return;
     }
     setBusy(true);
@@ -254,15 +272,26 @@ export default function CoverageForm({ intro }: { intro: React.ReactNode }) {
     }
   }
 
+  /** aria props for a field a refusal may be about, and the sentence drawn under it. */
+  const invalid = (id: string) =>
+    errorFor === id ? { "aria-invalid": true as const, "aria-describedby": `${id}-error` } : {};
+  const fieldError = (id: string) =>
+    errorFor === id && error ? (
+      <p id={`${id}-error`} role="alert" style={{ margin: "6px 0 0", fontSize: "12.5px", color: T.badFg, lineHeight: 1.5 }}>
+        {error}
+      </p>
+    ) : null;
+
   const blocker = step === 2 ? runBlocker({ clientDomain: domain, rows }) : null;
   const tickedCount = rows.filter((r) => r.ticked).length;
 
   /** Step 2: the same fields /api/coverage-check has always taken, the coverage being the ticked rows. */
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError("");
+    clearError();
     if (blocker) {
-      setError(blocker);
+      // A domain refusal is about the domain field; "tick at least one" is about the list, said by the button.
+      refuse(blocker, domain.trim() && isPlausibleDomain(normalizeDomain(domain)) ? null : "cc-domain");
       return;
     }
     setBusy(true);
@@ -309,7 +338,7 @@ export default function CoverageForm({ intro }: { intro: React.ReactNode }) {
       {/* Keyed on the step: a token is spent by the draft, so step 2 mounts a fresh widget for the run. */}
       <Turnstile key={step} onToken={setTurnstileToken} />
 
-      {error && (
+      {error && !errorFor && (
         <p role="alert" style={{ margin: "12px 0 0", fontSize: "13px", color: T.badFg, lineHeight: 1.55 }}>
           {error}
         </p>
@@ -360,7 +389,8 @@ export default function CoverageForm({ intro }: { intro: React.ReactNode }) {
                 </label>
                 <textarea
                   id="cc-links"
-                  style={{ ...field, minHeight: "96px", resize: "vertical" }}
+                  {...invalid("cc-links")}
+                  style={{ ...field, minHeight: "96px", resize: "vertical", borderColor: errorFor === "cc-links" ? T.badFg : T.line }}
                   maxLength={COVERAGE_LIMITS.links.max}
                   /* No scheme, deliberately. `parseCoverageCsv` and `comparableUrl` both
                       accept a bare host, and `route-closure.test.mts` reads an https
@@ -371,6 +401,7 @@ export default function CoverageForm({ intro }: { intro: React.ReactNode }) {
                   value={pasted}
                   onChange={(e) => setPasted(e.target.value)}
                 />
+                {fieldError("cc-links")}
                 <p style={{ margin: "6px 0 0", fontSize: "12.5px", color: T.soft, lineHeight: 1.5 }}>
                   {`One URL per line, up to ${MAX_COVERAGE_URLS}. We report on each one: whether the engines cited that page, or the publication, or neither.`}
                 </p>
@@ -402,9 +433,11 @@ export default function CoverageForm({ intro }: { intro: React.ReactNode }) {
                     type="file"
                     accept=".csv,.txt,text/csv,text/plain"
                     onChange={onFile}
+                    {...invalid("cc-coverage")}
                     style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0, cursor: "pointer" }}
                   />
                 </label>
+                {fieldError("cc-coverage")}
                 {/* The parse result, and the only feedback a chosen file gets. It is
                     polite rather than assertive because it is usually good news -
                     "2 links found" - and it must not cut across the file picker
@@ -470,7 +503,7 @@ export default function CoverageForm({ intro }: { intro: React.ReactNode }) {
             type="button"
             onClick={() => {
               setStep(1);
-              setError("");
+              clearError();
               setTurnstileToken(null);
             }}
             style={{ marginTop: "12px", fontFamily: "inherit", fontSize: "13px", fontWeight: 600, color: T.accent, background: "none", border: "none", padding: 0, cursor: "pointer" }}
@@ -506,7 +539,8 @@ export default function CoverageForm({ intro }: { intro: React.ReactNode }) {
               </label>
               <input
                 id="cc-domain"
-                style={field}
+                {...invalid("cc-domain")}
+                style={{ ...field, borderColor: errorFor === "cc-domain" ? T.badFg : T.line }}
                 maxLength={WAITLIST_LIMITS.domain}
                 placeholder="clientdomain.com"
                 value={domain}
@@ -516,11 +550,13 @@ export default function CoverageForm({ intro }: { intro: React.ReactNode }) {
                   // asked about on blur, below.
                   setDomainRefusal(null);
                   askedFor.current = "";
+                  if (errorFor === "cc-domain") clearError();
                 }}
                 onBlur={() => void checkDomain(domain)}
                 required
               />
-              {!domain.trim() && (
+              {fieldError("cc-domain")}
+              {!domain.trim() && errorFor !== "cc-domain" && (
                 <p style={{ margin: "6px 0 0", fontSize: "12.5px", color: T.badFg, lineHeight: 1.5 }}>
                   We could not find the client&rsquo;s site in the coverage. Add it to run the reading.
                 </p>
