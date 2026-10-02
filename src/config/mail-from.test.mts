@@ -242,6 +242,11 @@ const SENDERS: { file: string; sends: number; why: string }[] = [
     why: "the Sunday placement link check's alert, 30 Sep 2026 (BRIEF-2 T12, R96) - to us at the contact destination, from the tracking runner, one per client a Sunday when a link has gone",
   },
   {
+    file: "src/lib/tracking/setup-mail.ts",
+    sends: 1,
+    why: "setup confirmed, 2 Oct 2026 (R166 step 4) - to us at the contact destination, member as reply-to, once a client after the setup_confirmed row is written",
+  },
+  {
     file: "src/lib/email/lifecycle-mail.ts",
     sends: 1,
     why: "the lifecycle emails, 1 Oct 2026 (R159 part 3) - welcome and plan_ended to a dashboard owner, only from the signed Stripe webhook, each behind its email_<name>_enabled flag, all false",
@@ -269,8 +274,9 @@ test("every send takes its From from the one reader", () => {
   // member's ask from the dashboard (T11 /ask). 8 since 30 Sep 2026: the
   // Sunday link check's alert (T12, R96). 9 since 1 Oct 2026: the team
   // invite (R142 part 2, BRIEF-4 P2). 10 since 1 Oct 2026: the lifecycle
-  // emails (R159 part 3), flag-gated.
-  assert.equal(all.length, 10, `expected 10 sends, the walk found ${all.length}`);
+  // emails (R159 part 3), flag-gated. 11 since 2 Oct 2026: setup confirmed
+  // (R166 step 4).
+  assert.equal(all.length, 11, `expected 11 sends, the walk found ${all.length}`);
 
   for (const s of all) {
     assert.equal(s.from, "mailFrom()", `${s.file} sets its own From: ${s.from}`);
@@ -343,7 +349,8 @@ test("every send is addressed to somebody we are allowed to write to", () => {
   // Sunday link check's alert (T12, R96), to the contact destination. 9 since
   // 1 Oct 2026: the team invite (R142 part 2), to the address an owner invited.
   // 10 since 1 Oct 2026: the lifecycle emails (R159 part 3), to a stored owner.
-  assert.equal(all.length, 10, `expected 10 sends, the walk found ${all.length}`);
+  // 11 since 2 Oct 2026: setup confirmed (R166 step 4), to the contact destination.
+  assert.equal(all.length, 11, `expected 11 sends, the walk found ${all.length}`);
 
   const allowed = new Map(RECIPIENTS.map((r) => [r.to, r.why]));
   for (const s of all) {

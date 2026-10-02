@@ -252,6 +252,18 @@ const EXEMPT: Record<string, { why: string; evidence: RegExp; where: string }> =
     where: "src/lib/tracking/team.ts",
   },
   /**
+   * 2 October 2026, R166 step 4: setup confirmed - one Resend message to our
+   * own contact destination, and no scan.
+   */
+  "app/[client]/setup": {
+    why:
+      "Sends one internal mail when a signed-in owner or editor confirms the client's setup, and starts " +
+      "no scan. Once a client: the send follows the setup_confirmed insert, which a client already " +
+      "confirmed never reaches.",
+    evidence: /if \(already\) return done;[\s\S]*?await sendSetupConfirmed\(/,
+    where: "src/app/api/app/[client]/setup/route.ts",
+  },
+  /**
    * 30 September 2026, BRIEF-2 T11 /ask: a member's ask - one Resend message,
    * to us or the account's agency contact, and no scan.
    */
@@ -558,8 +570,12 @@ test("the kill switch is read in one place, so its reach is exactly the guarded 
      * Eleven on 1 Oct 2026: `app/[client]/member`, an owner's team invite
      * (R142 part 2, BRIEF-4 P2). One Resend message to the address invited,
      * twenty an owner a day; it starts no scan, so the decision is not moved.
+     *
+     * Twelve on 2 Oct 2026: `app/[client]/setup`, setup confirmed (R166 step
+     * 4). One Resend message to us, once a client; it starts no scan, so the
+     * decision is not moved.
      */
-    11,
+    12,
     "the number of spending doors the kill switch does not reach has changed - see docs/blocked.md",
   );
 });

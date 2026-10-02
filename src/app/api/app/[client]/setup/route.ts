@@ -7,6 +7,7 @@ import { clientsFor, sessionEmail } from "@/lib/tracking/member";
 import { confirmFixtureSetup, trackingRepo } from "@/lib/tracking/repo";
 import { loadSetupConfirmed } from "@/lib/tracking/setup-data";
 import { SETUP_CONFIRMED_EVENT, setupPath } from "@/lib/tracking/setup-landing";
+import { sendSetupConfirmed } from "@/lib/tracking/setup-mail";
 import { refuseRole } from "@/lib/tracking/stop";
 
 export const runtime = "nodejs";
@@ -18,8 +19,9 @@ export const dynamic = "force-dynamic";
  * answers with a 303 to the client's Overview. Once only: a client already
  * confirmed writes nothing more. Session and membership as the stop route;
  * viewers are refused; the fixture writes nothing unless
- * TRACKING_FIXTURE_WRITE=1 (R168) holds the confirm in memory. The internal mail to
- * Danny (step 4) is not sent from here yet.
+ * TRACKING_FIXTURE_WRITE=1 (R168) holds the confirm in memory. Step 4: the
+ * internal mail to us (setup-mail.ts) goes once, after the row is written;
+ * the fixture never sends.
  */
 export async function POST(req: Request, ctx: { params: Promise<{ client: string }> }) {
   const { client: slug } = await ctx.params;
@@ -53,5 +55,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ client: string
     console.warn(`[app] could not confirm setup: ${error.message}`);
     return failed;
   }
+  // Step 4: once a client - only after the one row is written, never on a repeat.
+  await sendSetupConfirmed({ domain: client.domain, slug: client.slug, tier: client.tier, member: email });
   return done;
 }

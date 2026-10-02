@@ -107,7 +107,7 @@ const files = sourceFiles(SRC).map((f) => ({
 const SENDERS: Record<
   string,
   {
-    reach: "anonymous" | "behind the ceilings" | "open, limited per caller" | "signed by Stripe" | "signed-in member, limited per member" | "signed-in owner, limited per owner" | "the tracking runner, once a client a Sunday";
+    reach: "anonymous" | "behind the ceilings" | "open, limited per caller" | "signed by Stripe" | "signed-in member, limited per member" | "signed-in owner, limited per owner" | "signed-in owner or editor, once a client" | "the tracking runner, once a client a Sunday";
     bound: string;
     evidence: RegExp;
     where: string;
@@ -245,6 +245,21 @@ const SENDERS: Record<
       "lines, no message.",
     evidence: /if \(isLinkCheckDay\(day\)\)/,
     where: "src/lib/tracking/runner.ts",
+  },
+  /**
+   * 2 Oct 2026, R166 step 4 (Danny, danny.md line 175): setup confirmed, to
+   * us. Sent only after the setup route writes the one setup_confirmed row;
+   * a client already confirmed returns before the write, so it is once a
+   * client, whoever presses it again.
+   */
+  "src/lib/tracking/setup-mail.ts": {
+    reach: "signed-in owner or editor, once a client",
+    bound:
+      "Needs a dashboard session and an owner or editor role on the client (refuseRole). Mails only our own " +
+      "contact destination, member as reply-to. Sent after the setup_confirmed insert, which is reached only " +
+      "when loadSetupConfirmed found none, so one message a client.",
+    evidence: /if \(already\) return done;[\s\S]*?\.insert\(\{[^}]*event: SETUP_CONFIRMED_EVENT[\s\S]*?await sendSetupConfirmed\(/,
+    where: "src/app/api/app/[client]/setup/route.ts",
   },
   "src/app/contact/actions.ts": {
     reach: "anonymous",
