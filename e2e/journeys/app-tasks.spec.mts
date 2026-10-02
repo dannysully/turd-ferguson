@@ -78,13 +78,13 @@ for (const width of [1280, 390]) {
       return { ctx, page, status: r?.status() };
     }
 
-    // Todo (2 Oct 04:07Z): the refusal is in the page (Clusters.tsx), but clicking "Add a cluster" here does not reveal it yet.
-    test("task 6: at 10 of 10, Add a cluster says how to make room", { todo: "open Add a cluster the way the page does" }, async () => {
+    test("task 6: at 10 of 10, Add a cluster says how to make room", async () => {
       as("default");
       const { ctx, page } = await open(`${HOME}/clusters`);
       assert.match(await text(page), /10 of 10 clusters in use/);
-      // Add a cluster is a disclosure; open it as a member would.
-      await page.evaluate(() => ([...document.querySelectorAll("summary, button")].find((b) => (b as HTMLElement).innerText.trim() === "Add a cluster") as HTMLElement | undefined)?.click(), null);
+      // Add a cluster is a link that opens the panel by URL (Clusters.tsx AddPanel).
+      await page.getByRole("link", { name: "Add a cluster" }).first().click();
+      await page.waitForURL(/add/, { timeout: 10_000 }).catch(() => assert.fail(`Add a cluster went to ${page.url()}`));
       assert.match(await text(page), /All 10 clusters are in use\s*Stop tracking one below to make room\./);
       await ctx.close();
     });
