@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 
 import BrandMark from "@/components/BrandMark";
 import TierName, { type TierKey } from "@/components/TierName";
+import { ungroupedShown } from "@/components/app/Clusters";
 import SubmitButton from "@/components/app/SubmitButton";
 import { CONTACT_EMAIL } from "@/config/contact";
 import { NEXT_STEPS } from "@/config/onboarding";
@@ -74,6 +75,7 @@ export default async function ClientSetup({
   const { range, compare } = rangeFrom({}, today);
   const [data, confirmed, typed] = await Promise.all([repo.loadOverview(client.id, range, compare), repo.setupConfirmed(client.id), repo.orderKeyword(client.id)]);
   const cards = setupCards(data);
+  const ungrouped = ungroupedShown(data.questions, today).length;
   // R180: the keyword typed at checkout, with no scan behind the order, prefills the first keywordless card's field.
   const prefill = prefillCard(cards, typed);
   const canWrite = refuseRole(client.role) === null;
@@ -110,7 +112,7 @@ export default async function ClientSetup({
 
       <span style={STEP}>Step 2 of 3</span>
       <h2 style={{ fontSize: "22px", fontWeight: 700, margin: "0 0 16px" }}>
-        Your {cards.length === 1 ? "cluster" : `${cards.length} clusters`}
+        Your {cards.length === 1 ? "cluster" : cards.length ? `${cards.length} clusters` : "clusters"}
       </h2>
       {cards.length ? (
         <div style={{ display: "flex", flexDirection: "column", gap: "14px", marginBottom: "40px" }}>
@@ -174,7 +176,19 @@ export default async function ClientSetup({
           ))}
         </div>
       ) : (
-        <p style={{ margin: "0 0 40px", fontSize: "15px", color: T.soft }}>No clusters yet. We set them up for you; email us if you want to pick them.</p>
+        // DS67 (2 Oct 2026, R173 pass 7): a client tracking prompts in no cluster read "We set them up for you" with no word of its prompts; Clusters' DS54 says how to group them.
+        <p style={{ margin: "0 0 40px", fontSize: "15px", lineHeight: 1.7, color: T.soft }}>
+          {ungrouped ? (
+            <>
+              {`No clusters yet. Your ${ungrouped} prompt${ungrouped === 1 ? " is" : "s are"} asked every morning, in no cluster. `}
+              <a href={`/app/${encodeURIComponent(slug)}/clusters`} style={{ color: T.accent, fontWeight: 600 }}>
+                Group them on Clusters
+              </a>
+            </>
+          ) : (
+            "No clusters yet. We set them up for you; email us if you want to pick them."
+          )}
+        </p>
       )}
 
       <span style={STEP}>Step 3 of 3</span>
