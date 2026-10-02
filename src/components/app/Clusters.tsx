@@ -277,6 +277,13 @@ export default function Clusters({
                   {cards.length === 1 ? "Show the 1 cluster" : `Show all ${cards.length} clusters`}
                 </Link>
               </>
+            ) : ungrouped.length ? (
+              // DS54 (R173 pass 6, 2 Oct 2026): a client tracking ungrouped prompts for months read "sets up your first one when tracking starts".
+              canWrite ? (
+                `No clusters yet. Add a cluster to track a Google keyword beside its ${PROMPTS_PER_CLUSTER} prompts, then move ungrouped prompts into it.`
+              ) : (
+                "No clusters yet. Only owners and editors can add one."
+              )
             ) : (
               "No clusters yet. nomada digital sets up your first one when tracking starts."
             )}
@@ -284,7 +291,7 @@ export default function Clusters({
         ) : null}
         {prompt && cta ? <UpgradePrompt copy={prompt} cta={cta} slug={slug} items={items} keep={keep} /> : null}
       </section>
-      {ungrouped.length ? <Ungrouped rows={ungrouped} act={act} subject={subject} targets={moveTargets(cards, data.questions)} /> : null}
+      {ungrouped.length ? <Ungrouped rows={ungrouped} act={act} subject={subject} targets={moveTargets(cards, data.questions)} clusters={cards.filter((c) => c.stoppedOn === null).length} /> : null}
       <p style={{ margin: 0, fontSize: "13px", lineHeight: 1.5, color: T.soft, maxWidth: "820px" }}>
         The number beside each engine is the days it named {brand} for that prompt, out of the days checked. Stopping a prompt or a cluster keeps its history in your reports. A new prompt or cluster starts at the next daily check.
       </p>
@@ -318,7 +325,7 @@ export function moveTargets(cards: readonly ClusterCard[], rows: readonly Prompt
     .map((c) => ({ id: c.id, label: c.keyword ?? c.name }));
 }
 
-function Ungrouped({ rows, act, subject, targets }: { rows: PromptRow[]; act: Act; subject: Subject | null; targets: Target[] }) {
+function Ungrouped({ rows, act, subject, targets, clusters }: { rows: PromptRow[]; act: Act; subject: Subject | null; targets: Target[]; clusters: number }) {
   // DS13: ticks and a bulk bar once two or more live rows can be changed together.
   const bulk = !!act && rows.filter((q) => q.stopped_on === null).length >= 2;
   return (
@@ -327,7 +334,7 @@ function Ungrouped({ rows, act, subject, targets }: { rows: PromptRow[]; act: Ac
         <h2 id="ungrouped-h" style={{ margin: 0, fontSize: "16px", fontWeight: 700, color: T.ink }}>{`Ungrouped prompts ${rows.filter((q) => q.stopped_on === null).length}`}</h2>
         <p style={{ margin: 0, fontSize: "13px", lineHeight: 1.5, color: T.soft, maxWidth: "680px" }}>
           {act
-            ? `Asked every morning like the rest, but in no cluster yet. Stopping one keeps its history in your reports.${targets.length ? "" : ` Every cluster has ${PROMPTS_PER_CLUSTER} live prompts, so there is nowhere to move one - stop a prompt in a cluster to make room.`}`
+            ? `Asked every morning like the rest, but in no cluster yet. Stopping one keeps its history in your reports.${targets.length ? "" : clusters ? ` Every cluster has ${PROMPTS_PER_CLUSTER} live prompts, so there is nowhere to move one - stop a prompt in a cluster to make room.` : " Add a cluster to move one into."}`
             : "Asked every morning like the rest, but in no cluster yet. Only owners and editors can stop these prompts or move them into a cluster - ask one of them to make a change."}
         </p>
       </div>
