@@ -1,28 +1,51 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { SCAN_LIMITS } from "@/config/contact";
 import { T } from "@/config/tokens";
+import { isPlausibleEmail, normalizeEmail } from "@/lib/email-address";
 
-/** The email box on /app/login. Posts to /api/app/login and shows its one sentence. */
+/** The route's refusal, word for word, so the browser and the server say the same thing. */
+const BAD_EMAIL = "That email does not look right.";
+
+/**
+ * The email box on /app/login. Posts to /api/app/login and shows its one sentence.
+ *
+ * R151: a refused address is said under the field, linked by aria-describedby,
+ * with focus moved back to it and the typed value kept (as /contact). It is
+ * checked with the route's own validator before posting, so an empty or
+ * impossible address is answered at once instead of by the browser's bubble.
+ */
 export default function LoginForm({ next }: { next?: string }) {
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [fieldError, setFieldError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  function refuse(text: string) {
+    setFieldError(text);
+    inputRef.current?.focus();
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    setBusy(true);
     setMessage(null);
+    setFieldError(null);
+    const address = normalizeEmail(email);
+    if (!address) return refuse("Enter your work email.");
+    if (address.length > SCAN_LIMITS.email || !isPlausibleEmail(address)) return refuse(BAD_EMAIL);
+    setBusy(true);
     try {
       const res = await fetch("/api/app/login", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(next ? { email, next } : { email }),
       });
-      const body = (await res.json().catch(() => ({}))) as { message?: string };
-      setMessage(body.message ?? "Something went wrong. Please try again.");
+      const body = (await res.json().catch(() => ({}))) as { error?: string; message?: string };
+      if (body.error === "bad_email") refuse(body.message ?? BAD_EMAIL);
+      else setMessage(body.message ?? "Something went wrong. Please try again.");
     } catch {
       setMessage("Something went wrong. Please try again.");
     } finally {
@@ -31,20 +54,39 @@ export default function LoginForm({ next }: { next?: string }) {
   }
 
   return (
-    <form onSubmit={submit} style={{ display: "grid", gap: "12px" }}>
+    <form onSubmit={submit} noValidate style={{ display: "grid", gap: "12px" }}>
       <label htmlFor="app-login-email" style={{ fontSize: "14px", fontWeight: 600 }}>
         Work email
       </label>
-      <input
-        id="app-login-email"
-        type="email"
-        required
-        autoComplete="email"
-        maxLength={SCAN_LIMITS.email}
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        style={{ padding: "12px 14px", border: `1px solid ${T.line}`, borderRadius: "10px", fontSize: "15px", color: T.ink }}
-      />
+      <div>
+        <input
+          ref={inputRef}
+          id="app-login-email"
+          name="email"
+          type="email"
+          required
+          autoComplete="email"
+          maxLength={SCAN_LIMITS.email}
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          aria-invalid={fieldError ? true : undefined}
+          aria-describedby={fieldError ? "app-login-email-error" : undefined}
+          style={{
+            width: "100%",
+            boxSizing: "border-box",
+            padding: "12px 14px",
+            border: `1px solid ${fieldError ? T.badFg : T.line}`,
+            borderRadius: "10px",
+            fontSize: "15px",
+            color: T.ink,
+          }}
+        />
+        {fieldError ? (
+          <p id="app-login-email-error" role="alert" style={{ margin: "6px 0 0", fontSize: "13px", color: T.badFg }}>
+            {fieldError}
+          </p>
+        ) : null}
+      </div>
       <button
         type="submit"
         disabled={busy}
