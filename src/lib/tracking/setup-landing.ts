@@ -33,6 +33,17 @@ export function needsSetup(c: { started_on: string | null }): boolean {
   return c.started_on !== null && c.started_on >= SETUP_SINCE;
 }
 
+/**
+ * DS10 (R172 pass 1 part 3, 2 Oct 2026): whether the Overview says setup is
+ * still to confirm. Sign-in lands on setup, but a member who leaves it and
+ * comes back through /app or a bookmark reached the Overview with no way
+ * back. A failed read (null) says nothing. The fixture's dates are frozen
+ * before SETUP_SINCE, so there its own confirmed flag is the whole answer.
+ */
+export function setupOutstanding(c: { started_on: string | null }, confirmed: boolean | null, fixture = false): boolean {
+  return confirmed === false && (fixture || needsSetup(c));
+}
+
 export function landingAfterAuth(o: {
   next: string | null;
   /** The member's clients in the order /app lists them; null when the read failed. */

@@ -1,7 +1,16 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { SETUP_PROMPTS, SETUP_SINCE, confirmLabel, landingAfterAuth, needsSetup, setupCards, setupConfirmed, setupPath, setupState } from "./setup-landing.ts";
+import { SETUP_PROMPTS, SETUP_SINCE, confirmLabel, landingAfterAuth, needsSetup, setupCards, setupConfirmed, setupOutstanding, setupPath, setupState } from "./setup-landing.ts";
+
+test("DS10: the Overview says setup is outstanding only for an unconfirmed client that needs it", () => {
+  assert.equal(setupOutstanding({ started_on: "2026-10-03" }, false), true);
+  assert.equal(setupOutstanding({ started_on: "2026-10-03" }, true), false);
+  assert.equal(setupOutstanding({ started_on: "2026-10-03" }, null), false);
+  assert.equal(setupOutstanding({ started_on: "2026-09-20" }, false), false);
+  assert.equal(setupOutstanding({ started_on: "2026-09-30" }, false, true), true);
+  assert.equal(setupOutstanding({ started_on: "2026-09-30" }, null, true), false);
+});
 
 test("only clients started since the setup page went live need setup", () => {
   assert.equal(SETUP_SINCE, "2026-10-02");

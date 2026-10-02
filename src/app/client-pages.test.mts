@@ -114,6 +114,8 @@ const KEYS: Record<string, Record<string, string>> = {
 
 /** Role reads on a page, and what each may decide. A page reading a role anywhere else fails. */
 const ROLE_READS: Record<string, string[]> = {
+  // DS10 (2 Oct 2026): the setup-outstanding line tells a viewer an owner or editor confirms.
+  "": ["const canWrite = refuseRole(client.role) === null;"],
   "/clusters": ["canWrite={refuseRole(client.role) === null}"],
   "/clusters/[cluster]": ['canWrite={client.role === "owner" || client.role === "editor"}'],
   "/settings": ['owner={client.role === "owner"}'],
