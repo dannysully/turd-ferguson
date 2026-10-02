@@ -423,6 +423,12 @@ export function filterClusters(cards: ClusterCard[], filter: ClusterFilter, q: s
   });
 }
 
+/** DS55 (R173 pass 6, 2 Oct 2026): the same search over ungrouped prompts, matched on their text as a cluster's prompts are. */
+export function searchPrompts<R extends { text: string }>(rows: readonly R[], q: string): R[] {
+  const term = q.trim().toLowerCase();
+  return term ? rows.filter((r) => r.text.toLowerCase().includes(term)) : [...rows];
+}
+
 /** `?q=` as the Clusters page reads it: cut to APP_LIMITS.search before it filters anything. */
 export function clusterSearch(q: string | null): string {
   return (q ?? "").slice(0, APP_LIMITS.search);

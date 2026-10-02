@@ -11,7 +11,7 @@ import { PROMPT_MIN } from "@/lib/tracking/slot";
 import { PACK_CLUSTERS, PACK_KEYWORDS, PACK_PROMPTS } from "@/config/pricing";
 import { T } from "@/config/tokens";
 import { ENGINE_SPECS, type Engine } from "@/lib/scan/engines";
-import { type ClusterCard, type ClusterFilter as Filter, clusterCards, filterClusters, namedCount, neverCount, pendingBasis } from "@/lib/tracking/cluster-figures";
+import { type ClusterCard, type ClusterFilter as Filter, clusterCards, filterClusters, namedCount, neverCount, pendingBasis, searchPrompts } from "@/lib/tracking/cluster-figures";
 import { type Range, basis as basisLine, comparisonRange, daysIn, formatDay } from "@/lib/tracking/figures";
 import { type KeywordCheck, draftPrompts } from "@/lib/tracking/add-cluster";
 import { ANGLES, BRANDED_CHIP, BRANDED_NOTE, PROMPTS_PER_CLUSTER, type Subject, namesBrandIn, refuseEdit } from "@/lib/tracking/limits";
@@ -291,7 +291,7 @@ export default function Clusters({
         ) : null}
         {prompt && cta ? <UpgradePrompt copy={prompt} cta={cta} slug={slug} items={items} keep={keep} /> : null}
       </section>
-      {ungrouped.length ? <Ungrouped rows={ungrouped} act={act} subject={subject} targets={moveTargets(cards, data.questions)} clusters={cards.filter((c) => c.stoppedOn === null).length} /> : null}
+      {ungrouped.length ? <Ungrouped rows={searchPrompts(ungrouped, q)} all={ungrouped} term={q.trim()} act={act} subject={subject} targets={moveTargets(cards, data.questions)} clusters={cards.filter((c) => c.stoppedOn === null).length} /> : null}
       <p style={{ margin: 0, fontSize: "13px", lineHeight: 1.5, color: T.soft, maxWidth: "820px" }}>
         The number beside each engine is the days it named {brand} for that prompt, out of the days checked. Stopping a prompt or a cluster keeps its history in your reports. A new prompt or cluster starts at the next daily check.
       </p>
@@ -325,13 +325,16 @@ export function moveTargets(cards: readonly ClusterCard[], rows: readonly Prompt
     .map((c) => ({ id: c.id, label: c.keyword ?? c.name }));
 }
 
-function Ungrouped({ rows, act, subject, targets, clusters }: { rows: PromptRow[]; act: Act; subject: Subject | null; targets: Target[]; clusters: number }) {
+function Ungrouped({ rows, all, term, act, subject, targets, clusters }: { rows: PromptRow[]; all: PromptRow[]; term: string; act: Act; subject: Subject | null; targets: Target[]; clusters: number }) {
   // DS13: ticks and a bulk bar once two or more live rows can be changed together.
   const bulk = !!act && rows.filter((q) => q.stopped_on === null).length >= 2;
+  // DS55: the page's search narrows this list too, and the heading counts the matches, as Who is named does.
+  const liveCount = (r: PromptRow[]) => r.filter((q) => q.stopped_on === null).length;
+  const heading = term ? `Ungrouped prompts, ${liveCount(rows)} of ${liveCount(all)} match “${term}”` : `Ungrouped prompts ${liveCount(all)}`;
   return (
     <section aria-labelledby="ungrouped-h" style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: "18px", overflow: "hidden" }}>
       <div style={{ padding: "18px 24px 14px", display: "flex", flexDirection: "column", gap: "4px" }}>
-        <h2 id="ungrouped-h" style={{ margin: 0, fontSize: "16px", fontWeight: 700, color: T.ink }}>{`Ungrouped prompts ${rows.filter((q) => q.stopped_on === null).length}`}</h2>
+        <h2 id="ungrouped-h" style={{ margin: 0, fontSize: "16px", fontWeight: 700, color: T.ink }}>{heading}</h2>
         <p style={{ margin: 0, fontSize: "13px", lineHeight: 1.5, color: T.soft, maxWidth: "680px" }}>
           {act
             ? `Asked every morning like the rest, but in no cluster yet. Stopping one keeps its history in your reports.${targets.length ? "" : clusters ? ` Every cluster has ${PROMPTS_PER_CLUSTER} live prompts, so there is nowhere to move one - stop a prompt in a cluster to make room.` : " Add a cluster to move one into."}`
@@ -339,6 +342,9 @@ function Ungrouped({ rows, act, subject, targets, clusters }: { rows: PromptRow[
         </p>
       </div>
       {bulk ? <BulkBar act={act!} targets={targets} /> : null}
+      {rows.length === 0 ? (
+        <p style={{ margin: 0, padding: "14px 24px 18px", borderTop: `1px solid ${T.line}`, fontSize: "14px", color: T.soft }}>No ungrouped prompt matches. Clear the search to see all of them.</p>
+      ) : null}
       <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
         {rows.map((q) => {
           const stopping = q.stopped_on !== null;

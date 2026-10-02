@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
-import { clusterCards, clusterChart, clusterDetail, clusterSearch, clusterSummary, filterClusters, pendingBasis, promptBrands, promptIndex, promptStrip } from "./cluster-figures.ts";
+import { clusterCards, clusterChart, clusterDetail, clusterSearch, clusterSummary, filterClusters, pendingBasis, promptBrands, promptIndex, promptStrip, searchPrompts } from "./cluster-figures.ts";
 import { comparisonRange } from "./figures.ts";
 import { expandFixture } from "./fixture-mode.ts";
 
@@ -186,6 +186,16 @@ test("T6 filters: all 10, naming you 9 and with prompts that never name you 3, a
   assert.ok(filterClusters(cards, "all", "ledgerline").length > 1, "a prompt naming a rival matches, not only the keyword");
   assert.ok(!filterClusters(cards, "named", "payroll").some((c) => c.id === "c10"), "a pending cluster is in all only");
   assert.ok(!filterClusters(cards, "never", "").some((c) => c.status === "pending"));
+});
+
+test("DS55: the Clusters search narrows ungrouped prompts on their text, as it does a cluster's", () => {
+  const rows = fx.data.questions.map((q) => ({ ...q, cluster_id: null }));
+  assert.equal(searchPrompts(rows, "").length, rows.length, "no search keeps every row");
+  assert.equal(searchPrompts(rows, "   ").length, rows.length);
+  const hits = searchPrompts(rows, "  PAYROLL ");
+  assert.ok(hits.length > 0 && hits.length < rows.length, "fixture has no payroll prompt, or only payroll prompts");
+  assert.ok(hits.every((r) => /payroll/i.test(r.text)));
+  assert.equal(searchPrompts(rows, "zzz-no-such-prompt").length, 0);
 });
 
 test("T6 search: ?q= is cut to APP_LIMITS.search (120) before it is used", () => {
