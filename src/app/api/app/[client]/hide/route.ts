@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 
+import { APP_LIMITS } from "@/config/contact";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { readHideCta, recordHidden } from "@/lib/tracking/ask";
 import { trackingDay } from "@/lib/tracking/decide";
 import { fixtureMode } from "@/lib/tracking/fixture-mode";
 import { clientsFor, sessionEmail } from "@/lib/tracking/member";
+import { readKept } from "@/lib/tracking/stop";
 import { recordUsage } from "@/lib/tracking/usage-record";
 
 export const runtime = "nodejs";
@@ -16,14 +18,18 @@ export const dynamic = "force-dynamic";
  * HTML form with the prompt's `cta`; writes one cta_events `hidden` row for
  * this member, which upgrade-context reads back for 30 days. Any member may
  * hide (it changes only what they see). No mail, no spend. The fixture writes
- * nothing. Returns to the Clusters page it came from.
+ * nothing. Returns to the Clusters page it came from, with the range, filter
+ * and search its action carries (DS16, 2 Oct 2026); "mentioned" still lands
+ * on the never-named filter.
  */
 export async function POST(req: Request, ctx: { params: Promise<{ client: string }> }) {
   const { client: slug } = await ctx.params;
   if (!/^[A-Za-z0-9-]{1,64}$/.test(slug)) return NextResponse.json({ error: "Not found." }, { status: 404 });
   const form = await req.formData().catch(() => null);
   const cta = readHideCta(form?.get("cta"));
-  const back = NextResponse.redirect(new URL(`/app/${slug}/clusters${cta === "mentioned" ? "?filter=never" : ""}`, req.url), 303);
+  const view = readKept((k) => new URL(req.url).searchParams.get(k), APP_LIMITS.search);
+  const q = new URLSearchParams({ ...view, ...(cta === "mentioned" ? { filter: "never" } : {}) }).toString();
+  const back = NextResponse.redirect(new URL(`/app/${slug}/clusters${q ? `?${q}` : ""}`, req.url), 303);
   if (fixtureMode() || !cta) return back;
 
   const email = await sessionEmail();

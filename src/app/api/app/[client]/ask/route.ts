@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 
+import { APP_LIMITS } from "@/config/contact";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { aliasAskMail, billingAskMail, askGate, askItemWord, askMail, askRecipient, readAskAbout, readAskItems, readAskKeyword, readUpgradeCta, recordAsk, upgradeAskMail, upsellMode } from "@/lib/tracking/ask";
 import { sendAsk } from "@/lib/tracking/ask-mail";
 import { trackingDay } from "@/lib/tracking/decide";
 import { fixtureMode } from "@/lib/tracking/fixture-mode";
 import { clientsFor, sessionEmail } from "@/lib/tracking/member";
+import { readKept } from "@/lib/tracking/stop";
 import { recordUsage } from "@/lib/tracking/usage-record";
 
 export const runtime = "nodejs";
@@ -19,7 +21,9 @@ export const dynamic = "force-dynamic";
  * mail text and the cap are ask.ts; the send is ask-mail.ts. Session and
  * membership as the note route; the fixture sends nothing. Returns to the
  * Clusters page with `ask=sent|refused` and, on a send, the toast's recipient
- * word and the count sent with it.
+ * word and the count sent with it. The page's range, filter and search ride
+ * in the action's query and come back too, the toast's keys winning (DS16,
+ * 2 Oct 2026); Settings' return is unchanged.
  */
 export async function POST(req: Request, ctx: { params: Promise<{ client: string }> }) {
   const { client: slug } = await ctx.params;
@@ -28,10 +32,11 @@ export async function POST(req: Request, ctx: { params: Promise<{ client: string
   // Settings' "Ask us to change these" returns to Settings; every other ask to Clusters.
   const about = readAskAbout(form?.get("about"));
   const cta = about ? null : readUpgradeCta(form?.get("cta"));
+  const view = about ? {} : readKept((k) => new URL(req.url).searchParams.get(k), APP_LIMITS.search);
   const done = (r: "sent" | "refused", extra: Record<string, string> = {}) =>
     NextResponse.redirect(
       new URL(
-        about ? `/app/${slug}/settings?${new URLSearchParams({ ask: r, ...extra })}` : `/app/${slug}/clusters?${new URLSearchParams({ ...(cta === "mentioned" ? { filter: "never" } : {}), ask: r, ...extra })}`,
+        about ? `/app/${slug}/settings?${new URLSearchParams({ ask: r, ...extra })}` : `/app/${slug}/clusters?${new URLSearchParams({ ...view, ...(cta === "mentioned" ? { filter: "never" } : {}), ask: r, ...extra })}`,
         req.url,
       ),
       303,

@@ -283,15 +283,17 @@ const NO_CALLER: { route: string; method: string; why: string; earns: () => bool
     route: "/api/app/[client]/ask",
     method: "POST",
     // BRIEF-2 T11 /ask, 30 Sep 2026: first caller is Add a cluster's "Ask us to pick one".
+    // DS16, 2 Oct 2026: the action now carries the page's view in its query (fact moved).
     why: "Posted by the plain HTML Ask us to pick one form in the Clusters page's Add panel, which the fetch scanner does not read.",
-    earns: () => readFileSync(join(ROOT, "src/components/app/Clusters.tsx"), "utf8").includes("action={`/api/app/${encodeURIComponent(slug)}/ask`}"),
+    earns: () => readFileSync(join(ROOT, "src/components/app/Clusters.tsx"), "utf8").includes("action={`/api/app/${encodeURIComponent(slug)}/ask${view ? `?${view}` : \"\"}`}"),
   },
   {
     route: "/api/app/[client]/hide",
     method: "POST",
     // BRIEF-2 T11 part 5, 30 Sep 2026: the upgrade prompt's x, "Hide for 30 days".
     why: "Posted by the plain HTML Hide for 30 days form in UpgradePrompt, which the fetch scanner does not read.",
-    earns: () => readFileSync(join(ROOT, "src/components/app/UpgradePrompt.tsx"), "utf8").includes("action={`${api}/hide`}"),
+    // DS16, 2 Oct 2026: the action carries the Clusters view (`kept`); fact moved.
+    earns: () => readFileSync(join(ROOT, "src/components/app/UpgradePrompt.tsx"), "utf8").includes("action={`${api}/hide${kept}`}"),
   },
   {
     route: "/api/app/[client]/check",

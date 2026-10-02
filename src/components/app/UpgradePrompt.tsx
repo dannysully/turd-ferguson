@@ -16,11 +16,15 @@ import type { PromptCopy, PromptCta } from "@/lib/tracking/upgrade-prompts";
  * "Ask about these N" posts the triggering ids to /ask and "Hide for 30 days"
  * (the x) posts the cta to /hide, both plain HTML forms, so JS off still
  * works. With no ids there is nothing to ask about and the ask does not draw.
+ * Both actions carry `keep`, the Clusters page's range, filter and search, so
+ * the 303 lands on the same view (DS16, 2 Oct 2026).
  * The dark alwayseverywhere card waits on its panel.
  */
-export default function UpgradePrompt({ copy, cta, slug, items }: { copy: PromptCopy; cta: PromptCta; slug: string; items: string[] }) {
+export default function UpgradePrompt({ copy, cta, slug, items, keep = {} }: { copy: PromptCopy; cta: PromptCta; slug: string; items: string[]; keep?: Record<string, string> }) {
   const tier = copy.tier ? TIERS.find((t) => t.key === copy.tier) : undefined;
   const api = `/api/app/${encodeURIComponent(slug)}`;
+  const view = new URLSearchParams(keep).toString();
+  const kept = view ? `?${view}` : "";
   return (
     <div role="note" aria-label="Upgrade" data-usage-shown={cta} style={{ margin: "14px 18px 18px", padding: "18px", borderRadius: "14px", background: T.wash, border: `1px solid ${T.washLine}`, display: "flex", flexDirection: "column", gap: "12px" }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px" }}>
@@ -36,7 +40,7 @@ export default function UpgradePrompt({ copy, cta, slug, items }: { copy: Prompt
             {copy.tail}
           </span>
         </div>
-        <form method="post" action={`${api}/hide`} style={{ margin: 0, flexShrink: 0 }}>
+        <form method="post" action={`${api}/hide${kept}`} style={{ margin: 0, flexShrink: 0 }}>
           <input id="up-hide-cta" type="hidden" name="cta" value={cta} />
           <button type="submit" aria-label="Hide for 30 days" title="Hide for 30 days" style={{ width: "32px", height: "32px", border: 0, borderRadius: "8px", background: "transparent", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={T.soft} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -52,7 +56,7 @@ export default function UpgradePrompt({ copy, cta, slug, items }: { copy: Prompt
           </Link>
         ) : null}
         {items.length ? (
-          <form method="post" action={`${api}/ask`} style={{ margin: 0 }}>
+          <form method="post" action={`${api}/ask${kept}`} style={{ margin: 0 }}>
             <input id="up-ask-cta" type="hidden" name="cta" value={cta} />
             <input id="up-ask-items" type="hidden" name="items" value={items.join(",")} />
             <SubmitButton busy="Sending..." style={{ height: "44px", padding: "0 16px", border: `1px solid ${T.line}`, borderRadius: "12px", background: "transparent", color: T.ink, fontFamily: "inherit", fontSize: "14px", fontWeight: 600 }}>

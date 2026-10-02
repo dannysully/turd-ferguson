@@ -270,7 +270,7 @@ export default function Clusters({
             {q.trim() ? `Nothing matches “${q.trim()}”. Clear the search to see every cluster.` : cards.length ? "No clusters match this filter." : "No clusters yet. nomada digital sets up your first one when tracking starts."}
           </div>
         ) : null}
-        {prompt && cta ? <UpgradePrompt copy={prompt} cta={cta} slug={slug} items={items} /> : null}
+        {prompt && cta ? <UpgradePrompt copy={prompt} cta={cta} slug={slug} items={items} keep={keep} /> : null}
       </section>
       {ungrouped.length ? <Ungrouped rows={ungrouped} act={act} subject={subject} targets={moveTargets(cards, data.questions)} /> : null}
       <p style={{ margin: 0, fontSize: "13px", lineHeight: 1.5, color: T.soft, maxWidth: "820px" }}>
@@ -411,7 +411,7 @@ function AddPanel({ slug, adding, full, clusterLimit, packPrice, close, keep }: 
         </form>
       )}
       {!full && ck && !ck.ok && ck.ask && adding.kw ? (
-        <form method="post" action={`/api/app/${encodeURIComponent(slug)}/ask`}>
+        <form method="post" action={`/api/app/${encodeURIComponent(slug)}/ask${view ? `?${view}` : ""}`}>
           <input id="ask-keyword" type="hidden" name="keyword" value={adding.kw} />
           <SubmitButton busy="Sending..." style={{ height: "40px", padding: "0 14px", border: `1px solid ${T.line}`, borderRadius: "10px", background: T.surface, color: T.ink, fontFamily: "inherit", fontSize: "13px", fontWeight: 600 }}>
             Ask us to pick one
