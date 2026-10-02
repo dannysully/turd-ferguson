@@ -37,7 +37,8 @@ export async function POST(req: Request) {
     const { error } = await db.from("dashboard_sessions").update({ expires_at: now }).eq("token_hash", hash);
     if (error) console.warn(`[app] could not end a session: ${error.message}`);
   }
-  const res = NextResponse.redirect(new URL("/app/login", req.url), 303);
+  // DS7 (2 Oct 2026, R172 pass 1): the login page says which sign-out happened.
+  const res = NextResponse.redirect(new URL(`/app/login?out=${everywhere ? "all" : "1"}`, req.url), 303);
   res.cookies.set({ name: SESSION_COOKIE, value: "", path: "/", maxAge: 0, httpOnly: true, secure: true, sameSite: "lax" });
   return res;
 }

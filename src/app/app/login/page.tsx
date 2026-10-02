@@ -23,7 +23,11 @@ export default async function AppLogin({ searchParams }: { searchParams: Promise
       ? "That link has expired or was already used. Ask for a new one below."
       : q.access === "none"
         ? "That address has no dashboard yet. If you think it should, reply to the email you got from us."
-        : null;
+        : q.out === "all"
+          ? "You are signed out on every device."
+          : q.out === "1"
+            ? "You are signed out."
+            : null;
   return (
     // No site header or footer here (R104), so the page carries its own lockup.
     <section style={{ maxWidth: "420px", margin: "0 auto", padding: "72px 24px 96px", color: T.ink }}>
