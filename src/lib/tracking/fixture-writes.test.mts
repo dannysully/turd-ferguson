@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
 import { expandFixture } from "./fixture-mode.ts";
-import { fixtureEditPrompts, fixtureFillSlot, fixtureStop, fixtureTeam, fixtureWrites } from "./fixture-writes.ts";
+import { FIXTURE_CHECK_VOLUME, fixtureAddCluster, fixtureCheck, fixtureEditPrompts, fixtureFillSlot, fixtureStop, fixtureTeam, fixtureWrites } from "./fixture-writes.ts";
 import { addDays } from "./figures.ts";
 
 /**
@@ -29,9 +29,9 @@ test("R168: writes are on only with both switches exactly 1, outside production"
 });
 
 test("R168: the stop and undo routes ask the writable fixture before refusing", () => {
-  for (const route of ["stop", "prompt", "edit", "member", "setup"]) {
+  for (const route of ["stop", "prompt", "edit", "member", "check", "cluster", "setup"]) {
     const src = readFileSync(new URL(`../../app/api/app/[client]/${route}/route.ts`, import.meta.url), "utf8");
-    assert.match(src, route === "setup" ? /confirmFixtureSetup\(\)/ : /writeFixture\(/, `${route} writes to the fixture`);
+    assert.match(src, route === "setup" ? /confirmFixtureSetup\(\)/ : route === "check" ? /writableFixture\(\)/ : /writeFixture\(/, `${route} writes to the fixture`);
   }
 });
 
@@ -128,4 +128,31 @@ test("R168 part 3: invite, role and remove change fixture.members under team.ts'
   assert.equal(fixtureTeam(fx, { op: "remove", email: fx.member.email, role: null, now }).ok, false, "never yourself");
   const editor = { ...fx, member: { email: "editor@example.com", role: "editor" } };
   assert.deepEqual(fixtureTeam(editor, { op: "invite", email: "new@example.com", role: "viewer", now }), { ok: false, message: "Only owners can change the team." });
+});
+
+test("R168 part 4: Check keyword on the fixture runs the free prechecks, then a canned signed pass; the save verifies it", () => {
+  assert.equal(fixtureCheck(fx, "how to do bookkeeping").check.ok, false, "informational is refused for real");
+  assert.deepEqual(fixtureCheck(fx, "how to do bookkeeping").check, { ...fixtureCheck(fx, "how to do bookkeeping").check, reason: "informational" });
+  assert.equal(fixtureCheck(fx, fx.data.keywords[0]!.keyword).check.ok, false, "already tracked");
+  assert.equal(fixtureCheck(fx, `${fx.client.brand} pricing`).check.ok, false, "own brand");
+  const kw = "invoicing software for contractors";
+  const c = fixtureCheck(fx, kw);
+  assert.ok(c.check.ok && c.sig);
+  const prompts = ["Which invoicing tool do contractors pick?", "Which invoicing tool is easiest for contractors?", "Which invoicing tool do builders recommend?", "Which invoicing tool gets contractors paid fastest?", "What is a good alternative to the usual contractor invoicing tool?"];
+  const base = { keyword: kw, volume: FIXTURE_CHECK_VOLUME, intent: "commercial", sig: c.sig!, prompts, role: "owner" };
+  const live = fx.data.clusters.filter((x) => x.stopped_on === null).length;
+  const room = { ...fx, client: { ...fx.client, cluster_limit: live + 1 } };
+  const a = fixtureAddCluster(room, base);
+  assert.ok(a.ok && a.id, a.ok ? "" : a.message);
+  const cl = a.fixture.data.clusters.find((x) => x.id === a.id)!;
+  const kwRow = a.fixture.data.keywords.find((k) => k.id === cl.keyword_id)!;
+  assert.deepEqual([cl.name, cl.started_on, kwRow.keyword, kwRow.search_volume, kwRow.intent], [kw, day, kw, FIXTURE_CHECK_VOLUME, "commercial"]);
+  const qs = a.fixture.data.questions.filter((q) => q.cluster_id === a.id);
+  assert.deepEqual(qs.map((q) => q.angle), ["category", "positioning", "sector", "outcome", "comparison"]);
+  assert.equal(new Set(a.fixture.data.questions.map((q) => q.id)).size, a.fixture.data.questions.length, "new ids");
+  assert.equal(fixtureAddCluster(room, { ...base, sig: "0".repeat(64) }).ok, false, "a hand-made signature is refused");
+  assert.equal(fixtureAddCluster(room, { ...base, volume: 99999 }).ok, false, "a changed volume does not verify");
+  assert.equal(fixtureAddCluster(room, { ...base, role: "viewer" }).ok, false, "viewer");
+  assert.equal(fixtureAddCluster(a.fixture, base).ok, false, "a second add of the same keyword is refused");
+  assert.match((fixtureAddCluster(fx, base) as { message: string }).message, /At the limit of 10 clusters/, "the default fixture is at 10 of 10");
 });

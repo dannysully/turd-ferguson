@@ -1,6 +1,9 @@
+import { keywordForm } from "../scan/dataforseo-request.ts";
+
+import { type KeywordCheck, precheckKeyword, refuseDrafts, signCheck, verifyCheck } from "./add-cluster.ts";
 import { fixtureMode, type Fixture } from "./fixture-mode.ts";
 import { type Edit, refuseEdits } from "./edit.ts";
-import { angleFor, refuseCluster, refuseEdit, refusePrompts } from "./limits.ts";
+import { ANGLES, angleFor, refuseCluster, refuseEdit, refuseKeyword, refusePrompts } from "./limits.ts";
 import { refuseSlotText } from "./slot.ts";
 import { type StopKind, refuseRole, refuseStop, refuseUndo, stopDay } from "./stop.ts";
 import { type InviteRole, type TeamOp, refuseActor, refuseChange, refuseInvite } from "./team.ts";
@@ -135,6 +138,70 @@ export function fixtureTeam(f: Fixture, p: { op: TeamOp; email: string; role: In
   const hit = (m: Fixture["members"][number]) => m.email === p.email && !m.removed_at;
   const members = f.members.map((m) => (!hit(m) ? m : p.op === "role" ? { ...m, role: p.role! } : { ...m, removed_at: p.now }));
   return { ok: true, fixture: { ...f, members } };
+}
+
+/**
+ * Check keyword on the fixture: the free prechecks for real (tracked, own
+ * brand, informational, too broad), then a canned pass in place of the two
+ * paid reads - 1,000 searches a month, commercial. Signed with a key used only
+ * here; fixtureWrites() throws in production, so neither the key nor a canned
+ * pass can reach a real client.
+ */
+export const FIXTURE_CHECK_VOLUME = 1000;
+const FIXTURE_CHECK_KEY = "fixture-only-check-key";
+
+export function fixtureCheck(f: Fixture, raw: string): { check: KeywordCheck; sig?: string } {
+  const tracked = f.data.keywords.filter((k) => k.stopped_on === null).map((k) => k.keyword);
+  const pre = precheckKeyword(raw, { tracked, brands: [f.client.brand ?? "", f.client.domain] });
+  if (!pre.ok) return { check: pre };
+  const check: KeywordCheck = { ok: true, keyword: pre.keyword, volume: FIXTURE_CHECK_VOLUME, intent: "commercial", message: "" };
+  return { check, sig: signCheck({ clientId: f.client.id, keyword: pre.keyword, volume: FIXTURE_CHECK_VOLUME, intent: "commercial", day: f.today }, FIXTURE_CHECK_KEY) };
+}
+
+/** new-cluster.ts's addCluster on the fixture: a verified check, five prompts in ANGLES order, its keyword, all from tomorrow. */
+export function fixtureAddCluster(
+  f: Fixture,
+  p: { keyword: string; volume: number; intent: string; sig: string | null; prompts: string[]; role: string },
+): FixtureWritten & { id?: string } {
+  if (!verifyCheck({ clientId: f.client.id, keyword: p.keyword, volume: p.volume, intent: p.intent, day: f.today }, p.sig, FIXTURE_CHECK_KEY)) {
+    return { ok: false, message: "The keyword check did not verify." };
+  }
+  const r = refuseRole(p.role) ?? refuseDrafts(p.prompts);
+  if (r) return { ok: false, message: r };
+  const { clusters, questions, keywords } = f.data;
+  const keyword = keywordForm(p.keyword);
+  const liveKw = keywords.filter((k) => k.stopped_on === null);
+  if (liveKw.some((k) => keywordForm(k.keyword) === keyword)) return { ok: false, message: "You already track this keyword." };
+  const limit = f.client.cluster_limit;
+  const room =
+    refuseCluster(clusters.filter((c) => c.stopped_on === null).length, limit) ??
+    refuseKeyword({ clientLive: liveKw.length, clusterHasLive: null, clusterLimit: limit }) ??
+    refusePrompts({ clientLive: questions.filter((q) => q.stopped_on === null).length, clusterLive: 0, clusterLimit: limit }, p.prompts.length);
+  if (room) return { ok: false, message: room };
+  const day = stopDay(f.today);
+  const kId = unused(keywords.map((k) => k.id), "fk");
+  const cId = unused(clusters.map((c) => c.id), "fc");
+  const taken = questions.map((q) => q.id);
+  const rows = p.prompts.map((text, i) => {
+    const id = unused(taken, "fw");
+    taken.push(id);
+    return { id, text: text.trim(), added_on: day, stopped_on: null, cluster_id: cId, angle: ANGLES[i]! };
+  });
+  return {
+    ...written(f, {
+      keywords: [...keywords, { id: kId, keyword, added_on: day, stopped_on: null, search_volume: p.volume, intent: p.intent }],
+      clusters: [...clusters, { id: cId, name: keyword, keyword_id: kId, tier: f.client.tier, started_on: day, stopped_on: null }],
+      questions: [...questions, ...rows],
+    }),
+    id: cId,
+  };
+}
+
+function unused(ids: readonly string[], prefix: string): string {
+  const seen = new Set(ids);
+  let n = seen.size + 1;
+  while (seen.has(`${prefix}${n}`)) n++;
+  return `${prefix}${n}`;
 }
 
 /** A prompt id the fixture has not used, in readStopForm's alphabet. */

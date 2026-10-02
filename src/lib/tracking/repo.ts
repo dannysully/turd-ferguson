@@ -82,6 +82,11 @@ export function writeFixture<W extends FixtureWritten>(apply: (f: Fixture) => W)
   return r;
 }
 
+/** R168: the fixture as the writes have left it, for a route that reads before it answers; null when it is read-only. */
+export function writableFixture(): Fixture | null {
+  return fixtureWrites() ? fixture() : null;
+}
+
 /** R168: setup confirm on the fixture; false when it is read-only. */
 export function confirmFixtureSetup(): boolean {
   if (!fixtureWrites()) return false;
