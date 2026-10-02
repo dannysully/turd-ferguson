@@ -378,6 +378,12 @@ const EXEMPT: Record<string, Exemption> = {
     why: "The login form's hidden next path, set by the page from safeNext. type=hidden, nobody types in it; the login route passes it through safeNext again before it reaches a link or a redirect.",
     holds: [{ file: "app/api/app/login/route.ts", needs: "const next = safeNext(body.next)" }],
   },
+  // R151 (3 Oct 2026): SendNewLink posts without script, so the address the
+  // spent link or the order went to rides the form as a hidden field.
+  "send-new-link-email": {
+    why: "SendNewLink's hidden address, set by the page from the spent token's row or the checkout Session. type=hidden, nobody types in it; the login route normalises it and refuses it over SCAN_LIMITS.email or when isPlausibleEmail fails.",
+    holds: [{ file: "app/api/app/login/route.ts", needs: "email.length > SCAN_LIMITS.email || !isPlausibleEmail(email)" }],
+  },
   "set-out-all": {
     why: "Sign out of every device's hidden flag. type=hidden, nobody types in it; the logout route acts only on the exact value 1 and reads the email off the session row, never the form.",
     holds: [{ file: "app/api/app/logout/route.ts", needs: 'form?.get("everywhere") === "1"' }],

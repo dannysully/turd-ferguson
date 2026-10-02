@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 
 import { T } from "@/config/tokens";
 
@@ -8,13 +8,16 @@ import { T } from "@/config/tokens";
  * R163: a spent or expired login link offers a new one in one click, to the
  * address the old one went to. Posts to /api/app/login as LoginForm does, so
  * the same hourly limit and the same one sentence back. /checkout/done uses it
- * too, as "Send it again" (R166).
+ * too, as "Send it again" (R166). R151 (3 Oct 2026): a form posting the
+ * address in its body, so without script it still sends - the route 303s to
+ * /app/login with only the outcome, which says LOGIN_SENT there.
  */
 export default function SendNewLink({ email, label }: { email: string; label?: string }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
-  async function send() {
+  async function send(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
     if (busy) return;
     setBusy(true);
     setMessage(null);
@@ -34,10 +37,10 @@ export default function SendNewLink({ email, label }: { email: string; label?: s
   }
 
   return (
-    <div style={{ display: "grid", gap: "12px" }}>
+    <form action="/api/app/login" method="post" onSubmit={send} style={{ display: "grid", gap: "12px" }}>
+      <input type="hidden" id="send-new-link-email" name="email" value={email} />
       <button
-        type="button"
-        onClick={send}
+        type="submit"
         aria-disabled={busy || undefined}
         style={{ padding: "12px 16px", borderRadius: "10px", border: "none", background: T.accent, color: "#ffffff", fontWeight: 600, fontSize: "15px", cursor: busy ? "progress" : "pointer", overflowWrap: "anywhere" }}
       >
@@ -53,6 +56,6 @@ export default function SendNewLink({ email, label }: { email: string; label?: s
       <p role="status" aria-live="polite" style={{ margin: 0, fontSize: "14px", color: T.soft, minHeight: "20px" }}>
         {message}
       </p>
-    </div>
+    </form>
   );
 }

@@ -85,8 +85,8 @@ export default async function CheckoutDone({ searchParams }: Props) {
           )}
           {email ? (
             // R166: one click for a fresh link to the order's address, through
-            // /api/app/login and its hourly cap. Needs script; the sign-in
-            // line under it is the way on without.
+            // /api/app/login and its hourly cap. Without script it posts and
+            // lands on /app/login saying the link is sent (R151, 3 Oct 2026).
             <div style={{ margin: "24px 0 0", maxWidth: "320px" }}>
               <SendNewLink email={email} label="Send it again" />
             </div>
