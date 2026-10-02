@@ -75,6 +75,12 @@ export default function Reports({
               <span style={{ fontSize: "12px", color: T.soft }}>{span(range)}</span>
             </span>
           </DatePicker>
+          {/* DS60 (2 Oct 2026, R173 pass 6): before the first check the range's CSVs were headers only - say when they fill instead. */}
+          {!startedOn || startedOn > today ? (
+            <p role="note" style={{ margin: 0, fontSize: "14px", lineHeight: 1.5, color: T.ink }}>
+              {startedOn ? `Nothing to download yet. The first check runs at 06:00 on ${formatDay(startedOn, true)}, and the CSVs fill in from that day.` : "Nothing to download yet. The CSVs fill in from the first daily check."}
+            </p>
+          ) : (
           <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
             {kinds.map((k, i) => (
               <a
@@ -93,6 +99,7 @@ export default function Reports({
               </a>
             ))}
           </div>
+          )}
         </div>
         <p style={{ margin: 0, fontSize: "13px", lineHeight: 1.5, color: T.soft }}>
           Answers: one row per prompt, engine and day - whether it answered, named you, the brands it named and the pages it cited. Keywords: each cluster keyword's Google position per day.
