@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { keywordForm } from "@/lib/scan/dataforseo-request";
 import { isMarket } from "@/lib/scan/domain";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { type KeywordCheck, signCheck, verdictQuery } from "@/lib/tracking/add-cluster";
@@ -23,20 +24,31 @@ export const dynamic = "force-dynamic";
  * (check-keyword.ts). Session and membership as the stop route; viewers are
  * refused; the fixture reads nothing (R168's writable fixture answers a
  * canned pass after the free prechecks).
+ *
+ * R166 part 5 (2 Oct 2026): a setup card's Check keyword posts here too, with
+ * the card's cluster id as `card` and its current keyword as `own`. Its 303
+ * goes back to /app/[client]/setup at that card instead, and `own` is left
+ * out of the tracked list so a card can check the keyword it already has.
  */
 export async function POST(req: Request, ctx: { params: Promise<{ client: string }> }) {
   const { client: slug } = await ctx.params;
   const form = await req.formData().catch(() => null);
   const raw = typeof form?.get("keyword") === "string" ? (form.get("keyword") as string).trim().slice(0, ADMIN_LIMITS.question) : "";
-  const back = (c: KeywordCheck | null, sig?: string) =>
-    NextResponse.redirect(new URL(`/app/${encodeURIComponent(slug)}/clusters?${new URLSearchParams({ add: "1", ...(raw ? { kw: raw } : {}), ...(c ? verdictQuery(c) : {}), ...(sig ? { sig } : {}) })}`, req.url), 303);
+  const card = typeof form?.get("card") === "string" ? (form.get("card") as string).slice(0, 64) : "";
+  const own = card && typeof form?.get("own") === "string" ? keywordForm((form.get("own") as string).slice(0, ADMIN_LIMITS.question)) : "";
+  const notOwn = (t: string) => !own || keywordForm(t) !== own;
+  const back = (c: KeywordCheck | null, sig?: string) => {
+    const q = new URLSearchParams({ ...(card ? { card } : { add: "1" }), ...(raw ? { kw: raw } : {}), ...(c ? verdictQuery(c) : {}), ...(sig ? { sig } : {}) });
+    const to = card ? `/app/${encodeURIComponent(slug)}/setup?${q}#card-${encodeURIComponent(card)}` : `/app/${encodeURIComponent(slug)}/clusters?${q}`;
+    return NextResponse.redirect(new URL(to, req.url), 303);
+  };
   if (!raw) return back(null);
   if (fixtureMode()) {
     // R168: the writable fixture runs the free prechecks and answers a canned, fixture-signed pass - no paid read.
     const fx = writableFixture();
     if (!fx) return back({ ok: false, reason: "read_failed", ask: true, message: "" });
     if (refuseRole(fx.member.role)) return NextResponse.json({ error: "Viewers cannot add clusters." }, { status: 403 });
-    const c = fixtureCheck(fx, raw);
+    const c = fixtureCheck(fx, raw, notOwn);
     return back(c.check, c.sig);
   }
 
@@ -57,7 +69,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ client: string
     email,
     keyword: raw,
     market: isMarket(client.market) ? client.market : "US",
-    tracked: (kws ?? []).map((k) => k.keyword as string),
+    tracked: (kws ?? []).map((k) => k.keyword as string).filter(notOwn),
     brands: [client.brand ?? "", client.domain],
     today: trackingDay(),
   });

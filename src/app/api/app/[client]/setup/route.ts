@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { verifyCheck } from "@/lib/tracking/add-cluster";
+import { ADMIN_LIMITS, trackingDay } from "@/lib/tracking/decide";
 import { fixtureMode } from "@/lib/tracking/fixture-mode";
 import { fixtureWrites } from "@/lib/tracking/fixture-writes";
 import { clientsFor, sessionEmail } from "@/lib/tracking/member";
@@ -22,9 +24,16 @@ export const dynamic = "force-dynamic";
  * TRACKING_FIXTURE_WRITE=1 (R168) holds the confirm in memory. Step 4: the
  * internal mail to us (setup-mail.ts) goes once, after the row is written;
  * the fixture never sends.
+ *
+ * R166 part 5 (2 Oct 2026): a setup card whose Check keyword passed carries
+ * that pass into Confirm as hidden fields. It reaches the mail only when its
+ * signature verifies for this client and today, and only if the card is one
+ * of this client's clusters; nothing is written to the cluster.
  */
 export async function POST(req: Request, ctx: { params: Promise<{ client: string }> }) {
   const { client: slug } = await ctx.params;
+  const form = await req.formData().catch(() => null);
+  const field = (k: string) => (typeof form?.get(k) === "string" ? (form.get(k) as string).slice(0, ADMIN_LIMITS.question) : "");
   const done = NextResponse.redirect(new URL(`/app/${encodeURIComponent(slug)}?setup=confirmed`, req.url), 303);
   const failed = NextResponse.redirect(new URL(`${setupPath(encodeURIComponent(slug))}?confirm=failed`, req.url), 303);
   if (fixtureMode()) {
@@ -55,7 +64,24 @@ export async function POST(req: Request, ctx: { params: Promise<{ client: string
     console.warn(`[app] could not confirm setup: ${error.message}`);
     return failed;
   }
+  // Part 5: a checked keyword is named only when its pass verifies and its card is this client's cluster.
+  const pass = { clientId: client.id, keyword: field("keyword"), volume: Number(field("vol")), intent: field("intent"), day: trackingDay() };
+  const card = field("card");
+  const checked =
+    card && verifyCheck(pass, field("sig") || null, process.env.CRON_SECRET ?? "") ? await clusterName(client.id, card) : null;
   // Step 4: once a client - only after the one row is written, never on a repeat.
-  await sendSetupConfirmed({ domain: client.domain, slug: client.slug, tier: client.tier, member: email });
+  await sendSetupConfirmed({
+    domain: client.domain,
+    slug: client.slug,
+    tier: client.tier,
+    member: email,
+    checked: checked ? { cluster: checked, keyword: pass.keyword, volume: pass.volume, intent: pass.intent } : null,
+  });
   return done;
+}
+
+/** The cluster's name when the card is one of this client's clusters; null otherwise or on a failed read. */
+async function clusterName(clientId: string, id: string): Promise<string | null> {
+  const { data, error } = await supabaseAdmin().from("tracked_clusters").select("name").eq("client_domain_id", clientId).eq("id", id).maybeSingle();
+  return error || !data ? null : (data.name as string);
 }

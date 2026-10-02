@@ -8,6 +8,10 @@ import { CONTACT_EMAIL } from "@/config/contact";
 import { NEXT_STEPS } from "@/config/onboarding";
 import { contactUrlFor } from "@/config/pricing";
 import { CARD, MICRO, T } from "@/config/tokens";
+import { keywordForm } from "@/lib/scan/dataforseo-request";
+import { MARKETS, isMarket } from "@/lib/scan/domain";
+import { ADMIN_LIMITS } from "@/lib/tracking/decide";
+import { verdictFromQuery } from "@/lib/tracking/add-cluster";
 import { loginHref } from "@/lib/tracking/next-path";
 import { rangeFrom } from "@/lib/tracking/overview-data";
 import { placedTier } from "@/lib/tracking/placement-figures";
@@ -31,6 +35,10 @@ const BUTTON = { display: "inline-flex", alignItems: "center", gap: "8px", minHe
 /** 44px tall at any width: the help block is the page's way out. */
 const HELP_LINK = { display: "inline-flex", alignItems: "center", minHeight: "44px", color: T.accent, fontWeight: 600 } as const;
 
+const KW_INPUT = { flex: "1 1 240px", minWidth: 0, height: "48px", boxSizing: "border-box", padding: "0 14px", border: `1px solid ${T.line}`, borderRadius: "12px", fontFamily: "inherit", fontSize: "15px", color: T.ink, background: T.surface } as const;
+
+const CHECK_BUTTON = { height: "48px", padding: "0 18px", border: `1px solid ${T.ink}`, borderRadius: "12px", background: T.surface, color: T.ink, fontFamily: "inherit", fontSize: "14px", fontWeight: 600 } as const;
+
 const STEP ={ ...MICRO, display: "block", marginBottom: "8px" } as const;
 
 /**
@@ -38,7 +46,12 @@ const STEP ={ ...MICRO, display: "block", marginBottom: "8px" } as const;
  * welcome, step 2 one card per cluster bought with its keyword and the scan's
  * prompts, step 3 review and confirm. One page, so it works without script.
  * Confirm posts to /api/app/[client]/setup, which writes setup_confirmed.
- * Not yet the sign-in landing: /api/app/auth still lands on the Overview.
+ * Since part 3c it is the sign-in landing for a client bought from 2 Oct.
+ *
+ * Part 5 (2 Oct 2026): each card has Check keyword, the Clusters page's
+ * check (a POST to /check carrying the card's id), which 303s back here at
+ * that card with the verdict. A pass rides into Confirm as hidden fields
+ * and is named in our setup mail; nothing changes on the cluster itself.
  */
 export default async function ClientSetup({
   params,
@@ -62,6 +75,13 @@ export default async function ClientSetup({
   const cards = setupCards(data);
   const canWrite = refuseRole(client.role) === null;
   const failed = sp.confirm === "failed";
+  // Part 5: the check's 303 names its card; a card that is not one of these shows nothing.
+  const one = (k: string) => (typeof sp[k] === "string" ? (sp[k] as string) : null);
+  const at = cards.find((c) => c.id === one("card")) ?? null;
+  const kw = (one("kw") ?? "").slice(0, 200);
+  const market = MARKETS[isMarket(client.market) ? client.market : "US"].label;
+  const check = at ? verdictFromQuery(one, keywordForm(kw), `the ${market}`) : null;
+  const sig = (one("sig") ?? "").slice(0, 64);
   const brand = client.brand ?? client.domain;
 
   return (
@@ -89,7 +109,7 @@ export default async function ClientSetup({
       {cards.length ? (
         <div style={{ display: "flex", flexDirection: "column", gap: "14px", marginBottom: "40px" }}>
           {cards.map((c, i) => (
-            <div key={c.id} style={{ ...CARD, borderRadius: "14px", padding: "20px 22px" }}>
+            <div key={c.id} id={`card-${c.id}`} style={{ ...CARD, borderRadius: "14px", padding: "20px 22px" }}>
               <div style={MICRO}>Cluster {i + 1}</div>
               <div style={{ marginTop: "6px", fontSize: "17px", fontWeight: 700 }}>{c.keyword ?? "Needs a keyword"}</div>
               <p style={{ margin: "4px 0 14px", fontSize: "14px", color: T.soft }}>
@@ -107,6 +127,28 @@ export default async function ClientSetup({
               ) : (
                 <p style={{ margin: 0, fontSize: "14px", color: T.soft }}>No prompts yet. We write five for you before the first check.</p>
               )}
+              {canWrite && !confirmed ? (
+                <form method="post" action={`/api/app/${encodeURIComponent(slug)}/check`} style={{ marginTop: "16px", paddingTop: "16px", borderTop: `1px solid ${T.line}`, display: "flex", flexDirection: "column", gap: "8px" }}>
+                  <input id={`setup-card-${i}`} type="hidden" name="card" value={c.id} />
+                  <input id={`setup-own-${i}`} type="hidden" name="own" value={c.keyword ?? ""} />
+                  <label htmlFor={`setup-kw-${i}`} style={{ fontSize: "13px", fontWeight: 600 }}>
+                    {c.keyword === null ? "Got a keyword in mind?" : "Its keyword"}
+                  </label>
+                  <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                    <input id={`setup-kw-${i}`} name="keyword" defaultValue={at?.id === c.id && kw ? kw : (c.keyword ?? "")} required maxLength={ADMIN_LIMITS.question} placeholder="e.g. accounting software for dentists" style={KW_INPUT} />
+                    <SubmitButton busy="Checking..." style={CHECK_BUTTON}>
+                      Check keyword
+                    </SubmitButton>
+                  </div>
+                  <p role={at?.id === c.id && check ? "status" : undefined} style={{ margin: 0, fontSize: "13px", lineHeight: 1.5, color: at?.id === c.id && check ? (check.ok ? T.goodFg : T.badFg) : T.soft }}>
+                    {at?.id === c.id && check
+                      ? check.ok
+                        ? `${check.message} Confirm below and we set it on this cluster.`
+                        : check.message
+                      : "We check it has Google search volume and a buying intent."}
+                  </p>
+                </form>
+              ) : null}
             </div>
           ))}
         </div>
@@ -129,6 +171,15 @@ export default async function ClientSetup({
             <p role="alert" style={{ margin: "0 0 12px", fontSize: "14px", color: T.badFg }}>
               That did not save. Try again.
             </p>
+          ) : null}
+          {at && check?.ok && sig ? (
+            <>
+              <input id="sc-card" type="hidden" name="card" value={at.id} />
+              <input id="sc-keyword" type="hidden" name="keyword" value={check.keyword} />
+              <input id="sc-vol" type="hidden" name="vol" value={String(check.volume)} />
+              <input id="sc-intent" type="hidden" name="intent" value={check.intent} />
+              <input id="sc-sig" type="hidden" name="sig" value={sig} />
+            </>
           ) : null}
           <SubmitButton busy="Confirming..." style={BUTTON}>
             {confirmLabel(placedTier(tier))}

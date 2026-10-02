@@ -14,7 +14,14 @@ import { headerSafe } from "@/lib/email-header";
  *
  * Returns false rather than throwing; the confirm stands either way.
  */
-export async function sendSetupConfirmed(input: { domain: string; slug: string; tier: string; member: string }): Promise<boolean> {
+export async function sendSetupConfirmed(input: {
+  domain: string;
+  slug: string;
+  tier: string;
+  member: string;
+  /** R166 part 5: a keyword a setup card checked and passed, verified by the route; not yet set on the cluster. */
+  checked?: { cluster: string; keyword: string; volume: number; intent: string } | null;
+}): Promise<boolean> {
   const key = process.env.RESEND_API_KEY;
   if (!key) {
     console.error("[app] RESEND_API_KEY is not set, setup mail not sent");
@@ -30,6 +37,12 @@ export async function sendSetupConfirmed(input: { domain: string; slug: string; 
         `${input.member} confirmed setup for ${input.domain} (tier: ${input.tier}).`,
         "",
         `Their clusters and prompts are as shown on /app/${input.slug}/clusters and in /admin/tracking.`,
+        ...(input.checked
+          ? [
+              "",
+              `They checked a keyword for the cluster "${input.checked.cluster}": ${input.checked.keyword} (${input.checked.volume.toLocaleString("en-GB")} searches a month, ${input.checked.intent} intent). It passed; set it on the cluster by hand.`,
+            ]
+          : []),
       ].join("\n"),
     });
     if (error) {

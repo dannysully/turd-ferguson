@@ -105,6 +105,10 @@ const KEYS: Record<string, Record<string, string>> = {
   // 1 Oct 2026, R166 part 3b: the setup page's one key, the confirm route's way back on a failed write.
   "/setup": {
     confirm: 'sp.confirm === "failed"',
+    // 2 Oct 2026, R166 part 5: Check keyword on a setup card - the check route's 303 back to that card.
+    card: 'cards.find((c) => c.id === one("card"))',
+    kw: '(one("kw") ?? "").slice(0, 200)',
+    sig: '(one("sig") ?? "").slice(0, 64)',
   },
 };
 
@@ -121,9 +125,10 @@ const ROLE_READS: Record<string, string[]> = {
  * Floors, 1 Oct 2026: 8 pages (overview, clusters, one cluster, placements,
  * and BRIEF-4's named, cited, reports, settings) and 32 registered keys.
  * Raised 1 Oct 2026 (R166 part 3b): 9 pages and 33 keys - /setup and its confirm.
+ * Raised 2 Oct 2026 (R166 part 5): 36 keys - /setup's card, kw and sig.
  */
 const PAGE_FLOOR = 9;
-const KEY_FLOOR = 33;
+const KEY_FLOOR = 36;
 
 /** The query keys a page reads by name, as written. */
 export function keysRead(src: string): string[] {

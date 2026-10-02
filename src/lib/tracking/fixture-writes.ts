@@ -150,8 +150,8 @@ export function fixtureTeam(f: Fixture, p: { op: TeamOp; email: string; role: In
 export const FIXTURE_CHECK_VOLUME = 1000;
 const FIXTURE_CHECK_KEY = "fixture-only-check-key";
 
-export function fixtureCheck(f: Fixture, raw: string): { check: KeywordCheck; sig?: string } {
-  const tracked = f.data.keywords.filter((k) => k.stopped_on === null).map((k) => k.keyword);
+export function fixtureCheck(f: Fixture, raw: string, keep: (k: string) => boolean = () => true): { check: KeywordCheck; sig?: string } {
+  const tracked = f.data.keywords.filter((k) => k.stopped_on === null).map((k) => k.keyword).filter(keep);
   const pre = precheckKeyword(raw, { tracked, brands: [f.client.brand ?? "", f.client.domain] });
   if (!pre.ok) return { check: pre };
   const check: KeywordCheck = { ok: true, keyword: pre.keyword, volume: FIXTURE_CHECK_VOLUME, intent: "commercial", message: "" };

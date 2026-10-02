@@ -209,6 +209,32 @@ const EXEMPT: Record<string, Exemption> = {
       },
     ]),
   ),
+  // R166 part 5 (2 Oct 2026): a setup card's Check keyword carries the card's
+  // cluster id and its current keyword; a pass rides into Confirm as hidden
+  // fields. The check route clamps both and only routes on the card; the setup
+  // route names a pass in the mail only when verifyCheck passes and the card
+  // is one of this client's clusters.
+  "setup-card-${i}": {
+    why: "A setup card's hidden cluster id. type=hidden, nobody types in it; the check route clamps it to 64 and the setup page matches it against its own cards.",
+    holds: [{ file: "app/api/app/[client]/check/route.ts", needs: '(form.get("card") as string).slice(0, 64)' }],
+  },
+  "setup-own-${i}": {
+    why: "A setup card's hidden current keyword. type=hidden, nobody types in it; the check route clamps it to ADMIN_LIMITS.question and uses it only to leave that keyword out of the tracked list.",
+    holds: [{ file: "app/api/app/[client]/check/route.ts", needs: '(form.get("own") as string).slice(0, ADMIN_LIMITS.question)' }],
+  },
+  ...Object.fromEntries(
+    (["card", "keyword", "vol", "intent", "sig"] as const).map((f) => [
+      `sc-${f}`,
+      {
+        why: [
+          `Setup Confirm's hidden ${f}, from a setup card's signed Check keyword pass.`,
+          "type=hidden, which maxLength does not apply to and nobody types in. The route",
+          "clamps it and names the pass in the mail only if verifyCheck passes for this client and today.",
+        ].join(" "),
+        holds: [{ file: "app/api/app/[client]/setup/route.ts", needs: "verifyCheck(pass," }],
+      },
+    ]),
+  ),
   // T11 /ask (30 Sep 2026): "Ask us to pick one" carries the refused keyword
   // back as a hidden field. The ask route trims it and clamps it to
   // ADMIN_LIMITS.question in readAskKeyword before it goes in the mail.
