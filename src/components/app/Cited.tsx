@@ -179,9 +179,12 @@ export default function Cited({
 
       <section aria-labelledby="ct-h" style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: "18px", overflow: "hidden" }}>
         <h2 id="ct-h" style={{ margin: 0, padding: "18px 24px 14px", fontSize: "15px", fontWeight: 600, color: T.ink }}>
+          {/* DS45 (2 Oct 2026): a search that keeps nothing still counts what it searched, as Who is named does - pages were cited. */}
           {rows.length
             ? `${term ? `${rows.length.toLocaleString("en-GB")} of ${filtered.length.toLocaleString("en-GB")} pages match "${q.trim()}", cited` : `${rows.length.toLocaleString("en-GB")} page${rows.length === 1 ? "" : "s"} cited`} ${total.toLocaleString("en-GB")} time${total === 1 ? "" : "s"}.`
-            : "No pages cited in this range."}
+            : term && filtered.length
+              ? `0 of ${filtered.length.toLocaleString("en-GB")} pages match "${q.trim()}".`
+              : "No pages cited in this range."}
         </h2>
         {rows.length ? (
           <>
