@@ -52,7 +52,7 @@ export default async function ParityOverview({ searchParams }: { searchParams: P
   return (
     <div className="app-shell" style={{ display: "flex", flexWrap: "wrap", minHeight: "100vh", color: T.ink }}>
       <Sidebar client={client} others={others} email="parity@localhost" role="owner" tier={fx.client.tier} engines={engines} />
-      <div className="app-main" style={{ flex: "1 1 480px", minWidth: 0, padding: "36px 40px 48px", background: T.bg }}>
+      <div id="app-content" tabIndex={-1} className="app-main" style={{ flex: "1 1 480px", minWidth: 0, padding: "36px 40px 48px", background: T.bg }}>
         <Overview
           brand={fx.client.brand}
           domain={fx.client.domain}

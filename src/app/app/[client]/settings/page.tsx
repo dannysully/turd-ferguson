@@ -49,7 +49,7 @@ export default async function ClientSettings({ params, searchParams }: { params:
   return (
     <div className="app-shell" style={{ display: "flex", flexWrap: "wrap", minHeight: "100vh", color: T.ink }}>
       <Sidebar client={client} others={clients.filter((c) => c.slug !== slug)} email={email} role={client.role} tier={tier} engines={engines} clusters current="Settings" placements={placedTier(tier)} clusterLimit={clusterLimit} packPrice={trackingPackPrice(client.market)} upsell={upgrade.mode === "nomada"} />
-      <div className="app-main" style={{ flex: "1 1 480px", minWidth: 0, padding: "36px 40px 48px", background: T.bg }}>
+      <div id="app-content" tabIndex={-1} className="app-main" style={{ flex: "1 1 480px", minWidth: 0, padding: "36px 40px 48px", background: T.bg }}>
         <Settings
           domain={client.domain}
           brand={client.brand}

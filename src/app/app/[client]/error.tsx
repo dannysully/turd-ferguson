@@ -41,7 +41,7 @@ export default function DashboardError({ error, retry }: { error: Error & { dige
         </div>
       </header>
 
-      <div className="app-main" style={{ flex: "1 1 auto", padding: "36px 40px 48px", maxWidth: "720px" }}>
+      <div id="app-content" tabIndex={-1} className="app-main" style={{ flex: "1 1 auto", padding: "36px 40px 48px", maxWidth: "720px" }}>
         <div style={MICRO}>Error</div>
         <h1 style={{ margin: "10px 0 0", fontSize: "28px", fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.2 }}>This page of your dashboard did not load.</h1>
         <p style={{ margin: "12px 0 0", fontSize: "15px", lineHeight: 1.7, color: T.soft, maxWidth: "56ch" }}>

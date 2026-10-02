@@ -150,6 +150,11 @@ export default function Sidebar({
   );
   return (
     <>
+      {/* DS9 (2 Oct 2026, R172 keyboard probe): the site's skip link sits in SiteChrome, which /app
+          drops, and on the phone the tabs come before the page. Same classes as the site's. */}
+      <a href="#app-content" className="btn-primary sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:px-4 focus:py-3 focus:text-sm focus:inline-flex focus:items-center focus:min-h-11">
+        Skip to content
+      </a>
       <header className="app-topbar" style={{ alignItems: "center", justifyContent: "space-between", height: "60px", padding: "0 16px", background: T.surface, borderBottom: `1px solid ${T.line}`, flex: "1 1 100%", boxSizing: "border-box" }}>
         <Lockup size={16} />
         {/* DS5 (2 Oct 2026, R172 pass 1): the sidebar's switcher is hidden on the phone shell, so
