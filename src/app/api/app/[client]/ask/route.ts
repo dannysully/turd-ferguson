@@ -33,11 +33,13 @@ export async function POST(req: Request, ctx: { params: Promise<{ client: string
   // Settings' "Ask us to change these" returns to Settings; every other ask to Clusters.
   const about = readAskAbout(form?.get("about"));
   const cta = about ? null : readUpgradeCta(form?.get("cta"));
-  const view = about ? {} : readKept((k) => new URL(req.url).searchParams.get(k), APP_LIMITS.search);
+  const kept = readKept((k) => new URL(req.url).searchParams.get(k), APP_LIMITS.search);
+  // DS41 (2 Oct 2026, R173 pass 4): Settings' asks post its stated range; only from, to and compare go back there.
+  const view = about ? Object.fromEntries(Object.entries(kept).filter(([k]) => k === "from" || k === "to" || k === "compare")) : kept;
   const done = (r: "sent" | "refused", extra: Record<string, string> = {}) =>
     NextResponse.redirect(
       new URL(
-        about ? `/app/${slug}/settings?${new URLSearchParams({ ask: r, ...extra })}` : `/app/${slug}/clusters?${new URLSearchParams({ ...view, ...(cta === "mentioned" ? { filter: "never" } : {}), ask: r, ...extra })}`,
+        about ? `/app/${slug}/settings?${new URLSearchParams({ ...view, ask: r, ...extra })}` : `/app/${slug}/clusters?${new URLSearchParams({ ...view, ...(cta === "mentioned" ? { filter: "never" } : {}), ask: r, ...extra })}`,
         req.url,
       ),
       303,
