@@ -452,6 +452,9 @@ export default function OneCluster({
                 </SubmitButton>
               </form>
             </details>
+          ) : P ? (
+            // DS65 (2 Oct 2026, R173 pass 7): a viewer lost "Add a note" with no reason, as Clusters' DS61 line.
+            <p style={{ margin: 0, fontSize: "13px", lineHeight: 1.5, color: T.soft }}>Only owners and editors can add a note - ask one of them to add one.</p>
           ) : null}
         </section>
       </div>
