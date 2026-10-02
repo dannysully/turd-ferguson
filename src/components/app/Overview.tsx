@@ -302,8 +302,9 @@ export default function Overview({
   const questionsAnswered = o.questions.den;
   const direction = (d: number) => (d > 0 ? "up from" : d < 0 ? "down from" : "the same as");
   const headlineRate = fig.now;
+  // DS71 (R173 pass 9, 2 Oct 2026): read only from ungrouped prompts, the line counted them twice ("across 5 ungrouped prompts, 5 prompts and four engines").
   const subLine = cs
-    ? `${fig.now.num.toLocaleString("en-GB")} of ${fig.now.den.toLocaleString("en-GB")} answers across ${across}, ${byCluster ? byCluster.prompts : questionsAnswered} prompts and ${WORDS[engines.length] ?? engines.length} engines.`
+    ? `${fig.now.num.toLocaleString("en-GB")} of ${fig.now.den.toLocaleString("en-GB")} answers across ${across}${loose && !cs.clusters ? "" : `, ${byCluster ? byCluster.prompts : questionsAnswered} prompts`} and ${WORDS[engines.length] ?? engines.length} engines.`
     : `${o.named.num.toLocaleString("en-GB")} of ${o.named.den.toLocaleString("en-GB")} answers across ${questionsAnswered} prompts and ${WORDS[engines.length] ?? engines.length} engines.`;
   const lflLine = byCluster
     ? byCluster.lflBefore && lflDelta !== null
@@ -682,7 +683,7 @@ export default function Overview({
                 label: "Answers naming you",
                 value: pct(fig.now),
                 delta: <Delta value={lflDelta} />,
-                foot: <span style={{ fontSize: "13px", color: T.soft }}>{`${fig.now.num.toLocaleString("en-GB")} of ${fig.now.den.toLocaleString("en-GB")} answers${loose ? `, clusters and ${looseWords}` : ""}${lflDelta !== null ? ". Change is like-for-like" : ""}`}</span>,
+                foot: <span style={{ fontSize: "13px", color: T.soft }}>{`${fig.now.num.toLocaleString("en-GB")} of ${fig.now.den.toLocaleString("en-GB")} answers${loose ? ` across ${across}` : ""}${lflDelta !== null ? ". Change is like-for-like" : ""}`}</span>,
               },
               {
                 figure: "questions",
