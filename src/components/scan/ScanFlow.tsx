@@ -28,6 +28,8 @@ import ProcessSequence, { WAITING_TEMPO } from "@/components/ProcessSequence";
 
 import ConfirmScreen from "./ConfirmScreen";
 import ScanProgress from "./ScanProgress";
+import type { WalkthroughOutcome } from "@/lib/scan/walkthrough-outcome";
+
 import ResultView from "./ResultView";
 import { field } from "./screens";
 
@@ -339,6 +341,8 @@ export default function ScanFlow(p: {
    * zero and is not the same thing.
    */
   initialOppCount?: number | null;
+  /** R151: the walkthrough ask's outcome, after it posted without script. */
+  walkthrough?: WalkthroughOutcome | null;
   /**
    * The gated pass as the server found it on the row.
    *
@@ -1050,6 +1054,7 @@ export default function ScanFlow(p: {
             r={result}
             domain={p.domain}
             token={p.token}
+            walkthrough={p.walkthrough}
             noPlacements={noPlacements}
             pending={partial ? { caption: stepCaption(progress), error: restError || null } : null}
           />

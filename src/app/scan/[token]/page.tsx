@@ -6,6 +6,7 @@ import { isMarket } from "@/lib/scan/domain";
 import type { MarketReason } from "@/lib/scan/market-pick";
 import { publicTeaser } from "@/lib/scan/opportunities";
 import { isFreePassDead, isGatedPassDead } from "@/lib/scan/stall";
+import { readWalkthroughOutcome } from "@/lib/scan/walkthrough-outcome";
 import { buildUnlockPayload, opportunityShape, type UnlockPayload } from "@/lib/scan/unlock";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
@@ -24,8 +25,16 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function ScanTokenPage({ params }: { params: Promise<{ token: string }> }) {
+export default async function ScanTokenPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ token: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { token } = await params;
+  // R151 (3 Oct 2026): the walkthrough ask posted without script comes back here with only its outcome.
+  const walkthrough = readWalkthroughOutcome((await searchParams).walkthrough);
 
   const db = supabaseAdmin();
   const { data: scan, error: scanErr } = await db
@@ -200,6 +209,7 @@ export default async function ScanTokenPage({ params }: { params: Promise<{ toke
   return (
     <ScanFlow
       token={token}
+      walkthrough={walkthrough}
       domain={scan.domain as string}
       brand={brand}
       positioning={positioning}

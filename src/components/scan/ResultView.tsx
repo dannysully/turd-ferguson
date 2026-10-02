@@ -32,6 +32,7 @@ import WalkthroughForm from "./WalkthroughForm";
 import { trackOffer } from "./track-offer";
 import { type Inline, parseAnswer } from "./answer-markdown";
 import { type Band, bandOf, selfServeCount, selfServeSentence } from "@/lib/scan/placement-difficulty";
+import type { WalkthroughOutcome } from "@/lib/scan/walkthrough-outcome";
 
 /**
  * The result, free and unlocked, from Flow2Free.dc.html and Flow3Report.dc.html.
@@ -926,7 +927,7 @@ function PlanCards(p: { r: RunScanResponse; rows: RunScanResponse["opportunities
  * question count, never typed here - the tracked tier is a floor, and "from"
  * travels with the figure.
  */
-function TrackedSection(p: { token: string; r: RunScanResponse; cluster: ReturnType<typeof clusterState> }) {
+function TrackedSection(p: { token: string; r: RunScanResponse; cluster: ReturnType<typeof clusterState>; walkthrough?: WalkthroughOutcome | null }) {
   const tracked = TIERS.find((t) => t.id === "tracked");
   // ScanCluster.dc.html's cta=checkout: a cluster scan buys the cluster it
   // just read, now checkout and the webhook are live (R117). Since R139
@@ -1003,7 +1004,7 @@ function TrackedSection(p: { token: string; r: RunScanResponse; cluster: ReturnT
       ) : (
         <div style={{ background: T.surface, color: T.ink, borderRadius: "18px", padding: "24px", minWidth: 0 }}>
           <div style={{ fontSize: "17px", fontWeight: 700, marginBottom: "16px" }}>{p.cluster ? "See it on your own cluster" : "See it on your own report"}</div>
-          <WalkthroughForm token={p.token} />
+          <WalkthroughForm token={p.token} outcome={p.walkthrough} />
         </div>
       )}
     </section>
@@ -1045,6 +1046,8 @@ export default function ResultView(p: {
   r: RunScanResponse;
   domain: string;
   token: string;
+  /** R151: the walkthrough ask's outcome, after it posted without script. */
+  walkthrough?: WalkthroughOutcome | null;
   /** The count route has already answered zero. */
   noPlacements?: boolean;
   /** Set while the run is still finishing: the answers are final, the brand and source work is not. */
@@ -1192,7 +1195,7 @@ export default function ResultView(p: {
       </div>
 
       <div style={{ marginTop: "46px" }}>
-        <TrackedSection token={p.token} r={r} cluster={cluster} />
+        <TrackedSection token={p.token} r={r} cluster={cluster} walkthrough={p.walkthrough} />
       </div>
 
       <AnswerDrawer r={r} idx={openIdx} onClose={close} onMove={setOpenIdx} />

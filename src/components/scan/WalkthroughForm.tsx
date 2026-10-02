@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { SCAN_LIMITS } from "@/config/contact";
 import { T } from "@/config/tokens";
 import { track } from "@/lib/analytics";
+import type { WalkthroughOutcome } from "@/lib/scan/walkthrough-outcome";
 
 import { btn, field, label } from "./screens";
 
@@ -43,15 +44,18 @@ import { btn, field, label } from "./screens";
  * Book a call on the site stays). The two name who does it - "Loom with Luke",
  * "Demo with Danny" - each with a 24px round photo before its label.
  */
-export default function WalkthroughForm(p: { token: string } | { from: string }) {
+export default function WalkthroughForm(p: { token: string; back?: string; outcome?: WalkthroughOutcome | null } | { from: string }) {
   const token = "token" in p ? p.token : null;
+  // R151 (3 Oct 2026): the scan version posts without script as well, and the
+  // route's 303 brings back only `outcome`, which the page passes in.
+  const outcome = "token" in p ? (p.outcome ?? null) : null;
   const [mounted, setMounted] = useState(token !== null);
   useEffect(() => setMounted(true), []);
-  const [kind, setKind] = useState<"video" | "demo">("video");
+  const [kind, setKind] = useState<"video" | "demo">(outcome === "demo" ? "demo" : "video");
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState("");
-  const [done, setDone] = useState("");
+  const [err, setErr] = useState(outcome === "bad" ? "That email does not look right." : outcome === "failed" ? "That did not go through. Please try again." : "");
+  const [done, setDone] = useState(outcome === "video" ? "Thanks. Luke will send your Loom." : outcome === "demo" ? "Thanks. Danny will be in touch." : "");
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -91,7 +95,7 @@ export default function WalkthroughForm(p: { token: string } | { from: string })
 
   if (done) {
     return (
-      <p aria-live="polite" style={{ margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.ink }}>
+      <p id="walkthrough" aria-live="polite" style={{ margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.ink }}>
         {done}
       </p>
     );
@@ -128,7 +132,9 @@ export default function WalkthroughForm(p: { token: string } | { from: string })
   }
 
   return (
-    <form onSubmit={submit} noValidate>
+    <form id="walkthrough" action={token ? "/api/scan/" + token + "/walkthrough" : undefined} method="post" onSubmit={submit} noValidate>
+      <input type="hidden" id="wt-kind" name="kind" value={kind} />
+      {"token" in p && p.back ? <input type="hidden" id="wt-back" name="back" value={p.back} /> : null}
       <div role="radiogroup" aria-label="How would you like to see it" className="wt-toggle">
         {options.map((o) => (
           <button

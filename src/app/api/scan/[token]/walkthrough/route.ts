@@ -1,8 +1,11 @@
+import { NextResponse } from "next/server";
+
 import { SCAN_LIMITS } from "@/config/contact";
 import { isPlausibleEmail, normalizeEmail } from "@/lib/email-address";
 import { clientIp, hashIp } from "@/lib/scan/ip";
 import { markClaimed } from "@/lib/scan/unlock";
 import { sendWalkthroughAlert } from "@/lib/scan/walkthrough-mail";
+import { walkthroughBack } from "@/lib/scan/walkthrough-outcome";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -24,19 +27,33 @@ const PER_IP_PER_DAY = 5;
 export async function POST(req: Request, ctx: { params: Promise<{ token: string }> }) {
   const { token } = await ctx.params;
 
-  let body: { email?: string; kind?: string };
-  try {
-    body = await req.json();
-  } catch {
-    return Response.json({ error: "bad_request" }, { status: 400 });
+  // R151 (3 Oct 2026): the form posts here without script too, and is answered
+  // with a 303 back to its page carrying only the outcome, never the address.
+  const isForm = !(req.headers.get("content-type") ?? "").includes("application/json");
+  let body: { email?: string; kind?: string; back?: unknown };
+  if (isForm) {
+    const form = await req.formData().catch(() => null);
+    if (!form) return Response.json({ error: "bad_request" }, { status: 400 });
+    body = { email: String(form.get("email") ?? ""), kind: String(form.get("kind") ?? ""), back: form.get("back") ?? undefined };
+  } else {
+    try {
+      body = await req.json();
+    } catch {
+      return Response.json({ error: "bad_request" }, { status: 400 });
+    }
   }
+  const answer = (json: { ok?: true; error?: string; message?: string }, status = 200) => {
+    if (!isForm) return Response.json(json, { status });
+    const outcome = json.ok || status === 429 ? (body.kind === "demo" ? "demo" : "video") : json.error === "bad_email" ? "bad" : "failed";
+    return NextResponse.redirect(new URL(`${walkthroughBack(body.back, token)}?walkthrough=${outcome}#walkthrough`, req.url), 303);
+  };
 
   const kind = body.kind === "demo" ? "demo" : body.kind === "video" ? "video" : null;
-  if (!kind) return Response.json({ error: "bad_kind", message: "Pick a video or a demo." }, { status: 400 });
+  if (!kind) return answer({ error: "bad_kind", message: "Pick a video or a demo." }, 400);
 
   const email = normalizeEmail(body.email ?? "");
   if (email.length > SCAN_LIMITS.email || !isPlausibleEmail(email)) {
-    return Response.json({ error: "bad_email", message: "That email does not look right." }, { status: 400 });
+    return answer({ error: "bad_email", message: "That email does not look right." }, 400);
   }
 
   const db = supabaseAdmin();
@@ -47,9 +64,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
     .maybeSingle();
   if (readErr) {
     console.warn("[walkthrough] could not read the scan: " + readErr.message);
-    return Response.json({ error: "read_failed", message: "We could not reach the checker. Please try again." }, { status: 502 });
+    return answer({ error: "read_failed", message: "We could not reach the checker. Please try again." }, 502);
   }
-  if (!scan) return Response.json({ error: "not_found" }, { status: 404 });
+  if (!scan) return answer({ error: "not_found" }, 404);
 
   const ipHash = hashIp(clientIp(req));
   const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
@@ -60,13 +77,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
     .gte("created_at", since);
   if (countErr) {
     console.warn("[walkthrough] could not count recent requests: " + countErr.message);
-    return Response.json({ error: "read_failed", message: "We could not reach the checker. Please try again." }, { status: 502 });
+    return answer({ error: "read_failed", message: "We could not reach the checker. Please try again." }, 502);
   }
   if ((count ?? 0) >= PER_IP_PER_DAY) {
-    return Response.json(
-      { error: "rate_limited", message: "We have your request - we will be in touch." },
-      { status: 429 },
-    );
+    return answer({ error: "rate_limited", message: "We have your request - we will be in touch." }, 429);
   }
 
   // Same scan, same address, same kind: already asked. Say yes, alert nobody.
@@ -76,7 +90,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
     .select("id");
   if (insertErr) {
     console.error("[walkthrough] could not store the request: " + insertErr.message);
-    return Response.json({ error: "write_failed", message: "That did not go through. Please try again." }, { status: 502 });
+    return answer({ error: "write_failed", message: "That did not go through. Please try again." }, 502);
   }
   const fresh = inserted?.[0]?.id as string | undefined;
 
@@ -103,7 +117,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
     }
   }
 
-  return Response.json({
+  return answer({
     ok: true,
     message:
       kind === "video"

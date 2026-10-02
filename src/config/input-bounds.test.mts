@@ -384,6 +384,16 @@ const EXEMPT: Record<string, Exemption> = {
     why: "SendNewLink's hidden address, set by the page from the spent token's row or the checkout Session. type=hidden, nobody types in it; the login route normalises it and refuses it over SCAN_LIMITS.email or when isPlausibleEmail fails.",
     holds: [{ file: "app/api/app/login/route.ts", needs: "email.length > SCAN_LIMITS.email || !isPlausibleEmail(email)" }],
   },
+  // R151 (3 Oct 2026): the walkthrough ask posts without script, so its choice
+  // and the page to come back to ride the form as hidden fields.
+  "wt-kind": {
+    why: "The walkthrough ask's hidden kind, set by its toggle. type=hidden, nobody types in it; the walkthrough route accepts only the exact words video or demo.",
+    holds: [{ file: "app/api/scan/[token]/walkthrough/route.ts", needs: 'body.kind === "demo" ? "demo" : body.kind === "video" ? "video" : null' }],
+  },
+  "wt-back": {
+    why: "The walkthrough ask's hidden way back, set by the coverage reading page. type=hidden, nobody types in it; walkthroughBack accepts only a /scan/ or /coverage-check/ path of at most 80 token characters, else the scan's own page.",
+    holds: [{ file: "lib/scan/walkthrough-outcome.ts", needs: "/^\\/(scan|coverage-check)\\/[A-Za-z0-9_-]{1,80}$/.test(raw)" }],
+  },
   "set-out-all": {
     why: "Sign out of every device's hidden flag. type=hidden, nobody types in it; the logout route acts only on the exact value 1 and reads the email off the session row, never the form.",
     holds: [{ file: "app/api/app/logout/route.ts", needs: 'form?.get("everywhere") === "1"' }],

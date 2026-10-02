@@ -14,6 +14,7 @@ import { countNamed, type ReadingQuestion } from "@/lib/coverage/reading-figures
 import { canRerun, readingState, shouldPoll } from "@/lib/coverage/reading-state";
 import { count, isAre } from "@/lib/plural";
 import { ENGINE_SPECS } from "@/lib/scan/engines";
+import { readWalkthroughOutcome } from "@/lib/scan/walkthrough-outcome";
 
 /**
  * A campaign reading, by its link.
@@ -118,8 +119,15 @@ function timeOf(iso: string | null): string {
   return new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 }
 
-export default async function CampaignReadingPage({ params }: { params: Promise<{ token: string }> }) {
+export default async function CampaignReadingPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ token: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { token } = await params;
+  const walkthrough = readWalkthroughOutcome((await searchParams).walkthrough);
 
   const data = await readCampaign(token);
   if (!data) notFound();
@@ -546,7 +554,7 @@ export default async function CampaignReadingPage({ params }: { params: Promise<
               reading.
             </p>
             <div style={{ marginTop: "14px" }}>
-              <WalkthroughForm token={reading.scanToken} />
+              <WalkthroughForm token={reading.scanToken} back={`/coverage-check/${token}`} outcome={walkthrough} />
             </div>
           </div>
         </section>
