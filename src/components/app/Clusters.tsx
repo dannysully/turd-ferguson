@@ -900,6 +900,10 @@ function ClusterRow({
               {c.prompts.map((p) => act && slots.has(p.id) ? (
                 <li key={p.id} className="app-cl-prompt" style={{ minHeight: `${ROW_H}px`, boxSizing: "border-box", padding: "8px 12px 8px 14px", borderRadius: "12px", background: T.surface, border: `1px dashed ${T.washLine}`, display: "flex", alignItems: "center" }}>
                   <form method="post" action={`${act.action.replace(/\/stop$/, "/prompt")}?${new URLSearchParams({ ...act.keep, kind: "cluster", id: c.id, ...(p.angle ? { angle: p.angle } : {}) })}`} style={{ display: "flex", alignItems: "center", gap: "10px", width: "100%", flexWrap: "wrap" }}>
+                    {/* DS70: a viewer reads the stopped prompt in this row; an owner or editor read only the empty slot. */}
+                    {p.stoppedOn !== null && p.id !== refill ? (
+                      <span title={p.text} style={{ flexBasis: "100%", minWidth: 0, fontSize: "12px", color: T.soft, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{`“${p.text}” stopped from ${formatDay(p.stoppedOn)}. Its history stays in your reports.`}</span>
+                    ) : null}
                     <span style={{ flexShrink: 0, padding: "2px 8px", borderRadius: "6px", background: T.chip, color: T.soft, fontSize: "11px", fontWeight: 700, letterSpacing: ".02em", textTransform: "uppercase" }}>{p.angle ?? "Prompt"}</span>
                     <label htmlFor={`slot-${p.id}`} className="sr-only">{`A new ${p.angle ? `${p.angle} ` : ""}prompt about ${kw}`}</label>
                     <input id={`slot-${p.id}`} name="text" defaultValue={p.id === refill ? p.text : undefined} required minLength={PROMPT_MIN} maxLength={ADMIN_LIMITS.question} placeholder={`A new ${p.angle ? `${p.angle} ` : ""}prompt about “${kw}”`} style={{ flex: "1 1 200px", minWidth: 0, height: "40px", boxSizing: "border-box", padding: "0 12px", border: `1px solid ${T.line}`, borderRadius: "10px", fontFamily: "inherit", fontSize: "14px", color: T.ink, background: T.surface }} />
