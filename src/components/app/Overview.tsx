@@ -694,11 +694,16 @@ export default function Overview({
               {
                 figure: "keywords",
                 label: "Cluster keywords on page 1",
-                value: `${cs.page1.num} of ${cs.page1.den}`,
+                // DS57 (2 Oct 2026, R173 pass 6): no cluster keyword read in the range is "-", not "0 of 0", as OneCluster's count.
+                value: cs.page1.den ? `${cs.page1.num} of ${cs.page1.den}` : "-",
                 delta: cs.page1Before !== null ? <Delta value={cs.page1.num - cs.page1Before} unit="" /> : null,
                 foot: (
                   <span style={{ fontSize: "13px", color: T.soft }}>
-                    {`${cs.page1.avg === null ? "No keyword in the top 20 yet" : `Average position ${cs.page1.avg}`}${pendingKeywords ? `. ${pendingKeywords} more from tomorrow` : ""}`}
+                    {cs.page1.den
+                      ? `${cs.page1.avg === null ? "No keyword in the top 20 yet" : `Average position ${cs.page1.avg}`}${pendingKeywords ? `. ${pendingKeywords} more from tomorrow` : ""}`
+                      : pendingKeywords
+                        ? "First check tomorrow at 06:00"
+                        : "No cluster keyword checked in this range"}
                   </span>
                 ),
               },
@@ -751,7 +756,7 @@ export default function Overview({
             {[
               { label: "Prompts named in", value: `${fig.promptsNamed.num} of ${fig.promptsNamed.den}`, foot: fig.promptsNamedBefore ? <span style={{ fontSize: "12px", color: T.soft }}>{`was ${fig.promptsNamedBefore.num} of ${fig.promptsNamedBefore.den}`}</span> : loose ? <span style={{ fontSize: "12px", color: T.soft }}>{`With ${looseWords}`}</span> : null },
               { label: "Share of voice", value: pct(o.sov), foot: <Delta value={pointsDelta(o.sov, o.sovBefore)} /> },
-              { label: "Keywords on page 1", value: `${cs.page1.num} of ${cs.page1.den}`, foot: cs.page1Before !== null ? <Delta value={cs.page1.num - cs.page1Before} unit="" /> : null },
+              { label: "Keywords on page 1", value: cs.page1.den ? `${cs.page1.num} of ${cs.page1.den}` : "-", foot: cs.page1Before !== null ? <Delta value={cs.page1.num - cs.page1Before} unit="" /> : !cs.page1.den && pendingKeywords ? <span style={{ fontSize: "12px", color: T.soft }}>From tomorrow</span> : null },
               {
                 label: "Rank among brands",
                 value: o.sov.rank ? `${ordinal(o.sov.rank)} of ${o.sov.brands}` : "-",

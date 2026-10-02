@@ -140,7 +140,9 @@ export default function Reports({
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: "4px", minWidth: 0 }}>
                       <dt style={{ fontSize: "12px", fontWeight: 600, color: T.soft }}>{f.basis === "clusters" ? "Cluster keywords on page 1" : "Keywords on page 1"}</dt>
-                      <dd style={{ margin: 0, fontSize: "24px", fontWeight: 700, fontVariantNumeric: "tabular-nums" }} data-figure="keywords">{`${f.page1.num} of ${f.page1.den}`}</dd>
+                      <dd style={{ margin: 0, fontSize: "24px", fontWeight: 700, fontVariantNumeric: "tabular-nums" }} data-figure="keywords">{f.page1.den ? `${f.page1.num} of ${f.page1.den}` : "-"}</dd>
+                      {/* DS57 (2 Oct 2026, R173 pass 6): a month read only from ungrouped prompts has no keyword to count, and read "0 of 0". */}
+                      {f.page1.den ? null : <dd style={{ margin: 0, fontSize: "13px", color: T.soft }}>No cluster keyword checked this month</dd>}
                     </div>
                   </dl>
                 )}
