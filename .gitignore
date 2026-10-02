@@ -70,3 +70,6 @@ next-env.d.ts
 /docs/rules.md
 /docs/parity/
 /docs/tracked-dashboard-*/
+
+# builds moved aside before a clean build (R184, 2 Oct 2026)
+/.next-old-*/
