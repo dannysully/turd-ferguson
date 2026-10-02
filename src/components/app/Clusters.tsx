@@ -252,7 +252,7 @@ export default function Clusters({
         )
       ) : null}
 
-      {canWrite && adding ? <AddPanel slug={slug} adding={adding} full={full} clusterLimit={clusterLimit} packPrice={packPrice} close={href({})} /> : null}
+      {canWrite && adding ? <AddPanel slug={slug} adding={adding} full={full} clusterLimit={clusterLimit} packPrice={packPrice} close={href({})} keep={keep} /> : null}
 
       <section aria-label="Clusters" style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: "18px", overflow: "hidden" }}>
         <div className="app-cl-grid app-hide-sm" style={{ display: "grid", gridTemplateColumns: GRID, gap: "16px", padding: "14px 24px 12px" }}>
@@ -365,7 +365,9 @@ export type Rekeying = Adding & { card: string };
  * "Start tracking this cluster", a POST to /cluster. On a refusal that
  * allows it, "Ask us to pick one", a POST to T11's /ask (ask.ts).
  */
-function AddPanel({ slug, adding, full, clusterLimit, packPrice, close }: { slug: string; adding: Adding; full: boolean; clusterLimit: number; packPrice: string; close: string }) {
+function AddPanel({ slug, adding, full, clusterLimit, packPrice, close, keep }: { slug: string; adding: Adding; full: boolean; clusterLimit: number; packPrice: string; close: string; keep: Record<string, string> }) {
+  // The page's range, filter and search ride on the Check and Start actions, as the stop forms' do (DS15).
+  const view = new URLSearchParams(keep).toString();
   const ck = adding.check;
   const msg = ck ? ck.message : "It needs Google search volume and a buying intent, because it is the term placements link on. We check both before anything is tracked.";
   return (
@@ -393,7 +395,7 @@ function AddPanel({ slug, adding, full, clusterLimit, packPrice, close }: { slug
           </Link>
         </div>
       ) : (
-        <form method="post" action={`/api/app/${encodeURIComponent(slug)}/check`} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+        <form method="post" action={`/api/app/${encodeURIComponent(slug)}/check${view ? `?${view}` : ""}`} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
           <label htmlFor="kw-draft" style={{ fontSize: "13px", fontWeight: 600, color: T.ink }}>
             1. The keyword
           </label>
@@ -417,7 +419,7 @@ function AddPanel({ slug, adding, full, clusterLimit, packPrice, close }: { slug
         </form>
       ) : null}
       {!full && ck?.ok && adding.sig ? (
-        <form method="post" action={`/api/app/${encodeURIComponent(slug)}/cluster`} style={{ display: "flex", flexDirection: "column", gap: "10px", borderTop: `1px solid ${T.line}` }}>
+        <form method="post" action={`/api/app/${encodeURIComponent(slug)}/cluster${view ? `?${view}` : ""}`} style={{ display: "flex", flexDirection: "column", gap: "10px", borderTop: `1px solid ${T.line}` }}>
           <input id="nc-keyword" type="hidden" name="keyword" value={ck.keyword} />
           <input id="nc-vol" type="hidden" name="vol" value={String(ck.volume)} />
           <input id="nc-intent" type="hidden" name="intent" value={ck.intent} />

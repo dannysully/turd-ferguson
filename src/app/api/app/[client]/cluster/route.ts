@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { APP_LIMITS } from "@/config/contact";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { verifyCheck } from "@/lib/tracking/add-cluster";
 import { ADMIN_LIMITS, trackingDay } from "@/lib/tracking/decide";
@@ -8,6 +9,7 @@ import { fixtureAddCluster } from "@/lib/tracking/fixture-writes";
 import { clientsFor, sessionEmail } from "@/lib/tracking/member";
 import { addCluster } from "@/lib/tracking/new-cluster";
 import { writeFixture } from "@/lib/tracking/repo";
+import { readKept } from "@/lib/tracking/stop";
 import { recordUsage } from "@/lib/tracking/usage-record";
 
 export const runtime = "nodejs";
@@ -25,7 +27,9 @@ export const dynamic = "force-dynamic";
 export async function POST(req: Request, ctx: { params: Promise<{ client: string }> }) {
   const { client: slug } = await ctx.params;
   const page = `/app/${encodeURIComponent(slug)}/clusters`;
-  const back = (q: Record<string, string>) => NextResponse.redirect(new URL(`${page}?${new URLSearchParams(q)}`, req.url), 303);
+  // DS15 (2 Oct 2026): the Add panel's action carries the page's range, filter and search; the toast's keys win.
+  const view = readKept((k) => new URL(req.url).searchParams.get(k), APP_LIMITS.search);
+  const back = (q: Record<string, string>) => NextResponse.redirect(new URL(`${page}?${new URLSearchParams({ ...view, ...q })}`, req.url), 303);
   const form = await req.formData().catch(() => null);
   const field = (k: string) => (typeof form?.get(k) === "string" ? (form.get(k) as string).slice(0, ADMIN_LIMITS.question) : "");
   const keyword = field("keyword");

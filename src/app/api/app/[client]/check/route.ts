@@ -42,9 +42,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ client: string
   const onClusters = !!card && form?.get("on") === "clusters";
   // Its action carries the page's range, filter and search as the stop forms' do, so the round trip keeps them.
   const sp = new URL(req.url).searchParams;
-  const view = onClusters ? readKept((k) => sp.get(k), APP_LIMITS.search) : {};
+  // DS15: the Add panel's return keeps it too; only a setup card's does not.
+  const view = !card || onClusters ? readKept((k) => sp.get(k), APP_LIMITS.search) : {};
   const back = (c: KeywordCheck | null, sig?: string) => {
-    const q = new URLSearchParams({ ...(onClusters ? { ...view, open: card, rk: card } : card ? { card } : { add: "1" }), ...(raw ? { kw: raw } : {}), ...(c ? verdictQuery(c) : {}), ...(sig ? { sig } : {}) });
+    const q = new URLSearchParams({ ...(onClusters ? { ...view, open: card, rk: card } : card ? { card } : { ...view, add: "1" }), ...(raw ? { kw: raw } : {}), ...(c ? verdictQuery(c) : {}), ...(sig ? { sig } : {}) });
     const to = card && !onClusters ? `/app/${encodeURIComponent(slug)}/setup?${q}#card-${encodeURIComponent(card)}` : `/app/${encodeURIComponent(slug)}/clusters?${q}`;
     return NextResponse.redirect(new URL(to, req.url), 303);
   };

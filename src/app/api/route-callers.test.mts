@@ -298,7 +298,8 @@ const NO_CALLER: { route: string; method: string; why: string; earns: () => bool
     method: "POST",
     // BRIEF-3 T6 part 3b, 30 Sep 2026: Check keyword in Add a cluster.
     why: "Posted by the plain HTML Check keyword form in the Clusters page's Add panel, which the fetch scanner does not read.",
-    earns: () => readFileSync(join(ROOT, "src/components/app/Clusters.tsx"), "utf8").includes("action={`/api/app/${encodeURIComponent(slug)}/check`}"),
+    // DS15, 2 Oct 2026: the action carries the page's view as a query, so the literal ends `/check${view ...`.
+    earns: () => readFileSync(join(ROOT, "src/components/app/Clusters.tsx"), "utf8").includes("action={`/api/app/${encodeURIComponent(slug)}/check${view ? `?${view}` : \"\"}`}"),
   },
   {
     route: "/api/app/[client]/setup",
@@ -312,7 +313,8 @@ const NO_CALLER: { route: string; method: string; why: string; earns: () => bool
     method: "POST",
     // BRIEF-3 T6 part 3c, 30 Sep 2026: Start tracking this cluster.
     why: "Posted by the plain HTML step 2 form in the Clusters page's Add panel, which the fetch scanner does not read.",
-    earns: () => readFileSync(join(ROOT, "src/components/app/Clusters.tsx"), "utf8").includes("action={`/api/app/${encodeURIComponent(slug)}/cluster`}"),
+    // DS15, 2 Oct 2026: as /check above, the action carries the page's view.
+    earns: () => readFileSync(join(ROOT, "src/components/app/Clusters.tsx"), "utf8").includes("action={`/api/app/${encodeURIComponent(slug)}/cluster${view ? `?${view}` : \"\"}`}"),
   },
   {
     route: "/api/app/[client]/keyword",
