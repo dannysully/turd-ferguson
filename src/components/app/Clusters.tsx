@@ -126,6 +126,7 @@ export default function Clusters({
   const keep = { ...base, ...(filter === "all" ? {} : { filter }), ...(q ? { q } : {}), ...(open !== null ? { open } : {}) };
   const act = canWrite ? { action: `/api/app/${encodeURIComponent(slug)}/stop`, keep, today } : null;
   const full = used >= clusterLimit;
+  const ungrouped = ungroupedShown(data.questions, today);
   const live = cards.filter((c) => c.status !== "pending");
   const filters: [Filter, string][] = [
     ["all", `All ${cards.length}`],
@@ -258,15 +259,61 @@ export default function Clusters({
         ) : null}
         {prompt && cta ? <UpgradePrompt copy={prompt} cta={cta} slug={slug} items={items} /> : null}
       </section>
+      {ungrouped.length ? <Ungrouped rows={ungrouped} act={act} subject={subject} /> : null}
       <p style={{ margin: 0, fontSize: "13px", lineHeight: 1.5, color: T.soft, maxWidth: "820px" }}>
         The number beside each engine is the days it named {brand} for that prompt, out of the days checked. Stopping a prompt or a cluster keeps its history in your reports. A new prompt or cluster starts at the next daily check.
       </p>
-      {toast ? <Toast t={toast} cards={cards} act={act} dismiss={`?${new URLSearchParams(keep)}`} /> : null}
+      {toast ? <Toast t={toast} cards={cards} ungrouped={ungrouped} act={act} dismiss={`?${new URLSearchParams(keep)}`} /> : null}
     </div>
   );
 }
 
 const HEAD: React.CSSProperties = { fontSize: "12px", fontWeight: 600, color: T.soft };
+
+type PromptRow = OverviewData extends { questions: readonly (infer R)[] } ? R : never;
+
+/**
+ * R170 part 1 (Danny, 2 Oct 2026, danny.md line 180): the client's ungrouped
+ * prompts, each with Stop, and Undo while its stop is still pending - the same
+ * stop route and rules as a prompt in a cluster. Owners and editors only;
+ * viewers see the list and why there is no control. Gone once stopped and
+ * read. "Move into a cluster" is part 2.
+ */
+export function ungroupedShown(rows: readonly PromptRow[], today: string): PromptRow[] {
+  return rows.filter((q) => q.cluster_id === null && (q.stopped_on === null || q.stopped_on > today));
+}
+
+function Ungrouped({ rows, act, subject }: { rows: PromptRow[]; act: Act; subject: Subject | null }) {
+  return (
+    <section aria-labelledby="ungrouped-h" style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: "18px", overflow: "hidden" }}>
+      <div style={{ padding: "18px 24px 14px", display: "flex", flexDirection: "column", gap: "4px" }}>
+        <h2 id="ungrouped-h" style={{ margin: 0, fontSize: "16px", fontWeight: 700, color: T.ink }}>{`Ungrouped prompts ${rows.filter((q) => q.stopped_on === null).length}`}</h2>
+        <p style={{ margin: 0, fontSize: "13px", lineHeight: 1.5, color: T.soft, maxWidth: "680px" }}>
+          {act ? "Asked every morning like the rest, but in no cluster yet. Stopping one keeps its history in your reports." : "Asked every morning like the rest, but in no cluster yet. Only owners and editors can stop these prompts - ask one of them to make a change."}
+        </p>
+      </div>
+      <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+        {rows.map((q) => {
+          const stopping = q.stopped_on !== null;
+          return (
+            <li key={q.id} style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap", padding: "10px 24px", borderTop: `1px solid ${T.line}`, minHeight: "44px", boxSizing: "border-box" }}>
+              <span style={{ flex: "1 1 260px", minWidth: 0, fontSize: "14px", color: stopping ? T.soft : T.ink, display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                {q.text}
+                {subject && namesBrandIn(q.text, subject) ? <BrandedChip /> : null}
+                {stopping ? <span style={{ fontSize: "12px", color: T.soft }}>Stops after today’s check</span> : null}
+              </span>
+              {act ? (
+                <StopForm act={act} kind="prompt" id={q.id} undo={stopping} label={stopping ? `Undo stopping “${short(q.text)}”` : `Stop “${short(q.text)}”`} style={{ ...BTN, height: "44px" }}>
+                  {stopping ? "Undo" : (<>{STOP_ICON}Stop</>)}
+                </StopForm>
+              ) : null}
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
 
 export type Adding = { kw: string; check: KeywordCheck | null; sig: string };
 
@@ -393,9 +440,10 @@ const BTN: React.CSSProperties = { display: "inline-flex", alignItems: "center",
 const SQUARE: React.CSSProperties = { width: "36px", height: "36px", padding: 0, border: `1px solid ${T.line}`, borderRadius: "10px", background: T.surface, color: T.ink, display: "flex", alignItems: "center", justifyContent: "center" };
 
 /** The board's toast: what the stop did, and Undo while it can still be undone. */
-function Toast({ t, cards, act, dismiss }: { t: StopToast; cards: ClusterCard[]; act: Act; dismiss: string }) {
+function Toast({ t, cards, ungrouped = [], act, dismiss }: { t: StopToast; cards: ClusterCard[]; ungrouped?: PromptRow[]; act: Act; dismiss: string }) {
   const cluster = t.kind === "cluster" ? cards.find((c) => c.id === t.id) : cards.find((c) => c.prompts.some((p) => p.id === t.id));
-  const prompt = t.kind === "prompt" ? cluster?.prompts.find((p) => p.id === t.id) : undefined;
+  const loose = t.kind === "prompt" && !cluster ? ungrouped.find((q) => q.id === t.id) : undefined;
+  const prompt = t.kind === "prompt" ? (cluster?.prompts.find((p) => p.id === t.id) ?? (loose ? { text: loose.text, stoppedOn: loose.stopped_on } : undefined)) : undefined;
   const name = t.kind === "cluster" ? (cluster?.keyword ?? cluster?.name) : prompt?.text;
   const stoppedOn = t.kind === "cluster" ? cluster?.stoppedOn : prompt?.stoppedOn;
   const canUndo = t.done === "stopped" && !!act && !!stoppedOn && stoppedOn > act.today;
