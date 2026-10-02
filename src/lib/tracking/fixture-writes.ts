@@ -3,7 +3,7 @@ import { keywordForm } from "../scan/dataforseo-request.ts";
 import { type KeywordCheck, precheckKeyword, refuseDrafts, signCheck, verifyCheck } from "./add-cluster.ts";
 import { fixtureMode, type Fixture } from "./fixture-mode.ts";
 import { type Edit, refuseEdits } from "./edit.ts";
-import { ANGLES, angleFor, refuseCluster, refuseEdit, refuseKeyword, refusePrompts } from "./limits.ts";
+import { ANGLES, angleFor, freeAngle, refuseCluster, refuseEdit, refuseGrouping, refuseKeyword, refusePrompts } from "./limits.ts";
 import { refuseSlotText } from "./slot.ts";
 import { type StopKind, refuseRole, refuseStop, refuseUndo, stopDay } from "./stop.ts";
 import { type InviteRole, type TeamOp, refuseActor, refuseChange, refuseInvite } from "./team.ts";
@@ -195,6 +195,23 @@ export function fixtureAddCluster(
     }),
     id: cId,
   };
+}
+
+/** limits.ts's moveIntoCluster on the fixture: one live ungrouped prompt into a live cluster, refuseGrouping's rules, the first free angle if it has none. */
+export function fixtureGroup(f: Fixture, p: { clusterId: string; id: string; role: string }): FixtureWritten {
+  const role = refuseRole(p.role);
+  if (role) return { ok: false, message: role };
+  const { clusters, questions } = f.data;
+  const c = clusters.find((x) => x.id === p.clusterId);
+  if (!c) return { ok: false, message: "That cluster is not on this client." };
+  if (c.stopped_on !== null) return { ok: false, message: "That cluster is stopped." };
+  const live = questions.filter((q) => q.stopped_on === null);
+  const mine = live.filter((q) => q.cluster_id === p.clusterId);
+  const ungrouped = new Set(live.filter((q) => q.cluster_id === null).map((q) => q.id));
+  const refused = refuseGrouping({ ids: [p.id], ungrouped, clusterLive: mine.length });
+  if (refused) return { ok: false, message: refused };
+  const angle = freeAngle(mine.map((q) => q.angle));
+  return written(f, { questions: questions.map((q) => (q.id === p.id ? { ...q, cluster_id: p.clusterId, angle: q.angle ?? angle } : q)) });
 }
 
 function unused(ids: readonly string[], prefix: string): string {

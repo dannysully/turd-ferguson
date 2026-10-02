@@ -58,7 +58,7 @@ export default async function ClientClusters({
   const kind = one("kind");
   const id = one("id");
   const toast: StopToast | null =
-    (done === "stopped" || done === "undone" || done === "added" || done === "saved" || done === "refused") && (kind === "prompt" || kind === "cluster") && id ? { done, kind, id } : null;
+    (done === "stopped" || done === "undone" || done === "added" || done === "saved" || done === "moved" || done === "refused") && (kind === "prompt" || kind === "cluster") && id ? { done, kind, id } : null;
 
   // Add a cluster (part 3b): `?add=1` opens the panel; the check's 303 adds `kw` and `ck`.
   const kw = (one("kw") ?? "").slice(0, 200);

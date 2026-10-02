@@ -59,7 +59,8 @@ const KEYS: Record<string, Record<string, string>> = {
   },
   "/clusters": {
     filter: 'f === "named" || f === "never" ? f : "all"',
-    done: '(done === "stopped" || done === "undone" || done === "added" || done === "saved" || done === "refused")',
+    // "moved" added 2 Oct 2026 (R170 part 2): the /group route's 303 after Move into a cluster.
+    done: '(done === "stopped" || done === "undone" || done === "added" || done === "saved" || done === "moved" || done === "refused")',
     kind: '(kind === "prompt" || kind === "cluster")',
     id: "? { done, kind, id } : null", // a toast only names a row the list already has
     kw: '(one("kw") ?? "").slice(0, 200)',

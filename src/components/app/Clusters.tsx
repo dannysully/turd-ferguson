@@ -14,7 +14,7 @@ import { ENGINE_SPECS, type Engine } from "@/lib/scan/engines";
 import { type ClusterCard, type ClusterFilter as Filter, clusterCards, filterClusters, namedCount, neverCount } from "@/lib/tracking/cluster-figures";
 import { type Range, comparisonRange, daysIn, formatDay } from "@/lib/tracking/figures";
 import { type KeywordCheck, draftPrompts } from "@/lib/tracking/add-cluster";
-import { ANGLES, BRANDED_CHIP, BRANDED_NOTE, type Subject, namesBrandIn } from "@/lib/tracking/limits";
+import { ANGLES, BRANDED_CHIP, BRANDED_NOTE, PROMPTS_PER_CLUSTER, type Subject, namesBrandIn } from "@/lib/tracking/limits";
 import type { Compare, OverviewData } from "@/lib/tracking/overview-data";
 import { partialRunNote } from "@/lib/tracking/run-note";
 
@@ -44,7 +44,7 @@ import UpgradePrompt from "./UpgradePrompt";
  * "Check keyword" form posts to /check, which 303s back with the verdict.
  */
 
-export type StopToast = { done: "stopped" | "undone" | "added" | "saved" | "refused"; kind: "prompt" | "cluster"; id: string };
+export type StopToast = { done: "stopped" | "undone" | "added" | "saved" | "moved" | "refused"; kind: "prompt" | "cluster"; id: string };
 
 const short = (t: string) => (t.length > 52 ? `${t.slice(0, 50)}…` : t);
 
@@ -259,7 +259,7 @@ export default function Clusters({
         ) : null}
         {prompt && cta ? <UpgradePrompt copy={prompt} cta={cta} slug={slug} items={items} /> : null}
       </section>
-      {ungrouped.length ? <Ungrouped rows={ungrouped} act={act} subject={subject} /> : null}
+      {ungrouped.length ? <Ungrouped rows={ungrouped} act={act} subject={subject} targets={moveTargets(cards, data.questions)} /> : null}
       <p style={{ margin: 0, fontSize: "13px", lineHeight: 1.5, color: T.soft, maxWidth: "820px" }}>
         The number beside each engine is the days it named {brand} for that prompt, out of the days checked. Stopping a prompt or a cluster keeps its history in your reports. A new prompt or cluster starts at the next daily check.
       </p>
@@ -277,19 +277,31 @@ type PromptRow = OverviewData extends { questions: readonly (infer R)[] } ? R : 
  * prompts, each with Stop, and Undo while its stop is still pending - the same
  * stop route and rules as a prompt in a cluster. Owners and editors only;
  * viewers see the list and why there is no control. Gone once stopped and
- * read. "Move into a cluster" is part 2.
+ * read. Part 2: "Move into a cluster", a plain POST to /group with the
+ * cluster picked from those that are live and have room (refuseGrouping).
  */
 export function ungroupedShown(rows: readonly PromptRow[], today: string): PromptRow[] {
   return rows.filter((q) => q.cluster_id === null && (q.stopped_on === null || q.stopped_on > today));
 }
 
-function Ungrouped({ rows, act, subject }: { rows: PromptRow[]; act: Act; subject: Subject | null }) {
+type Target = { id: string; label: string };
+
+/** The clusters a prompt can move into: live, with fewer than PROMPTS_PER_CLUSTER live prompts. */
+export function moveTargets(cards: readonly ClusterCard[], rows: readonly PromptRow[]): Target[] {
+  return cards
+    .filter((c) => c.stoppedOn === null && rows.filter((q) => q.cluster_id === c.id && q.stopped_on === null).length < PROMPTS_PER_CLUSTER)
+    .map((c) => ({ id: c.id, label: c.keyword ?? c.name }));
+}
+
+function Ungrouped({ rows, act, subject, targets }: { rows: PromptRow[]; act: Act; subject: Subject | null; targets: Target[] }) {
   return (
     <section aria-labelledby="ungrouped-h" style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: "18px", overflow: "hidden" }}>
       <div style={{ padding: "18px 24px 14px", display: "flex", flexDirection: "column", gap: "4px" }}>
         <h2 id="ungrouped-h" style={{ margin: 0, fontSize: "16px", fontWeight: 700, color: T.ink }}>{`Ungrouped prompts ${rows.filter((q) => q.stopped_on === null).length}`}</h2>
         <p style={{ margin: 0, fontSize: "13px", lineHeight: 1.5, color: T.soft, maxWidth: "680px" }}>
-          {act ? "Asked every morning like the rest, but in no cluster yet. Stopping one keeps its history in your reports." : "Asked every morning like the rest, but in no cluster yet. Only owners and editors can stop these prompts - ask one of them to make a change."}
+          {act
+            ? `Asked every morning like the rest, but in no cluster yet. Stopping one keeps its history in your reports.${targets.length ? "" : ` Every cluster has ${PROMPTS_PER_CLUSTER} live prompts, so there is nowhere to move one - stop a prompt in a cluster to make room.`}`
+            : "Asked every morning like the rest, but in no cluster yet. Only owners and editors can stop these prompts or move them into a cluster - ask one of them to make a change."}
         </p>
       </div>
       <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
@@ -302,6 +314,7 @@ function Ungrouped({ rows, act, subject }: { rows: PromptRow[]; act: Act; subjec
                 {subject && namesBrandIn(q.text, subject) ? <BrandedChip /> : null}
                 {stopping ? <span style={{ fontSize: "12px", color: T.soft }}>Stops after today’s check</span> : null}
               </span>
+              {act && !stopping && targets.length ? <MoveForm act={act} id={q.id} text={q.text} targets={targets} /> : null}
               {act ? (
                 <StopForm act={act} kind="prompt" id={q.id} undo={stopping} label={stopping ? `Undo stopping “${short(q.text)}”` : `Stop “${short(q.text)}”`} style={{ ...BTN, height: "44px" }}>
                   {stopping ? "Undo" : (<>{STOP_ICON}Stop</>)}
@@ -426,6 +439,30 @@ function StopForm({ act, kind, id, undo, label, children, style }: { act: NonNul
   );
 }
 
+/** Move into a cluster: the prompt and page state in the action's query string as StopForm's, the picked cluster in the body. */
+function MoveForm({ act, id, text, targets }: { act: NonNullable<Act>; id: string; text: string; targets: Target[] }) {
+  const q = new URLSearchParams({ ...act.keep, kind: "prompt", id });
+  const field = `move-${id}`;
+  return (
+    <form method="post" action={`${act.action.replace(/\/stop$/, "/group")}?${q}`} style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+      <label htmlFor={field} className="sr-only">{`Cluster to move “${short(text)}” into`}</label>
+      <select id={field} name="cluster" required defaultValue="" style={{ height: "44px", maxWidth: "220px", padding: "0 10px", border: `1px solid ${T.line}`, borderRadius: "10px", background: T.surface, color: T.ink, fontSize: "13px", fontFamily: "inherit" }}>
+        <option value="" disabled>
+          Pick a cluster
+        </option>
+        {targets.map((t) => (
+          <option key={t.id} value={t.id}>
+            {t.label}
+          </option>
+        ))}
+      </select>
+      <button type="submit" aria-label={`Move “${short(text)}” into the picked cluster`} style={{ ...BTN, height: "44px", cursor: "pointer", fontFamily: "inherit" }}>
+        Move
+      </button>
+    </form>
+  );
+}
+
 const STOP_ICON = (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={T.ink} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <rect x="6" y="6" width="12" height="12" rx="2" />
@@ -454,6 +491,8 @@ function Toast({ t, cards, ungrouped = [], act, dismiss }: { t: StopToast; cards
         ? `Now tracking “${short(name)}” and 5 prompts. First results after tomorrow’s 06:00 check.`
       : t.done === "added"
         ? `Now tracking “${short(name)}”. First results after tomorrow’s 06:00 check.`
+        : t.done === "moved" && t.kind === "prompt" && cluster
+        ? `Moved “${short(name)}” into ${cluster.keyword ?? cluster.name}. It is asked every morning as before.`
         : t.done === "saved"
         ? "Saved. The first check uses these prompts tomorrow at 06:00."
         : t.done === "undone"

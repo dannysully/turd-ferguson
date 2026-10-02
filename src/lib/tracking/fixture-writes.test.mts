@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
 import { expandFixture } from "./fixture-mode.ts";
-import { FIXTURE_CHECK_VOLUME, fixtureAddCluster, fixtureCheck, fixtureEditPrompts, fixtureFillSlot, fixtureStop, fixtureTeam, fixtureWrites } from "./fixture-writes.ts";
+import { FIXTURE_CHECK_VOLUME, fixtureAddCluster, fixtureCheck, fixtureEditPrompts, fixtureFillSlot, fixtureGroup, fixtureStop, fixtureTeam, fixtureWrites } from "./fixture-writes.ts";
 import { addDays } from "./figures.ts";
 
 /**
@@ -29,7 +29,7 @@ test("R168: writes are on only with both switches exactly 1, outside production"
 });
 
 test("R168: the stop and undo routes ask the writable fixture before refusing", () => {
-  for (const route of ["stop", "prompt", "edit", "member", "check", "cluster", "setup"]) {
+  for (const route of ["stop", "prompt", "edit", "member", "check", "cluster", "group", "setup"]) {
     const src = readFileSync(new URL(`../../app/api/app/[client]/${route}/route.ts`, import.meta.url), "utf8");
     assert.match(src, route === "setup" ? /confirmFixtureSetup\(\)/ : route === "check" ? /writableFixture\(\)/ : /writeFixture\(/, `${route} writes to the fixture`);
   }
@@ -155,4 +155,24 @@ test("R168 part 4: Check keyword on the fixture runs the free prechecks, then a 
   assert.equal(fixtureAddCluster(room, { ...base, role: "viewer" }).ok, false, "viewer");
   assert.equal(fixtureAddCluster(a.fixture, base).ok, false, "a second add of the same keyword is refused");
   assert.match((fixtureAddCluster(fx, base) as { message: string }).message, /At the limit of 10 clusters/, "the default fixture is at 10 of 10");
+});
+
+test("R170 part 2: an ungrouped prompt moves into a live cluster with room, at the angle the stopped prompt freed", () => {
+  const c = first.cluster_id!;
+  const other = fx.data.questions.find((q) => q.stopped_on === null && q.cluster_id !== null && q.cluster_id !== c)!;
+  const loose = { ...fx, data: { ...fx.data, questions: fx.data.questions.map((q) => (q.id === other.id ? { ...q, cluster_id: null, angle: null } : q)) } };
+  assert.match((fixtureGroup(loose, { clusterId: c, id: other.id, role: "owner" }) as { message: string }).message, /has 5 live/, "a full cluster is refused");
+  const s = fixtureStop(loose, { kind: "prompt", id: first.id, today: fx.today, role: "owner", undo: false });
+  assert.ok(s.ok);
+  const m = fixtureGroup(s.fixture, { clusterId: c, id: other.id, role: "editor" });
+  assert.ok(m.ok, m.ok ? "" : m.message);
+  const row = m.fixture.data.questions.find((q) => q.id === other.id)!;
+  assert.deepEqual([row.cluster_id, row.angle, row.text, row.stopped_on], [c, first.angle, other.text, null]);
+  assert.equal(m.fixture.data.questions.filter((q, i) => q !== s.fixture.data.questions[i]).length, 1, "only that prompt");
+  assert.equal(fixtureGroup(s.fixture, { clusterId: c, id: other.id, role: "viewer" }).ok, false, "viewer");
+  assert.equal(fixtureGroup(s.fixture, { clusterId: c, id: first.id, role: "owner" }).ok, false, "a prompt already in a cluster is not grouped");
+  assert.equal(fixtureGroup(s.fixture, { clusterId: "nope", id: other.id, role: "owner" }).ok, false, "not this client's cluster");
+  const stopped = fixtureStop(s.fixture, { kind: "cluster", id: c, today: fx.today, role: "owner", undo: false });
+  assert.ok(stopped.ok);
+  assert.equal(fixtureGroup(stopped.fixture, { clusterId: c, id: other.id, role: "owner" }).ok, false, "a stopped cluster is refused");
 });

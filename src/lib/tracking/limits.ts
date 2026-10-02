@@ -266,6 +266,31 @@ export async function groupPrompts(db: SupabaseClient, clientId: string, cluster
   return { ok: true, ids };
 }
 
+/**
+ * The angle a prompt moved into a cluster takes when it has none: the first of
+ * ANGLES no live prompt of that cluster holds, so a stopped prompt's slot is
+ * the one filled. Null when every angle is held.
+ */
+export function freeAngle(held: readonly (string | null)[]): Angle | null {
+  return ANGLES.find((a) => !held.includes(a)) ?? null;
+}
+
+/**
+ * R170 part 2 (Danny, 2 Oct 2026, danny.md line 180): "Move into a cluster"
+ * on the Clusters page. One live ungrouped prompt into one live cluster of
+ * this client, owners and editors only, under refuseGrouping's rules.
+ */
+export async function moveIntoCluster(db: SupabaseClient, p: { clientId: string; clusterId: string; id: string; role: string }): Promise<Written> {
+  if (p.role !== "owner" && p.role !== "editor") return { ok: false, message: "Only owners and editors can change what is tracked." };
+  const { data: c, error } = await db.from("tracked_clusters").select("id, stopped_on").eq("id", p.clusterId).eq("client_domain_id", p.clientId).maybeSingle();
+  if (error) return { ok: false, message: `Could not read the cluster: ${error.message}` };
+  if (!c) return { ok: false, message: "That cluster is not on this client." };
+  if (c.stopped_on !== null) return { ok: false, message: "That cluster is stopped." };
+  const { data: held, error: hErr } = await db.from("tracked_questions").select("angle").eq("cluster_id", p.clusterId).is("stopped_on", null);
+  if (hErr) return { ok: false, message: `Could not read the cluster's prompts: ${hErr.message}` };
+  return groupPrompts(db, p.clientId, p.clusterId, [p.id], new Map([[p.id, freeAngle((held ?? []).map((q) => q.angle as string | null))]]));
+}
+
 /** Make a live ungrouped keyword a cluster's one keyword. Refused if the cluster has a live one already. */
 export async function linkKeyword(db: SupabaseClient, clientId: string, clusterId: string, keywordId: string): Promise<Written> {
   const { data: c, error } = await db.from("tracked_clusters").select("keyword_id").eq("id", clusterId).eq("client_domain_id", clientId).single();
