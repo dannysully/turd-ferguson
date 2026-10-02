@@ -65,7 +65,7 @@ export default function Reports({
           Download a range
         </h2>
         <div className="app-rp-range" style={{ display: "flex", alignItems: "center", gap: "16px 24px", flexWrap: "wrap" }}>
-          <DatePicker range={range} compare={compareMode} today={today} startedOn={startedOn} grow={false}>
+          <DatePicker range={range} compare={compareMode} today={today} startedOn={startedOn} grow={false} noCompare>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={T.ink} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <rect x="3" y="5" width="18" height="16" rx="2" />
               <path d="M3 10h18M8 3v4M16 3v4" />
