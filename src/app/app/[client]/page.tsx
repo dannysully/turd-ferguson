@@ -8,7 +8,7 @@ import type { TierKey } from "@/components/TierName";
 import { enginesFor, trackingPackPrice } from "@/config/pricing";
 import { CARD, T } from "@/config/tokens";
 import { CLUSTER_BASE } from "@/lib/tracking/limits";
-import { rangeFrom } from "@/lib/tracking/overview-data";
+import { rangeFrom, rangeQuery } from "@/lib/tracking/overview-data";
 import { placedTier } from "@/lib/tracking/placement-figures";
 import { fixtureMode } from "@/lib/tracking/fixture-mode";
 import { trackingRepo } from "@/lib/tracking/repo";
@@ -63,7 +63,7 @@ export default async function ClientDashboard({
 
   return (
     <div className="app-shell" style={{ display: "flex", flexWrap: "wrap", minHeight: "100vh", color: T.ink }}>
-      <Sidebar client={client} others={clients.filter((c) => c.slug !== slug)} email={email} role={client.role} tier={tier} engines={engines} clusters={(data.clusters?.length ?? 0) > 0} placements={placed} clusterLimit={client.cluster_limit ?? CLUSTER_BASE} packPrice={trackingPackPrice(client.market)} upsell={upgrade.mode === "nomada"} />
+      <Sidebar keep={rangeQuery(sp, today)} client={client} others={clients.filter((c) => c.slug !== slug)} email={email} role={client.role} tier={tier} engines={engines} clusters={(data.clusters?.length ?? 0) > 0} placements={placed} clusterLimit={client.cluster_limit ?? CLUSTER_BASE} packPrice={trackingPackPrice(client.market)} upsell={upgrade.mode === "nomada"} />
       <div id="app-content" tabIndex={-1} className="app-main" style={{ flex: "1 1 480px", minWidth: 0, padding: "36px 40px 48px", background: T.bg }}>
         {outstanding ? (
           <div style={{ ...CARD, borderRadius: "14px", padding: "14px 18px", marginBottom: "24px", display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px 16px" }}>

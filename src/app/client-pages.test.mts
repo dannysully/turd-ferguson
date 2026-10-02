@@ -45,6 +45,8 @@ const PAGES = new Map(
 /** Helpers a page may hand the whole query to, and the keys each owns, with the test that holds the bound. */
 const READERS: Record<string, string> = {
   "rangeFrom(sp,": "from, to, compare - clamped to real days and the three compare modes; overview-data's own test",
+  // DS38, 2 Oct 2026 (R173 pass 4): the nav's links carry the stated range - rangeFrom's own reading, re-serialised.
+  "rangeQuery(sp,": "from, to, compare again, through rangeFrom, written back only where stated, for the nav links",
   "placementsScreen(repo, client, sp,": "from, to, cluster - the cluster must be one of this client's; placements-screen's own test",
   "verdictFromQuery(one,": "the Check keyword verdict, read back only as a whole verdict; add-cluster's own test, and the HMAC in the cluster route",
 };

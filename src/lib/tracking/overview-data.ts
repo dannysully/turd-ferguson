@@ -34,6 +34,24 @@ export function rangeFrom(params: Record<string, string | string[] | undefined>,
   return { range: { from: addDays(today, -27), to: today }, compare };
 }
 
+/**
+ * The range a URL states, as a query for the nav's links (R173 pass 4, DS38,
+ * 2 Oct 2026): `?from=&to=&compare=`, only the parts rangeFrom would honour
+ * and only when stated, so moving between pages keeps the reader's range.
+ * "" when nothing is stated - the next page takes its own default.
+ */
+export function rangeQuery(params: Record<string, string | string[] | undefined>, today: Day = trackingDay()): string {
+  const { range, compare } = rangeFrom(params, today);
+  const q = new URLSearchParams();
+  if (params.from === range.from && params.to === range.to) {
+    q.set("from", range.from);
+    q.set("to", range.to);
+  }
+  if (compare !== "prev") q.set("compare", compare);
+  const s = q.toString();
+  return s ? `?${s}` : "";
+}
+
 async function paged<R>(query: (lo: number, hi: number) => PromiseLike<{ data: R[] | null; error: { message: string } | null }>, what: string): Promise<R[]> {
   const out: R[] = [];
   const size = 1000;

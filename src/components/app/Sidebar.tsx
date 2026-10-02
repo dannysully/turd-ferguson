@@ -111,6 +111,7 @@ export default function Sidebar({
   packPrice = null,
   upsell = false,
   placements = false,
+  keep = "",
 }: {
   client: Client;
   others: Client[];
@@ -130,6 +131,8 @@ export default function Sidebar({
   upsell?: boolean;
   /** A cluster is placed (mentioned or above) or has placements: the nav shows Placements (T13). */
   placements?: boolean;
+  /** The stated range as a query, rangeQuery's "?from=&to=&compare=" or "" (DS38): every nav link carries it. */
+  keep?: string;
 }) {
   const nav: readonly string[] = (clusters ? CLUSTER_NAV : NAV).filter((n) => placements || n !== PLACEMENTS_ITEM);
   const tabs: readonly string[] = clusters ? CLUSTER_TABS : TABS;
@@ -139,7 +142,11 @@ export default function Sidebar({
   // R151 (1 Oct): the nav and tabs are AppLinks, so moving between screens is
   // a soft navigation with the pending bar, not a full reload. The client
   // switcher stays a plain <a>: a different client is a fresh page.
-  const hrefOf = (item: string) => navHref(item, client.slug);
+  // DS38 (2 Oct 2026, R173 pass 4): a stated range rides along, so Clusters after a 7-day Overview is still 7 days.
+  const hrefOf = (item: string) => {
+    const href = navHref(item, client.slug);
+    return href && href + keep;
+  };
   const more = nav.filter((item) => !tabs.includes(item) && hrefOf(item));
   const chip: React.CSSProperties = { display: "flex", alignItems: "center", gap: "8px", height: "44px", padding: "0 10px", border: `1px solid ${T.line}`, borderRadius: "10px", fontSize: "14px", fontWeight: 700, boxSizing: "border-box", minWidth: 0 };
   const chipName = (
