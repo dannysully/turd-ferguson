@@ -2,7 +2,14 @@ import "server-only";
 import { Resend } from "resend";
 import { CONTACT_EMAIL } from "@/config/contact";
 import { mailFrom } from "@/config/mail-from";
+import type { TierKey } from "@/components/TierName";
 import { headerSafe } from "@/lib/email-header";
+import { setupConfirmed } from "@/lib/email/lifecycle";
+import { lifecycleOn, sendLifecycle } from "@/lib/email/lifecycle-mail";
+import { siteUrl } from "@/lib/scan/verify-email";
+import { supabaseAdmin } from "@/lib/supabase/admin";
+import { TIER_PLAIN } from "@/lib/tier-text";
+import { upsellMode } from "./ask.ts";
 
 /**
  * Setup confirmed (R166 step 4, Danny, danny.md line 175): one internal
@@ -53,5 +60,32 @@ export async function sendSetupConfirmed(input: {
   } catch (err) {
     console.error("[app] setup mail failed", err);
     return false;
+  }
+}
+
+/**
+ * R159's setup_confirmed (danny.md line 163): the client's own lifecycle mail,
+ * to the member who pressed Confirm, naming the clusters they set up. Called
+ * by the setup route only after it writes the one setup_confirmed row, so it
+ * is once a client. Only when its flag is on (off until Danny approves it)
+ * and never in agency mode (the email names alwayscited and the tier). Never
+ * fatal: the confirm stands either way.
+ */
+export async function mailSetupConfirmed(clientId: string, member: string): Promise<void> {
+  try {
+    const db = supabaseAdmin();
+    if (!(await lifecycleOn(db, "setup_confirmed"))) return;
+    const { data: c, error: cErr } = await db.from("client_domains").select("account_id, tier").eq("id", clientId).single();
+    if (cErr) throw new Error(cErr.message);
+    const { data: account, error: aErr } = await db.from("accounts").select("upsell_mode").eq("id", c.account_id).maybeSingle();
+    if (aErr || !account) throw new Error(aErr?.message ?? "no account");
+    if (upsellMode(account.upsell_mode) === "agency") return;
+    const { data: clusters, error: clErr } = await db.from("tracked_clusters").select("name").eq("client_domain_id", clientId).is("stopped_on", null).order("created_at", { ascending: true });
+    if (clErr) throw new Error(clErr.message);
+    const tier = ((c.tier as string) in TIER_PLAIN ? c.tier : "tracked") as TierKey;
+    const mail = setupConfirmed({ tier, clusters: (clusters ?? []).map((k) => k.name as string), link: `${siteUrl()}/app` });
+    if (!(await sendLifecycle({ memberEmail: member, mail }))) console.warn("[app] setup_confirmed not sent");
+  } catch (err) {
+    console.warn(`[app] setup_confirmed skipped: ${err instanceof Error ? err.message : String(err)}`);
   }
 }

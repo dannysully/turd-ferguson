@@ -9,7 +9,7 @@ import { clientsFor, sessionEmail } from "@/lib/tracking/member";
 import { confirmFixtureSetup, trackingRepo } from "@/lib/tracking/repo";
 import { loadSetupConfirmed } from "@/lib/tracking/setup-data";
 import { SETUP_CONFIRMED_EVENT, setupPath } from "@/lib/tracking/setup-landing";
-import { sendSetupConfirmed } from "@/lib/tracking/setup-mail";
+import { mailSetupConfirmed, sendSetupConfirmed } from "@/lib/tracking/setup-mail";
 import { refuseRole } from "@/lib/tracking/stop";
 
 export const runtime = "nodejs";
@@ -77,6 +77,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ client: string
     member: email,
     checked: checked ? { cluster: checked, keyword: pass.keyword, volume: pass.volume, intent: pass.intent } : null,
   });
+  // R159: the client's own setup_confirmed lifecycle mail, to the member who confirmed, once, behind its flag.
+  await mailSetupConfirmed(client.id, email);
   return done;
 }
 

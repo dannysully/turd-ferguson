@@ -181,6 +181,9 @@ const RECORDED: Record<string, string> = {
   // 1 Oct 2026, R159 part 5: first_reading finds the client's account mode and owners.
   "src/lib/tracking/runner.ts :: account_id, tier":
     "the tracking runner, after a run, for first_reading's agency check and owners; started only by the cron's signed dispatch, it returns a status only.",
+  // 2 Oct 2026, R166 / R159: setup_confirmed's agency check, after the setup route writes its one row.
+  "src/lib/tracking/setup-mail.ts :: account_id, tier":
+    "mailSetupConfirmed reads the confirmed client's account for its upsell mode; it returns nothing, and the setup route answers with a 303 to the Overview.",
 };
 
 /**
@@ -223,6 +226,9 @@ const MENTIONED: Record<string, string> = {
   "src/lib/tracking/runner.ts":
     "R159 part 5 (1 Oct 2026): reads the client's account_id after a run to find its upsell mode and " +
     "live owners for first_reading. Started only by the cron's signed dispatch; the run returns a status, never the id.",
+  "src/lib/tracking/setup-mail.ts":
+    "R166 / R159 (2 Oct 2026): reads the confirmed client's account_id to skip setup_confirmed in agency mode. " +
+    "Returns nothing; the setup route answers with a 303, never the id.",
 };
 
 test("nothing in this tree selects *", () => {
