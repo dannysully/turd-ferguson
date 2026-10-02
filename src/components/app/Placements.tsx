@@ -220,7 +220,7 @@ export default function Placements({
                 </div>
               );
             })}
-            {rows.length === 0 ? <p style={{ margin: 0, padding: "14px 24px", borderTop: `1px solid ${T.hair}`, fontSize: "14px", color: T.soft }}>Nothing placed on this cluster yet.</p> : null}
+            {rows.length === 0 ? <p style={{ margin: 0, padding: "14px 24px", borderTop: `1px solid ${T.hair}`, fontSize: "14px", color: T.soft }}>{`Nothing placed on this cluster yet. Each placement shows here from the day it is logged${clusters.length > 1 ? "; pick another cluster at the top of the page to see its placements" : ""}.`}</p> : null}
           </div>
         </div>
         <p style={{ margin: "14px 24px 8px", fontSize: "13px", lineHeight: 1.5, color: T.soft, maxWidth: "820px" }}>{PLACEMENTS_FOOTNOTE}</p>
