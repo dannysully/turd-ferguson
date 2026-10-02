@@ -1,5 +1,5 @@
 import { brandKey } from "../scan/brand-name.ts";
-import { type AnswerRow, type Range, type Rate, brandBoard, rate } from "./figures.ts";
+import { type AnswerRow, type CitationRow, type CitedPageRow, type Range, type Rate, brandBoard, citedPageRows, rate } from "./figures.ts";
 
 /**
  * Who is named (R143, 1 Oct 2026; BRIEF-4 P3): the full page of the
@@ -92,6 +92,28 @@ export function namedPage(input: { answers: AnswerRow[]; range: Range; before: R
     : { key: youKey, name: input.you, you: true, answers: 0, share: rate(0, board.reduce((s, b) => s + b.share.num, 0)), delta: null, isNew: false, engines: [], prompts: [] };
   const others = board.filter((b) => !b.you).map(toRow);
   return { rows: [own, ...others], answers: total, brands: board.length };
+}
+
+/** Pages drawn under an open row. */
+export const CITED_WITH_TOP = 3;
+
+/**
+ * R173 pass 2 (pass 1's P3, task 8): the pages cited in the answers that
+ * name one brand - not "the brand's pages", which no code here can judge.
+ * Same filters as namedPage, then citedPageRows on what is left, so each
+ * count is a count of citations in those answers. The client's own row
+ * reads the answers that named them.
+ */
+export function citedWithBrand(input: { answers: (AnswerRow & CitationRow)[]; range: Range; key: string; you: string; domain: string; only?: ReadonlySet<string> | null; engine?: string | null }): CitedPageRow[] {
+  const youKey = brandKey(input.you);
+  const rows = input.answers.filter(
+    (a) =>
+      a.answered &&
+      (!input.only || input.only.has(a.question_id)) &&
+      (!input.engine || a.engine === input.engine) &&
+      (a.brands.some((b) => brandKey(b) === input.key) || (a.named && input.key === youKey)),
+  );
+  return citedPageRows(rows, input.range, input.domain).slice(0, CITED_WITH_TOP);
 }
 
 /** `?open=` names a row by its folded key; anything else opens none. */

@@ -4,7 +4,7 @@ import { test } from "node:test";
 
 import { expandFixture } from "./fixture-mode.ts";
 import { type AnswerRow, brandBoard, comparisonRange, shareOfVoice } from "./figures.ts";
-import { NAMED_TOP, namedPage, openKey } from "./named-figures.ts";
+import { CITED_WITH_TOP, NAMED_TOP, citedWithBrand, namedPage, openKey } from "./named-figures.ts";
 
 /**
  * R143 (1 Oct 2026; BRIEF-4 P3): the Who is named page reads what the
@@ -81,6 +81,24 @@ test("'New' is a brand with no mention in the comparison range", () => {
   const page = namedPage({ answers, range: { from: "2026-09-10", to: "2026-09-10" }, before: { from: "2026-09-01", to: "2026-09-01" }, you: "T" });
   assert.equal(page.rows.find((r) => r.key === "sage")!.isNew, true);
   assert.equal(page.rows.find((r) => r.key === "xero")!.isNew, false);
+});
+
+test("R173: pages cited with a brand come only from answers naming it, under the same filters", () => {
+  const cite = (url: string) => ({ source_domain: new URL(url).hostname, url });
+  const answers = [
+    { ...row({ brands: ["Ledgerline"] }), citations: [cite("https://www.ledgerline.com/pricing/"), cite("https://softwarecritic.com/x")] },
+    { ...row({ brands: ["Ledgerline."], engine: "gemini" }), citations: [cite("https://ledgerline.com/pricing")] },
+    { ...row({ brands: ["Sumly"] }), citations: [cite("https://ownerledger.co/")] },
+    { ...row({ named: true }), citations: [cite("https://tallyroo.com/")] },
+    { ...row({ brands: ["Ledgerline"], answered: false }), citations: [cite("https://thesmallbizstack.com/")] },
+  ];
+  const r = { from: "2026-09-10", to: "2026-09-10" };
+  const ll = citedWithBrand({ answers, range: r, key: "ledgerline", you: "Tallyroo", domain: "tallyroo.com" });
+  assert.deepEqual(ll.map((p) => [p.page, p.count]), [["ledgerline.com/pricing", 2], ["softwarecritic.com/x", 1]]);
+  assert.deepEqual(citedWithBrand({ answers, range: r, key: "ledgerline", you: "Tallyroo", domain: "tallyroo.com", engine: "gemini" }).map((p) => p.page), ["ledgerline.com/pricing"]);
+  const own = citedWithBrand({ answers, range: r, key: "tallyroo", you: "Tallyroo", domain: "tallyroo.com" });
+  assert.deepEqual(own.map((p) => [p.page, p.yours]), [["tallyroo.com", true]]);
+  assert.ok(fx.data.answers.length && CITED_WITH_TOP === 3);
 });
 
 test("?open= takes a folded key only", () => {

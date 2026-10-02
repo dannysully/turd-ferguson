@@ -5,8 +5,8 @@ import { T } from "@/config/tokens";
 import { ENGINE_SPECS, type Engine } from "@/lib/scan/engines";
 import { clusterCards } from "@/lib/tracking/cluster-figures";
 import { rangeLabel } from "@/lib/tracking/date-range";
-import { type Day, type Range, type Rate, comparisonRange, formatDay } from "@/lib/tracking/figures";
-import { NAMED_TOP, namedPage } from "@/lib/tracking/named-figures";
+import { type CitedPageRow, type Day, type Range, type Rate, comparisonRange, formatDay } from "@/lib/tracking/figures";
+import { NAMED_TOP, citedWithBrand, namedPage } from "@/lib/tracking/named-figures";
 import type { Compare, OverviewData } from "@/lib/tracking/overview-data";
 import { partialRunNote } from "@/lib/tracking/run-note";
 
@@ -31,6 +31,7 @@ const PILL = (on: boolean) =>
 
 export default function Named({
   brand,
+  domain,
   engines,
   today,
   range,
@@ -44,6 +45,8 @@ export default function Named({
   open,
 }: {
   brand: string;
+  /** The client's site, to mark its own pages among those cited. */
+  domain: string;
   engines: readonly Engine[];
   today: Day;
   range: Range;
@@ -182,6 +185,8 @@ export default function Named({
                         {`${r.prompts.length} prompt${r.prompts.length === 1 ? "" : "s"}`}
                       </span>
                     </Link>
+                    {/* First in the open row: a rival can be named in dozens of prompts, and these pages are the question asked (task 8). */}
+                    {isOpen ? <CitedWith rows={citedWithBrand({ answers: data.answers, range, key: r.key, you: brand, domain, only, engine })} name={r.you ? "you" : r.name} /> : null}
                     {isOpen ? (
                       r.prompts.length ? (
                         <ul style={{ listStyle: "none", margin: 0, padding: "0 24px 16px 44px", display: "flex", flexDirection: "column", gap: "2px" }}>
@@ -229,6 +234,27 @@ export default function Named({
       <p style={{ margin: 0, fontSize: "13px", lineHeight: 1.5, color: T.soft, maxWidth: "820px" }}>
         Share is a brand&apos;s mentions out of every brand mention in these answers; one answer naming a brand is one mention. Change is in points against the comparison period.
       </p>
+    </div>
+  );
+}
+
+/** R173 pass 2: the pages cited in the answers naming this brand, as text - never a link to someone else's page, as Cited pages. */
+function CitedWith({ rows, name }: { rows: CitedPageRow[]; name: string }) {
+  if (!rows.length) return null;
+  return (
+    <div style={{ padding: "0 24px 16px 44px" }}>
+      <h3 style={{ margin: "0 0 4px", fontSize: "12px", fontWeight: 600, color: T.soft }}>{`Pages cited in answers that name ${name}`}</h3>
+      <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+        {rows.map((p) => (
+          <li key={p.page} style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "8px 16px", flexWrap: "wrap", padding: "6px 0", borderTop: `1px solid ${T.hair}` }}>
+            <span style={{ fontSize: "14px", overflowWrap: "anywhere", minWidth: 0, flex: "1 1 260px" }}>
+              {p.page}
+              {p.yours ? <span style={{ marginLeft: "8px", fontSize: "12px", fontWeight: 600, color: T.accent }}>Your site</span> : null}
+            </span>
+            <span style={{ fontSize: "13px", color: T.soft, whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>{`Cited ${p.count} time${p.count === 1 ? "" : "s"}`}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

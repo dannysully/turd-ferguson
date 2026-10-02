@@ -53,6 +53,7 @@ export default async function ClientNamed({ params, searchParams }: { params: Pr
       <div id="app-content" tabIndex={-1} className="app-main" style={{ flex: "1 1 480px", minWidth: 0, padding: "36px 40px 48px", background: T.bg }}>
         <Named
           brand={client.brand ?? client.domain}
+          domain={client.domain}
           engines={engines}
           today={today}
           range={range}
