@@ -6,7 +6,7 @@ import { T } from "@/config/tokens";
 import { ENGINE_SPECS, type Engine } from "@/lib/scan/engines";
 import { clusterCards } from "@/lib/tracking/cluster-figures";
 import { rangeLabel } from "@/lib/tracking/date-range";
-import { type CitedPageRow, type Day, type Range, type Rate, basis as basisLine, comparisonRange, formatDay } from "@/lib/tracking/figures";
+import { type CitedPageRow, type Day, type Range, type Rate, basis as basisLine, comparisonRange, formatDay, ungroupedRead } from "@/lib/tracking/figures";
 import { NAMED_TOP, citedWithBrand, namedPage } from "@/lib/tracking/named-figures";
 import type { Compare, OverviewData } from "@/lib/tracking/overview-data";
 import { partialRunNote } from "@/lib/tracking/run-note";
@@ -91,8 +91,13 @@ export default function Named({
 
   const shown = all ? rows : rows.slice(0, NAMED_TOP);
   const clustersCounted = picked ? 1 : cards.filter((c) => c.prompts.some((p) => p.now.den > 0)).length;
+  // DS53 (R173 pass 6, 2 Oct 2026): ungrouped prompts' answers are in the count, so say so as the Overview does
+  // (Overview.tsx `across`) - a pilot with a cluster not yet read had "560 answers in 0 clusters".
+  const loose = picked || !cards.length ? 0 : ungroupedRead(data.questions, data.answers, range);
+  const looseWords = `${loose} ungrouped prompt${loose === 1 ? "" : "s"}`;
+  const inWhat = !cards.length ? "" : loose && !clustersCounted ? looseWords : `${clustersCounted} cluster${clustersCounted === 1 ? "" : "s"}${loose ? ` and ${looseWords}` : ""}`;
   const headline = page.answers
-    ? `${term ? `${rows.length} of ${page.rows.length} brands match "${q.trim()}", named` : `${page.brands} brand${page.brands === 1 ? "" : "s"} named`} across ${page.answers.toLocaleString("en-GB")} answers${cards.length ? ` in ${clustersCounted} cluster${clustersCounted === 1 ? "" : "s"}` : ""}.`
+    ? `${term ? `${rows.length} of ${page.rows.length} brands match "${q.trim()}", named` : `${page.brands} brand${page.brands === 1 ? "" : "s"} named`} across ${page.answers.toLocaleString("en-GB")} answers${inWhat ? ` in ${inWhat}` : ""}.`
     : null;
 
   return (
