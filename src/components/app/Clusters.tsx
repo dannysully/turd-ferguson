@@ -12,7 +12,7 @@ import { PACK_CLUSTERS, PACK_KEYWORDS, PACK_PROMPTS } from "@/config/pricing";
 import { T } from "@/config/tokens";
 import { ENGINE_SPECS, type Engine } from "@/lib/scan/engines";
 import { type ClusterCard, type ClusterFilter as Filter, clusterCards, filterClusters, namedCount, neverCount, pendingBasis } from "@/lib/tracking/cluster-figures";
-import { type Range, comparisonRange, daysIn, formatDay } from "@/lib/tracking/figures";
+import { type Range, basis as basisLine, comparisonRange, daysIn, formatDay } from "@/lib/tracking/figures";
 import { type KeywordCheck, draftPrompts } from "@/lib/tracking/add-cluster";
 import { ANGLES, BRANDED_CHIP, BRANDED_NOTE, PROMPTS_PER_CLUSTER, type Subject, namesBrandIn, refuseEdit } from "@/lib/tracking/limits";
 import type { Compare, OverviewData } from "@/lib/tracking/overview-data";
@@ -846,7 +846,7 @@ function ClusterRow({
         <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px" }}>
           <span style={{ fontSize: "12px", color: T.soft }}>AI answers</span>
           <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span style={{ fontSize: "17px", fontWeight: 700, fontVariantNumeric: "tabular-nums" }} title={pending ? (basis ?? undefined) : `${c.now.num} of ${c.now.den} answers`}>
+            <span style={{ fontSize: "17px", fontWeight: 700, fontVariantNumeric: "tabular-nums" }} title={pending ? (basis ?? undefined) : basisLine(c.now, "answers")}>
               {pctText(c.now.pct)}
             </span>
             <Chip value={c.delta} unit=" pts" none={pending ? "Tomorrow" : "New"} />
@@ -905,7 +905,7 @@ function ClusterRow({
                       </div>
                     )}
                   </div>
-                  <span style={{ fontSize: "16px", fontWeight: 700, textAlign: "right", fontVariantNumeric: "tabular-nums" }} title={pending ? undefined : `${p.now.num} of ${p.now.den} answers`}>
+                  <span style={{ fontSize: "16px", fontWeight: 700, textAlign: "right", fontVariantNumeric: "tabular-nums" }} title={pending ? undefined : basisLine(p.now, "answers")}>
                     {pctText(p.now.pct)}
                   </span>
                   <span style={{ display: "flex", justifyContent: "flex-end" }}>

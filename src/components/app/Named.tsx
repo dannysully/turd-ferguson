@@ -5,7 +5,7 @@ import { T } from "@/config/tokens";
 import { ENGINE_SPECS, type Engine } from "@/lib/scan/engines";
 import { clusterCards } from "@/lib/tracking/cluster-figures";
 import { rangeLabel } from "@/lib/tracking/date-range";
-import { type CitedPageRow, type Day, type Range, type Rate, comparisonRange, formatDay } from "@/lib/tracking/figures";
+import { type CitedPageRow, type Day, type Range, type Rate, basis as basisLine, comparisonRange, formatDay } from "@/lib/tracking/figures";
 import { NAMED_TOP, citedWithBrand, namedPage } from "@/lib/tracking/named-figures";
 import type { Compare, OverviewData } from "@/lib/tracking/overview-data";
 import { partialRunNote } from "@/lib/tracking/run-note";
@@ -168,7 +168,7 @@ export default function Named({
                         {r.answers.toLocaleString("en-GB")}
                         <span className="app-show-sm" style={{ fontWeight: 400, color: T.soft }}>{" answers"}</span>
                       </span>
-                      <span className="app-hide-sm" style={{ textAlign: "right", fontSize: "14px", fontWeight: 600, fontVariantNumeric: "tabular-nums" }} title={`${r.share.num} of ${r.share.den} mentions`}>
+                      <span className="app-hide-sm" style={{ textAlign: "right", fontSize: "14px", fontWeight: 600, fontVariantNumeric: "tabular-nums" }} title={basisLine(r.share, "mentions")}>
                         {pct(r.share)}
                       </span>
                       <span className="app-nm-change" style={{ display: "flex", justifyContent: "flex-end" }}>

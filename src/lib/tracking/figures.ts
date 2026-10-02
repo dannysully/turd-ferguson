@@ -31,6 +31,11 @@ export function rate(num: number, den: number): Rate {
   return { num, den, pct: den ? Math.round((num / den) * 100) : null };
 }
 
+/** A figure's one-line basis, "2,924 of 8,559 mentions", counted the way the page prints its counts (DS18, 2 Oct 2026). */
+export function basis(r: { num: number; den: number }, unit: string): string {
+  return `${r.num.toLocaleString("en-GB")} of ${r.den.toLocaleString("en-GB")} ${unit}`;
+}
+
 const DAY_MS = 86_400_000;
 const ms = (d: Day) => Date.parse(`${d}T00:00:00Z`);
 const iso = (t: number): Day => new Date(t).toISOString().slice(0, 10);

@@ -9,6 +9,7 @@ import {
   type Range,
   type Rate,
   addDays,
+  basis as basisLine,
   brandBoard,
   citedPages,
   dailySeries,
@@ -351,7 +352,7 @@ export default function Overview({
             <span style={{ fontSize: "12px", color: T.soft }}>{`${live.length} prompt${live.length === 1 ? "" : "s"}, not yet in a cluster`}</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
-            <Fig style={{ fontSize: "20px", fontWeight: 700, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }} def={`${o.named.num} of ${o.named.den} answers`}>
+            <Fig style={{ fontSize: "20px", fontWeight: 700, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }} def={basisLine(o.named, "answers")}>
               {pct(o.named)}
             </Fig>
             <Chip value={pointsDelta(o.named, o.namedBefore)} unit=" pts" none="New" />
@@ -375,7 +376,7 @@ export default function Overview({
                 <span aria-hidden="true" className="app-hide-sm" style={{ width: "120px", flexShrink: 0, height: "6px", borderRadius: "3px", background: T.hair, overflow: "hidden" }}>
                   <span style={{ display: "block", height: "100%", width: `${Math.min(100, (m?.now.pct ?? 0) * 1.6)}%`, borderRadius: "3px", background: m?.now.num ? T.accent : T.line }} />
                 </span>
-                <span style={{ width: "34px", flexShrink: 0, textAlign: "right", fontSize: "12px", fontWeight: 700, fontVariantNumeric: "tabular-nums" }} title={m ? `${m.now.num} of ${m.now.den} answers` : undefined}>
+                <span style={{ width: "34px", flexShrink: 0, textAlign: "right", fontSize: "12px", fontWeight: 700, fontVariantNumeric: "tabular-nums" }} title={m ? basisLine(m.now, "answers") : undefined}>
                   {m ? pct(m.now) : "-"}
                 </span>
               </li>
@@ -417,7 +418,7 @@ export default function Overview({
                 <span aria-hidden="true" className="app-hide-sm" style={{ height: "6px", borderRadius: "999px", background: T.hair }}>
                   <span style={{ display: "block", height: "100%", width: `${Math.round(((b.share.num || 0) / (top[0]!.share.num || 1)) * 100)}%`, borderRadius: "999px", background: b.you ? T.accent : T.faint }} />
                 </span>
-                <Fig style={{ fontSize: "14px", fontWeight: 600, fontVariantNumeric: "tabular-nums", textAlign: "right" }} def={`${b.share.num} of ${b.share.den} mentions`}>
+                <Fig style={{ fontSize: "14px", fontWeight: 600, fontVariantNumeric: "tabular-nums", textAlign: "right" }} def={basisLine(b.share, "mentions")}>
                   {pct(b.share)}
                 </Fig>
                 <span style={{ display: "flex", justifyContent: "flex-end" }}>
@@ -921,7 +922,7 @@ function ClusterCards({
                   {meta ? <span style={{ fontSize: "12px", color: T.soft }}>{meta}</span> : null}
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
-                  <span style={{ fontSize: "20px", fontWeight: 700, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }} title={pending ? (basis ?? undefined) : `${c.now.num} of ${c.now.den} answers`}>
+                  <span style={{ fontSize: "20px", fontWeight: 700, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }} title={pending ? (basis ?? undefined) : basisLine(c.now, "answers")}>
                     {pct(c.now)}
                   </span>
                   <Chip value={c.delta} unit=" pts" none={pending ? "Tomorrow" : "New"} />
@@ -949,7 +950,7 @@ function ClusterCards({
                           <span aria-hidden="true" style={{ flexGrow: 1, height: "6px", borderRadius: "3px", background: T.hair, overflow: "hidden" }}>
                             <span style={{ display: "block", height: "100%", width: `${Math.min(100, (r.now.pct ?? 0) * 1.6)}%`, borderRadius: "3px", background: r.now.num ? T.accent : T.line }} />
                           </span>
-                          <span style={{ width: "34px", flexShrink: 0, textAlign: "right", fontSize: "12px", fontWeight: 700, fontVariantNumeric: "tabular-nums" }} title={`${r.now.num} of ${r.now.den} answers`}>
+                          <span style={{ width: "34px", flexShrink: 0, textAlign: "right", fontSize: "12px", fontWeight: 700, fontVariantNumeric: "tabular-nums" }} title={basisLine(r.now, "answers")}>
                             {pct(r.now)}
                           </span>
                         </>
@@ -1080,7 +1081,7 @@ function ClusterRows({ cards, picked, href, opens, manage }: { cards: ClusterCar
               </span>
             ) : (
               <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px", flexShrink: 0 }}>
-                <span style={{ fontSize: "16px", fontWeight: 700, fontVariantNumeric: "tabular-nums" }} title={`${c.now.num} of ${c.now.den} answers`}>
+                <span style={{ fontSize: "16px", fontWeight: 700, fontVariantNumeric: "tabular-nums" }} title={basisLine(c.now, "answers")}>
                   {pct(c.now)}
                 </span>
                 <Chip value={c.delta} unit=" pts" none="New" size={11} />

@@ -10,7 +10,7 @@ import { T } from "@/config/tokens";
 import { type Inline, parseAnswer } from "@/components/scan/answer-markdown";
 import { ENGINE_SPECS, type Engine } from "@/lib/scan/engines";
 import { type ClusterDetail, type ClusterInput, clusterChart, promptBrands, promptStrip } from "@/lib/tracking/cluster-figures";
-import { type Day, type Range, type Rate, comparisonRange, daysIn, formatDay, pointsDelta } from "@/lib/tracking/figures";
+import { type Day, type Range, type Rate, basis as basisLine, comparisonRange, daysIn, formatDay, pointsDelta } from "@/lib/tracking/figures";
 import { type AnswerTab, type LatestAnswers, answerTabs, brandRuns } from "@/lib/tracking/latest-answers";
 import type { ClusterNote, Compare, OverviewData } from "@/lib/tracking/overview-data";
 import { partialRunNote } from "@/lib/tracking/run-note";
@@ -263,7 +263,7 @@ export default function OneCluster({
                       <span style={{ fontSize: "12px", color: T.soft }}>{p.daysChecked ? `days named, of ${p.daysChecked}` : "Not checked yet"}</span>
                     </span>
                   </span>
-                  <span style={{ fontSize: "16px", fontWeight: 700, textAlign: "right", fontVariantNumeric: "tabular-nums" }} title={`${p.now.num} of ${p.now.den} answers`}>
+                  <span style={{ fontSize: "16px", fontWeight: 700, textAlign: "right", fontVariantNumeric: "tabular-nums" }} title={basisLine(p.now, "answers")}>
                     {pct(p.now)}
                   </span>
                   <span style={{ display: "flex", justifyContent: "flex-end" }}>
@@ -401,7 +401,7 @@ export default function OneCluster({
               <span aria-hidden="true" style={{ height: "8px", borderRadius: "4px", background: T.hair }}>
                 <span style={{ display: "block", height: "100%", width: `${Math.round((96 * b.n) / top)}%`, borderRadius: "4px", background: b.you ? T.accent : T.faint }} />
               </span>
-              <Fig style={{ fontSize: "14px", fontWeight: 700, textAlign: "right", fontVariantNumeric: "tabular-nums" }} def={`${b.n} of ${brands.answers} answers`}>
+              <Fig style={{ fontSize: "14px", fontWeight: 700, textAlign: "right", fontVariantNumeric: "tabular-nums" }} def={basisLine({ num: b.n, den: brands.answers }, "answers")}>
                 {b.n}
               </Fig>
             </div>

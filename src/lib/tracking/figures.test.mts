@@ -3,6 +3,7 @@ import { test } from "node:test";
 
 import {
   type AnswerRow,
+  basis,
   brandBoard,
   checkGrid,
   citedPages,
@@ -35,6 +36,12 @@ const a = (run_date: string, question_id: string, engine: string, named: boolean
 test("a rate carries its numerator and denominator, and has no percentage over nothing", () => {
   assert.deepEqual(namedRate([a("2026-09-02", "q1", "chatgpt", true), a("2026-09-02", "q2", "chatgpt", false)], { from: "2026-09-01", to: "2026-09-30" }), { num: 1, den: 2, pct: 50 });
   assert.deepEqual(namedRate([], { from: "2026-09-01", to: "2026-09-30" }), { num: 0, den: 0, pct: null });
+});
+
+test("DS18: a figure's basis line counts as the page prints counts, with thousands separated", () => {
+  assert.equal(basis({ num: 2924, den: 8559 }, "mentions"), "2,924 of 8,559 mentions");
+  assert.equal(basis({ num: 0, den: 0 }, "answers"), "0 of 0 answers");
+  assert.equal(basis({ num: 12, den: 40 }, "answers"), "12 of 40 answers");
 });
 
 test("DS1: ungrouped prompts read in the range are counted - none when all are clustered, all when none are", () => {
