@@ -152,7 +152,7 @@ export default function Sidebar({
   const chipName = (
     <>
       <Initial name={name} size={22} />
-      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</span>
+      <span title={name} style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</span>
     </>
   );
   return (

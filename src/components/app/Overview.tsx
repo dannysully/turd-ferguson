@@ -579,7 +579,7 @@ export default function Overview({
             <div style={{ display: "flex", gap: "12px", minWidth: 0 }}>
               <div className="app-heat-labels app-hide-sm" style={{ display: "flex", flexDirection: "column", width: "196px", minWidth: 0, flexShrink: 1 }}>
                 {heatRows.map((c) => (
-                  <div key={c.id} style={{ height: "11px", marginBottom: "3px", display: "flex", alignItems: "center", justifyContent: "flex-end", fontSize: "11px", fontWeight: 500, color: D.cardHead, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", lineHeight: 1 }}>
+                  <div key={c.id} title={c.keyword ?? c.name} style={{ height: "11px", marginBottom: "3px", display: "flex", alignItems: "center", justifyContent: "flex-end", fontSize: "11px", fontWeight: 500, color: D.cardHead, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", lineHeight: 1 }}>
                     {c.keyword ?? c.name}
                   </div>
                 ))}

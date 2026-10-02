@@ -249,7 +249,8 @@ export default function OneCluster({
                   <span style={{ display: "flex", flexDirection: "column", gap: "7px", minWidth: 0 }}>
                     <span style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
                       <span style={{ flexShrink: 0, padding: "2px 8px", borderRadius: "6px", background: on ? T.wash : T.chip, color: on ? T.accent : T.soft, fontSize: "11px", fontWeight: 700, letterSpacing: ".02em", textTransform: "uppercase" }}>{p.angle ?? "prompt"}</span>
-                      <span style={{ fontSize: "14px", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.text}</span>
+                      {/* DS42 (2 Oct 2026): the prompt is cut at the row, as on Clusters, so hover reads it whole. */}
+                      <span title={p.text} style={{ fontSize: "14px", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.text}</span>
                     </span>
                     <span style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                       {p.daysNamed.map((e) => (
@@ -397,7 +398,7 @@ export default function OneCluster({
           </div>
           {brands.rows.map((b) => (
             <div key={b.name} style={{ display: "grid", gridTemplateColumns: "100px minmax(0, 1fr) 40px", alignItems: "center", gap: "12px" }}>
-              <span style={{ fontSize: "14px", fontWeight: b.you ? 700 : 500, color: b.you ? T.accent : T.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.name}</span>
+              <span title={b.name} style={{ fontSize: "14px", fontWeight: b.you ? 700 : 500, color: b.you ? T.accent : T.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.name}</span>
               <span aria-hidden="true" style={{ height: "8px", borderRadius: "4px", background: T.hair }}>
                 <span style={{ display: "block", height: "100%", width: `${Math.round((96 * b.n) / top)}%`, borderRadius: "4px", background: b.you ? T.accent : T.faint }} />
               </span>

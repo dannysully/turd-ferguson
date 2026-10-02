@@ -204,7 +204,8 @@ export default function Placements({
                 <div key={r.id} id={`p-${r.id}`} data-placement={r.id} aria-current={on ? "true" : undefined} style={{ ...cell, borderTop: `1px solid ${T.hair}`, background: on ? T.wash : undefined }}>
                   <a href={link(kind, on ? null : r.id, `#p-${r.id}`)} data-usage="placement_select" style={{ display: "flex", flexDirection: "column", gap: "2px", minWidth: 0, color: T.ink, textDecoration: "none" }}>
                     <span style={{ fontSize: "14px", fontWeight: 700 }}>{host}</span>
-                    <span style={{ fontSize: "12px", color: T.soft, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{page}</span>
+                    {/* DS42 (2 Oct 2026): a long path is cut at the column, so hover still reads it whole. */}
+                    <span title={page} style={{ fontSize: "12px", color: T.soft, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{page}</span>
                   </a>
                   <span style={{ justifySelf: "start", padding: "3px 9px", borderRadius: "999px", background: pill.bg, color: pill.fg, fontSize: "12px", fontWeight: 600, whiteSpace: "nowrap" }}>{KIND_WORDS[r.kind]}</span>
                   <span style={{ fontSize: "13px", fontWeight: r.live ? 500 : 600, color: r.live ? T.ink : T.warnFg }}>{r.when}</span>
