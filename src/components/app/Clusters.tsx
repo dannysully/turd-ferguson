@@ -16,6 +16,7 @@ import { type Range, comparisonRange, daysIn, formatDay } from "@/lib/tracking/f
 import { type KeywordCheck, draftPrompts } from "@/lib/tracking/add-cluster";
 import { ANGLES, BRANDED_CHIP, BRANDED_NOTE, PROMPTS_PER_CLUSTER, type Subject, namesBrandIn, refuseEdit } from "@/lib/tracking/limits";
 import type { Compare, OverviewData } from "@/lib/tracking/overview-data";
+import { prefillCard } from "@/lib/tracking/order-keyword";
 import { KEYWORD_FIXED_NOTE } from "@/lib/tracking/rekey";
 import { partialRunNote } from "@/lib/tracking/run-note";
 import { BULK_ID, type BulkCount } from "@/lib/tracking/stop";
@@ -85,6 +86,7 @@ export default function Clusters({
   adding = null,
   rekey = null,
   redraft = null,
+  typed = null,
   asked = null,
   askSent = false,
   packPrice = "",
@@ -113,6 +115,8 @@ export default function Clusters({
   rekey?: Rekeying | null;
   /** R179: the card whose prompt inputs open with fresh drafts from its keyword. */
   redraft?: string | null;
+  /** R180: the keyword typed at checkout on an order with no scan, prefilled on the first keywordless card. */
+  typed?: string | null;
   /** The /ask confirmation or refusal, built by the page from the 303's one word. */
   asked?: string | null;
   /** Whether that line says the ask went (the board's dark pill) or not. */
@@ -125,6 +129,7 @@ export default function Clusters({
   const partial = partialRunNote(data.lastRun, range, today);
   const cards = clusterCards({ clusters: data.clusters ?? [], questions: data.questions, keywords: data.keywords, answers: data.answers, serp: data.serp, range, before, today, engines });
   const shown = filterClusters(cards, filter, q);
+  const prefill = prefillCard(cards.filter((c) => c.stoppedOn === null), typed);
   // The board opens on the first cluster; `?open=` with no id closes them all.
   const openId = open ?? cards[0]?.id ?? null;
   const base: Record<string, string> = { from: range.from, to: range.to, ...(compareMode === "prev" ? {} : { compare: compareMode }) };
@@ -258,7 +263,7 @@ export default function Clusters({
           <span style={{ ...HEAD, textAlign: "right" }}>{since ? `Position, vs ${since}` : "Position"}</span>
         </div>
         {shown.map((c) => (
-          <ClusterRow key={c.id} c={c} brand={brand} subject={subject} open={c.id === openId} toggle={href({ open: c.id === openId ? "" : c.id })} since={since} act={act} refill={toast?.done === "stopped" && toast.kind === "prompt" ? toast.id : null} rekey={rekey?.card === c.id ? rekey : null} redraft={redraft === c.id} rekeyed={toast?.done === "rekeyed" && toast.id === c.id} openHref={`/app/${encodeURIComponent(slug)}/clusters/${encodeURIComponent(c.id)}?${new URLSearchParams(base)}`} />
+          <ClusterRow key={c.id} c={c} brand={brand} subject={subject} open={c.id === openId} toggle={href({ open: c.id === openId ? "" : c.id })} since={since} act={act} refill={toast?.done === "stopped" && toast.kind === "prompt" ? toast.id : null} rekey={rekey?.card === c.id ? rekey : null} redraft={redraft === c.id} rekeyed={toast?.done === "rekeyed" && toast.id === c.id} typed={prefill === c.id ? typed : null} openHref={`/app/${encodeURIComponent(slug)}/clusters/${encodeURIComponent(c.id)}?${new URLSearchParams(base)}`} />
         ))}
         {shown.length === 0 ? (
           <div style={{ padding: "32px 24px", borderTop: `1px solid ${T.line}`, fontSize: "14px", color: T.soft }}>
@@ -619,6 +624,7 @@ function PendingEditor({
   rekey = null,
   redraft = false,
   rekeyed = false,
+  typed = null,
 }: {
   c: ClusterCard;
   kw: string;
@@ -628,6 +634,7 @@ function PendingEditor({
   rekey?: Rekeying | null;
   redraft?: boolean;
   rekeyed?: boolean;
+  typed?: string | null;
 }) {
   const formId = `edit-${c.id}`;
   const live = c.prompts.filter((p) => p.stoppedOn === null);
@@ -669,13 +676,13 @@ function PendingEditor({
           {c.keyword ? "Change keyword" : "Add its keyword"}
         </label>
         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-          <input id={`rk-kw-${c.id}`} name="keyword" defaultValue={rekey?.kw || (c.keyword ?? "")} required maxLength={ADMIN_LIMITS.question} placeholder="e.g. accounting software for dentists" style={{ flex: "1 1 240px", minWidth: 0, height: "44px", boxSizing: "border-box", padding: "0 12px", border: `1px solid ${T.line}`, borderRadius: "10px", fontFamily: "inherit", fontSize: "14px", color: T.ink, background: T.surface }} />
+          <input id={`rk-kw-${c.id}`} name="keyword" defaultValue={rekey?.kw || (c.keyword ?? typed ?? "")} required maxLength={ADMIN_LIMITS.question} placeholder="e.g. accounting software for dentists" style={{ flex: "1 1 240px", minWidth: 0, height: "44px", boxSizing: "border-box", padding: "0 12px", border: `1px solid ${T.line}`, borderRadius: "10px", fontFamily: "inherit", fontSize: "14px", color: T.ink, background: T.surface }} />
           <SubmitButton busy="Checking..." style={{ height: "44px", padding: "0 16px", border: `1px solid ${T.ink}`, borderRadius: "10px", background: T.surface, color: T.ink, fontFamily: "inherit", fontSize: "13px", fontWeight: 600 }}>
             Check keyword
           </SubmitButton>
         </div>
         <p role={ck ? "status" : undefined} style={{ margin: 0, fontSize: "13px", lineHeight: 1.5, color: ck ? (ck.ok ? T.goodFg : T.badFg) : T.soft }}>
-          {ck ? ck.message : "Until the first check you can change it. We check it has Google search volume and a buying intent; the prompts stay as they are."}
+          {ck ? ck.message : typed && !c.keyword ? "This is the keyword you gave at checkout. Check it, or type another; we check it has Google search volume and a buying intent." : "Until the first check you can change it. We check it has Google search volume and a buying intent; the prompts stay as they are."}
         </p>
       </form>
       {ck?.ok && rekey?.sig ? (
@@ -777,6 +784,7 @@ function ClusterRow({
   rekey = null,
   redraft = false,
   rekeyed = false,
+  typed = null,
   openHref,
 }: {
   c: ClusterCard;
@@ -790,6 +798,7 @@ function ClusterRow({
   rekey?: Rekeying | null;
   redraft?: boolean;
   rekeyed?: boolean;
+  typed?: string | null;
   openHref: string;
 }) {
   const pending = c.status === "pending";
@@ -851,7 +860,7 @@ function ClusterRow({
       </Link>
 
       {open && pending && act && !stopped ? (
-        <PendingEditor c={c} kw={kw} lead={lead} act={act} subject={subject} rekey={rekey} redraft={redraft} rekeyed={rekeyed} />
+        <PendingEditor c={c} kw={kw} lead={lead} act={act} subject={subject} rekey={rekey} redraft={redraft} rekeyed={rekeyed} typed={typed} />
       ) : open ? (
         <div style={{ display: "flex", flexDirection: "column", gap: "14px", padding: "4px 24px 22px" }}>
           <div className="app-cl-body" style={{ display: "flex", alignItems: "center" }}>

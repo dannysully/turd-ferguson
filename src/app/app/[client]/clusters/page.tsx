@@ -51,7 +51,7 @@ export default async function ClientClusters({
   const today = repo.today();
   const sp = await searchParams;
   const { range, compare } = rangeFrom(sp, today);
-  const [data, upgrade] = await Promise.all([repo.loadOverview(client.id, range, compare), repo.upgradeContext(client.id, email, today)]);
+  const [data, upgrade, typed] = await Promise.all([repo.loadOverview(client.id, range, compare), repo.upgradeContext(client.id, email, today), repo.orderKeyword(client.id)]);
   const one = (k: string) => (typeof sp[k] === "string" ? (sp[k] as string) : null);
   const f = one("filter");
   const done = one("done");
@@ -102,6 +102,7 @@ export default async function ClientClusters({
           toast={toast}
           adding={adding}
           rekey={rekey}
+          typed={typed}
           redraft={redraft}
           asked={asked}
           askSent={ask === "sent"}

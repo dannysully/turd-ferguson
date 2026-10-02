@@ -15,7 +15,8 @@ import type { PlacementRow } from "./placement-figures.ts";
 import { urlKey } from "./placements.ts";
 import { loadPlacements } from "./placements-data.ts";
 import { type SettingsData, loadSettings } from "./settings-data.ts";
-import { loadSetupConfirmed } from "./setup-data.ts";
+import { orderKeyword } from "./order-keyword.ts";
+import { loadOrderKeyword, loadSetupConfirmed } from "./setup-data.ts";
 import { type UpgradeContext, loadUpgradeContext } from "./upgrade-context.ts";
 import { type ClusterNote, type Compare, type OverviewData, loadClusterNotes, loadLatestAnswers, loadOverview } from "./overview-data.ts";
 
@@ -49,9 +50,11 @@ export interface TrackingRepo {
   linkState(token: string): Promise<LinkState | null>;
   /** Whether the client's setup is confirmed (R166); null when the read failed. */
   setupConfirmed(clientId: string): Promise<boolean | null>;
+  /** The keyword typed at checkout on an order with no scan behind it (R180); null otherwise or on a failed read. */
+  orderKeyword(clientId: string): Promise<string | null>;
 }
 
-const supabaseRepo: TrackingRepo = { sessionEmail, clientsFor, linkState: loadLinkState, setupConfirmed: loadSetupConfirmed, loadOverview, latestAnswers: loadLatestAnswers, clusterNotes: loadClusterNotes, upgradeContext: loadUpgradeContext, placements: loadPlacements, settings: loadSettings, today: () => trackingDay() };
+const supabaseRepo: TrackingRepo = { sessionEmail, clientsFor, linkState: loadLinkState, setupConfirmed: loadSetupConfirmed, orderKeyword: loadOrderKeyword, loadOverview, latestAnswers: loadLatestAnswers, clusterNotes: loadClusterNotes, upgradeContext: loadUpgradeContext, placements: loadPlacements, settings: loadSettings, today: () => trackingDay() };
 
 /**
  * The fixture as served, and as R168's writes leave it. On globalThis, because
@@ -149,6 +152,10 @@ const fixtureRepo: TrackingRepo = {
   },
   async setupConfirmed() {
     return store().setupConfirmed;
+  },
+  async orderKeyword(clientId) {
+    const f = fixture();
+    return clientId === f.client.id ? orderKeyword(f.order) : null;
   },
 };
 

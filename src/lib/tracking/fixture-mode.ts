@@ -1,6 +1,7 @@
 import { brandKey, subjectKeys } from "../scan/brand-name.ts";
 import { addDays, type Day } from "./figures.ts";
 import { PROMPTS_PER_CLUSTER } from "./limits.ts";
+import type { OrderPick } from "./order-keyword.ts";
 import type { ClusterNote, OverviewData } from "./overview-data.ts";
 import type { PlacementRow } from "./placement-figures.ts";
 
@@ -37,6 +38,8 @@ export type Fixture = {
   /** R142 (BRIEF-4 P2): the names we match, and the team - owner, editor, viewer and one removed. */
   aliases: string[];
   members: FixtureMember[];
+  /** R180: the newest order's typed keyword and scan, as orders stores them; only the signup-typed state has one. */
+  order?: OrderPick | null;
 };
 
 export type FixtureMember = { email: string; name: string | null; role: string; last_login_at: string | null; removed_at?: string | null };
@@ -62,7 +65,7 @@ export function fixtureSignedOut(env: Record<string, string | undefined> = proce
  * so its setup is still to do; every other state is a client already set up.
  */
 export function fixtureSetupConfirmed(env: Record<string, string | undefined> = process.env): boolean {
-  return env.TRACKING_FIXTURE_STATE !== "signup";
+  return env.TRACKING_FIXTURE_STATE !== "signup" && env.TRACKING_FIXTURE_STATE !== "signup-typed";
 }
 
 export function fixtureUnreadable(env: Record<string, string | undefined> = process.env): void {
@@ -75,13 +78,24 @@ export function fixtureUnreadable(env: Record<string, string | undefined> = proc
  * "Ungrouped prompts" state. Placements hang off clusters, so they go too.
  */
 /** Every TRACKING_FIXTURE_STATE, unset being `default`. Anything else serves the default. */
-export const FIXTURE_STATES = ["default", "signup", "new", "partial", "failed", "unreadable", "stopped", "ungrouped", "pilot-mixed"] as const;
+export const FIXTURE_STATES = ["default", "signup", "signup-typed", "new", "partial", "failed", "unreadable", "stopped", "ungrouped", "pilot-mixed"] as const;
+
+/**
+ * R180 (2 Oct 2026): `signup-typed` is the webhook's client from an order with
+ * no scan behind it (signup.ts clientFromOrder): one "Needs a keyword" cluster,
+ * no prompts, and the keyword the buyer typed at checkout kept on the order.
+ */
+export const FIXTURE_ORDER_KEYWORD = "invoicing app for freelancers";
 
 export function fixtureState(f: Fixture, env: Record<string, string | undefined> = process.env): Fixture {
   const as = fixtureAs(f, env);
   if (env.TRACKING_FIXTURE_STATE === "pilot-mixed") return pilotMixed(as);
   if (env.TRACKING_FIXTURE_STATE === "new") return dayZero(as);
   if (env.TRACKING_FIXTURE_STATE === "signup") return signupNoKeyword(dayZero(as));
+  if (env.TRACKING_FIXTURE_STATE === "signup-typed") {
+    const s = signupNoKeyword(dayZero(as));
+    return { ...s, order: { keyword: FIXTURE_ORDER_KEYWORD, scan_token: null }, data: { ...s.data, questions: [] } };
+  }
   if (env.TRACKING_FIXTURE_STATE === "partial") return failedReads(as, "partial");
   if (env.TRACKING_FIXTURE_STATE === "failed") return failedReads(as, "failed");
   if (env.TRACKING_FIXTURE_STATE === "stopped") return stoppedPrompt(as);

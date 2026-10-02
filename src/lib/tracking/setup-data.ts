@@ -2,6 +2,7 @@ import "server-only";
 
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
+import { type OrderPick, orderKeyword } from "./order-keyword.ts";
 import { SETUP_CONFIRMED_EVENT } from "./setup-landing.ts";
 
 /**
@@ -21,4 +22,23 @@ export async function loadSetupConfirmed(clientId: string): Promise<boolean | nu
     return null;
   }
   return (data ?? []).length > 0;
+}
+
+/**
+ * R180: the typed checkout keyword of this client's newest order, when no scan
+ * was behind it (order-keyword.ts). A read only; null when there is none or the
+ * read failed, so the field simply opens empty as before.
+ */
+export async function loadOrderKeyword(clientId: string): Promise<string | null> {
+  const { data, error } = await supabaseAdmin()
+    .from("orders")
+    .select("keyword, scan_token")
+    .eq("client_domain_id", clientId)
+    .order("created_at", { ascending: false })
+    .limit(1);
+  if (error) {
+    console.warn(`[app] could not read the order keyword: ${error.message}`);
+    return null;
+  }
+  return orderKeyword((data ?? [])[0] as OrderPick | undefined);
 }

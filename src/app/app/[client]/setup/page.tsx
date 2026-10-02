@@ -12,6 +12,7 @@ import { keywordForm } from "@/lib/scan/dataforseo-request";
 import { MARKETS, isMarket } from "@/lib/scan/domain";
 import { ADMIN_LIMITS } from "@/lib/tracking/decide";
 import { verdictFromQuery } from "@/lib/tracking/add-cluster";
+import { prefillCard } from "@/lib/tracking/order-keyword";
 import { loginHref } from "@/lib/tracking/next-path";
 import { rangeFrom } from "@/lib/tracking/overview-data";
 import { placedTier } from "@/lib/tracking/placement-figures";
@@ -71,8 +72,10 @@ export default async function ClientSetup({
   const tier = (client.tier as TierKey) ?? "tracked";
   const today = repo.today();
   const { range, compare } = rangeFrom({}, today);
-  const [data, confirmed] = await Promise.all([repo.loadOverview(client.id, range, compare), repo.setupConfirmed(client.id)]);
+  const [data, confirmed, typed] = await Promise.all([repo.loadOverview(client.id, range, compare), repo.setupConfirmed(client.id), repo.orderKeyword(client.id)]);
   const cards = setupCards(data);
+  // R180: the keyword typed at checkout, with no scan behind the order, prefills the first keywordless card's field.
+  const prefill = prefillCard(cards, typed);
   const canWrite = refuseRole(client.role) === null;
   const failed = sp.confirm === "failed";
   // Part 5: the check's 303 names its card; a card that is not one of these shows nothing.
@@ -138,7 +141,7 @@ export default async function ClientSetup({
                     {c.keyword === null ? "Got a keyword in mind?" : "Its keyword"}
                   </label>
                   <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                    <input id={`setup-kw-${i}`} name="keyword" defaultValue={at?.id === c.id && kw ? kw : (c.keyword ?? "")} required maxLength={ADMIN_LIMITS.question} placeholder="e.g. accounting software for dentists" style={KW_INPUT} />
+                    <input id={`setup-kw-${i}`} name="keyword" defaultValue={at?.id === c.id && kw ? kw : (c.keyword ?? (prefill === c.id ? typed! : ""))} required maxLength={ADMIN_LIMITS.question} placeholder="e.g. accounting software for dentists" style={KW_INPUT} />
                     <SubmitButton busy="Checking..." style={CHECK_BUTTON}>
                       Check keyword
                     </SubmitButton>
@@ -150,6 +153,8 @@ export default async function ClientSetup({
                         : check.message
                       : at?.id === c.id && rekeyLine
                         ? rekeyLine
+                        : prefill === c.id
+                        ? "This is the keyword you gave at checkout. Check it, or type another; we check it has Google search volume and a buying intent."
                         : "We check it has Google search volume and a buying intent."}
                   </p>
                 </form>
