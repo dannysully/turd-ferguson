@@ -9,6 +9,7 @@ import {
   firstPromptDay,
   hiddenCtas,
   hiddenSince,
+  hiddenUntil,
   pickPrompt,
   promptCopy,
   triggered,
@@ -96,6 +97,13 @@ test("hidden stays hidden for 30 days for that member", () => {
   const hidden = hiddenCtas(rows, "2026-09-30");
   assert.deepEqual([...hidden], ["everywhere"]);
   assert.equal(pickPrompt(all({ hidden })), "cited");
+});
+
+test("the toast's last hidden day is the last day hiddenCtas still counts the row (DS29)", () => {
+  const row = [{ cta: "cited", action: "hidden", created_at: "2026-10-02T23:59:00Z" }];
+  assert.equal(hiddenUntil("2026-10-02"), "2026-11-01");
+  assert.deepEqual([...hiddenCtas(row, hiddenUntil("2026-10-02"))], ["cited"]);
+  assert.deepEqual([...hiddenCtas([{ ...row[0], created_at: "2026-10-02T00:00:00Z" }], "2026-11-02")], []);
 });
 
 test("the board's words on its three prompts", () => {

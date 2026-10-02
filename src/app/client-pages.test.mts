@@ -76,13 +76,16 @@ const KEYS: Record<string, Record<string, string>> = {
     ask: 'ask === "sent"',
     n: "n > 0 && n <= ASK_ITEMS_MAX",
     of: '(of === "prompts" || of === "keywords")',
-    to: 'one("to") === "agency"',
+    // DS29, 2 Oct 2026: the ask's recipient was `to`, which overwrote the range's `to` on a sent ask from Clusters; now `via`.
+    via: 'one("via") === "agency"',
     open: "open={one(\"open\")}", // matched by c.id === openId in Clusters.tsx, nothing is echoed
     q: 'clusterSearch(one("q"))',
     // R179, 2 Oct 2026: Change keyword on a pending card. `rk` is the check route's 303 naming the card (drawn only on
     // the card whose id matches, its verdict rebuilt by verdictFromQuery); `redraft` names the card whose inputs take drafts.
     rk: '(one("rk") ?? "").slice(0, 64)',
     redraft: '(one("redraft") ?? "").slice(0, 64)',
+    // DS29, 2 Oct 2026 (R173 pass 2): the hide route's 303 after a recorded "Hide for 30 days"; a flag, nothing echoed.
+    hid: 'one("hid") === "1" && !ask',
   },
   "/clusters/[cluster]": {
     prompt: "promptIndex(sp.prompt, detail.card.prompts.length)",
@@ -109,7 +112,7 @@ const KEYS: Record<string, Record<string, string>> = {
   "/reports": {},
   "/settings": {
     ask: 'sp.ask === "sent"',
-    to: 'sp.to === "agency"',
+    via: 'sp.via === "agency"', // DS29, 2 Oct 2026: renamed from `to` with Clusters' (the range's key)
     team: "teamToast(sp.team, sp.who,", // teamToast answers only invited, removed, role or refused
     who: "teamToast(sp.team, sp.who,", // readEmail: trimmed, format-checked, at most EMAIL_MAX
   },

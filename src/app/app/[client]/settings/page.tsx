@@ -66,7 +66,7 @@ export default async function ClientSettings({ params, searchParams }: { params:
           owner={client.role === "owner"}
           toast={
             sp.ask === "sent"
-              ? askToast(sp.to === "agency" ? "your account contact" : "nomada digital", email)
+              ? askToast(sp.via === "agency" ? "your account contact" : "nomada digital", email)
               : sp.ask === "refused"
                 ? "That ask did not send. Try again later."
                 : teamToast(sp.team, sp.who, settings.members.find((m) => m.email === sp.who)?.role ?? null)

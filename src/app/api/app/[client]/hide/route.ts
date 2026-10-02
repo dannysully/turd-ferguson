@@ -28,16 +28,22 @@ export async function POST(req: Request, ctx: { params: Promise<{ client: string
   const form = await req.formData().catch(() => null);
   const cta = readHideCta(form?.get("cta"));
   const view = readKept((k) => new URL(req.url).searchParams.get(k), APP_LIMITS.search);
-  const q = new URLSearchParams({ ...view, ...(cta === "mentioned" ? { filter: "never" } : {}) }).toString();
-  const back = NextResponse.redirect(new URL(`/app/${slug}/clusters${q ? `?${q}` : ""}`, req.url), 303);
-  if (fixtureMode() || !cta) return back;
+  // DS29: `hid=1` draws "Hidden for 30 days" on the way back - only once the row is recorded (the fixture records nothing and says so anyway).
+  const to = (hid: boolean) => {
+    const q = new URLSearchParams({ ...view, ...(cta === "mentioned" ? { filter: "never" } : {}), ...(hid ? { hid: "1" } : {}) }).toString();
+    return NextResponse.redirect(new URL(`/app/${slug}/clusters${q ? `?${q}` : ""}`, req.url), 303);
+  };
+  const back = to(false);
+  if (!cta) return back;
+  if (fixtureMode()) return to(true);
 
   const email = await sessionEmail();
   if (!email) return NextResponse.redirect(new URL("/app/login", req.url), 303);
   const client = (await clientsFor(email)).find((c) => c.slug === slug);
   if (!client) return NextResponse.json({ error: "Not found." }, { status: 404 });
 
-  if (!(await recordHidden(supabaseAdmin(), { clientId: client.id, email, cta }))) console.warn("[app] hide not recorded");
+  const hid = await recordHidden(supabaseAdmin(), { clientId: client.id, email, cta });
+  if (!hid) console.warn("[app] hide not recorded");
   await recordUsage(supabaseAdmin(), { clientId: client.id, email, event: "cta_hide", path: null, props: { cta }, today: trackingDay() });
-  return back;
+  return to(hid);
 }

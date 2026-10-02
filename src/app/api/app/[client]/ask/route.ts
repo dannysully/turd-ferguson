@@ -23,7 +23,8 @@ export const dynamic = "force-dynamic";
  * Clusters page with `ask=sent|refused` and, on a send, the toast's recipient
  * word and the count sent with it. The page's range, filter and search ride
  * in the action's query and come back too, the toast's keys winning (DS16,
- * 2 Oct 2026); Settings' return is unchanged.
+ * 2 Oct 2026); Settings' return is unchanged. The recipient word is `via`, not
+ * `to`, which is the range's end and was overwritten by it (DS29, 2 Oct 2026).
  */
 export async function POST(req: Request, ctx: { params: Promise<{ client: string }> }) {
   const { client: slug } = await ctx.params;
@@ -81,7 +82,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ client: string
     const mail = about === "aliases" ? aliasAskMail({ brand, domain: client.domain, member: email, names, mode }) : billingAskMail({ brand, domain: client.domain, member: email, mode });
     if (!(await sendAsk({ agencyContact: recipient.to, replyTo: email, ...mail }))) return done("refused");
     if (!(await recordAsk(db, { clientId: client.id, email, cta: "cluster", trigger: { about } }))) console.warn("[app] ask sent but not recorded");
-    return done("sent", { to: recipient.to ? "agency" : "us" });
+    return done("sent", { via: recipient.to ? "agency" : "us" });
   }
   let items: string[] = [];
   if (cta) {
@@ -105,5 +106,5 @@ export async function POST(req: Request, ctx: { params: Promise<{ client: string
   if (!recorded) console.warn("[app] ask sent but not recorded");
   if (cta) await recordUsage(db, { clientId: client.id, email, event: "cta_ask", path: null, props: { cta }, today });
   // The toast's words are rebuilt on the page (askToast) from these words, never passed as text.
-  return done("sent", { to: recipient.to ? "agency" : "us", ...(cta ? { n: String(items.length), of: askItemWord(cta, 2) } : {}) });
+  return done("sent", { via: recipient.to ? "agency" : "us", ...(cta ? { n: String(items.length), of: askItemWord(cta, 2) } : {}) });
 }

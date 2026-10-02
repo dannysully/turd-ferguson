@@ -67,6 +67,9 @@ export const firstPromptDay = (startedOn: string) => addDays(startedOn, QUIET_DA
 /** The earliest `created_at` a `hidden` row still counts from. */
 export const hiddenSince = (today: string) => `${addDays(today, -HIDE_DAYS)}T00:00:00Z`;
 
+/** DS29: the last day a prompt hidden today stays hidden - hiddenCtas still counts today's row on that day, not the next. */
+export const hiddenUntil = (today: string) => addDays(today, HIDE_DAYS);
+
 /** The ctas a member hid within HIDE_DAYS of today, from their cta_events rows. */
 export function hiddenCtas(rows: { cta: string; action: string; created_at: string }[], today: string): Set<PromptCta> {
   const since = hiddenSince(today);

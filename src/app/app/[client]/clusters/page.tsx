@@ -12,11 +12,13 @@ import { keywordForm } from "@/lib/scan/dataforseo-request";
 import { verdictFromQuery } from "@/lib/tracking/add-cluster";
 import { ASK_ITEMS_MAX, askToast } from "@/lib/tracking/ask";
 import { clusterSearch } from "@/lib/tracking/cluster-figures";
+import { formatDay } from "@/lib/tracking/figures";
 import { CLUSTER_BASE } from "@/lib/tracking/limits";
 import { rangeFrom } from "@/lib/tracking/overview-data";
 import { placedTier } from "@/lib/tracking/placement-figures";
 import { trackingRepo } from "@/lib/tracking/repo";
 import { BULK_ID, BULK_MAX, refuseRole } from "@/lib/tracking/stop";
+import { HIDE_DAYS, hiddenUntil } from "@/lib/tracking/upgrade-prompts";
 
 export const dynamic = "force-dynamic";
 
@@ -78,7 +80,9 @@ export default async function ClientClusters({
   const of = one("of");
   const attached = Number.isInteger(n) && n > 0 && n <= ASK_ITEMS_MAX && (of === "prompts" || of === "keywords") ? `${n} ${n === 1 ? of.slice(0, -1) : of}` : undefined;
   const packPrice = trackingPackPrice(client.market);
-  const asked = ask === "sent" ? askToast(one("to") === "agency" ? "your account contact" : "nomada digital", email, attached) : ask === "refused" ? "That ask did not send. Try again later." : null;
+  // DS29: "Hide for 30 days" says what it did and for how long, in the same done pill as a sent ask.
+  const hid = one("hid") === "1" && !ask;
+  const asked = ask === "sent" ? askToast(one("via") === "agency" ? "your account contact" : "nomada digital", email, attached) : ask === "refused" ? "That ask did not send. Try again later." : hid ? `Hidden for ${HIDE_DAYS} days, until ${formatDay(hiddenUntil(today))}. Only you stop seeing it.` : null;
 
   return (
     <div className="app-shell" style={{ display: "flex", flexWrap: "wrap", minHeight: "100vh", color: T.ink }}>
@@ -105,7 +109,7 @@ export default async function ClientClusters({
           typed={typed}
           redraft={redraft}
           asked={asked}
-          askSent={ask === "sent"}
+          askSent={ask === "sent" || hid}
           packPrice={packPrice}
           upgrade={{ tier, mode: upgrade.mode, hidden: upgrade.hidden, startedOn: client.started_on ?? today, domain: client.domain }}
         />
