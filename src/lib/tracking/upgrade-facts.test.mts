@@ -72,7 +72,8 @@ test("off page 1: cluster keywords whose latest reading is #11 to #20, of the ke
     card("g", { position: 12, stoppedOn: "2026-09-20" }),
   ];
   // ids: what "Ask about these 2" sends - the off-page-1 keywords, in card order.
-  assert.deepEqual(offPageOneFacts(cards), { keywords: 2, of: 4, best: 11, worst: 14, ids: ["k-a", "k-b"] });
+  // of: 5 since DS51 (2 Oct 2026) - "e", read with no rank, counts as the overview's page-1 figure counts it.
+  assert.deepEqual(offPageOneFacts(cards), { keywords: 2, of: 5, best: 11, worst: 14, ids: ["k-a", "k-b"] });
   assert.deepEqual(offPageOneFacts([card("x", { position: 30 })]), { keywords: 0, of: 1, best: 0, worst: 0, ids: [] });
 });
 

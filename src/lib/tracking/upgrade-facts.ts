@@ -44,10 +44,14 @@ export function neverNamedFacts(p: {
   return { prompts: never.length, of: prompts.length, answers: never.reduce((n, q) => n + q.now.den, 0), hosts, ids: never.map((q) => q.id) };
 }
 
-/** alwayscited: cluster keywords whose latest reading is #11 to #20, of the cluster keywords read. */
+/**
+ * alwayscited: cluster keywords whose latest reading is #11 to #20, of the cluster keywords read.
+ * A keyword read with no rank counts in `of`, as it does in the overview's "Cluster keywords on
+ * page 1" (clusterSummary's page1), so the two say the same N (DS51, 2 Oct 2026).
+ */
 export function offPageOneFacts(cards: ClusterCard[]): NonNullable<Facts["offPageOne"]> {
-  const read = tracked(cards).filter((c) => c.keyword !== null && c.position !== null);
-  const offCards = read.filter((c) => (c.position as number) >= 11 && (c.position as number) <= 20);
+  const read = tracked(cards).filter((c) => c.keyword !== null);
+  const offCards = read.filter((c) => c.position !== null && c.position >= 11 && c.position <= 20);
   const off = offCards.map((c) => c.position as number);
   const ids = offCards.map((c) => c.keywordId).filter((id): id is string => id !== null);
   return { keywords: off.length, of: read.length, best: off.length ? Math.min(...off) : 0, worst: off.length ? Math.max(...off) : 0, ids };
