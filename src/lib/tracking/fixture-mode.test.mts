@@ -196,3 +196,11 @@ test("R169: TRACKING_FIXTURE_STATE=pilot-mixed is one pending cluster and five l
   assert.deepEqual([m.placements, m.clusterNotes, m.data.serp, m.data.notes], [[], [], [], []]);
   assert.ok(Object.keys(m.texts).every((k) => !branded.has(k.split(" ")[0]!)), "no answer text that predates the branded wording");
 });
+
+test("DS19: TRACKING_FIXTURE_STATE=uncited keeps every reading and cites no page", () => {
+  assert.ok(FIXTURE_STATES.includes("uncited"));
+  const u = fixtureState(fx, { TRACKING_FIXTURE_STATE: "uncited" });
+  assert.ok(fx.data.answers.some((a) => a.citations.length > 0), "the default cites pages");
+  assert.ok(u.data.answers.every((a) => a.citations.length === 0));
+  assert.deepEqual(u.data.answers.map((a) => [a.question_id, a.engine, a.run_date, a.named]), fx.data.answers.map((a) => [a.question_id, a.engine, a.run_date, a.named]));
+});

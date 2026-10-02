@@ -77,8 +77,13 @@ export function fixtureUnreadable(env: Record<string, string | undefined> = proc
  * client with no cluster rows and no prompt in a cluster - the Overview's
  * "Ungrouped prompts" state. Placements hang off clusters, so they go too.
  */
+/**
+ * DS19 (2 Oct 2026): `TRACKING_FIXTURE_STATE=uncited` keeps every reading but
+ * no answer cites a page - an engine answering without linking anything - so
+ * the Overview's empty "Pages the engines cite most" card can be swept.
+ */
 /** Every TRACKING_FIXTURE_STATE, unset being `default`. Anything else serves the default. */
-export const FIXTURE_STATES = ["default", "signup", "signup-typed", "new", "partial", "failed", "unreadable", "stopped", "ungrouped", "pilot-mixed"] as const;
+export const FIXTURE_STATES = ["default", "signup", "signup-typed", "new", "partial", "failed", "unreadable", "stopped", "ungrouped", "pilot-mixed", "uncited"] as const;
 
 /**
  * R180 (2 Oct 2026): `signup-typed` is the webhook's client from an order with
@@ -99,6 +104,7 @@ export function fixtureState(f: Fixture, env: Record<string, string | undefined>
   if (env.TRACKING_FIXTURE_STATE === "partial") return failedReads(as, "partial");
   if (env.TRACKING_FIXTURE_STATE === "failed") return failedReads(as, "failed");
   if (env.TRACKING_FIXTURE_STATE === "stopped") return stoppedPrompt(as);
+  if (env.TRACKING_FIXTURE_STATE === "uncited") return { ...as, data: { ...as.data, answers: as.data.answers.map((a) => ({ ...a, citations: [] })) } };
   if (env.TRACKING_FIXTURE_STATE !== "ungrouped") return as;
   return { ...as, placements: [], data: { ...as.data, clusters: [], questions: as.data.questions.map((q) => ({ ...q, cluster_id: null })) } };
 }
