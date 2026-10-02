@@ -158,6 +158,8 @@ export default function OneCluster({
           <p style={LEDE}>
             {`${c.prompts.length} prompt${c.prompts.length === 1 ? "" : "s"} asked every morning on ${WORDS[engines.length] ?? engines.length} engines${c.keyword === null ? ". We add its Google keyword for you" : ", and the keyword checked on Google"}. `}
             {pending ? "First check tomorrow at 06:00." : `Tracked since ${formatDay(c.started_on, true)}.`}
+            {/* DS64 (2 Oct 2026, R173 pass 7): Clusters marked a stop and this page did not; the same words as Clusters. */}
+            {c.stoppedOn !== null ? ` Stopped from ${formatDay(c.stoppedOn)}. Its history stays in your reports.` : null}
           </p>
           {/* R151 (1 Oct 2026): the list screens' partial note, one sentence in run-note.ts. */}
           {partial ? <p style={{ margin: 0, fontSize: "14px", lineHeight: 1.5, color: T.soft, maxWidth: "680px" }}>{partial}</p> : null}
@@ -253,6 +255,9 @@ export default function OneCluster({
                       {/* DS42 (2 Oct 2026): the prompt is cut at the row, as on Clusters, so hover reads it whole. */}
                       <span title={p.text} style={{ fontSize: "14px", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.text}</span>
                     </span>
+                    {p.stoppedOn !== null && c.stoppedOn === null ? (
+                      <span style={{ fontSize: "12px", color: T.soft, fontWeight: 600 }}>{`Stopped from ${formatDay(p.stoppedOn)}. Its history stays in your reports.`}</span>
+                    ) : (
                     <span style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                       {p.daysNamed.map((e) => (
                         <span key={e.engine} title={`${ENGINE_SPECS[e.engine as Engine].label}: named on ${e.days} of ${p.daysChecked} days`} style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
@@ -264,6 +269,7 @@ export default function OneCluster({
                       ))}
                       <span style={{ fontSize: "12px", color: T.soft }}>{p.daysChecked ? `days named, of ${p.daysChecked}` : "Not checked yet"}</span>
                     </span>
+                    )}
                   </span>
                   <span style={{ fontSize: "16px", fontWeight: 700, textAlign: "right", fontVariantNumeric: "tabular-nums" }} title={basisLine(p.now, "answers")}>
                     {pct(p.now)}
