@@ -75,3 +75,15 @@ export function setupCards(d: {
 
 /** Step 3's button: Danny's words on the placement tiers, a tracking plan's plainer ones. */
 export const confirmLabel = (placed: boolean) => (placed ? "Confirm - these are what you'll target" : "Confirm - start tracking these");
+
+/**
+ * R166 step 6: a client's setup state as /admin/tracking shows it. Confirmed
+ * names the day and who pressed Confirm, from the earliest setup_confirmed
+ * row; a client started before SETUP_SINCE was set up by hand and never
+ * passes through the page; anyone else is still waiting on the client.
+ */
+export function setupState(c: { started_on: string | null }, rows: readonly { created_at: string; member_email: string | null }[]): string {
+  const first = [...rows].sort((a, b) => a.created_at.localeCompare(b.created_at))[0];
+  if (first) return `setup confirmed ${first.created_at.slice(0, 10)}${first.member_email ? ` by ${first.member_email}` : ""}`;
+  return needsSetup(c) ? "setup not confirmed yet" : "set up by hand (before the setup page)";
+}

@@ -5,6 +5,7 @@ import { supabaseAdmin, supabaseConfigured } from "@/lib/supabase/admin";
 import { ADMIN_LIMITS, UPSELL_MODES, trackingDay } from "@/lib/tracking/decide";
 import { runIsStuck } from "@/lib/tracking/dispatch";
 import { PROMPTS_PER_CLUSTER, type Subject, namesBrandIn, trackingCounts } from "@/lib/tracking/limits";
+import { SETUP_CONFIRMED_EVENT, setupState } from "@/lib/tracking/setup-landing";
 
 import { ActionForm } from "./ActionForm";
 import { addTracked, createClientFromScan, editTracked, groupCluster, runNow, setMember, setUpsell, stopTracked } from "./actions";
@@ -63,6 +64,7 @@ export default async function TrackingAdmin() {
     { data: members, error: mErr },
     { data: accountRows, error: acErr },
     { data: clusters, error: clErr },
+    { data: setups, error: sErr },
   ] = await Promise.all([
     db.from("tracked_questions").select("id, client_domain_id, cluster_id, angle, text, source, added_on, stopped_on").in("client_domain_id", ids),
     db.from("tracked_keywords").select("id, client_domain_id, keyword, added_on, stopped_on").in("client_domain_id", ids),
@@ -80,6 +82,8 @@ export default async function TrackingAdmin() {
       .in("client_domain_id", ids)
       .is("stopped_on", null)
       .order("created_at", { ascending: true }),
+    // R166 step 6: who confirmed setup, and when.
+    db.from("dashboard_events").select("client_domain_id, created_at, member_email").in("client_domain_id", ids).eq("event", SETUP_CONFIRMED_EVENT),
   ]);
   if (qErr) throw new Error(`could not read tracked questions: ${qErr.message}`);
   if (kErr) throw new Error(`could not read tracked keywords: ${kErr.message}`);
@@ -87,6 +91,7 @@ export default async function TrackingAdmin() {
   if (mErr) throw new Error(`could not read dashboard members: ${mErr.message}`);
   if (acErr) throw new Error(`could not read accounts: ${acErr.message}`);
   if (clErr) throw new Error(`could not read clusters: ${clErr.message}`);
+  if (sErr) throw new Error(`could not read setup confirms: ${sErr.message}`);
 
   const of = (rows: Row[] | null, id: string, key = "client_domain_id") => (rows ?? []).filter((r) => r[key] === id);
 
@@ -131,7 +136,7 @@ export default async function TrackingAdmin() {
         return (
           <section key={id} style={{ border: `1px solid ${T.line}`, borderRadius: "10px", padding: "16px", marginBottom: "16px" }}>
             <h2 style={{ fontSize: "16px", margin: "0 0 4px" }}>
-              {c.domain as string} <span style={{ color: T.soft, fontWeight: 400 }}>/{c.slug as string} - {c.market as string} - {c.tier as string} - {c.status as string} - started {String(c.started_on ?? "-")}</span>
+              {c.domain as string} <span style={{ color: T.soft, fontWeight: 400 }}>/{c.slug as string} - {c.market as string} - {c.tier as string} - {c.status as string} - started {String(c.started_on ?? "-")} - {setupState({ started_on: (c.started_on as string | null) ?? null }, of(setups, id) as { created_at: string; member_email: string | null }[])}</span>
             </h2>
             <p style={{ margin: "0 0 8px", color: T.soft }}>
               Clusters allowed {c.cluster_limit as number} - prompts {n.prompts}/{n.promptLimit} ({n.checkedToday} live today) - keywords {n.keywords}/{n.keywordLimit} -today&apos;s run:{" "}

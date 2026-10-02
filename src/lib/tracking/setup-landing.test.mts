@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { SETUP_PROMPTS, SETUP_SINCE, confirmLabel, landingAfterAuth, needsSetup, setupCards, setupConfirmed, setupPath } from "./setup-landing.ts";
+import { SETUP_PROMPTS, SETUP_SINCE, confirmLabel, landingAfterAuth, needsSetup, setupCards, setupConfirmed, setupPath, setupState } from "./setup-landing.ts";
 
 test("only clients started since the setup page went live need setup", () => {
   assert.equal(SETUP_SINCE, "2026-10-02");
@@ -58,4 +58,16 @@ test("setup cards: one per live cluster, its keyword or null, five live prompts 
     ],
   );
   assert.equal(confirmLabel(true), "Confirm - these are what you'll target");
+});
+
+test("R166 step 6: the admin setup state names the first confirm, else why there is none", () => {
+  const rows = [
+    { created_at: "2026-10-04T09:00:00Z", member_email: "priya@tallyroo.com" },
+    { created_at: "2026-10-03T12:00:00Z", member_email: "sam@tallyroo.com" },
+  ];
+  assert.equal(setupState({ started_on: "2026-10-03" }, rows), "setup confirmed 2026-10-03 by sam@tallyroo.com");
+  assert.equal(setupState({ started_on: "2026-10-03" }, [{ created_at: "2026-10-03T12:00:00Z", member_email: null }]), "setup confirmed 2026-10-03");
+  assert.equal(setupState({ started_on: "2026-10-03" }, []), "setup not confirmed yet");
+  assert.equal(setupState({ started_on: "2026-09-20" }, []), "set up by hand (before the setup page)");
+  assert.equal(setupState({ started_on: null }, []), "set up by hand (before the setup page)");
 });
