@@ -217,6 +217,29 @@ const EXEMPT: Record<string, Exemption> = {
       },
     ]),
   ),
+  // DS21 (2 Oct 2026, R173 pass 2): Who is named's search form, the same
+  // hidden range and filters bar kind, re-read by the named page.
+  ...Object.fromEntries(
+    (
+      [
+        ["from", "rangeFrom(sp, today)"],
+        ["to", "rangeFrom(sp, today)"],
+        ["compare", "rangeFrom(sp, today)"],
+        ["cluster", '(data.clusters ?? []).some((c) => c.id === one("cluster"))'],
+        ["engine", 'engines.find((e) => e === one("engine"))'],
+      ] as const
+    ).map(([f, needs]) => [
+      `nm-${f}`,
+      {
+        why: [
+          `the Who is named search form's hidden ${f}, copied from the current URL so a search keeps it.`,
+          "type=hidden, which maxLength does not apply to and nobody types in. The page",
+          "re-validates it: rangeFrom for the range, this client's clusters, its tier's engines.",
+        ].join(" "),
+        holds: [{ file: "app/app/[client]/named/page.tsx", needs }],
+      },
+    ]),
+  ),
   // T6 part 3c (30 Sep 2026): step 2 of Add a cluster carries the checked
   // verdict as hidden fields. Nobody types in them; the cluster route clamps
   // each to ADMIN_LIMITS.question and refuses the lot unless the HMAC over

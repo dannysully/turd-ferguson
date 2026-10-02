@@ -94,6 +94,8 @@ const KEYS: Record<string, Record<string, string>> = {
     engine: 'engines.find((e) => e === one("engine"))',
     all: 'one("all") === "1"',
     open: "openKey(sp.open)",
+    // DS21, 2 Oct 2026 (R173 pass 2, "lists over 10 rows have search"): the brand search, cut as the Clusters search is.
+    q: 'clusterSearch(one("q"))',
   },
   "/cited": {
     cluster: '(data.clusters ?? []).some((c) => c.id === one("cluster"))',

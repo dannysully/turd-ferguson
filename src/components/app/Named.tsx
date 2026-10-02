@@ -1,6 +1,7 @@
 import Link from "@/components/app/AppLink";
 
 import EngineLogo from "@/components/EngineLogo";
+import { APP_LIMITS } from "@/config/contact";
 import { T } from "@/config/tokens";
 import { ENGINE_SPECS, type Engine } from "@/lib/scan/engines";
 import { clusterCards } from "@/lib/tracking/cluster-figures";
@@ -20,7 +21,8 @@ import { Chip } from "./Overview";
  * list at 18px. Every figure is named-figures.ts, which is the panel's own
  * brandBoard narrowed by the filters. Filters, "Show all" and the one-open
  * accordion are links (`?cluster=&engine=&all=1&open=`), with from/to/compare
- * kept, so the whole page works with JS off.
+ * kept, so the whole page works with JS off. DS21 (2 Oct 2026): `?q=`
+ * searches brand names, a GET form like Clusters'.
  */
 
 const pct = (r: Rate) => (r.pct === null ? "-" : `${r.pct}%`);
@@ -43,6 +45,7 @@ export default function Named({
   engine,
   all,
   open,
+  q,
 }: {
   brand: string;
   /** The client's site, to mark its own pages among those cited. */
@@ -59,6 +62,8 @@ export default function Named({
   engine: Engine | null;
   all: boolean;
   open: string | null;
+  /** DS21: the search, already cut to APP_LIMITS.search; matches the brand's name. */
+  q: string;
 }) {
   const before = comparisonRange(range, compareMode);
   const partial = partialRunNote(data.lastRun, range, today);
@@ -73,7 +78,9 @@ export default function Named({
   const text = new Map(data.questions.map((q) => [q.id, q.text]));
 
   const base: Record<string, string> = { from: range.from, to: range.to, ...(compareMode === "prev" ? {} : { compare: compareMode }) };
-  const state = { ...base, ...(picked ? { cluster: picked.id } : {}), ...(engine ? { engine } : {}), ...(all ? { all: "1" } : {}) };
+  const term = q.trim().toLowerCase();
+  const rows = term ? page.rows.filter((r) => r.name.toLowerCase().includes(term)) : page.rows;
+  const state = { ...base, ...(picked ? { cluster: picked.id } : {}), ...(engine ? { engine } : {}), ...(term ? { q } : {}), ...(all ? { all: "1" } : {}) };
   const href = (over: Record<string, string | null>) => {
     const q: Record<string, string> = { ...state };
     for (const [k, v] of Object.entries(over)) if (v === null) delete q[k];
@@ -82,10 +89,10 @@ export default function Named({
   };
   const clusterPath = (id: string) => `/app/${encodeURIComponent(slug)}/clusters/${encodeURIComponent(id)}`;
 
-  const shown = all ? page.rows : page.rows.slice(0, NAMED_TOP);
+  const shown = all ? rows : rows.slice(0, NAMED_TOP);
   const clustersCounted = picked ? 1 : cards.filter((c) => c.prompts.some((p) => p.now.den > 0)).length;
   const headline = page.answers
-    ? `${page.brands} brand${page.brands === 1 ? "" : "s"} named across ${page.answers.toLocaleString("en-GB")} answers${cards.length ? ` in ${clustersCounted} cluster${clustersCounted === 1 ? "" : "s"}` : ""}.`
+    ? `${term ? `${rows.length} of ${page.rows.length} brands match "${q.trim()}", named` : `${page.brands} brand${page.brands === 1 ? "" : "s"} named`} across ${page.answers.toLocaleString("en-GB")} answers${cards.length ? ` in ${clustersCounted} cluster${clustersCounted === 1 ? "" : "s"}` : ""}.`
     : null;
 
   return (
@@ -135,6 +142,21 @@ export default function Named({
             </Link>
           ))}
         </nav>
+        <form method="get" role="search" className="app-search" style={{ display: "flex", alignItems: "center", gap: "8px", width: "320px", maxWidth: "100%", height: "44px", boxSizing: "border-box", padding: "0 12px", border: `1px solid ${T.line}`, borderRadius: "12px", background: T.surface }}>
+          <input id="nm-from" type="hidden" name="from" value={range.from} />
+          <input id="nm-to" type="hidden" name="to" value={range.to} />
+          {compareMode === "prev" ? null : <input id="nm-compare" type="hidden" name="compare" value={compareMode} />}
+          {picked ? <input id="nm-cluster" type="hidden" name="cluster" value={picked.id} /> : null}
+          {engine ? <input id="nm-engine" type="hidden" name="engine" value={engine} /> : null}
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={T.soft} strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="7" />
+            <path d="M20 20l-4-4" />
+          </svg>
+          <label htmlFor="nm-search" className="sr-only">
+            Search brands
+          </label>
+          <input id="nm-search" name="q" defaultValue={q} maxLength={APP_LIMITS.search} placeholder="Search brands" style={{ flexGrow: 1, minWidth: 0, border: 0, outline: 0, fontFamily: "inherit", fontSize: "14px", color: T.ink, background: "transparent" }} />
+        </form>
       </div>
 
       <section aria-labelledby="nm-h" style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: "18px", overflow: "hidden" }}>
@@ -217,10 +239,11 @@ export default function Named({
                 );
               })}
             </ol>
-            {!all && page.rows.length > NAMED_TOP ? (
+            {!rows.length ? <p style={{ margin: 0, padding: "14px 24px 20px", borderTop: `1px solid ${T.line}`, fontSize: "14px", color: T.soft }}>{`No brand named in this range matches "${q.trim()}". Clear the search or try part of a name.`}</p> : null}
+            {!all && rows.length > NAMED_TOP ? (
               <div style={{ borderTop: `1px solid ${T.line}`, padding: "14px 24px" }}>
                 <Link href={href({ all: "1" })} style={{ fontSize: "14px", fontWeight: 600, color: T.accent, textDecoration: "none" }}>
-                  {`Show all ${page.rows.length}`}
+                  {`Show all ${rows.length}`}
                 </Link>
               </div>
             ) : null}
