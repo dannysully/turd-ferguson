@@ -1726,6 +1726,11 @@ html[data-motion="on"] .app-pending { animation: appPending 1.1s ease-in-out inf
 /* R104: the phone shell's top bar and tabs exist in the HTML at every width
    and show only below 860px, where the pinned sidebar goes. */
 .app-topbar, .app-tabs { display: none; }
+/* DS31 (2 Oct 2026, R173 pass 2): at 320 the bar's least width - lockup, client chip,
+   More, 16px each side - was 323, so every /app page scrolled 3px sideways. */
+@media (max-width: 340px) {
+  .app-topbar { padding: 0 12px !important; }
+}
 /* DS9: the skip link's target takes focus, as the site's main does, without a ring round the page. */
 .app-main:focus { outline: none; }
 @media (max-width: 1100px) {
