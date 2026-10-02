@@ -12,7 +12,7 @@ import { PACK_CLUSTERS, PACK_KEYWORDS, PACK_PROMPTS } from "@/config/pricing";
 import { T } from "@/config/tokens";
 import { ENGINE_SPECS, type Engine } from "@/lib/scan/engines";
 import { type ClusterCard, type ClusterFilter as Filter, clusterCards, daysOfLine, filterClusters, namedCount, neverCount, pendingBasis, searchPrompts } from "@/lib/tracking/cluster-figures";
-import { type Range, basis as basisLine, comparisonRange, daysIn, formatDay } from "@/lib/tracking/figures";
+import { type Range, addDays, basis as basisLine, comparisonRange, daysIn, formatDay } from "@/lib/tracking/figures";
 import { type KeywordCheck, draftPrompts } from "@/lib/tracking/add-cluster";
 import { ANGLES, BRANDED_CHIP, BRANDED_NOTE, PROMPTS_PER_CLUSTER, type Subject, namesBrandIn, refuseEdit } from "@/lib/tracking/limits";
 import type { Compare, OverviewData } from "@/lib/tracking/overview-data";
@@ -294,7 +294,7 @@ export default function Clusters({
         ) : null}
         {prompt && cta ? <UpgradePrompt copy={prompt} cta={cta} slug={slug} items={items} keep={keep} /> : null}
       </section>
-      {ungrouped.length ? <Ungrouped rows={searchPrompts(ungrouped, q)} all={ungrouped} term={q.trim()} act={act} subject={subject} targets={moveTargets(cards, data.questions)} clusters={cards.filter((c) => c.stoppedOn === null).length} /> : null}
+      {ungrouped.length ? <Ungrouped rows={searchPrompts(ungrouped, q)} all={ungrouped} term={q.trim()} act={act} subject={subject} targets={moveTargets(cards, data.questions)} clusters={cards.filter((c) => c.stoppedOn === null).length} today={today} /> : null}
       <p style={{ margin: 0, fontSize: "13px", lineHeight: 1.5, color: T.soft, maxWidth: "820px" }}>
         {/* DS72 (R173 pass 10, 2 Oct 2026): with no cluster read yet there is no number beside any engine to explain. */}
         {cards.some((c) => c.now.den > 0) ? `The number beside each engine is the days it named ${brand} for that prompt, out of the days checked. ` : ""}Stopping a prompt or a cluster keeps its history in your reports. A new prompt or cluster starts at the next daily check.
@@ -329,7 +329,7 @@ export function moveTargets(cards: readonly ClusterCard[], rows: readonly Prompt
     .map((c) => ({ id: c.id, label: c.keyword ?? c.name }));
 }
 
-function Ungrouped({ rows, all, term, act, subject, targets, clusters }: { rows: PromptRow[]; all: PromptRow[]; term: string; act: Act; subject: Subject | null; targets: Target[]; clusters: number }) {
+function Ungrouped({ rows, all, term, act, subject, targets, clusters, today }: { rows: PromptRow[]; all: PromptRow[]; term: string; act: Act; subject: Subject | null; targets: Target[]; clusters: number; today: string }) {
   // DS13: ticks and a bulk bar once two or more live rows can be changed together.
   const bulk = !!act && rows.filter((q) => q.stopped_on === null).length >= 2;
   // DS55: the page's search narrows this list too, and the heading counts the matches, as Who is named does.
@@ -368,6 +368,8 @@ function Ungrouped({ rows, all, term, act, subject, targets, clusters }: { rows:
                 {q.text}
                 {subject && namesBrandIn(q.text, subject) ? <BrandedChip /> : null}
                 {stopping ? <span style={{ fontSize: "12px", color: T.soft }}>Stops after today’s check</span> : null}
+                {/* DS76 (2 Oct 2026): a prompt added for tomorrow is listed here but not yet asked, which the Overview's count leaves out. */}
+                {!stopping && q.added_on > today ? <span style={{ fontSize: "12px", color: T.accent, fontWeight: 600 }}>{q.added_on === addDays(today, 1) ? "First check tomorrow at 06:00" : `First check ${formatDay(q.added_on)} at 06:00`}</span> : null}
               </span>
               {act && !stopping && targets.length ? <MoveForm act={act} id={q.id} text={q.text} targets={targets} /> : null}
               {act ? (
