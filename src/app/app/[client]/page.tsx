@@ -95,6 +95,7 @@ export default async function ClientDashboard({
           reportPath={`/api/app/${encodeURIComponent(slug)}/report`}
           clusterLimit={client.cluster_limit ?? CLUSTER_BASE}
           placements={placements}
+          canWrite={canWrite}
         />
       </div>
     </div>

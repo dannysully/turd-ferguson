@@ -130,7 +130,10 @@ export default function Overview({
   clusterLimit,
   reportPath,
   placements,
+  canWrite = true,
 }: {
+  /** DS75 (2 Oct 2026): owner or editor. A viewer cannot group prompts, so the ungrouped card sends them to Clusters to see them, not to group them. */
+  canWrite?: boolean;
   /** R97 part 5: the client's placements, on mentioned and above; the cluster chart's "Show placements" draws the live ones. Undefined draws no switch. */
   placements?: (PlacementRow & { cluster_id: string })[];
   /** R90 T8: the client's CSV route (api/app/[client]/report); none on /app/parity. */
@@ -397,7 +400,7 @@ export default function Overview({
           {live.length > shown.length ? `Showing ${shown.length} of ${live.length}. ` : null}
           {clustersPath ? (
             <>
-              {live.length > shown.length ? "See them all and group them into clusters on the " : "Group these into clusters on the "}
+              {canWrite ? (live.length > shown.length ? "See them all and group them into clusters on the " : "Group these into clusters on the ") : live.length > shown.length ? "See them all on the " : "See them on the "}
               <Link href={clustersPath} style={{ fontWeight: 600, color: T.accent, textDecoration: "none" }}>
                 Clusters
               </Link>
