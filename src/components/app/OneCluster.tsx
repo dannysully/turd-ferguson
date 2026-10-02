@@ -17,6 +17,7 @@ import { partialRunNote } from "@/lib/tracking/run-note";
 
 import ClusterChart from "./ClusterChart";
 import Fig from "./Fig";
+import { PagePath } from "./PagePath";
 import { Chip } from "./Overview";
 
 /**
@@ -480,7 +481,7 @@ function Answer({ tab, brand, day, today, unsure }: { tab: AnswerTab; brand: str
             <ul style={{ margin: 0, padding: 0, listStyle: "none" }}>
               {tab.pages.map((pg) => (
                 <li key={pg} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", padding: "10px 0", borderTop: `1px solid ${T.hair}` }}>
-                  <span style={{ fontSize: "14px", color: T.ink, minWidth: 0, overflowWrap: "anywhere" }}>{pg}</span>
+                  <span style={{ fontSize: "14px", color: T.ink, minWidth: 0, overflowWrap: "anywhere" }}><PagePath page={pg} /></span>
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={T.soft} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }}>
                     <path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" />
                   </svg>

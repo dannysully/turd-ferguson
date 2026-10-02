@@ -1,6 +1,7 @@
 import Link from "@/components/app/AppLink";
 
 import EngineLogo from "@/components/EngineLogo";
+import { PagePath } from "@/components/app/PagePath";
 import { CLOSE_WASH, D } from "@/components/home/dark";
 import { T } from "@/config/tokens";
 import { ENGINE_SPECS, type Engine } from "@/lib/scan/engines";
@@ -496,7 +497,7 @@ export default function Overview({
               {pages.map((p) => (
                 <li key={p.page} style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "center", padding: "12px 0", borderBottom: `1px solid ${T.hair}` }}>
                   <span style={{ display: "flex", flexDirection: "column", gap: "6px", minWidth: 0 }}>
-                    <span style={{ fontSize: "14px", fontWeight: 600, overflowWrap: "anywhere" }}>{p.page}</span>
+                    <span style={{ fontSize: "14px", fontWeight: 600, overflowWrap: "anywhere" }}><PagePath page={p.page} /></span>
                     <span style={{ display: "flex", gap: "4px", alignItems: "center" }}>
                       {p.engines.map((e) => (
                         <EngineLogo key={e} engine={e as Engine} size={14} title={ENGINE_SPECS[e as Engine]?.label ?? e} />

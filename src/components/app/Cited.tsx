@@ -1,6 +1,7 @@
 import Link from "@/components/app/AppLink";
 
 import EngineLogo from "@/components/EngineLogo";
+import { PagePath } from "@/components/app/PagePath";
 import { T } from "@/config/tokens";
 import { ENGINE_SPECS, type Engine } from "@/lib/scan/engines";
 import { clusterCards } from "@/lib/tracking/cluster-figures";
@@ -207,7 +208,7 @@ export default function Cited({
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={T.soft} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0, transform: isOpen ? "rotate(90deg)" : undefined }}>
                             <path d="M9 6l6 6-6 6" />
                           </svg>
-                          <span style={{ overflowWrap: "anywhere" }}>{p.page}</span>
+                          <span style={{ overflowWrap: "anywhere" }}><PagePath page={p.page} /></span>
                         </Link>
                         {p.yours ? <span style={{ ...TAG, background: T.surface, border: `1px solid ${T.washLine}`, color: T.accent }}>Your site</span> : null}
                         {placed ? (
