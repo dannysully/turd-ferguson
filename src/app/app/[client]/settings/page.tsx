@@ -59,6 +59,7 @@ export default async function ClientSettings({ params, searchParams }: { params:
           clusterLimit={clusterLimit}
           clustersInUse={inUse}
           startedOn={client.started_on}
+          today={today}
           aliases={settings.aliases}
           members={settings.members}
           email={email}

@@ -49,6 +49,7 @@ export default function Settings({
   clusterLimit,
   clustersInUse,
   startedOn,
+  today,
   aliases,
   members,
   email,
@@ -65,6 +66,8 @@ export default function Settings({
   clusterLimit: number;
   clustersInUse: number;
   startedOn: string | null;
+  /** repo.today(), so a first check still to come is not read as history (DS56). */
+  today: string;
   aliases: string[];
   members: Member[];
   /** The signed-in member, for "You". */
@@ -109,7 +112,8 @@ export default function Settings({
           {`${clusterLimit} clusters: ${clusterLimit * PROMPTS_PER_CLUSTER} prompts and ${clusterLimit * KEYWORDS_PER_CLUSTER} Google keywords, checked daily`}
         </Row>
         <Row label="Clusters in use">{`${clustersInUse} of ${clusterLimit}`}</Row>
-        <Row label="Tracking since">{startedOn ? formatDay(startedOn, true) : "Not started yet"}</Row>
+        {/* DS56 (2 Oct 2026, R173 pass 6): signup sets started_on to the first check, tomorrow, so "since" read a day still to come. */}
+        <Row label={startedOn && startedOn > today ? "Tracking from" : "Tracking since"}>{startedOn ? formatDay(startedOn, true) : "Not started yet"}</Row>
         <Row label="Next check">Tomorrow at 06:00</Row>
         <div style={{ ...ROW, flexDirection: "column", alignItems: "flex-start", gap: "10px" }}>
           <span style={{ color: T.soft }}>Names we match</span>
