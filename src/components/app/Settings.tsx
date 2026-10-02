@@ -193,7 +193,12 @@ export default function Settings({
               <span style={{ flexBasis: "100%", fontSize: "13px", color: T.soft }}>Editors can add and stop prompts; viewers can only read. We email them; they sign in with that address.</span>
             </form>
           </details>
-        ) : null}
+        ) : (
+          // DS30 (R173 pass 2, "editable where rules allow, else the screen says why"): editors and viewers saw no team controls and no reason.
+          <p style={{ margin: 0, borderTop: `1px solid ${T.line}`, padding: "14px 24px", fontSize: "13px", lineHeight: 1.5, color: T.soft }}>
+            Only owners can invite people, change a role or remove someone - ask one of them to make a change.
+          </p>
+        )}
       </section>
 
       {owner ? (
