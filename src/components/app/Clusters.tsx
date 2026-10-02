@@ -11,10 +11,10 @@ import { PROMPT_MIN } from "@/lib/tracking/slot";
 import { PACK_CLUSTERS, PACK_KEYWORDS, PACK_PROMPTS } from "@/config/pricing";
 import { T } from "@/config/tokens";
 import { ENGINE_SPECS, type Engine } from "@/lib/scan/engines";
-import { type ClusterCard, type ClusterFilter as Filter, clusterCards, filterClusters, namedCount, neverCount } from "@/lib/tracking/cluster-figures";
+import { type ClusterCard, type ClusterFilter as Filter, clusterCards, filterClusters, namedCount, neverCount, pendingBasis } from "@/lib/tracking/cluster-figures";
 import { type Range, comparisonRange, daysIn, formatDay } from "@/lib/tracking/figures";
 import { type KeywordCheck, draftPrompts } from "@/lib/tracking/add-cluster";
-import { ANGLES, BRANDED_CHIP, BRANDED_NOTE, PROMPTS_PER_CLUSTER, type Subject, namesBrandIn } from "@/lib/tracking/limits";
+import { ANGLES, BRANDED_CHIP, BRANDED_NOTE, PROMPTS_PER_CLUSTER, type Subject, namesBrandIn, refuseEdit } from "@/lib/tracking/limits";
 import type { Compare, OverviewData } from "@/lib/tracking/overview-data";
 import { partialRunNote } from "@/lib/tracking/run-note";
 
@@ -525,6 +525,11 @@ function Toast({ t, cards, ungrouped = [], act, dismiss }: { t: StopToast; cards
  * that has a reading. "Remove this cluster" is the stop form; a pending cluster
  * stopped today is never read. Two sibling forms, the Save button joined to its
  * form by `form=`, so neither nests and both post with JS off.
+ *
+ * DS3 (2 Oct 2026): a prompt moved in from ungrouped already has readings, so
+ * the route would refuse its edit. It shows as text with refuseEdit's reason and
+ * its own Stop, never as an input. The inputs join the edit form by `form=` too,
+ * so a fixed row's stop form sits among them without nesting.
  */
 function PendingEditor({ c, kw, lead, act, subject }: { c: ClusterCard; kw: string; lead: string; act: NonNullable<Act>; subject: Subject | null }) {
   const formId = `edit-${c.id}`;
@@ -552,19 +557,37 @@ function PendingEditor({ c, kw, lead, act, subject }: { c: ClusterCard; kw: stri
           </span>
         ) : null}
       </div>
-      <form id={formId} method="post" action={`${act.action.replace(/\/stop$/, "/edit")}?${new URLSearchParams({ ...act.keep, kind: "cluster", id: c.id })}`} style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+      <form id={formId} method="post" action={`${act.action.replace(/\/stop$/, "/edit")}?${new URLSearchParams({ ...act.keep, kind: "cluster", id: c.id })}`} />
+      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
         {live.map((p) => (
           <div key={p.id} className="app-cl-edit" style={{ display: "grid", gridTemplateColumns: "120px minmax(0, 1fr)", alignItems: "center", gap: "12px" }}>
             <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "4px" }}>
-              <label htmlFor={`${formId}-${p.id}`} style={{ fontSize: "12px", fontWeight: 700, letterSpacing: ".02em", textTransform: "uppercase", color: T.soft }}>
-                {p.angle ?? "Prompt"}
-              </label>
+              {p.fixed ? (
+                <span style={{ fontSize: "12px", fontWeight: 700, letterSpacing: ".02em", textTransform: "uppercase", color: T.soft }}>{p.angle ?? "Prompt"}</span>
+              ) : (
+                <label htmlFor={`${formId}-${p.id}`} style={{ fontSize: "12px", fontWeight: 700, letterSpacing: ".02em", textTransform: "uppercase", color: T.soft }}>
+                  {p.angle ?? "Prompt"}
+                </label>
+              )}
               {subject && namesBrandIn(p.text, subject) ? <BrandedChip /> : null}
             </span>
-            <input id={`${formId}-${p.id}`} name={`p-${p.id}`} defaultValue={p.text} required minLength={PROMPT_MIN} maxLength={ADMIN_LIMITS.question} style={{ height: "44px", boxSizing: "border-box", padding: "0 12px", border: `1px solid ${T.line}`, borderRadius: "10px", fontFamily: "inherit", fontSize: "14px", color: T.ink, background: T.surface, minWidth: 0 }} />
+            {p.fixed ? (
+              <span style={{ display: "flex", alignItems: "center", gap: "12px", minHeight: "44px", boxSizing: "border-box", padding: "6px 6px 6px 12px", border: `1px solid ${T.hair}`, borderRadius: "10px", background: T.bg, minWidth: 0 }}>
+                <span style={{ display: "flex", flexDirection: "column", gap: "2px", flexGrow: 1, minWidth: 0 }}>
+                  <span style={{ fontSize: "14px", fontWeight: 600, color: T.ink, overflowWrap: "anywhere" }}>{p.text}</span>
+                  <span style={{ fontSize: "12px", color: T.soft }}>{refuseEdit(1)}</span>
+                </span>
+                <StopForm act={act} kind="prompt" id={p.id} label={`Stop and add a new one: ${p.text}`} style={{ ...SQUARE, flexShrink: 0, width: "auto", height: "44px", gap: "6px", padding: "0 14px", fontSize: "13px", fontWeight: 600 }}>
+                  {STOP_ICON}
+                  Stop
+                </StopForm>
+              </span>
+            ) : (
+              <input id={`${formId}-${p.id}`} form={formId} name={`p-${p.id}`} defaultValue={p.text} required minLength={PROMPT_MIN} maxLength={ADMIN_LIMITS.question} style={{ height: "44px", boxSizing: "border-box", padding: "0 12px", border: `1px solid ${T.line}`, borderRadius: "10px", fontFamily: "inherit", fontSize: "14px", color: T.ink, background: T.surface, minWidth: 0 }} />
+            )}
           </div>
         ))}
-      </form>
+      </div>
       <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", flexWrap: "wrap" }}>
         <StopForm act={act} kind="cluster" id={c.id} style={{ height: "44px", padding: "0 16px", border: `1px solid ${T.line}`, borderRadius: "12px", background: T.surface, color: T.ink, fontSize: "14px", fontWeight: 600 }}>
           Remove this cluster
@@ -593,12 +616,13 @@ function ClusterRow({ c, brand, subject, open, toggle, since, act, refill, openH
   const free = Math.max(0, 5 - c.prompts.filter((p) => p.stoppedOn === null).length);
   const slots = new Set(act && !stopped && !pending ? c.prompts.filter((p) => p.stoppedOn !== null).slice(0, free).map((p) => p.id) : []);
   const kw = c.keyword ?? c.name;
+  const basis = pendingBasis(c);
   const vol = c.volume !== null ? `${c.volume.toLocaleString("en-GB")} searches a month` : null;
   const lead = [c.intent ? cap(c.intent) : null, vol].filter(Boolean).join(", ");
   const meta = stopped
     ? `${lead ? `${lead}. ` : ""}Stopped from ${formatDay(c.stoppedOn!)}. Its history stays in your reports`
     : pending
-      ? `${lead ? `${lead}. ` : ""}Added today, first check tomorrow at 06:00`
+      ? `${lead ? `${lead}. ` : ""}Added today, first check tomorrow at 06:00${basis ? `. ${basis}` : ""}`
       : `${lead ? `${lead}. ` : ""}Since ${formatDay(c.started_on)}`;
   const named = namedCount(c);
   const mid = BLOCK_H / 2;
@@ -618,7 +642,7 @@ function ClusterRow({ c, brand, subject, open, toggle, since, act, refill, openH
           <span style={{ fontSize: "12px", color: T.soft }}>{pending ? "Checked from tomorrow" : `${named} of ${c.prompts.length} name you`}</span>
           <span style={{ display: "flex", gap: "4px" }}>
             {c.prompts.map((p) => {
-              const fill = pending ? T.wash : p.now.num > 0 ? T.accent : T.line;
+              const fill = pending && !p.fixed ? T.wash : p.now.num > 0 ? T.accent : T.line;
               return <span key={p.id} style={{ width: "22px", height: "8px", borderRadius: "4px", background: fill }} />;
             })}
           </span>
@@ -626,7 +650,7 @@ function ClusterRow({ c, brand, subject, open, toggle, since, act, refill, openH
         <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px" }}>
           <span style={{ fontSize: "12px", color: T.soft }}>AI answers</span>
           <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span style={{ fontSize: "17px", fontWeight: 700, fontVariantNumeric: "tabular-nums" }} title={pending ? undefined : `${c.now.num} of ${c.now.den} answers`}>
+            <span style={{ fontSize: "17px", fontWeight: 700, fontVariantNumeric: "tabular-nums" }} title={pending ? (basis ?? undefined) : `${c.now.num} of ${c.now.den} answers`}>
               {pctText(c.now.pct)}
             </span>
             <Chip value={c.delta} unit=" pts" none={pending ? "Tomorrow" : "New"} />
@@ -671,7 +695,7 @@ function ClusterRow({ c, brand, subject, open, toggle, since, act, refill, openH
                     </div>
                     {p.stoppedOn !== null && !stopped ? (
                       <span style={{ fontSize: "12px", color: T.soft, fontWeight: 600 }}>{`Stopped from ${formatDay(p.stoppedOn)}. Its history stays in your reports.`}</span>
-                    ) : pending ? (
+                    ) : pending && !p.fixed ? (
                       <span style={{ fontSize: "12px", color: T.accent, fontWeight: 600 }}>First check tomorrow at 06:00</span>
                     ) : (
                       <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>

@@ -47,6 +47,8 @@ export type ClusterPrompt = {
   daysNamed: { engine: string; days: number }[];
   /** Set once stopped (T6 part 2b); after today it is a stop still pending, which Undo can clear. */
   stoppedOn: Day | null;
+  /** Has any reading at all, so its text is fixed (limits.ts `refuseEdit`) - in a pending cluster, a prompt moved in from ungrouped (DS3, 2 Oct 2026). */
+  fixed: boolean;
 };
 
 export type ClusterCard = {
@@ -203,6 +205,17 @@ export function clusterChart(input: ClusterInput, clusterId: string): ClusterCha
   };
 }
 
+/**
+ * What a pending cluster's rate counts (DS3, 2 Oct 2026): it has no check of its
+ * own yet, so any answers are those of prompts moved in from ungrouped, read
+ * before they joined. Null when there are none - the card shows no rate then.
+ */
+export function pendingBasis(c: ClusterCard): string | null {
+  if (c.status !== "pending" || !c.now.den) return null;
+  const k = c.prompts.filter((p) => p.now.den > 0).length;
+  return `Its rate counts ${k === 1 ? "1 moved prompt" : `${k} moved prompts`} only: ${c.now.num} of ${c.now.den} answers`;
+}
+
 export function clusterCards(input: ClusterInput): ClusterCard[] {
   const { range, before, today, engines } = input;
   const days = daysIn(range);
@@ -278,6 +291,7 @@ export function clusterCards(input: ClusterInput): ClusterCard[] {
             daysChecked: checkedDays.get(q.id)?.size ?? 0,
             daysNamed: engines.map((e) => ({ engine: e, days: namedDays.get(`${q.id} ${e}`)?.size ?? 0 })),
             stoppedOn: q.stopped_on,
+            fixed: input.answers.some((a) => a.question_id === q.id),
           };
         }),
         heat: days.map((d) => {

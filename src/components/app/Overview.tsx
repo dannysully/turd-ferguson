@@ -21,7 +21,7 @@ import {
   sparkPoints,
   ungroupedRead,
 } from "@/lib/tracking/figures";
-import { type ClusterCard, clusterCards, clusterChart, clusterSummary } from "@/lib/tracking/cluster-figures";
+import { type ClusterCard, clusterCards, clusterChart, clusterSummary, pendingBasis } from "@/lib/tracking/cluster-figures";
 import { rangeLabel } from "@/lib/tracking/date-range";
 import type { Compare, OverviewData } from "@/lib/tracking/overview-data";
 import { type PlacementRow, chartMarkers } from "@/lib/tracking/placement-figures";
@@ -892,8 +892,9 @@ function ClusterCards({
           const pending = c.status === "pending";
           const meta = [c.intent ? cap(c.intent) : null, c.volume !== null ? `${c.volume.toLocaleString("en-GB")} searches a month` : null].filter(Boolean).join(", ");
           const since = formatDay(c.started_on);
+          const basis = pendingBasis(c);
           const foot = pending
-            ? "First check tomorrow at 06:00."
+            ? basis ? `${basis}. Its first check is tomorrow at 06:00.` : "First check tomorrow at 06:00."
             : `${c.promptsNamed.num} of ${c.promptsNamed.den} prompts name you. Tracked since ${since}${c.status === "added" ? ", so no change yet" : ""}.`;
           const rowY = (i: number) => 11 + i * 26;
           const h = Math.max(1, c.prompts.length) * 26 - 4;
@@ -917,7 +918,7 @@ function ClusterCards({
                   {meta ? <span style={{ fontSize: "12px", color: T.soft }}>{meta}</span> : null}
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
-                  <span style={{ fontSize: "20px", fontWeight: 700, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }} title={pending ? undefined : `${c.now.num} of ${c.now.den} answers`}>
+                  <span style={{ fontSize: "20px", fontWeight: 700, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }} title={pending ? (basis ?? undefined) : `${c.now.num} of ${c.now.den} answers`}>
                     {pct(c.now)}
                   </span>
                   <Chip value={c.delta} unit=" pts" none={pending ? "Tomorrow" : "New"} />
@@ -930,7 +931,7 @@ function ClusterCards({
                     const cells = (
                       <>
                       <span style={{ width: "80px", flexShrink: 0, fontSize: "12px", fontWeight: 600, color: pending ? T.soft : T.ink }}>{r.angle ? cap(r.angle) : "Prompt"}</span>
-                      {pending ? (
+                      {pending && !r.fixed ? (
                         // DS2 (2 Oct 2026): one line in the 22px row - it wrapped over the next angle at 1280. The time is in the card's foot.
                         <span title="Asked from tomorrow's 06:00 check" style={{ fontSize: "12px", color: T.soft, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", minWidth: 0 }}>Asked from tomorrow</span>
                       ) : (

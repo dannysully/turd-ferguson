@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
-import { clusterCards, clusterChart, clusterDetail, clusterSearch, clusterSummary, filterClusters, promptBrands, promptIndex, promptStrip } from "./cluster-figures.ts";
+import { clusterCards, clusterChart, clusterDetail, clusterSearch, clusterSummary, filterClusters, pendingBasis, promptBrands, promptIndex, promptStrip } from "./cluster-figures.ts";
 import { comparisonRange } from "./figures.ts";
 import { expandFixture } from "./fixture-mode.ts";
 
@@ -68,6 +68,27 @@ test("a pending cluster has no readings: no rate, no heat, no engine marks", () 
   assert.equal(c.keyword, "payroll and accounting software");
   assert.equal(c.volume, 1600);
   assert.equal(c.intent, "transactional");
+  assert.ok(c.prompts.every((p) => !p.fixed), "drafted prompts have no reading, so every one is editable");
+  assert.equal(pendingBasis(c), null, "no readings, no rate to explain");
+  assert.equal(pendingBasis(by("c1")), null, "only a pending cluster's rate needs saying");
+});
+
+test("DS3: a read prompt moved into a pending cluster is fixed, and the card says its rate counts that prompt only", () => {
+  const moved = fx.data.questions.find((q) => q.cluster_id === "c1")!;
+  const mixed = clusterCards({
+    ...fx.data,
+    questions: fx.data.questions.map((q) => (q.id === moved.id ? { ...q, cluster_id: "c10" } : q)),
+    range,
+    before: comparisonRange(range, "prev"),
+    today: fx.today,
+    engines: ["google_aio", "chatgpt", "gemini", "perplexity"],
+  });
+  const c = mixed.find((x) => x.id === "c10")!;
+  assert.equal(c.status, "pending");
+  assert.deepEqual(c.prompts.filter((p) => p.fixed).map((p) => p.id), [moved.id]);
+  const one = c.prompts.find((p) => p.id === moved.id)!;
+  assert.deepEqual([c.now.num, c.now.den], [one.now.num, one.now.den], "the card's rate is the moved prompt's alone");
+  assert.equal(pendingBasis(c), `Its rate counts 1 moved prompt only: ${one.now.num} of ${one.now.den} answers`);
 });
 
 test("heat: one cell a day, each of a live cluster's 20 answers; outlined (null) before an added cluster's first check", () => {
