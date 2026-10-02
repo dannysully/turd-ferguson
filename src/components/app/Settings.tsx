@@ -152,7 +152,8 @@ export default function Settings({
                 </span>
                 <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "2px", fontSize: "13px", flexShrink: 0, textAlign: "right", marginLeft: "auto" }}>
                   <span style={{ fontWeight: 600, color: T.ink }}>{cap(m.role)}</span>
-                  <span style={{ color: T.soft }}>{m.last_login_at ? `Last signed in on ${dayOf(m.last_login_at)}` : "Not signed in yet"}</span>
+                  {/* DS68 (2 Oct 2026, R173 pass 8): the reader's own row read "You" over "Not signed in yet" when no sign-in date was recorded. */}
+                  <span style={{ color: T.soft }}>{m.last_login_at ? `Last signed in on ${dayOf(m.last_login_at)}` : m.email === email ? "Signed in now" : "Not signed in yet"}</span>
                 </span>
                 {/* Owners change someone else's row; never their own, never the last owner. Owners are made in admin. */}
                 {owner && m.email !== email && !(m.role === "owner" && owners <= 1) ? (
