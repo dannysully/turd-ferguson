@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 
-import { seqClimb, seqStep } from "./seq-stagger.ts";
+import { SEQ_BUILD_S, beatMsFor, seqClimb, seqStep } from "./seq-stagger.ts";
 
 /**
  * The stylesheet, read as a stylesheet.
@@ -330,4 +330,31 @@ test("every seq-* from-state is behind the motion gate", () => {
     [],
     'these animate outside html[data-motion="on"], so their from-state is what a crawler sees: ' + loose.join(", "),
   );
+});
+
+/**
+ * The waiting screen's beats end one second after their panel has built
+ * (Danny, 2 Oct 2026). The arithmetic is exact, and the one number it borrows
+ * from the stylesheet is read back so the two cannot drift.
+ */
+test("a beat ends holdS after its last step has arrived", () => {
+  const waiting = { firstStepS: 0.8, stepS: 0.6 };
+  // The four panels today: last steps 12, 5, 3 and 4.
+  assert.deepEqual([12, 5, 3, 4].map((n) => beatMsFor(waiting, n, 1)), [9600, 5400, 4200, 4800]);
+  // The first tier's last row lands at 8.0s: a fixed 8s beat cut it off.
+  assert.ok(beatMsFor(waiting, 12, 1) > 8000 + SEQ_BUILD_S * 1000);
+  assert.equal(beatMsFor(waiting, -3, 0), 1400, "a step below zero is the first step");
+});
+
+test("SEQ_BUILD_S is the duration the stylesheet gives a step", () => {
+  const css = readFileSync(new URL("../../app/globals.css", import.meta.url), "utf8");
+  const m = css.match(/\.proc \.seq-step \{ animation: seqIn ([\d.]+)s/);
+  assert.ok(m, "the .proc .seq-step rule was not found");
+  assert.equal(Number(m[1]), SEQ_BUILD_S);
+});
+
+test("only the waiting tempo shortens its beats; the homepage keeps its fixed one", () => {
+  const seq = readFileSync(new URL("../ProcessSequence.tsx", import.meta.url), "utf8");
+  assert.match(seq, /HOME_TEMPO: Tempo = \{ beatMs: 16_000, bridgeMs: 5_000, stepS: 1\.2, firstStepS: 1\.6 \}/);
+  assert.match(seq, /WAITING_TEMPO: Tempo = \{[^}]*holdS: 1 \}/);
 });

@@ -144,6 +144,18 @@ export const STEP_INDEX: ReadonlyMap<string, number> = new Map(RUN_STEPS.map((s,
  */
 export const ANSWERS_STEP = STEP_INDEX.get(STEP.brands) ?? RUN_STEPS.length;
 
+/**
+ * What the waiting screen says while it fetches the result it is about to draw.
+ *
+ * From `ANSWERS_STEP` the answers are stored but the page still has two
+ * requests to make (the teaser and `/full`, about 130 KB on a finished scan)
+ * before there is anything to draw. Until they return the caption used to keep
+ * saying "Reading which brands got named" over a screen where nothing moved,
+ * which read as a freeze (Danny, 2 Oct 2026). This is true of that moment and
+ * is not a rung: the bar's width is still the pipeline's step.
+ */
+export const DRAWING_CAPTION = "Drawing your results";
+
 /** Whether a running scan at this `scans.step` word has its answers stored. */
 export function answersStored(step: unknown): boolean {
   if (typeof step !== "string") return false;

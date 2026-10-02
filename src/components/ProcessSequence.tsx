@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useLayoutEffect, useState } from "react";
 
 import EngineLogo from "@/components/EngineLogo";
 import TierName, { TierText, type TierKey } from "@/components/TierName";
@@ -10,7 +10,7 @@ import { CARD, MICRO, SHELL, T } from "@/config/tokens";
 import { ENGINE_SPECS, FREE_ENGINES } from "@/lib/scan/engines";
 import { PROMPTS_PER_CLUSTER } from "@/lib/tracking/limits";
 
-import { seqStep } from "./scan/seq-stagger";
+import { beatMsFor, seqStep } from "./scan/seq-stagger";
 
 /**
  * The four tiers, as the launch video tells them.
@@ -60,18 +60,33 @@ import { seqStep } from "./scan/seq-stagger";
  * `beatMs`; the bridge then hands over for `bridgeMs`. Inside a tier the first
  * step lands at `firstStepS`, then one every `stepS`.
  */
-export type Tempo = { beatMs: number; bridgeMs: number; stepS: number; firstStepS: number };
+export type Tempo = {
+  beatMs: number;
+  bridgeMs: number;
+  stepS: number;
+  firstStepS: number;
+  /**
+   * When set, each tier's beat is its own build time plus this many seconds,
+   * and `beatMs` is only what it is until the panels have been measured. Unset,
+   * every beat is `beatMs`: the homepage.
+   */
+  holdS?: number;
+};
 
 /** The homepage: 16s a beat and 5s bridges, about 79s round. */
 export const HOME_TEMPO: Tempo = { beatMs: 16_000, bridgeMs: 5_000, stepS: 1.2, firstStepS: 1.6 };
 
 /**
- * The scan waiting screen (Danny, 25 Sep 2026): about 40s round, so it plays
- * about three times in a two-minute scan - 8s a beat, 2.7s bridges, and the
- * parts arriving at half the homepage interval. Journey.dc.html's 40s loop is
- * the live timing here.
+ * The scan waiting screen. The parts arrive at half the homepage interval and
+ * the bridges are 2.7s (Danny, 25 Sep 2026). Since 2 Oct 2026 a beat is not a
+ * fixed 8s: it ends one second after its own panel has finished building, so
+ * the four tiers run 9.6s, 5.4s, 4.2s and 4.8s and a loop is about 32s. The 8s
+ * had the first tier cut off as its last row began (that row lands at 8.0s) and
+ * left the other three standing still for three to four seconds each, which
+ * read as the animation having stopped. `beatMs` is the length until the
+ * panels are measured, and the length if they cannot be.
  */
-export const WAITING_TEMPO: Tempo = { beatMs: 8_000, bridgeMs: 2_700, stepS: 0.6, firstStepS: 0.8 };
+export const WAITING_TEMPO: Tempo = { beatMs: 8_000, bridgeMs: 2_700, stepS: 0.6, firstStepS: 0.8, holdS: 1 };
 
 /**
  * What a day of alwaystracked covers, derived rather than typed.
@@ -571,13 +586,57 @@ const BODIES: Record<TierKey, () => React.JSX.Element> = {
  * waiting screen drops it inside a shell it already has, under a progress
  * block that already carries the heading, so it takes neither.
  */
-export default function ProcessSequence(p: { heading?: string; standfirst?: string; tempo?: Tempo }) {
-  const { beatMs: BEAT_MS, bridgeMs: BRIDGE_MS, stepS: STEP_S, firstStepS: FIRST_STEP_S } = p.tempo ?? HOME_TEMPO;
+export default function ProcessSequence(p: {
+  heading?: string;
+  standfirst?: string;
+  tempo?: Tempo;
+  /**
+   * Whether the pointer resting on the panel pins the tier. On by default, as
+   * the homepage reads it. Off on the waiting screen (Danny, 2 Oct 2026: the
+   * animation "stopped for a while on the alwaysmentioned screen"): there the
+   * pointer is nearly always over the panel, or crosses it on every scroll, so
+   * hover locked the loop on whichever tier was showing for the rest of the
+   * scan. A click on a tier, or a key in the rail, still pins.
+   */
+  pinOnHover?: boolean;
+}) {
+  const tempo = p.tempo ?? HOME_TEMPO;
+  const { beatMs: BEAT_MS, bridgeMs: BRIDGE_MS, stepS: STEP_S, firstStepS: FIRST_STEP_S, holdS: HOLD_S } = tempo;
   const [beat, setBeat] = useState(0);
+  /** The largest step each tier's panel renders, read off the DOM once. */
+  const [lastSteps, setLastSteps] = useState<Partial<Record<TierKey, number>>>({});
   /** Between tiers, the bridge card for the tier that just finished. */
   const [bridging, setBridging] = useState(false);
   /** Taken by a click or a hover; "Play all four" is the only way back. */
   const [held, setHeld] = useState(false);
+
+  /**
+   * Read how many steps each panel has, before the first paint. All four are
+   * in the DOM from the start (the idle ones are only hidden), and `--ac-i` is
+   * an inline custom property, so this reads no layout. Done in a layout
+   * effect so the first tier's bar starts with its real length rather than
+   * being corrected a frame in.
+   */
+  useLayoutEffect(() => {
+    if (HOLD_S === undefined) return;
+    const next: Partial<Record<TierKey, number>> = {};
+    for (const b of BEATS) {
+      let last = 0;
+      document.querySelectorAll<HTMLElement>("#proc-beat-" + b.tier + " .seq-step").forEach((el) => {
+        const i = Number(el.style.getPropertyValue("--ac-i"));
+        if (Number.isFinite(i) && i > last) last = i;
+      });
+      next[b.tier] = last;
+    }
+    setLastSteps(next);
+  }, [HOLD_S]);
+
+  /** This tier's beat: its own build plus the hold, or the fixed length. */
+  const beatMsOf = (tier: TierKey) => {
+    const last = lastSteps[tier];
+    return HOLD_S === undefined || last === undefined ? BEAT_MS : beatMsFor(tempo, last, HOLD_S);
+  };
+  const thisBeatMs = beatMsOf(BEATS[beat].tier);
 
   useEffect(() => {
     if (held) return;
@@ -595,23 +654,23 @@ export default function ProcessSequence(p: { heading?: string; standfirst?: stri
           setBeat((n) => (n + 1) % BEATS.length);
         }
       },
-      bridging ? BRIDGE_MS : BEAT_MS,
+      bridging ? BRIDGE_MS : thisBeatMs,
     );
     return () => clearTimeout(t);
-  }, [beat, bridging, held, BEAT_MS, BRIDGE_MS]);
+  }, [beat, bridging, held, thisBeatMs, BRIDGE_MS]);
 
   /** Pin a tier. Hover pins too: a story that moves on while you read is worse. */
   const hold = () => setHeld(true);
 
   /** How long the active tab's bar takes to fill: its tier plus its bridge. */
-  const fillMs = BEAT_MS + (BRIDGES[BEATS[beat].tier] ? BRIDGE_MS : 0);
+  const fillMs = thisBeatMs + (BRIDGES[BEATS[beat].tier] ? BRIDGE_MS : 0);
   const current = BEATS[beat];
   const currentTier = tierOf(current.tier);
 
   const body = (
     <div
       className="proc"
-      onMouseEnter={hold}
+      onMouseEnter={p.pinOnHover === false ? undefined : hold}
       onFocusCapture={hold}
       style={{ ["--proc-step" as string]: STEP_S + "s", ["--proc-first" as string]: FIRST_STEP_S + "s" } as React.CSSProperties}
     >

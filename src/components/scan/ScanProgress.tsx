@@ -5,7 +5,7 @@ import { T } from "@/config/tokens";
 import { OFFER_COPY } from "@/lib/scan/email-offer";
 import { type EngineResult, engineVerdict, landingAnnouncement } from "@/lib/scan/engine-results";
 import { ENGINE_SPECS, knownEngines } from "@/lib/scan/engines";
-import { stepCaption, stepPct } from "@/lib/scan/run-steps";
+import { DRAWING_CAPTION, stepCaption, stepPct } from "@/lib/scan/run-steps";
 
 /**
  * What the scan is actually doing, while it does it.
@@ -30,6 +30,8 @@ export default function ScanProgress(p: {
   landed?: EngineResult[];
   step: number;
   slow?: boolean;
+  /** The answers are stored and the result is being fetched to draw. */
+  drawing?: boolean;
   headingRef?: React.Ref<HTMLHeadingElement>;
 }) {
   const pct = stepPct(p.step);
@@ -144,7 +146,7 @@ export default function ScanProgress(p: {
         {newest ? landingAnnouncement(newest) : ""}
       </p>
       <p aria-live="polite" style={{ margin: "10px 0 0", fontSize: "13px", color: T.soft }}>
-        {p.slow ? "This is taking longer than usual. Still working on it." : stepCaption(p.step)}
+        {p.drawing ? DRAWING_CAPTION : p.slow ? "This is taking longer than usual. Still working on it." : stepCaption(p.step)}
       </p>
     </div>
   );

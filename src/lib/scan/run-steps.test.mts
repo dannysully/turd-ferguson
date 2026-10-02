@@ -5,7 +5,7 @@ import { test } from "node:test";
 
 import { code, sourceFiles } from "../source-read.mts";
 
-import { ANSWERS_STEP, DONE_PCT, RUN_STEPS, STEP, STEP_INDEX, answersStored, stepCaption, stepPct } from "./run-steps.ts";
+import { ANSWERS_STEP, DONE_PCT, DRAWING_CAPTION, RUN_STEPS, STEP, STEP_INDEX, answersStored, stepCaption, stepPct } from "./run-steps.ts";
 
 /**
  * The step vocabulary, under test for the first time.
@@ -249,4 +249,22 @@ test("the result draws early only once the answers are stored", () => {
   const step = pipeline.indexOf("onStep?.(STEP.brands)");
   assert.ok(upsert > 0 && citations > 0 && step > 0, "the walk found the three sites it orders");
   assert.ok(upsert < step && citations < step, "answers and citations are stored before the brands step is written");
+});
+
+/**
+ * The waiting screen's two stalls (Danny, 2 Oct 2026): the tier sequence stopped
+ * on one tier, and the screen sat still before the result. Neither fails
+ * anything, so each is held by the source that fixes it.
+ */
+test("the drawing caption is its own words, not a rung", () => {
+  assert.ok(DRAWING_CAPTION.length > 0);
+  assert.ok(!RUN_STEPS.some((s) => (s.caption as string) === DRAWING_CAPTION), "the bar's rungs stay the pipeline's steps");
+});
+
+test("the waiting screen is not pinned by the pointer, and the handover is a transition", () => {
+  const flow = code(readFileSync(join(process.cwd(), "src/components/scan/ScanFlow.tsx"), "utf8"));
+  assert.match(flow, /<ProcessSequence\s+tempo=\{WAITING_TEMPO\}\s+pinOnHover=\{false\}/, "hover on the waiting screen must not lock the loop");
+  assert.match(flow, /startTransition\(\(\) => \{[\s\S]*?setPhase\("result"\)/, "the early result swaps in as a transition");
+  const seq = code(readFileSync(join(process.cwd(), "src/components/ProcessSequence.tsx"), "utf8"));
+  assert.match(seq, /onMouseEnter=\{p\.pinOnHover === false \? undefined : hold\}/, "hover still pins on the homepage");
 });

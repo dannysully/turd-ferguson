@@ -76,3 +76,25 @@ export function seqClimb(from: number, to: number, style?: CSSProperties): { cla
     style: { ...style, ["--ac-places" as string]: places } as CSSProperties,
   };
 }
+
+/**
+ * How long one `.seq-step` takes to arrive, in seconds. The duration of
+ * `animation: seqIn .6s` on `.proc .seq-step` in globals.css, which
+ * `seq-stagger.test.mts` reads back, so the two cannot drift.
+ */
+export const SEQ_BUILD_S = 0.6;
+
+/**
+ * A tier's beat, in milliseconds, ending `holdS` after its panel has finished
+ * building (Danny, 2 Oct 2026: a fixed 8s left most tiers standing still for
+ * several seconds, and the longest one was cut off as its last row began).
+ *
+ * The last step lands at `firstStepS + lastStep * stepS` and takes
+ * `SEQ_BUILD_S` to arrive; `lastStep` is the largest `--ac-i` the panel
+ * renders, which the sequence reads off the rendered panel rather than being
+ * told, so a row added to a panel lengthens its beat by itself.
+ */
+export function beatMsFor(t: { firstStepS: number; stepS: number }, lastStep: number, holdS: number): number {
+  const last = Math.max(Math.trunc(lastStep), 0);
+  return Math.round((t.firstStepS + last * t.stepS + SEQ_BUILD_S + holdS) * 1000);
+}

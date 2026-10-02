@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { startTransition, useCallback, useEffect, useRef, useState } from "react";
 
 import { SCAN_LIMITS } from "@/config/contact";
 import { MICRO, SHELL, T } from "@/config/tokens";
@@ -400,6 +400,9 @@ export default function ScanFlow(p: {
   const [mailNote, setMailNote] = useState("");
   const [mailBusy, setMailBusy] = useState(false);
 
+  /** The answers are stored and the result is on its way: say so while it loads. */
+  const [drawing, setDrawing] = useState(false);
+
   const [teaser, setTeaser] = useState<Teaser | null>(p.initialTeaser ?? null);
   const [full, setFull] = useState<FullPayload | null>(p.initialFull ? asFull(p.initialFull) : null);
   const [gatedEngines, setGatedEngines] = useState<string[]>(p.gatedEngines);
@@ -497,6 +500,7 @@ export default function ScanFlow(p: {
   useEffect(() => {
     if (phase !== "running") return;
     let stop = false;
+    setDrawing(false);
 
     const slowTimer = setTimeout(() => setSlow(true), SLOW_MS);
     const stuckTimer = setTimeout(() => {
@@ -536,20 +540,30 @@ export default function ScanFlow(p: {
          * answers would be worse than the wait.
          */
         if (data.status === "running" && step !== undefined && step >= ANSWERS_STEP) {
+          setDrawing(true);
           try {
             const [t, res] = await Promise.all([loadTeaser(), fetch("/api/scan/" + p.token + "/full", { cache: "no-store" })]);
             if (stop) return;
             if (res.ok) {
               const body = await res.json();
-              setTeaser(t);
-              setFull(asFull(body));
-              setPartial(body.partial === true);
-              setPhase("result");
+              /**
+               * In a transition, so the waiting screen keeps animating while
+               * React builds the result and swaps it in when it is ready.
+               * Drawn as one blocking render, the 130 KB result froze the
+               * tier sequence for as long as the render took.
+               */
+              startTransition(() => {
+                setTeaser(t);
+                setFull(asFull(body));
+                setPartial(body.partial === true);
+                setPhase("result");
+              });
               return;
             }
           } catch {
             // Not yet. The waiting screen stays and the next tick tries again.
           }
+          setDrawing(false);
         }
 
         if (data.status === "complete") {
@@ -930,6 +944,7 @@ export default function ScanFlow(p: {
               landed={landed}
               step={progress}
               slow={slow}
+              drawing={drawing}
               headingRef={headingRef}
             />
           <div
@@ -1008,7 +1023,7 @@ export default function ScanFlow(p: {
               While you wait: what happens after the scan
             </p>
             <div style={{ marginTop: "20px" }}>
-              <ProcessSequence tempo={WAITING_TEMPO} />
+              <ProcessSequence tempo={WAITING_TEMPO} pinOnHover={false} />
             </div>
           </>
         ) : null}
