@@ -1,5 +1,5 @@
 import { clusterCards, clusterSummary } from "./cluster-figures.ts";
-import { type Day, type Rate, type Range, overview, pointsDelta } from "./figures.ts";
+import { type Day, type Rate, type Range, overview, pointsDelta, ungroupedRead } from "./figures.ts";
 import type { OverviewData } from "./overview-data.ts";
 
 /**
@@ -52,6 +52,13 @@ export function monthFigures(data: OverviewData, range: Range, opts: { startedOn
   // The Overview's own test for reading by cluster (Overview.tsx clusterInput).
   if (data.clusters?.length && data.questions.some((q) => q.cluster_id)) {
     const cs = clusterSummary(clusterCards({ clusters: data.clusters, questions: data.questions, keywords: data.keywords, answers: data.answers, serp: data.serp, range, before: o.compare, today: opts.today, engines: opts.engines }));
+    // DS52 (R173 pass 6, 2 Oct 2026): ungrouped prompts read in the month put the Overview's headline on every
+    // prompt (Overview.tsx byCluster, R177), so the card counts them too - a pilot with a cluster not yet read
+    // said "No readings this month yet" over 560 answers. The keywords figure stays the cluster one, as there.
+    if (ungroupedRead(data.questions, data.answers, range)) {
+      const delta = o.lfl ? pointsDelta(o.lfl.now, o.lfl.before) : null;
+      return { named: o.named, lfl: o.lfl && delta !== null ? { now: o.lfl.now, before: o.lfl.before, delta } : null, prompts: o.questions, page1: cs.page1, basis: "clusters" };
+    }
     return {
       named: cs.now,
       lfl: cs.lflBefore && cs.lflDelta !== null ? { now: cs.lfl, before: cs.lflBefore, delta: cs.lflDelta } : null,

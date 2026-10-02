@@ -4,7 +4,7 @@ import { test } from "node:test";
 
 import { clusterCards, clusterSummary } from "./cluster-figures.ts";
 import { overview } from "./figures.ts";
-import { expandFixture } from "./fixture-mode.ts";
+import { expandFixture, fixtureState } from "./fixture-mode.ts";
 import { monthFigures, reportMonths } from "./report-months.ts";
 
 /**
@@ -44,6 +44,18 @@ test("one month's card equals the Overview on the same range", () => {
   assert.equal(card.page1.num, cs.page1.num);
   assert.equal(card.page1.den, cs.page1.den);
   assert.equal(card.lfl?.delta ?? null, cs.lflBefore ? cs.lflDelta : null);
+});
+
+test("DS52: a pilot's card counts its ungrouped prompts' readings, as its Overview headline does", () => {
+  const pilot = fixtureState(fx, { TRACKING_FIXTURE_STATE: "pilot-mixed" });
+  const range = { from: "2026-09-01", to: pilot.today };
+  const card = monthFigures(pilot.data, range, { startedOn: pilot.client.started_on, today: pilot.today, engines });
+  const o = overview({ range, compare: "prev", startedOn: pilot.client.started_on, engines, questions: pilot.data.questions, answers: pilot.data.answers, serp: pilot.data.serp, keywordCount: pilot.data.keywords.filter((k) => k.stopped_on === null).length });
+  assert.ok(o.named.den > 0, "pilot-mixed has no September answers");
+  assert.deepEqual(card.named, o.named, "the card read 0 of 0 - 'No readings this month yet'");
+  assert.deepEqual(card.prompts, o.questions);
+  assert.equal(card.basis, "clusters");
+  assert.equal(card.page1.den, 0, "the pending cluster's keyword has no reading yet");
 });
 
 test("an ungrouped client's card reads flat, as its Overview does", () => {
