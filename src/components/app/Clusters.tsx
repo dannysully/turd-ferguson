@@ -11,7 +11,7 @@ import { PROMPT_MIN } from "@/lib/tracking/slot";
 import { PACK_CLUSTERS, PACK_KEYWORDS, PACK_PROMPTS } from "@/config/pricing";
 import { T } from "@/config/tokens";
 import { ENGINE_SPECS, type Engine } from "@/lib/scan/engines";
-import { type ClusterCard, type ClusterFilter as Filter, clusterCards, filterClusters, namedCount, neverCount, pendingBasis, searchPrompts } from "@/lib/tracking/cluster-figures";
+import { type ClusterCard, type ClusterFilter as Filter, clusterCards, daysOfLine, filterClusters, namedCount, neverCount, pendingBasis, searchPrompts } from "@/lib/tracking/cluster-figures";
 import { type Range, basis as basisLine, comparisonRange, daysIn, formatDay } from "@/lib/tracking/figures";
 import { type KeywordCheck, draftPrompts } from "@/lib/tracking/add-cluster";
 import { ANGLES, BRANDED_CHIP, BRANDED_NOTE, PROMPTS_PER_CLUSTER, type Subject, namesBrandIn, refuseEdit } from "@/lib/tracking/limits";
@@ -931,12 +931,12 @@ function ClusterRow({
                     ) : (
                       <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
                         {p.daysNamed.map((d) => (
-                          <span key={d.engine} title={`${ENGINE_SPECS[d.engine as Engine]?.label ?? d.engine}: named ${brand} on ${d.days} of ${p.daysChecked} days`} style={{ display: "inline-flex", alignItems: "center", gap: "4px", opacity: d.days ? 1 : 0.4 }}>
+                          <span key={d.engine} title={`${ENGINE_SPECS[d.engine as Engine]?.label ?? d.engine}: named ${brand} on ${d.days} of ${d.of} days`} style={{ display: "inline-flex", alignItems: "center", gap: "4px", opacity: d.days ? 1 : 0.4 }}>
                             <EngineLogo engine={d.engine as Engine} size={16} />
                             <span style={{ fontSize: "12px", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{d.days}</span>
                           </span>
                         ))}
-                        <span style={{ fontSize: "12px", color: T.soft }}>{`days named, of ${p.daysChecked}`}</span>
+                        <span style={{ fontSize: "12px", color: T.soft }}>{daysOfLine(p)}</span>
                       </div>
                     )}
                   </div>

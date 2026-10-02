@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
-import { clusterCards, clusterChart, clusterDetail, clusterSearch, clusterSummary, filterClusters, pendingBasis, promptBrands, promptIndex, promptStrip, searchPrompts } from "./cluster-figures.ts";
+import { clusterCards, clusterChart, clusterDetail, daysOfLine, clusterSearch, clusterSummary, filterClusters, pendingBasis, promptBrands, promptIndex, promptStrip, searchPrompts } from "./cluster-figures.ts";
 import { comparisonRange } from "./figures.ts";
-import { expandFixture } from "./fixture-mode.ts";
+import { expandFixture, fixtureState } from "./fixture-mode.ts";
 
 /**
  * T4b part 1 (30 Sep 2026): the overview's cluster figures, checked against
@@ -123,6 +123,16 @@ test("T6 day counts: per engine, the days it named the client for a prompt, of t
     assert.ok(c.prompts.every((p) => p.daysChecked === checked), `${id} days checked`);
     assert.deepEqual(c.prompts[0]!.daysNamed.map((d) => d.engine), ["google_aio", "chatgpt", "gemini", "perplexity"]);
   }
+});
+
+test("DS73: on a partial check each engine's days are of the days it answered, and the row says of up to", () => {
+  const p = fixtureState(fx, { TRACKING_FIXTURE_STATE: "partial" });
+  const row = clusterCards({ ...p.data, range, before: null, today: fx.today, engines: ["google_aio", "chatgpt", "gemini", "perplexity"] }).find((c) => c.id === "c1")!.prompts[0]!;
+  assert.deepEqual(row.daysNamed.map((d) => d.of), [27, 28, 28, 28], "Google AI Overviews failed today");
+  assert.equal(daysOfLine(row), "days named, of up to 28");
+  const whole = by("c1").prompts[0]!;
+  assert.ok(whole.daysNamed.every((d) => d.of === 28));
+  assert.equal(daysOfLine(whole), "days named, of 28");
 });
 
 test("no comparison: no change anywhere, and a cluster begun before the range is still live", () => {

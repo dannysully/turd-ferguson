@@ -43,8 +43,8 @@ export type ClusterPrompt = {
   namedBy: string[];
   /** Days in the range with at least one answer to this prompt (T6's "of N"). */
   daysChecked: number;
-  /** Per engine, in the tier's order: days that engine named the client for this prompt. */
-  daysNamed: { engine: string; days: number }[];
+  /** Per engine, in the tier's order: days that engine named the client for this prompt, of the days it answered (DS73, 2 Oct 2026: a partial check reads an engine on fewer days than the prompt). */
+  daysNamed: { engine: string; days: number; of: number }[];
   /** Set once stopped (T6 part 2b); after today it is a stop still pending, which Undo can clear. */
   stoppedOn: Day | null;
   /** Has any reading at all, so its text is fixed (limits.ts `refuseEdit`) - in a pending cluster, a prompt moved in from ungrouped (DS3, 2 Oct 2026). */
@@ -237,8 +237,13 @@ export function clusterCards(input: ClusterInput): ClusterCard[] {
       const byPrompt = new Map<string, { engines: Set<string> }>();
       const checkedDays = new Map<string, Set<Day>>();
       const namedDays = new Map<string, Set<Day>>();
+      const engineDays = new Map<string, Set<Day>>();
       for (const a of input.answers) {
         if (!a.answered || !ids.has(a.question_id) || !within(a.run_date, range)) continue;
+        const ek = `${a.question_id} ${a.engine}`;
+        const ed = engineDays.get(ek) ?? new Set<Day>();
+        ed.add(a.run_date);
+        engineDays.set(ek, ed);
         const cell = cells.get(a.run_date) ?? { num: 0, den: 0 };
         cell.den++;
         const seen = checkedDays.get(a.question_id) ?? new Set<Day>();
@@ -289,7 +294,7 @@ export function clusterCards(input: ClusterInput): ClusterCard[] {
             before: b && b.den ? b : null,
             namedBy: engines.filter((e) => byPrompt.get(q.id)?.engines.has(e)),
             daysChecked: checkedDays.get(q.id)?.size ?? 0,
-            daysNamed: engines.map((e) => ({ engine: e, days: namedDays.get(`${q.id} ${e}`)?.size ?? 0 })),
+            daysNamed: engines.map((e) => ({ engine: e, days: namedDays.get(`${q.id} ${e}`)?.size ?? 0, of: engineDays.get(`${q.id} ${e}`)?.size ?? 0 })),
             stoppedOn: q.stopped_on,
             fixed: input.answers.some((a) => a.question_id === q.id),
           };
@@ -339,6 +344,10 @@ export function clusterDetail(input: ClusterInput, clusterId: string): ClusterDe
   }
   return { card, reliable, positionBeforeOn };
 }
+
+/** The row's "days named, of N" (DS73, 2 Oct 2026): "of up to N" once any engine answered on fewer of the prompt's days, so no count reads against days it was not read. */
+export const daysOfLine = (p: Pick<ClusterPrompt, "daysChecked" | "daysNamed">) =>
+  `days named, of ${p.daysNamed.some((d) => d.of < p.daysChecked) ? "up to " : ""}${p.daysChecked}`;
 
 export type StripRow = {
   engine: string;

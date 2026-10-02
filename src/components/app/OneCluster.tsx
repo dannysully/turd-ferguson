@@ -9,7 +9,7 @@ import { APP_LIMITS } from "@/config/contact";
 import { T } from "@/config/tokens";
 import { type Inline, parseAnswer } from "@/components/scan/answer-markdown";
 import { ENGINE_SPECS, type Engine } from "@/lib/scan/engines";
-import { type ClusterDetail, type ClusterInput, clusterChart, promptBrands, promptStrip } from "@/lib/tracking/cluster-figures";
+import { type ClusterDetail, type ClusterInput, clusterChart, daysOfLine, promptBrands, promptStrip } from "@/lib/tracking/cluster-figures";
 import { type Day, type Range, type Rate, basis as basisLine, comparisonRange, daysIn, formatDay, pointsDelta } from "@/lib/tracking/figures";
 import { type AnswerTab, type LatestAnswers, answerTabs, brandRuns } from "@/lib/tracking/latest-answers";
 import type { ClusterNote, Compare, OverviewData } from "@/lib/tracking/overview-data";
@@ -262,14 +262,14 @@ export default function OneCluster({
                     ) : (
                     <span style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                       {p.daysNamed.map((e) => (
-                        <span key={e.engine} title={`${ENGINE_SPECS[e.engine as Engine].label}: named on ${e.days} of ${p.daysChecked} days`} style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                        <span key={e.engine} title={`${ENGINE_SPECS[e.engine as Engine].label}: named on ${e.days} of ${e.of} days`} style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
                           <span style={{ display: "inline-flex", opacity: e.days ? 1 : 0.25 }}>
                             <EngineLogo engine={e.engine as Engine} size={16} />
                           </span>
                           {p.daysChecked ? <span style={{ fontSize: "12px", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{e.days}</span> : null}
                         </span>
                       ))}
-                      <span style={{ fontSize: "12px", color: T.soft }}>{p.daysChecked ? `days named, of ${p.daysChecked}` : "Not checked yet"}</span>
+                      <span style={{ fontSize: "12px", color: T.soft }}>{p.daysChecked ? daysOfLine(p) : "Not checked yet"}</span>
                     </span>
                     )}
                   </span>
