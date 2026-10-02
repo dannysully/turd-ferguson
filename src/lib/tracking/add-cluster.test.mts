@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { addPanelState, checkVerdict, draftPrompts, precheckKeyword, refuseDrafts, signCheck, verdictFromQuery, verdictQuery, verifyCheck } from "./add-cluster.ts";
+import { keywordForm } from "../scan/dataforseo-request.ts";
+
+import { addPanelState, checkVerdict, draftPrompts, isPluralHead, keywordHead, precheckKeyword, refuseDrafts, signCheck, verdictFromQuery, verdictQuery, verifyCheck } from "./add-cluster.ts";
 
 // BRIEF-3 T6 part 3a (30 Sep 2026): the free checks that stand before any paid
 // read, and C1's pick in the board's words. Made-up Tallyroo, as the fixture.
@@ -59,6 +61,38 @@ test("step 2 drafts five distinct prompts that pass the text rule, and refuses t
   assert.match(refuseDrafts([d[0], d[1], d[2], d[3], d[0].toUpperCase()]) ?? "", /already tracked/);
   assert.match(refuseDrafts([d[0], "short", d[2], d[3], d[4]]) ?? "", /characters/);
   assert.ok(refuseDrafts(d.slice(0, 4)));
+});
+
+test("R171: drafts agree with the keyword's head noun and fit a product or a service", () => {
+  const cases: [string, string[]][] = [
+    // singular product: the drafts as they were before R171
+    ["accounting software for dentists", ["What’s the best accounting software for dentists?", "Which accounting software for dentists is easiest to set up and use?", "Which accounting software for dentists do small businesses recommend?", "Which accounting software for dentists saves the most time each month?", "What’s a good alternative to the best-known accounting software for dentists?"]],
+    // plural product
+    ["invoicing tools", ["What are the best invoicing tools?", "Which invoicing tools are easiest to set up and use?", "Which invoicing tools do small businesses recommend?", "Which invoicing tools save the most time each month?", "What are good alternatives to the best-known invoicing tools?"]],
+    // plural service (the soak's own example)
+    ["b2b seo agencies", ["Who are the best b2b seo agencies?", "Which b2b seo agencies are easiest to work with?", "Which b2b seo agencies do small businesses recommend?", "Which b2b seo agencies get results fastest?", "What are good alternatives to the best-known b2b seo agencies?"]],
+    // singular service, local
+    ["seo agency in london", ["Who is the best seo agency in london?", "Which seo agency in london is easiest to work with?", "Which seo agency in london do small businesses recommend?", "Which seo agency in london gets results fastest?", "What’s a good alternative to the best-known seo agency in london?"]],
+    // plural service, local, with a leading "best" dropped
+    ["Best plumbers near me", ["Who are the best plumbers near me?", "Which plumbers near me are easiest to work with?", "Which plumbers near me do small businesses recommend?", "Which plumbers near me get results fastest?", "What are good alternatives to the best-known plumbers near me?"]],
+    // 4+ words, plural head before the preposition
+    ["project management apps for remote design teams", ["What are the best project management apps for remote design teams?", "Which project management apps for remote design teams are easiest to set up and use?", "Which project management apps for remote design teams do small businesses recommend?", "Which project management apps for remote design teams save the most time each month?", "What are good alternatives to the best-known project management apps for remote design teams?"]],
+  ];
+  for (const [kw, want] of cases) {
+    const d = draftPrompts(kw);
+    assert.deepEqual(d, want, kw);
+    assert.equal(refuseDrafts(d), null, kw);
+    for (const p of d) {
+      assert.doesNotMatch(p, /best best|best top/, `${kw}: said twice`);
+      if (isPluralHead(keywordHead(keywordForm(kw).replace(/^best /, "")))) assert.doesNotMatch(p, / is | saves | gets |What’s the best|a good alternative/, `${kw}: singular verb on a plural head: ${p}`);
+      else assert.doesNotMatch(p, / are | save | get |What are/, `${kw}: plural verb on a singular head: ${p}`);
+    }
+  }
+  // Singular heads that end in s, and mass nouns.
+  for (const w of ["business", "status", "analysis", "analytics", "software", "crm"]) assert.equal(isPluralHead(w), false, w);
+  for (const w of ["agencies", "tools", "coaches", "boxes", "services", "consultants"]) assert.equal(isPluralHead(w), true, w);
+  assert.equal(keywordHead("payroll software for small business"), "software");
+  assert.equal(keywordHead("crm"), "crm");
 });
 
 test("a signed pass verifies for its client and day only, so the check cannot be skipped", () => {

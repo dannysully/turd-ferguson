@@ -92,16 +92,50 @@ export function verdictFromQuery(get: (k: string) => string | null, keyword: str
  * that passed, in ANGLES order, for the member to edit. The board's fifth
  * names a competitor; the page has no competitor it can stand behind for
  * every client, so it asks for an alternative to the best-known one.
+ *
+ * R171 (Danny, 2 Oct 2026, danny.md line 180): the verbs agree with the
+ * keyword's head noun - the word before its first "for", "in", "near" and so
+ * on, else its last - and a service keyword (agencies, consultants, plumbers)
+ * gets prompts about working with someone rather than setting up a tool. A
+ * leading "best" or "top" is dropped so it is not said twice. Only new drafts
+ * change; a prompt's text is fixed once it has a reading.
  */
+const PREPOSITIONS = new Set(["for", "in", "near", "with", "to", "on", "at", "from", "around"]);
+const SERVICE_HEADS = new Set([
+  "agency", "agencies", "consultant", "consultants", "consultancy", "consultancies", "firm", "firms", "company", "companies",
+  "service", "services", "provider", "providers", "specialist", "specialists", "expert", "experts", "freelancer", "freelancers",
+  "contractor", "contractors", "lawyer", "lawyers", "solicitor", "solicitors", "accountant", "accountants", "accountancy",
+  "bookkeeper", "bookkeepers", "plumber", "plumbers", "electrician", "electricians", "dentist", "dentists", "clinic", "clinics",
+  "studio", "studios", "partner", "partners", "developer", "developers", "designer", "designers", "coach", "coaches",
+  "trainer", "trainers", "therapist", "therapists", "builder", "builders", "installer", "installers", "advisor", "advisors",
+  "adviser", "advisers", "broker", "brokers", "photographer", "photographers", "cleaner", "cleaners", "surveyor", "surveyors",
+]);
+
+/** The head noun of a keyword: the word before its first preposition, else its last word. */
+export function keywordHead(k: string): string {
+  const words = k.split(" ");
+  const at = words.findIndex((w, i) => i > 0 && PREPOSITIONS.has(w));
+  return words[at > 0 ? at - 1 : words.length - 1] ?? "";
+}
+
+/** A plural head: agencies, tools, coaches - not business, status, analysis or analytics. */
+export function isPluralHead(w: string): boolean {
+  if (/(sses|xes|ches|shes|ies)$/.test(w)) return true;
+  return /[^siu]s$/.test(w) && !/ics$/.test(w);
+}
+
 export function draftPrompts(keyword: string): string[] {
-  const k = keywordForm(keyword);
-  return [
-    `What’s the best ${k}?`,
-    `Which ${k} is easiest to set up and use?`,
-    `Which ${k} do small businesses recommend?`,
-    `Which ${k} saves the most time each month?`,
-    `What’s a good alternative to the best-known ${k}?`,
-  ];
+  const k = keywordForm(keyword).replace(/^(?:the )?(?:best|top)\s+/, "");
+  const head = keywordHead(k);
+  const many = isPluralHead(head);
+  if (SERVICE_HEADS.has(head)) {
+    return many
+      ? [`Who are the best ${k}?`, `Which ${k} are easiest to work with?`, `Which ${k} do small businesses recommend?`, `Which ${k} get results fastest?`, `What are good alternatives to the best-known ${k}?`]
+      : [`Who is the best ${k}?`, `Which ${k} is easiest to work with?`, `Which ${k} do small businesses recommend?`, `Which ${k} gets results fastest?`, `What’s a good alternative to the best-known ${k}?`];
+  }
+  return many
+    ? [`What are the best ${k}?`, `Which ${k} are easiest to set up and use?`, `Which ${k} do small businesses recommend?`, `Which ${k} save the most time each month?`, `What are good alternatives to the best-known ${k}?`]
+    : [`What’s the best ${k}?`, `Which ${k} is easiest to set up and use?`, `Which ${k} do small businesses recommend?`, `Which ${k} saves the most time each month?`, `What’s a good alternative to the best-known ${k}?`];
 }
 
 /** The five typed prompts: each 8 to ADMIN_LIMITS.question characters, no two the same. */
