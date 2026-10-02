@@ -157,11 +157,12 @@ export default function Placements({
       <PlacementsChart brand={brand} series={series} rows={rows} filters={filters} kind={kind} sel={sel} hrefFor={(id) => link(kind, id, "#placements-chart")} keyword={keyword} />
 
       <section aria-labelledby="tb-h" style={{ ...CARD, padding: "22px 0 8px" }}>
-        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "0 24px 14px" }}>
+        {/* DS48 (2 Oct 2026): at 390 the button shrank to "Download / CSV" on two lines; it now keeps one line and drops under the heading when they do not fit. */}
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap", gap: "10px 16px", padding: "0 24px 14px" }}>
           <h2 id="tb-h" style={H2}>
             Every placement, and where the cluster stood
           </h2>
-          <a href={csvHref} download style={{ display: "flex", alignItems: "center", gap: "6px", height: "36px", padding: "0 12px", border: `1px solid ${T.line}`, borderRadius: "10px", background: T.surface, color: T.ink, fontSize: "13px", fontWeight: 600, textDecoration: "none", boxSizing: "border-box" }}>
+          <a href={csvHref} download style={{ display: "flex", alignItems: "center", gap: "6px", height: "36px", padding: "0 12px", border: `1px solid ${T.line}`, borderRadius: "10px", background: T.surface, color: T.ink, fontSize: "13px", fontWeight: 600, textDecoration: "none", boxSizing: "border-box", whiteSpace: "nowrap", flexShrink: 0 }}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={T.ink} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M12 4v11M7 10l5 5 5-5M5 20h14" />
             </svg>
