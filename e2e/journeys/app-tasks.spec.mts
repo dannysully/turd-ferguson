@@ -26,6 +26,7 @@ type Page = {
   evaluate<R, A>(fn: (a: A) => R | Promise<R>, a: A): Promise<R>;
   getByRole(role: string, o?: object): Locator;
   waitForURL(url: RegExp, o?: object): Promise<void>;
+  keyboard: { press(key: string): Promise<void> };
   url(): string;
 };
 type Context = { newPage(): Promise<Page>; close(): Promise<void> };
@@ -33,7 +34,9 @@ type Browser = { newContext(o: object): Promise<Context>; close(): Promise<void>
 const { chromium } = require("playwright") as { chromium: { launch(): Promise<Browser> } };
 
 const PORT = Number(process.env.E2E_PORT ?? 3109);
-const BASE = `http://127.0.0.1:${PORT}`;
+// localhost, as docs/parity/ds10-setup.mjs: on 127.0.0.1 a form's 303 came back to localhost, and the page's
+// CSP form-action 'self' blocked the POST (seen 2 Oct 04:25Z on task 15's Confirm).
+const BASE = `http://localhost:${PORT}`;
 const HOME = "/app/tallyroo";
 
 let server: Server | null = null;
@@ -45,11 +48,11 @@ before(async () => {
   process.env.VERCEL_ENV = "development";
   const { default: next } = await import("next");
   // Host and port given, so a route's 303 (built from req.url) comes back here.
-  const app = next({ dev: false, dir: ROOT, hostname: "127.0.0.1", port: PORT });
+  const app = next({ dev: false, dir: ROOT, hostname: "localhost", port: PORT });
   await app.prepare();
   const handle = app.getRequestHandler();
   server = createServer((req, res) => handle(req, res));
-  await new Promise<void>((resolve) => server!.listen(PORT, "127.0.0.1", () => resolve()));
+  await new Promise<void>((resolve) => server!.listen(PORT, () => resolve()));
   browser = await chromium.launch();
 });
 
@@ -130,9 +133,7 @@ for (const width of [1280, 390]) {
       await ctx.close();
     });
 
-    // Todo (2 Oct 04:07Z): Finish setup passes here; the Confirm press stays on /setup in this harness, where
-    // docs/parity/ds10-setup.mjs's same press lands on ?setup=confirmed. Not yet known why.
-    test("task 15: an unconfirmed signup finds its way back to setup and confirms", { todo: "Confirm stays on /setup in this harness" }, async () => {
+    test("task 15: an unconfirmed signup finds its way back to setup and confirms", async () => {
       as("signup");
       const { ctx, page } = await open("/app");
       assert.match(await text(page), /Your setup is not confirmed yet\./);
@@ -143,6 +144,51 @@ for (const width of [1280, 390]) {
       await page.getByRole("button", { name: /Confirm/ }).first().click();
       await page.waitForURL(/setup=confirmed/, { timeout: 10_000 }).catch(() => assert.fail(`Confirm went to ${page.url()}`));
       assert.doesNotMatch(await text(page), /Your setup is not confirmed yet\./);
+      await ctx.close();
+    });
+
+    // Keyboard only, once (R172): Tab to each control, Enter to press it, a ring on every stop on the way.
+    async function tabTo(page: Page, name: RegExp, cap = 80) {
+      for (let n = 1; n <= cap; n++) {
+        await page.keyboard.press("Tab");
+        const at = await page.evaluate(() => {
+          const el = document.activeElement as HTMLElement | null;
+          if (!el || el === document.body) return null;
+          const ringed = (x: Element) => {
+            const s = getComputedStyle(x);
+            return (s.outlineStyle !== "none" && parseFloat(s.outlineWidth) > 0) || s.boxShadow !== "none";
+          };
+          // A field may ring its wrapper instead (.app-search:focus-within), so look two levels up.
+          const ring = ringed(el) || [el.parentElement, el.parentElement?.parentElement].some((x) => x && x.matches(":focus-within") && ringed(x));
+          const label = el.getAttribute("aria-label") ?? ((el as HTMLInputElement).labels?.[0]?.innerText || el.innerText || "");
+          return { label: label.trim(), ring };
+        }, null);
+        if (!at) continue;
+        assert.ok(at.ring, `no focus ring on "${at.label}" (stop ${n})`);
+        if (name.test(at.label)) return n;
+      }
+      return assert.fail(`${name} not reached in ${cap} Tabs`);
+    }
+
+    test("keyboard only: task 15 from the Overview to a confirmed setup", async () => {
+      as("signup");
+      const { ctx, page } = await open("/app");
+      await tabTo(page, /^Finish setup$/);
+      await page.keyboard.press("Enter");
+      await page.waitForURL(/\/setup$/, { timeout: 10_000 }).catch(() => assert.fail(`Finish setup went to ${page.url()}`));
+      await tabTo(page, /^Confirm/);
+      await page.keyboard.press("Enter");
+      await page.waitForURL(/setup=confirmed/, { timeout: 10_000 }).catch(() => assert.fail(`Confirm went to ${page.url()}`));
+      await ctx.close();
+    });
+
+    test("keyboard only: task 6 Add a cluster at 10 of 10", async () => {
+      as("default");
+      const { ctx, page } = await open(`${HOME}/clusters`);
+      await tabTo(page, /^Add a cluster$/);
+      await page.keyboard.press("Enter");
+      await page.waitForURL(/add/, { timeout: 10_000 }).catch(() => assert.fail(`Add a cluster went to ${page.url()}`));
+      assert.match(await text(page), /All 10 clusters are in use/);
       await ctx.close();
     });
 
