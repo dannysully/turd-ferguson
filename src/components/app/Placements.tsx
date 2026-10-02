@@ -170,29 +170,32 @@ export default function Placements({
           </a>
         </div>
         <div className="app-scroll-x" style={{ overflowX: "auto" }}>
-          <div style={{ minWidth: "980px" }}>
-            <div style={{ display: "grid", gridTemplateColumns: COLS, gap: "16px", padding: "0 24px 10px" }}>
+          <div className="app-pl-table" style={{ minWidth: "980px" }}>
+            <div className="app-hide-sm" style={{ display: "grid", gridTemplateColumns: COLS, gap: "16px", padding: "0 24px 10px" }}>
               {["Page", "Type", "Live", "Answers citing it", "Named, at go-live to now", "Google, at go-live to now"].map((h) => (
                 <span key={h} style={{ fontSize: "12px", fontWeight: 600, color: T.soft }}>
                   {h}
                 </span>
               ))}
             </div>
-            <div style={{ ...cell, padding: "14px 24px", background: T.chip, borderTop: `1px solid ${T.line}` }}>
+            <div className="app-pl-grid" style={{ ...cell, padding: "14px 24px", background: T.chip, borderTop: `1px solid ${T.line}` }}>
               <span style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
                 <span style={{ fontSize: "14px", fontWeight: 700 }}>Whole cluster</span>
                 <span style={{ fontSize: "12px", color: T.soft }}>{`${keyword ?? cluster.name}, ${prompts} prompt${prompts === 1 ? "" : "s"}`}</span>
               </span>
               <span style={{ fontSize: "13px", fontWeight: 600 }}>{`${view.live} live`}</span>
               <span style={{ fontSize: "13px" }}>{`Since ${since}`}</span>
-              <span data-figure="placements-whole-cited" style={{ fontSize: "15px", fontWeight: 700 }}>
-                {view.whole.cited}
+              <span className="app-pl-cited" style={{ fontSize: "15px", fontWeight: 700 }}>
+                <span data-figure="placements-whole-cited">{view.whole.cited}</span>
+                <span className="app-show-sm" style={{ fontSize: "13px", fontWeight: 500, color: T.soft }}> answers citing</span>
               </span>
-              <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", fontWeight: 700 }}>
+              <span className="app-pl-named" style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", fontWeight: 700 }}>
+                <span className="app-show-sm" style={{ fontSize: "13px", fontWeight: 500, color: T.soft }}>Named</span>
                 {spanText(view.whole.named, "pct")}
                 <Up s={view.whole.named} unit="pct" arrow />
               </span>
-              <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", fontWeight: 700 }}>
+              <span className="app-pl-google" style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", fontWeight: 700 }}>
+                <span className="app-show-sm" style={{ fontSize: "13px", fontWeight: 500, color: T.soft }}>Google</span>
                 {spanText(view.whole.google, "rank")}
                 <Up s={view.whole.google} unit="rank" arrow />
               </span>
@@ -202,7 +205,7 @@ export default function Placements({
               const pill = KIND_PILL[r.kind];
               const on = r.id === sel;
               return (
-                <div key={r.id} id={`p-${r.id}`} data-placement={r.id} aria-current={on ? "true" : undefined} style={{ ...cell, borderTop: `1px solid ${T.hair}`, background: on ? T.wash : undefined }}>
+                <div key={r.id} id={`p-${r.id}`} data-placement={r.id} aria-current={on ? "true" : undefined} className="app-pl-grid" style={{ ...cell, borderTop: `1px solid ${T.hair}`, background: on ? T.wash : undefined }}>
                   <a href={link(kind, on ? null : r.id, `#p-${r.id}`)} data-usage="placement_select" style={{ display: "flex", flexDirection: "column", gap: "2px", minWidth: 0, color: T.ink, textDecoration: "none" }}>
                     <span style={{ fontSize: "14px", fontWeight: 700 }}>{host}</span>
                     {/* DS42 (2 Oct 2026): a long path is cut at the column, so hover still reads it whole. */}
@@ -210,19 +213,24 @@ export default function Placements({
                   </a>
                   <span style={{ justifySelf: "start", padding: "3px 9px", borderRadius: "999px", background: pill.bg, color: pill.fg, fontSize: "12px", fontWeight: 600, whiteSpace: "nowrap" }}>{KIND_WORDS[r.kind]}</span>
                   <span style={{ fontSize: "13px", fontWeight: r.live ? 500 : 600, color: r.live ? T.ink : T.warnFg }}>{r.when}</span>
-                  <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <span style={{ fontSize: "15px", fontWeight: 700, fontVariantNumeric: "tabular-nums", minWidth: "22px" }}>{r.live ? r.cited : "-"}</span>
+                  <span className="app-pl-cited" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span style={{ fontSize: "15px", fontWeight: 700, fontVariantNumeric: "tabular-nums", minWidth: "22px" }}>
+                      {r.live ? r.cited : "-"}
+                      {r.live ? <span className="app-show-sm" style={{ fontSize: "13px", fontWeight: 500, color: T.soft }}> answers citing</span> : null}
+                    </span>
                     <span style={{ display: "flex", gap: "3px" }}>
                       {r.citedBy.map((e) => (
                         <EngineLogo key={e} engine={e} size={16} title={ENGINE_SPECS[e as Engine]?.label ?? e} />
                       ))}
                     </span>
                   </span>
-                  <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", fontVariantNumeric: "tabular-nums" }}>
+                  <span className="app-pl-named" style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", fontVariantNumeric: "tabular-nums" }}>
+                    {r.live ? <span className="app-show-sm" style={{ fontSize: "13px", color: T.soft }}>Named</span> : null}
                     {r.live ? spanText(r.named, "pct") : "Not live yet"}
                     <Up s={r.named} unit="pct" />
                   </span>
-                  <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", fontVariantNumeric: "tabular-nums" }}>
+                  <span className="app-pl-google" style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", fontVariantNumeric: "tabular-nums" }}>
+                    {r.live ? <span className="app-show-sm" style={{ fontSize: "13px", color: T.soft }}>Google</span> : null}
                     {r.live ? spanText(r.google, "rank") : ""}
                     <Up s={r.google} unit="rank" />
                   </span>

@@ -1825,6 +1825,15 @@ html[data-motion="on"] .app-pending { animation: appPending 1.1s ease-in-out inf
   .app-ct-count .app-show-sm { display: inline !important; }
   .app-ct-engines { padding-left: 20px; }
   .app-ct-span { grid-column: 1 / 3; text-align: left !important; padding-left: 20px; }
+  /* DS49 (2 Oct 2026) Placements on a phone: the table was a 980px sideways
+     scroll, so its figures sat off-screen. Each row is page and type, then
+     live day and answers citing, then named and Google, each labelled. */
+  .app-pl-table { min-width: 0 !important; }
+  .app-pl-grid { grid-template-columns: minmax(0, 1fr) auto !important; gap: 8px 12px !important; padding-left: 16px !important; padding-right: 16px !important; }
+  .app-pl-grid .app-show-sm { display: inline !important; }
+  .app-pl-cited, .app-pl-google { justify-self: end; }
+  /* A figure ("30% to 50%") never breaks; label, figure and chip wrap as whole pieces at 320. */
+  .app-pl-named, .app-pl-google { white-space: nowrap; flex-wrap: wrap; row-gap: 2px !important; min-width: 0; }
   /* R145 Reports on a phone: the three month figures stack. */
   .app-rp-figs { grid-template-columns: minmax(0, 1fr) !important; gap: 12px !important; }
   .app-nm-filters { flex-wrap: nowrap !important; overflow-x: auto; scrollbar-width: none; }
