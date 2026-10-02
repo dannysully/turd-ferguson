@@ -74,8 +74,12 @@ export function fixtureUnreadable(env: Record<string, string | undefined> = proc
  * client with no cluster rows and no prompt in a cluster - the Overview's
  * "Ungrouped prompts" state. Placements hang off clusters, so they go too.
  */
+/** Every TRACKING_FIXTURE_STATE, unset being `default`. Anything else serves the default. */
+export const FIXTURE_STATES = ["default", "signup", "new", "partial", "failed", "unreadable", "stopped", "ungrouped", "pilot-mixed"] as const;
+
 export function fixtureState(f: Fixture, env: Record<string, string | undefined> = process.env): Fixture {
   const as = fixtureAs(f, env);
+  if (env.TRACKING_FIXTURE_STATE === "pilot-mixed") return pilotMixed(as);
   if (env.TRACKING_FIXTURE_STATE === "new") return dayZero(as);
   if (env.TRACKING_FIXTURE_STATE === "signup") return signupNoKeyword(dayZero(as));
   if (env.TRACKING_FIXTURE_STATE === "partial") return failedReads(as, "partial");
@@ -129,6 +133,56 @@ function signupNoKeyword(f: Fixture): Fixture {
       clusters: [{ ...first, name: "Needs a keyword", keyword_id: null }],
       questions: f.data.questions.filter((q) => q.cluster_id === first.id).slice(0, PROMPTS_PER_CLUSTER),
       keywords: [],
+    },
+  };
+}
+
+/**
+ * R169 (Danny, 2 Oct 2026, danny.md line 179): `TRACKING_FIXTURE_STATE=pilot-mixed`
+ * is a pilot as they really stand - prompts from the scan tracked ungrouped
+ * for weeks, and one cluster just added and not yet read. The first cluster is
+ * pending (its prompts and keyword start tomorrow, no readings); the second
+ * cluster's five prompts are ungrouped and keep their readings, four of them
+ * rewritten to name the brand (branded is the client's choice, danny.md line
+ * 118) and named on every engine that answered, as a branded prompt nearly
+ * always is. Nothing else: other clusters, keywords, notes, placements go.
+ */
+export const PILOT_BRANDED = (brand: string) => [
+  `Is ${brand} worth it for freelancers?`,
+  `Does ${brand} handle sales tax for small businesses?`,
+  `What do accountants think of ${brand}?`,
+  `Is ${brand} or a spreadsheet better for invoicing?`,
+];
+
+function pilotMixed(f: Fixture): Fixture {
+  const [pending, read] = f.data.clusters.filter((c) => c.stopped_on === null);
+  const tomorrow = addDays(f.today, 1);
+  const live = f.data.questions.filter((q) => q.stopped_on === null);
+  const drafts = live.filter((q) => q.cluster_id === pending!.id).slice(0, PROMPTS_PER_CLUSTER);
+  const ungrouped = live.filter((q) => q.cluster_id === read!.id).slice(0, PROMPTS_PER_CLUSTER);
+  const branded = PILOT_BRANDED(f.client.brand);
+  const text = new Map(ungrouped.slice(0, branded.length).map((q, i) => [q.id, branded[i]!]));
+  const draftIds = new Set(drafts.map((q) => q.id));
+  const keep = new Set(ungrouped.map((q) => q.id));
+  return {
+    ...f,
+    placements: [],
+    clusterNotes: [],
+    texts: Object.fromEntries(Object.entries(f.texts).filter(([k]) => { const id = k.split(" ")[0]!; return keep.has(id) && !text.has(id); })),
+    data: {
+      ...f.data,
+      clusters: [{ ...pending!, started_on: tomorrow }],
+      keywords: f.data.keywords.filter((k) => k.id === pending!.keyword_id).map((k) => ({ ...k, added_on: tomorrow })),
+      questions: [
+        ...drafts.map((q) => ({ ...q, added_on: tomorrow })),
+        ...ungrouped.map((q) => ({ ...q, cluster_id: null, text: text.get(q.id) ?? q.text })),
+      ],
+      answers: f.data.answers
+        .filter((a) => keep.has(a.question_id) && !draftIds.has(a.question_id))
+        .map((a) => (text.has(a.question_id) && a.answered ? { ...a, named: true } : a)),
+      // The one keyword left is the pending cluster's, so nothing has ranked it yet.
+      serp: [],
+      notes: [],
     },
   };
 }

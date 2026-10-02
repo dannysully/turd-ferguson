@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
-import { expandFixture, fixtureLive, fixtureMode, fixtureState, fixtureUnreadable } from "./fixture-mode.ts";
+import { FIXTURE_STATES, expandFixture, fixtureLive, fixtureMode, fixtureState, fixtureUnreadable } from "./fixture-mode.ts";
 import { addDays, overview } from "./figures.ts";
-import { ANGLES, PROMPTS_PER_CLUSTER } from "./limits.ts";
+import { ANGLES, PROMPTS_PER_CLUSTER, namesBrandIn } from "./limits.ts";
 
 /**
  * R93 / BRIEF-2 T9 (29 Sep 2026): the fixture switch, and the fixture itself.
@@ -171,4 +171,28 @@ test("R146: TRACKING_FIXTURE_ROLE signs the fixture in as each member; removed i
 test("R151: TRACKING_FIXTURE_STATE=unreadable throws the overview read, as a refused Supabase read does; nothing else does", () => {
   assert.throws(() => fixtureUnreadable({ TRACKING_FIXTURE_STATE: "unreadable" }), /could not read the runs/);
   for (const state of [undefined, "new", "partial", "failed", "ungrouped"]) assert.doesNotThrow(() => fixtureUnreadable({ TRACKING_FIXTURE_STATE: state }));
+});
+
+test("R169: TRACKING_FIXTURE_STATE=pilot-mixed is one pending cluster and five live ungrouped prompts, four naming the brand", () => {
+  assert.ok(FIXTURE_STATES.includes("pilot-mixed"));
+  const m = fixtureState(fx, { TRACKING_FIXTURE_STATE: "pilot-mixed" });
+  const tomorrow = addDays(fx.today, 1);
+  assert.equal(m.data.clusters.length, 1);
+  const c = m.data.clusters[0]!;
+  assert.equal(c.started_on, tomorrow, "pending: starts tomorrow");
+  const drafted = m.data.questions.filter((q) => q.cluster_id === c.id);
+  assert.equal(drafted.length, PROMPTS_PER_CLUSTER);
+  assert.ok(drafted.every((q) => q.added_on === tomorrow && q.stopped_on === null));
+  assert.ok(!m.data.answers.some((a) => drafted.some((q) => q.id === a.question_id)), "no readings on the pending cluster");
+  assert.deepEqual(m.data.keywords.map((k) => [k.id, k.added_on]), [[c.keyword_id, tomorrow]]);
+  const ungrouped = m.data.questions.filter((q) => q.cluster_id === null);
+  assert.equal(ungrouped.length, 5);
+  assert.ok(ungrouped.every((q) => q.stopped_on === null && q.added_on <= fx.today), "live and already read");
+  const subject = { brand: m.client.brand, domain: m.client.domain, aliases: m.aliases };
+  assert.equal(ungrouped.filter((q) => namesBrandIn(q.text, subject)).length, 4);
+  for (const q of ungrouped) assert.ok(m.data.answers.some((a) => a.question_id === q.id && a.run_date === fx.today), `${q.id} read today`);
+  const branded = new Set(ungrouped.filter((q) => namesBrandIn(q.text, subject)).map((q) => q.id));
+  assert.ok(m.data.answers.filter((a) => branded.has(a.question_id) && a.answered).every((a) => a.named));
+  assert.deepEqual([m.placements, m.clusterNotes, m.data.serp, m.data.notes], [[], [], [], []]);
+  assert.ok(Object.keys(m.texts).every((k) => !branded.has(k.split(" ")[0]!)), "no answer text that predates the branded wording");
 });
