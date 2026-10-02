@@ -140,14 +140,40 @@ export default function Sidebar({
   // a soft navigation with the pending bar, not a full reload. The client
   // switcher stays a plain <a>: a different client is a fresh page.
   const hrefOf = (item: string) => navHref(item, client.slug);
+  const chip: React.CSSProperties = { display: "flex", alignItems: "center", gap: "8px", height: "44px", padding: "0 10px", border: `1px solid ${T.line}`, borderRadius: "10px", fontSize: "14px", fontWeight: 700, boxSizing: "border-box", minWidth: 0 };
+  const chipName = (
+    <>
+      <Initial name={name} size={22} />
+      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</span>
+    </>
+  );
   return (
     <>
       <header className="app-topbar" style={{ alignItems: "center", justifyContent: "space-between", height: "60px", padding: "0 16px", background: T.surface, borderBottom: `1px solid ${T.line}`, flex: "1 1 100%", boxSizing: "border-box" }}>
         <Lockup size={16} />
-        <span style={{ display: "flex", alignItems: "center", gap: "8px", height: "40px", padding: "0 10px", border: `1px solid ${T.line}`, borderRadius: "10px", fontSize: "14px", fontWeight: 700, maxWidth: "60%", minWidth: 0 }}>
-          <Initial name={name} size={22} />
-          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</span>
-        </span>
+        {/* DS5 (2 Oct 2026, R172 pass 1): the sidebar's switcher is hidden on the phone shell, so
+            a member of several clients could only reach the first. The chip opens the same list,
+            a <details> so it works with JS off. */}
+        {others.length ? (
+          <details className="app-switch" style={{ position: "relative", maxWidth: "60%", minWidth: 0 }}>
+            <summary aria-label={`${name}: switch client`} style={chip}>
+              {chipName}
+              <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0, color: T.soft }}>
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </summary>
+            <nav aria-label="Switch client" style={{ position: "absolute", right: 0, top: "calc(100% + 6px)", zIndex: 30, minWidth: "220px", maxWidth: "calc(100vw - 32px)", display: "grid", padding: "6px", background: T.surface, border: `1px solid ${T.line}`, borderRadius: "12px", boxSizing: "border-box" }}>
+              {others.map((c) => (
+                <a key={c.slug} href={`/app/${c.slug}`} style={{ display: "flex", alignItems: "center", gap: "8px", minHeight: "44px", padding: "0 10px", borderRadius: "8px", fontSize: "14px", fontWeight: 600, color: T.ink, textDecoration: "none", overflowWrap: "anywhere" }}>
+                  <Initial name={c.brand ?? c.domain} size={22} />
+                  {c.brand ?? c.domain}
+                </a>
+              ))}
+            </nav>
+          </details>
+        ) : (
+          <span style={{ ...chip, maxWidth: "60%" }}>{chipName}</span>
+        )}
       </header>
 
       <aside className="app-side" style={{ flex: "0 0 248px", position: "sticky", top: 0, height: "100vh", overflowY: "auto", boxSizing: "border-box", borderRight: `1px solid ${T.line}`, padding: "24px 16px", display: "flex", flexDirection: "column", gap: "24px", background: T.surface }}>

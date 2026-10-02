@@ -39,14 +39,19 @@ export default async function ParityOverview({ searchParams }: { searchParams: P
     data: OverviewData;
   };
   const engines = enginesFor(fx.client.tier);
-  const { range, compare } = rangeFrom(await searchParams, fx.today);
+  const q = await searchParams;
+  const { range, compare } = rangeFrom(q, fx.today);
   // Slug "example", the fixture client (TRACKING_FIXTURE): since R130 the
   // sidebar links every built screen, and /app/parity/clusters is not a route.
   const client = { slug: "example", domain: fx.client.domain, brand: fx.client.brand, market: fx.client.market };
+  // DS5 (2 Oct 2026): ?others=2 gives the member two more made-up clients, so the
+  // client switcher can be measured; the fixture member has one client.
+  const n = Math.min(Number(q.others) || 0, 5);
+  const others = Array.from({ length: n }, (_, i) => ({ slug: `example-${i + 2}`, domain: `example-${i + 2}.com`, brand: null, market: fx.client.market }));
 
   return (
     <div className="app-shell" style={{ display: "flex", flexWrap: "wrap", minHeight: "100vh", color: T.ink }}>
-      <Sidebar client={client} others={[]} email="parity@localhost" role="owner" tier={fx.client.tier} engines={engines} />
+      <Sidebar client={client} others={others} email="parity@localhost" role="owner" tier={fx.client.tier} engines={engines} />
       <div className="app-main" style={{ flex: "1 1 480px", minWidth: 0, padding: "36px 40px 48px", background: T.bg }}>
         <Overview
           brand={fx.client.brand}
