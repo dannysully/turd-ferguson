@@ -8,7 +8,7 @@ import type { TierKey } from "@/components/TierName";
 import { enginesFor, trackingPackPrice } from "@/config/pricing";
 import { T } from "@/config/tokens";
 import { CLUSTER_BASE } from "@/lib/tracking/limits";
-import { rangeFrom } from "@/lib/tracking/overview-data";
+import { rangeFrom, rangeQuery } from "@/lib/tracking/overview-data";
 import { placedTier } from "@/lib/tracking/placement-figures";
 import { trackingRepo } from "@/lib/tracking/repo";
 import { askToast } from "@/lib/tracking/ask";
@@ -48,7 +48,8 @@ export default async function ClientSettings({ params, searchParams }: { params:
 
   return (
     <div className="app-shell" style={{ display: "flex", flexWrap: "wrap", minHeight: "100vh", color: T.ink }}>
-      <Sidebar client={client} others={clients.filter((c) => c.slug !== slug)} email={email} role={client.role} tier={tier} engines={engines} clusters current="Settings" placements={placedTier(tier)} clusterLimit={clusterLimit} packPrice={trackingPackPrice(client.market)} upsell={upgrade.mode === "nomada"} />
+      {/* DS39 (2 Oct 2026, R173 pass 4): Settings shows no range, but a range the nav brought in rides on to the next page. */}
+      <Sidebar keep={rangeQuery(sp, today)} client={client} others={clients.filter((c) => c.slug !== slug)} email={email} role={client.role} tier={tier} engines={engines} clusters current="Settings" placements={placedTier(tier)} clusterLimit={clusterLimit} packPrice={trackingPackPrice(client.market)} upsell={upgrade.mode === "nomada"} />
       <div id="app-content" tabIndex={-1} className="app-main" style={{ flex: "1 1 480px", minWidth: 0, padding: "36px 40px 48px", background: T.bg }}>
         <Settings
           domain={client.domain}
