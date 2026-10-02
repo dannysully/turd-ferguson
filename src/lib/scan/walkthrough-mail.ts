@@ -28,7 +28,8 @@ export async function sendWalkthroughAlert(input: {
     console.error("[walkthrough] RESEND_API_KEY is not set, alert not sent");
     return false;
   }
-  const what = input.kind === "video" ? "Loom walkthrough" : "demo call";
+  // The toggle's own labels (R176), so the subject says who picks it up.
+  const what = input.kind === "video" ? "Loom with Luke" : "Demo with Danny";
   const scan = input.scan;
   const context = scan
     ? [
@@ -38,7 +39,7 @@ export async function sendWalkthroughAlert(input: {
       ]
     : [`Asked from: ${siteUrl()}${input.from ?? ""}`, "No scan yet."];
   const text = [
-    `${input.email} asked for a ${what} of alwaystracked.`,
+    `${input.email} asked for a ${input.kind === "video" ? "Loom walkthrough" : "demo call"} of alwaystracked (${what}).`,
     "",
     ...context,
     "",

@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 
 import { SCAN_LIMITS } from "@/config/contact";
-import { CONTACT_URL } from "@/config/pricing";
 import { T } from "@/config/tokens";
 import { track } from "@/lib/analytics";
 
@@ -39,17 +38,16 @@ import { btn, field, label } from "./screens";
  * the page's own "Book a call" link stands in, since a form that cannot post
  * would only lose the address.
  *
- * The third option, "Book a call" (R54, Danny, danny.md line 55), is a link to
- * /contact, not a stored ask: `walkthrough_requests.kind` allows only video and
- * demo, and widening that check is a drop-and-recreate outside the additive
- * authorisation (blocked.md, default (b)). Once the constraint allows 'call',
- * this option can post like the other two.
+ * Two options, not three (R176, Danny, 1 Oct 2026, danny.md lines 190-208):
+ * R54's "Book a call" link to /contact is gone from the toggle (every other
+ * Book a call on the site stays). The two name who does it - "Loom with Luke",
+ * "Demo with Danny" - each with a 24px round photo before its label.
  */
 export default function WalkthroughForm(p: { token: string } | { from: string }) {
   const token = "token" in p ? p.token : null;
   const [mounted, setMounted] = useState(token !== null);
   useEffect(() => setMounted(true), []);
-  const [kind, setKind] = useState<"video" | "demo" | "call">("video");
+  const [kind, setKind] = useState<"video" | "demo">("video");
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -80,7 +78,7 @@ export default function WalkthroughForm(p: { token: string } | { from: string })
         setErr(data.message ?? "That did not go through. Please try again.");
         return;
       }
-      setDone(data.message ?? "Thanks. Danny will be in touch.");
+      setDone(data.message ?? (kind === "video" ? "Thanks. Luke will send your Loom." : "Thanks. Danny will be in touch."));
       track("walkthrough_requested", { kind });
     } catch {
       setErr("We could not reach the checker. Please try again.");
@@ -101,20 +99,20 @@ export default function WalkthroughForm(p: { token: string } | { from: string })
 
   // ScanResult.dc.html's switch: short labels on a grey track, and the chosen
   // one's note under it rather than inside each option.
-  const options: { key: "video" | "demo" | "call"; title: string; note: string }[] = [
+  const options: { key: "video" | "demo"; title: string; photo: string; note: string }[] = [
     {
       key: "video",
-      title: "Loom walkthrough",
-      note: token ? "A Loom of the platform, recorded against this report." : "A Loom of the platform, recorded for you.",
+      title: "Loom with Luke",
+      photo: "/team/luke.webp",
+      note: token ? "Luke records a Loom of the platform against this report." : "Luke records a Loom of the platform for you.",
     },
-    { key: "demo", title: "Demo with Danny", note: "Danny takes you through it on a call." },
-    { key: "call", title: "Book a call", note: "Pick a time with Danny on the contact page, and bring your questions." },
+    { key: "demo", title: "Demo with Danny", photo: "/team/danny.webp", note: "Danny takes you through it on a call." },
   ];
   const chosen = options.find((o) => o.key === kind) ?? options[0];
 
   // R151 (1 Oct 2026): the WAI-ARIA APG radio group - one tab stop, the
   // checked option, and the arrows (Home, End) move the choice and focus with
-  // it. Three separate tab stops read as three buttons, not one choice.
+  // it. Separate tab stops read as separate buttons, not one choice.
   function onToggleKey(e: React.KeyboardEvent<HTMLButtonElement>) {
     const at = options.findIndex((o) => o.key === kind);
     const to =
@@ -143,6 +141,8 @@ export default function WalkthroughForm(p: { token: string } | { from: string })
             onClick={() => setKind(o.key)}
             className={"wt-option" + (kind === o.key ? " wt-option--on" : "")}
           >
+            {/* eslint-disable-next-line @next/next/no-img-element -- 24px, sized in the tag, no layout shift */}
+            <img src={o.photo} width={24} height={24} alt="" />
             {o.title}
           </button>
         ))}
@@ -150,16 +150,6 @@ export default function WalkthroughForm(p: { token: string } | { from: string })
       <p aria-live="polite" style={{ margin: "14px 0 0", fontSize: "13.5px", lineHeight: 1.5, color: T.soft, minHeight: "42px" }}>
         {chosen.note}
       </p>
-      {kind === "call" ? (
-        <a
-          href={CONTACT_URL}
-          className="btn-primary"
-          style={{ ...btn, width: "100%", marginTop: "14px", display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none", boxSizing: "border-box" }}
-        >
-          Book a call
-        </a>
-      ) : (
-      <>
       <label htmlFor="wt-email" style={{ ...label, marginTop: "14px", display: "block" }}>
         Work email
       </label>
@@ -188,8 +178,6 @@ export default function WalkthroughForm(p: { token: string } | { from: string })
       <p style={{ fontSize: "12px", color: T.soft, marginTop: "10px", lineHeight: 1.5 }}>
         We use it to send you the walkthrough or arrange the call, and nothing else. <a href="/legal">What we collect</a>.
       </p>
-      </>
-      )}
     </form>
   );
 }

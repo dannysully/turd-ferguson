@@ -64,7 +64,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
   }
   if ((count ?? 0) >= PER_IP_PER_DAY) {
     return Response.json(
-      { error: "rate_limited", message: "We have your requests - Danny will be in touch." },
+      { error: "rate_limited", message: "We have your request - we will be in touch." },
       { status: 429 },
     );
   }
@@ -107,7 +107,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
     ok: true,
     message:
       kind === "video"
-        ? "Thanks. Danny will record a walkthrough and send it to " + email + "."
-        : "Thanks. Danny will email " + email + " to find a time.",
+        ? "Thanks. Luke will send your Loom."
+        : "Thanks. Danny will be in touch.",
   });
 }
