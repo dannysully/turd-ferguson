@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "@/components/app/AppLink";
-import { useState } from "react";
+import { useRef, useState, type KeyboardEvent } from "react";
 
 import { T } from "@/config/tokens";
 import type { PlacementKind } from "@/lib/tracking/placements";
@@ -24,7 +24,8 @@ import { KIND_DOT } from "./PlacementsChart";
  *
  * The server render is the settled default (previous period on, no hover),
  * so the page reads the same with JS off. Each day is a button, so the
- * readout is reachable by keyboard as well as by hover.
+ * readout is reachable by keyboard as well as by hover: one Tab stop (the
+ * last day), then the arrow keys, Home and End.
  */
 
 export type ClusterPoint = { pct: number | null; num: number; den: number } | null;
@@ -96,6 +97,16 @@ export default function ClusterChart({ data }: { data: ClusterChartData }) {
   const showPlaced = placed && marks.length > 0;
 
   const n = data.days.length;
+  // One Tab stop for the days, not one per day (R173 pass 3, DS33): the arrow keys, Home and End move between them.
+  const [picked, setCursor] = useState(n - 1);
+  const cursor = Math.min(picked, n - 1);
+  const dayRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const onDayKey = (e: KeyboardEvent<HTMLButtonElement>) => {
+    const to = { ArrowLeft: cursor - 1, ArrowDown: cursor - 1, ArrowRight: cursor + 1, ArrowUp: cursor + 1, Home: 0, End: n - 1 }[e.key];
+    if (to === undefined) return;
+    e.preventDefault();
+    dayRefs.current[Math.max(0, Math.min(n - 1, to))]?.focus();
+  };
   const step = n > 1 ? (X1 - X0) / (n - 1) : 0;
   const xAt = (i: number) => X0 + i * step;
   const hasPrev = !!data.namedBefore && data.namedBefore.some((p) => p !== null);
@@ -227,11 +238,19 @@ export default function ClusterChart({ data }: { data: ClusterChartData }) {
             {data.days.map((d, i) => (
               <button
                 key={d + i}
+                ref={(el) => {
+                  dayRefs.current[i] = el;
+                }}
                 type="button"
                 className="app-chart-day"
+                tabIndex={i === cursor ? 0 : -1}
                 aria-label={`${data.dayLabels[i]}: answers naming you ${readNamed(data.named[i] ?? null)}, Google position ${readG(data.google[i] ?? null)}`}
+                onKeyDown={onDayKey}
                 onMouseEnter={() => setHover(i)}
-                onFocus={() => setHover(i)}
+                onFocus={() => {
+                  setHover(i);
+                  setCursor(i);
+                }}
                 onBlur={() => setHover(null)}
                 style={{ flex: "1 1 0", minWidth: 0, background: "transparent", border: 0, padding: 0, cursor: "default" }}
               />

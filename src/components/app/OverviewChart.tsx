@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState, type KeyboardEvent } from "react";
 
 import EngineLogo from "@/components/EngineLogo";
 import { T } from "@/config/tokens";
@@ -12,7 +12,8 @@ import { ENGINE_SPECS, type Engine } from "@/lib/scan/engines";
  * previous-period dashed line and like-for-like are client state; the server
  * render is the settled default (all engines, previous period on), so the
  * page reads the same with JS off. Each day is a button, so the readout is
- * reachable by keyboard as well as by hover.
+ * reachable by keyboard as well as by hover: one Tab stop (the last day),
+ * then the arrow keys, Home and End.
  *
  * Engine lines take each engine's own colour from ENGINE_SPECS, not the
  * board's placeholder blues and inks.
@@ -81,6 +82,8 @@ export default function OverviewChart({ data }: { data: ChartData }) {
   const [lfl, setLfl] = useState(false);
   const [shown, setShown] = useState<"all" | Engine>("all");
   const [hover, setHover] = useState<number | null>(null);
+  const [picked, setCursor] = useState(data.now.length - 1);
+  const dayRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   const now = lfl && data.lflNow ? data.lflNow : data.now;
   const before = lfl && data.lflBefore ? data.lflBefore : data.before;
@@ -91,6 +94,15 @@ export default function OverviewChart({ data }: { data: ChartData }) {
   const max = Math.max(60, Math.ceil(peak / 20) * 20);
   const ticks = [0, max / 3, (2 * max) / 3, max].map((v) => Math.round(v));
   const step = now.length > 1 ? (X1 - X0) / (now.length - 1) : 0;
+  // One Tab stop for the days, not one per day (R173 pass 3, DS33): the arrow keys, Home and End move between them.
+  const lastDay = now.length - 1;
+  const cursor = Math.min(picked, lastDay);
+  const onDayKey = (e: KeyboardEvent<HTMLButtonElement>) => {
+    const to = { ArrowLeft: cursor - 1, ArrowDown: cursor - 1, ArrowRight: cursor + 1, ArrowUp: cursor + 1, Home: 0, End: lastDay }[e.key];
+    if (to === undefined) return;
+    e.preventDefault();
+    dayRefs.current[Math.max(0, Math.min(lastDay, to))]?.focus();
+  };
   const xAt = (i: number) => X0 + i * step;
   const line = path(now, pick, max);
   const lastX = (() => {
@@ -200,10 +212,18 @@ export default function OverviewChart({ data }: { data: ChartData }) {
               <button
                 key={i}
                 type="button"
+                ref={(el) => {
+                  dayRefs.current[i] = el;
+                }}
                 className="app-chart-day"
+                tabIndex={i === cursor ? 0 : -1}
                 aria-label={`${d.label}: ${p.pct === null ? "no check" : `${p.pct}%, ${p.num} of ${p.den} answers`}`}
+                onKeyDown={onDayKey}
                 onMouseEnter={() => setHover(i)}
-                onFocus={() => setHover(i)}
+                onFocus={() => {
+                  setHover(i);
+                  setCursor(i);
+                }}
                 onBlur={() => setHover(null)}
                 style={{ flex: "1 1 0", minWidth: 0, background: "transparent", border: 0, padding: 0, cursor: "default" }}
               />
