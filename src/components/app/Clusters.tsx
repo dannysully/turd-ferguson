@@ -475,6 +475,8 @@ const CHEVRON = (
 );
 const BTN: React.CSSProperties = { display: "inline-flex", alignItems: "center", gap: "6px", height: "40px", padding: "0 14px", border: `1px solid ${T.line}`, borderRadius: "10px", background: T.surface, color: T.ink, fontSize: "13px", fontWeight: 600 };
 const SQUARE: React.CSSProperties = { width: "36px", height: "36px", padding: 0, border: `1px solid ${T.line}`, borderRadius: "10px", background: T.surface, color: T.ink, display: "flex", alignItems: "center", justifyContent: "center" };
+// DS4 (2 Oct 2026, R172 defect 3): a prompt's Stop and Undo say so in text at 44px, as the ungrouped rows and the pending editor's fixed row do.
+const STOP_BTN: React.CSSProperties = { ...SQUARE, width: "auto", height: "44px", gap: "6px", padding: "0 12px", fontSize: "13px", fontWeight: 600, justifySelf: "start" };
 
 /** The board's toast: what the stop did, and Undo while it can still be undone. */
 function Toast({ t, cards, ungrouped = [], act, dismiss }: { t: StopToast; cards: ClusterCard[]; ungrouped?: PromptRow[]; act: Act; dismiss: string }) {
@@ -578,7 +580,7 @@ function PendingEditor({ c, kw, lead, act, subject }: { c: ClusterCard; kw: stri
                   <span style={{ fontSize: "14px", fontWeight: 600, color: T.ink, overflowWrap: "anywhere" }}>{p.text}</span>
                   <span style={{ fontSize: "12px", color: T.soft }}>{refuseEdit(1)}</span>
                 </span>
-                <StopForm act={act} kind="prompt" id={p.id} label={`Stop and add a new one: ${p.text}`} style={{ ...SQUARE, flexShrink: 0, width: "auto", height: "44px", gap: "6px", padding: "0 14px", fontSize: "13px", fontWeight: 600 }}>
+                <StopForm act={act} kind="prompt" id={p.id} label={`Stop and add a new one: ${p.text}`} style={{ ...STOP_BTN, flexShrink: 0 }}>
                   {STOP_ICON}
                   Stop
                 </StopForm>
@@ -699,7 +701,7 @@ function ClusterRow({ c, brand, subject, open, toggle, since, act, refill, openH
                   </form>
                 </li>
               ) : (
-                <li key={p.id} className="app-cl-prompt" style={{ display: "grid", gridTemplateColumns: act ? "minmax(0, 1fr) 52px 76px 36px" : "minmax(0, 1fr) 52px 76px", alignItems: "center", gap: "12px", minHeight: `${ROW_H}px`, boxSizing: "border-box", padding: "8px 12px 8px 14px", borderRadius: "12px", background: T.surface, border: `1px solid ${T.hair}`, opacity: p.stoppedOn !== null && !stopped ? 0.6 : 1 }}>
+                <li key={p.id} className="app-cl-prompt" style={{ display: "grid", gridTemplateColumns: act ? "minmax(0, 1fr) 52px 76px auto" : "minmax(0, 1fr) 52px 76px", alignItems: "center", gap: "12px", minHeight: `${ROW_H}px`, boxSizing: "border-box", padding: "8px 12px 8px 14px", borderRadius: "12px", background: T.surface, border: `1px solid ${T.hair}`, opacity: p.stoppedOn !== null && !stopped ? 0.6 : 1 }}>
                   <div style={{ display: "flex", flexDirection: "column", gap: "7px", minWidth: 0 }}>
                     <div className="app-cl-text-row" style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
                       <span style={{ flexShrink: 0, padding: "2px 8px", borderRadius: "6px", background: T.chip, color: T.soft, fontSize: "11px", fontWeight: 700, letterSpacing: ".02em", textTransform: "uppercase" }}>{p.angle ?? "Prompt"}</span>
@@ -732,11 +734,12 @@ function ClusterRow({ c, brand, subject, open, toggle, since, act, refill, openH
                   </span>
                   {act ? (
                     !stopped && p.stoppedOn === null ? (
-                      <StopForm act={act} kind="prompt" id={p.id} label={p.now.den > 0 ? `Stop and add a new one: ${p.text}` : `Stop tracking: ${p.text}`} style={SQUARE}>
+                      <StopForm act={act} kind="prompt" id={p.id} label={p.now.den > 0 ? `Stop and add a new one: ${p.text}` : `Stop tracking: ${p.text}`} style={STOP_BTN}>
                         {STOP_ICON}
+                        Stop
                       </StopForm>
                     ) : !stopped && p.stoppedOn !== null && p.stoppedOn > act.today ? (
-                      <StopForm act={act} kind="prompt" id={p.id} undo label={`Undo stop: ${p.text}`} style={{ ...SQUARE, fontSize: "11px", fontWeight: 700 }}>
+                      <StopForm act={act} kind="prompt" id={p.id} undo label={`Undo stop: ${p.text}`} style={STOP_BTN}>
                         Undo
                       </StopForm>
                     ) : (
