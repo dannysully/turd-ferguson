@@ -920,7 +920,8 @@ function ClusterCards({
                       <>
                       <span style={{ width: "80px", flexShrink: 0, fontSize: "12px", fontWeight: 600, color: pending ? T.soft : T.ink }}>{r.angle ? cap(r.angle) : "Prompt"}</span>
                       {pending ? (
-                        <span style={{ fontSize: "12px", color: T.soft }}>Asked from tomorrow, 06:00</span>
+                        // DS2 (2 Oct 2026): one line in the 22px row - it wrapped over the next angle at 1280. The time is in the card's foot.
+                        <span title="Asked from tomorrow's 06:00 check" style={{ fontSize: "12px", color: T.soft, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", minWidth: 0 }}>Asked from tomorrow</span>
                       ) : (
                         <>
                           <span style={{ display: "flex", gap: "3px", flexShrink: 0 }}>
