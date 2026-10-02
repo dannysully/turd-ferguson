@@ -312,6 +312,8 @@ export default function OneCluster({
                 Every check, day by day
               </h2>
               <p style={{ margin: 0, fontSize: "14px", color: T.ink }}>{`${P.angle ? `${cap(P.angle)}: ` : ""}${P.text}`}</p>
+              {/* DS63 (2 Oct 2026, R173 pass 7): a pending cluster drew 28 empty squares and four "-" with nothing saying when they fill. */}
+              {strip.every((r) => !r.answered) ? <p style={{ margin: 0, fontSize: "13px", color: T.soft }}>{pending ? "First check tomorrow at 06:00. A square fills in for each engine every day from then." : "No check of this prompt in this range. Pick another range to see its days."}</p> : null}
             </div>
             <span style={{ display: "flex", alignItems: "center", gap: "16px", fontSize: "13px", color: T.soft, flexShrink: 0 }}>
               <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
