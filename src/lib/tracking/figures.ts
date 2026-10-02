@@ -83,6 +83,18 @@ export function namedRate(rows: AnswerRow[], r: Range, only?: Set<string>): Rate
   return rate(num, den);
 }
 
+/**
+ * DS1 / R177 (2 Oct 2026): prompts in no cluster that have an answer in the
+ * range. Above zero alongside clusters, the Overview's headline counts every
+ * prompt's readings, grouped or not, so it agrees with Who is named.
+ */
+export function ungroupedRead(questions: readonly { id: string; cluster_id?: string | null }[], rows: AnswerRow[], r: Range): number {
+  const loose = new Set(questions.filter((q) => (q.cluster_id ?? null) === null).map((q) => q.id));
+  const read = new Set<string>();
+  for (const a of rows) if (a.answered && within(a.run_date, r) && loose.has(a.question_id)) read.add(a.question_id);
+  return read.size;
+}
+
 /** Questions with at least one named answer, of the questions with any answer in the range. */
 export function questionsNamed(rows: AnswerRow[], r: Range): Rate {
   const asked = new Set<string>();

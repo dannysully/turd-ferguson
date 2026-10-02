@@ -19,6 +19,7 @@ import {
   overview,
   pointsDelta,
   sparkPoints,
+  ungroupedRead,
 } from "@/lib/tracking/figures";
 import { type ClusterCard, clusterCards, clusterChart, clusterSummary } from "@/lib/tracking/cluster-figures";
 import { rangeLabel } from "@/lib/tracking/date-range";
@@ -275,18 +276,28 @@ export default function Overview({
   }
 
   // ---- 1. headline ----
-  const lflDelta = cs ? cs.lflDelta : o.lfl ? pointsDelta(o.lfl.now, o.lfl.before) : null;
+  // DS1 / R177 (2 Oct 2026): clusters and ungrouped prompts with readings side by side. The headline and the
+  // first figures then count every prompt, as Who is named does, and say so; by cluster only when all are grouped.
+  const loose = cs ? ungroupedRead(data.questions, data.answers, range) : 0;
+  const byCluster = cs && !loose ? cs : null;
+  const looseWords = `${loose} ungrouped prompt${loose === 1 ? "" : "s"}`;
+  // A pending cluster has no answers yet, so it is not named in the count ("5 ungrouped prompts", not "0 clusters and ...").
+  const across = !cs ? "" : loose && !cs.clusters ? looseWords : `${cs.clusters} cluster${cs.clusters === 1 ? "" : "s"}${loose ? ` and ${looseWords}` : ""}`;
+  const fig = byCluster
+    ? { now: byCluster.now, promptsNamed: byCluster.promptsNamed, promptsNamedBefore: byCluster.promptsNamedBefore, never: byCluster.never.length }
+    : { now: o.named, promptsNamed: o.questions, promptsNamedBefore: o.questionsBefore && o.questionsBefore.den ? o.questionsBefore : null, never: o.questions.den - o.questions.num };
+  const lflDelta = byCluster ? byCluster.lflDelta : o.lfl ? pointsDelta(o.lfl.now, o.lfl.before) : null;
   const gridDays = daysIn(range).slice(-28);
   const gridFrom = daysIn(range).length - gridDays.length;
   const questionsAnswered = o.questions.den;
   const direction = (d: number) => (d > 0 ? "up from" : d < 0 ? "down from" : "the same as");
-  const headlineRate = cs ? cs.now : o.named;
+  const headlineRate = fig.now;
   const subLine = cs
-    ? `${cs.now.num.toLocaleString("en-GB")} of ${cs.now.den.toLocaleString("en-GB")} answers across ${cs.clusters} cluster${cs.clusters === 1 ? "" : "s"}, ${cs.prompts} prompts and ${WORDS[engines.length] ?? engines.length} engines.`
+    ? `${fig.now.num.toLocaleString("en-GB")} of ${fig.now.den.toLocaleString("en-GB")} answers across ${across}, ${byCluster ? byCluster.prompts : questionsAnswered} prompts and ${WORDS[engines.length] ?? engines.length} engines.`
     : `${o.named.num.toLocaleString("en-GB")} of ${o.named.den.toLocaleString("en-GB")} answers across ${questionsAnswered} prompts and ${WORDS[engines.length] ?? engines.length} engines.`;
-  const lflLine = cs
-    ? cs.lflBefore && lflDelta !== null
-      ? ` On the ${cs.clustersLfl} cluster${cs.clustersLfl === 1 ? "" : "s"} tracked all period that's ${pct(cs.lfl)}, ${direction(lflDelta)} ${pct(cs.lflBefore)}.`
+  const lflLine = byCluster
+    ? byCluster.lflBefore && lflDelta !== null
+      ? ` On the ${byCluster.clustersLfl} cluster${byCluster.clustersLfl === 1 ? "" : "s"} tracked all period that's ${pct(byCluster.lfl)}, ${direction(lflDelta)} ${pct(byCluster.lflBefore)}.`
       : ""
     : o.lfl && lflDelta !== null
       ? ` On the ${o.lfl.questions} prompts tracked all period that's ${pct(o.lfl.now)}, ${direction(lflDelta)} ${pct(o.lfl.before)}.`
@@ -537,8 +548,8 @@ export default function Overview({
           </p>
           {cs ? (
             <p className="app-show-sm" style={{ margin: 0, fontSize: "14px", lineHeight: 1.5, color: D.cardHead }}>
-              {`${cs.now.num.toLocaleString("en-GB")} of ${cs.now.den.toLocaleString("en-GB")} answers across ${cs.clusters} cluster${cs.clusters === 1 ? "" : "s"}.`}
-              {cs.lflBefore && lflDelta !== null ? ` Like-for-like ${pct(cs.lfl)}, ${direction(lflDelta)} ${pct(cs.lflBefore)}.` : ""}
+              {`${fig.now.num.toLocaleString("en-GB")} of ${fig.now.den.toLocaleString("en-GB")} answers across ${across}.`}
+              {byCluster ? (byCluster.lflBefore && lflDelta !== null ? ` Like-for-like ${pct(byCluster.lfl)}, ${direction(lflDelta)} ${pct(byCluster.lflBefore)}.` : "") : o.lfl && lflDelta !== null ? ` Like-for-like ${pct(o.lfl.now)}, ${direction(lflDelta)} ${pct(o.lfl.before)}.` : ""}
             </p>
           ) : null}
           {o.compare ? (
@@ -654,16 +665,16 @@ export default function Overview({
               {
                 figure: "named",
                 label: "Answers naming you",
-                value: pct(cs.now),
-                delta: <Delta value={cs.lflDelta} />,
-                foot: <span style={{ fontSize: "13px", color: T.soft }}>{`${cs.now.num.toLocaleString("en-GB")} of ${cs.now.den.toLocaleString("en-GB")} answers${cs.lflDelta !== null ? ". Change is like-for-like" : ""}`}</span>,
+                value: pct(fig.now),
+                delta: <Delta value={lflDelta} />,
+                foot: <span style={{ fontSize: "13px", color: T.soft }}>{`${fig.now.num.toLocaleString("en-GB")} of ${fig.now.den.toLocaleString("en-GB")} answers${loose ? `, clusters and ${looseWords}` : ""}${lflDelta !== null ? ". Change is like-for-like" : ""}`}</span>,
               },
               {
                 figure: "questions",
                 label: "Prompts you are named in",
-                value: `${cs.promptsNamed.num} of ${cs.promptsNamed.den}`,
-                delta: cs.promptsNamedBefore ? <span style={{ fontSize: "13px", color: T.soft }}>{`was ${cs.promptsNamedBefore.num} of ${cs.promptsNamedBefore.den}`}</span> : null,
-                foot: <span style={{ fontSize: "13px", color: T.soft }}>{cs.never.length ? `${cs.never.length} never name you` : "Named in every prompt"}</span>,
+                value: `${fig.promptsNamed.num} of ${fig.promptsNamed.den}`,
+                delta: fig.promptsNamedBefore ? <span style={{ fontSize: "13px", color: T.soft }}>{`was ${fig.promptsNamedBefore.num} of ${fig.promptsNamedBefore.den}`}</span> : null,
+                foot: <span style={{ fontSize: "13px", color: T.soft }}>{`${fig.never ? `${fig.never} never name you` : "Named in every prompt"}${loose ? `, ${looseWords} counted` : ""}`}</span>,
               },
               {
                 figure: "sov",
@@ -730,7 +741,7 @@ export default function Overview({
         <section aria-label="Key figures" className="app-show-sm">
           <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "10px" }}>
             {[
-              { label: "Prompts named in", value: `${cs.promptsNamed.num} of ${cs.promptsNamed.den}`, foot: cs.promptsNamedBefore ? <span style={{ fontSize: "12px", color: T.soft }}>{`was ${cs.promptsNamedBefore.num} of ${cs.promptsNamedBefore.den}`}</span> : null },
+              { label: "Prompts named in", value: `${fig.promptsNamed.num} of ${fig.promptsNamed.den}`, foot: fig.promptsNamedBefore ? <span style={{ fontSize: "12px", color: T.soft }}>{`was ${fig.promptsNamedBefore.num} of ${fig.promptsNamedBefore.den}`}</span> : loose ? <span style={{ fontSize: "12px", color: T.soft }}>{`With ${looseWords}`}</span> : null },
               { label: "Share of voice", value: pct(o.sov), foot: <Delta value={pointsDelta(o.sov, o.sovBefore)} /> },
               { label: "Keywords on page 1", value: `${cs.page1.num} of ${cs.page1.den}`, foot: cs.page1Before !== null ? <Delta value={cs.page1.num - cs.page1Before} unit="" /> : null },
               {

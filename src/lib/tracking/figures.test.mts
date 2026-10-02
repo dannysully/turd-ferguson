@@ -18,6 +18,7 @@ import {
   questionsNamed,
   shareOfVoice,
   sparkPoints,
+  ungroupedRead,
 } from "./figures.ts";
 
 /** T4's figures (docs/tracked-dashboard-2026-09-29/BRIEF.md, 29 Sep 2026). */
@@ -34,6 +35,20 @@ const a = (run_date: string, question_id: string, engine: string, named: boolean
 test("a rate carries its numerator and denominator, and has no percentage over nothing", () => {
   assert.deepEqual(namedRate([a("2026-09-02", "q1", "chatgpt", true), a("2026-09-02", "q2", "chatgpt", false)], { from: "2026-09-01", to: "2026-09-30" }), { num: 1, den: 2, pct: 50 });
   assert.deepEqual(namedRate([], { from: "2026-09-01", to: "2026-09-30" }), { num: 0, den: 0, pct: null });
+});
+
+test("DS1: ungrouped prompts read in the range are counted - none when all are clustered, all when none are", () => {
+  const r = { from: "2026-09-01", to: "2026-09-30" };
+  const rows = [a("2026-09-02", "q1", "chatgpt", true), a("2026-09-02", "q2", "chatgpt", false), a("2026-09-03", "q3", "gemini", false, [], false), a("2026-08-30", "q4", "chatgpt", true)];
+  const clustered = [{ id: "q1", cluster_id: "c1" }, { id: "q2", cluster_id: "c1" }, { id: "q3", cluster_id: "c1" }, { id: "q4", cluster_id: "c1" }];
+  assert.equal(ungroupedRead(clustered, rows, r), 0, "clustered");
+  const ungrouped = clustered.map((q) => ({ ...q, cluster_id: null }));
+  assert.equal(ungroupedRead(ungrouped, rows, r), 2, "q3 unanswered and q4 outside the range are not read");
+  const mixed = [clustered[0]!, { id: "q2", cluster_id: null }, { id: "q3", cluster_id: null }, { id: "q4", cluster_id: null }];
+  assert.equal(ungroupedRead(mixed, rows, r), 1, "mixed");
+  // In the mixed case the headline is overview()'s named rate, over every prompt's answers - Who is named's basis.
+  const o = overview({ range: r, compare: "none", startedOn: null, engines: ["chatgpt", "gemini"], questions: [], answers: rows, serp: [], keywordCount: 0 });
+  assert.deepEqual([o.named.num, o.named.den], [1, 2]);
 });
 
 test("an unanswered read is not in the denominator", () => {
