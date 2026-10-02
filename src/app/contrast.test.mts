@@ -433,6 +433,9 @@ const CSS_COLOURS: Record<string, string> = {
   ".wt-option":
     "var(--soft) on the .wt-toggle track, var(--chip) - 4.72:1. The unchosen half of the walkthrough switch, ScanResult.dc.html (Q10, 25 Sep 2026); the result is on no swept page",
   ".wt-option--on": "var(--ink) on var(--surface) - 18.66:1. The chosen half of the same switch",
+  // DS17, 2 Oct 2026: Fig.tsx's one-line basis under a dashboard figure.
+  ".app-fig:after":
+    "var(--surface) on its own var(--ink) ground - 18.66:1. A figure's basis line, shown on hover and focus only, on /app (no swept page)",
 };
 
 /**
@@ -469,6 +472,8 @@ const CSS_GROUNDS: Record<string, string> = {
   // #f4f0fe wash is well over 4.5:1, and the card under it is T.surface.
   ".nav-dd-link:hover,.nav-dd-link:focus-visible": "var(--wash) on hover/focus only, under the item's own T.ink text; the resting ground is the white card",
   // 1 Oct 2026 (R151): AppLink.tsx's loading bar.
+  // DS17, 2 Oct 2026: Fig.tsx's basis line, drawn above the figure with its own white text on it.
+  ".app-fig:after": "var(--ink), the basis line's own ground on hover and focus only; its var(--surface) text is the only thing on it",
   ".app-pending": "var(--brand-purple), a 3px fixed bar along the top of the window while a dashboard navigation is pending; aria-hidden and empty, so nothing is drawn on it",
   ".proc-schema": "var(--bg), the page ground, inside the white product panel on the cited tier - a code block, and the only place on the site that sets one",
   // 25 Sep 2026 (Q10): ScanResult.dc.html's switch - a chip track with the

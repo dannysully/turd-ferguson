@@ -16,6 +16,7 @@ import type { ClusterNote, Compare, OverviewData } from "@/lib/tracking/overview
 import { partialRunNote } from "@/lib/tracking/run-note";
 
 import ClusterChart from "./ClusterChart";
+import Fig from "./Fig";
 import { Chip } from "./Overview";
 
 /**
@@ -400,9 +401,9 @@ export default function OneCluster({
               <span aria-hidden="true" style={{ height: "8px", borderRadius: "4px", background: T.hair }}>
                 <span style={{ display: "block", height: "100%", width: `${Math.round((96 * b.n) / top)}%`, borderRadius: "4px", background: b.you ? T.accent : T.faint }} />
               </span>
-              <span style={{ fontSize: "14px", fontWeight: 700, textAlign: "right", fontVariantNumeric: "tabular-nums" }} title={`${b.n} of ${brands.answers} answers`}>
+              <Fig style={{ fontSize: "14px", fontWeight: 700, textAlign: "right", fontVariantNumeric: "tabular-nums" }} def={`${b.n} of ${brands.answers} answers`}>
                 {b.n}
-              </span>
+              </Fig>
             </div>
           ))}
         </section>

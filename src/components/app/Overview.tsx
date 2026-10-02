@@ -29,6 +29,7 @@ import { MISSING_READS } from "@/lib/tracking/run-note";
 
 import ClusterChart from "./ClusterChart";
 import DatePicker from "./DatePicker";
+import Fig from "./Fig";
 import OverviewChart, { type ChartDay } from "./OverviewChart";
 import { SEE_ALL, navFrom } from "./nav";
 
@@ -350,9 +351,9 @@ export default function Overview({
             <span style={{ fontSize: "12px", color: T.soft }}>{`${live.length} prompt${live.length === 1 ? "" : "s"}, not yet in a cluster`}</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
-            <span style={{ fontSize: "20px", fontWeight: 700, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }} title={`${o.named.num} of ${o.named.den} answers`}>
+            <Fig style={{ fontSize: "20px", fontWeight: 700, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }} def={`${o.named.num} of ${o.named.den} answers`}>
               {pct(o.named)}
-            </span>
+            </Fig>
             <Chip value={pointsDelta(o.named, o.namedBefore)} unit=" pts" none="New" />
           </div>
         </div>
@@ -416,9 +417,9 @@ export default function Overview({
                 <span aria-hidden="true" className="app-hide-sm" style={{ height: "6px", borderRadius: "999px", background: T.hair }}>
                   <span style={{ display: "block", height: "100%", width: `${Math.round(((b.share.num || 0) / (top[0]!.share.num || 1)) * 100)}%`, borderRadius: "999px", background: b.you ? T.accent : T.faint }} />
                 </span>
-                <span style={{ fontSize: "14px", fontWeight: 600, fontVariantNumeric: "tabular-nums", textAlign: "right" }} title={`${b.share.num} of ${b.share.den} mentions`}>
+                <Fig style={{ fontSize: "14px", fontWeight: 600, fontVariantNumeric: "tabular-nums", textAlign: "right" }} def={`${b.share.num} of ${b.share.den} mentions`}>
                   {pct(b.share)}
-                </span>
+                </Fig>
                 <span style={{ display: "flex", justifyContent: "flex-end" }}>
                   <Delta value={b.delta} />
                 </span>
