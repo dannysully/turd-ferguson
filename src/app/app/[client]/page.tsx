@@ -55,6 +55,8 @@ export default async function ClientDashboard({
   const [data, upgrade, rows, confirmed] = await Promise.all([repo.loadOverview(client.id, range, compare), repo.upgradeContext(client.id, email, today), repo.placements(client.id), needsSetup(client) || fixtureMode() ? repo.setupConfirmed(client.id) : null]);
   // DS10: a member who left setup before confirming gets back to it from here. Only a client that needs setup pays the read.
   const outstanding = setupOutstanding(client, confirmed, fixtureMode());
+  // R173 pass 2 (pass 1's P3): the confirm route's 303 lands here; it is said only when the confirm reads back.
+  const justConfirmed = sp.setup === "confirmed" && confirmed === true;
   const canWrite = refuseRole(client.role) === null;
   // R97 part 5: "Show placements" on the same rule as the placements screen - a placed tier, or any placement logged.
   const placements = placed || rows.some((p) => p.status !== "removed") ? rows : undefined;
@@ -72,6 +74,11 @@ export default async function ClientDashboard({
               {canWrite ? "Finish setup" : "See setup"}
             </a>
           </div>
+        ) : null}
+        {justConfirmed ? (
+          <p role="status" style={{ margin: "0 0 24px", padding: "12px 16px", borderRadius: "14px", background: T.ink, color: T.surface, fontSize: "14px", lineHeight: 1.4, width: "fit-content", maxWidth: "100%", boxSizing: "border-box" }}>
+            Setup confirmed.
+          </p>
         ) : null}
         <Overview
           brand={client.brand ?? client.domain}

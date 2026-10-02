@@ -144,6 +144,7 @@ for (const width of [1280, 390]) {
       await page.getByRole("button", { name: /Confirm/ }).first().click();
       await page.waitForURL(/setup=confirmed/, { timeout: 10_000 }).catch(() => assert.fail(`Confirm went to ${page.url()}`));
       assert.doesNotMatch(await text(page), /Your setup is not confirmed yet\./);
+      assert.match(await text(page), /Setup confirmed\./);
       await ctx.close();
     });
 

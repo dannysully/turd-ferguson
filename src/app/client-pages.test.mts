@@ -56,6 +56,8 @@ const READERS: Record<string, string> = {
 const KEYS: Record<string, Record<string, string>> = {
   "": {
     cluster: 'typeof sp.cluster === "string" ? sp.cluster : undefined', // matched against its cards in Overview.tsx, held below
+    // 2 Oct 2026, R173 pass 2: the setup route's 303 after Confirm; the line shows only when the confirm reads back.
+    setup: 'sp.setup === "confirmed" && confirmed === true',
   },
   "/clusters": {
     filter: 'f === "named" || f === "never" ? f : "all"',
@@ -128,9 +130,10 @@ const ROLE_READS: Record<string, string[]> = {
  * and BRIEF-4's named, cited, reports, settings) and 32 registered keys.
  * Raised 1 Oct 2026 (R166 part 3b): 9 pages and 33 keys - /setup and its confirm.
  * Raised 2 Oct 2026 (R166 part 5): 36 keys - /setup's card, kw and sig.
+ * Raised 2 Oct 2026 (R173 pass 2): 37 keys - the Overview's setup.
  */
 const PAGE_FLOOR = 9;
-const KEY_FLOOR = 36;
+const KEY_FLOOR = 37;
 
 /** The query keys a page reads by name, as written. */
 export function keysRead(src: string): string[] {
