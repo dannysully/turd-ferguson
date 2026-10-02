@@ -1,11 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 import { track } from "@/lib/analytics";
 import { isPlausibleDomain, normalizeDomain } from "@/lib/scan/domain";
 
+import ScanBox, { type ScanBoxCopy } from "./ScanBox";
 import { DomainScreen } from "./screens";
 import Turnstile from "./Turnstile";
 
@@ -19,17 +20,29 @@ import Turnstile from "./Turnstile";
  * link in the email all land on the same scan rather than an empty form.
  *
  * A cached complete scan goes to the same place. The token is the scan.
+ *
+ * `box` draws it as a page's own scan card - /seo-agencies, /how-it-works and
+ * the case study - in that card's wording, instead of the hero field (R181,
+ * 2 Oct 2026). Those cards were GETs to /scan because a second instance of
+ * this component would have duplicated its field's id; the ids now come from
+ * useId, so the card starts the scan where it is and goes straight on to
+ * /scan/[token]. The card is still a GET form to /scan, so with no JavaScript
+ * it lands on /scan with the domain filled in, as before.
  */
 export default function LiveScanChecker({
   initialDomain = "",
   dark = false,
   onBusyChange,
+  box,
 }: {
   initialDomain?: string;
   dark?: boolean;
   /** Told every time busy flips, so a parent can hide its own lines (R49). */
   onBusyChange?: (busy: boolean) => void;
+  /** A page's scan card instead of the hero field. */
+  box?: ScanBoxCopy;
 }) {
+  const id = "scan" + useId().replace(/[^\w-]/g, "");
   const router = useRouter();
   const [domain, setDomain] = useState(initialDomain);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
@@ -125,9 +138,28 @@ export default function LiveScanChecker({
     }
   }
 
+  if (box) {
+    return (
+      <div>
+        <ScanBox
+          {...box}
+          id={id}
+          value={busy ? shown : domain}
+          onChange={setDomain}
+          onSubmit={onDomain}
+          error={error}
+          status={busy ? steps[step] : ""}
+          busy={busy}
+        />
+        <Turnstile key={attempt} onToken={setTurnstileToken} />
+      </div>
+    );
+  }
+
   return (
     <div>
       <DomainScreen
+        id={id}
         value={busy ? shown : domain}
         onChange={setDomain}
         onSubmit={onDomain}

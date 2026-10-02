@@ -59,6 +59,9 @@ test("the census finds every /scan GET form, not the ones a page walk reached", 
   // 5 -> 4 on 25 Sep 2026 (Q12): /pr-agencies lost its free-scan form card,
   // because PRAgencies.dc.html (25 Sep read) has none - the page's one door
   // is the coverage check, and the sitewide header keeps "Free scan".
+  // Still 4 in source on 2 Oct 2026 (R181), counted differently: the three
+  // page cards (/seo-agencies, /how-it-works, the case study) are now one
+  // form, in ScanBox, beside HomeFaq, PostShell and DarkClosing.
   assert.ok(
     forms.length >= 4,
     `only ${forms.length} /scan forms were found - there are four, so a shrinking count here means the probe has gone blind, not that a form was removed`,

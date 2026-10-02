@@ -7,8 +7,9 @@ import { CLOSE_WASH, D } from "@/components/home/dark";
  * 26 Sep 2026): a heading and one line on the left, the domain field on the
  * right. Both boards draw it identically bar the copy, so it is one component.
  *
- * A plain GET to /scan, as the /seo-agencies hero box is - not a second
- * LiveScanChecker, which hardcodes its DOM ids. `id` keeps the label unique.
+ * A plain GET to /scan, as the /seo-agencies hero box was until R181 (2 Oct
+ * 2026) made the page cards run the scan in place. This one stays a GET: R181
+ * named the cards, not the closing. `id` keeps the label unique.
  */
 export default function DarkClosing({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
   return (

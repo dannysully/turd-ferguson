@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { WAITLIST_LIMITS } from "@/config/contact";
+import PageScanBox from "@/components/scan/PageScanBox";
 import { OG_IMAGE } from "@/config/og";
 import Link from "next/link";
 
@@ -148,49 +148,7 @@ export default function HowItWorksPage() {
               can read.{" "}
               <Link href="/llm-visibility-checker" style={{ color: T.accent, fontWeight: 600, textDecoration: "none" }}>Check your AI visibility</Link> first.
             </div>
-            <form action="/scan" method="get" style={{ display: "flex", gap: "8px", marginTop: "14px" }}>
-              <label htmlFor="hiw-domain" className="sr-only">
-                Domain
-              </label>
-              <input
-                id="hiw-domain"
-                name="domain"
-                type="text"
-                maxLength={WAITLIST_LIMITS.domain}
-                inputMode="url"
-                autoComplete="url"
-                placeholder="yourdomain.com"
-                style={{
-                  flexGrow: 1,
-                  minWidth: 0,
-                  fontFamily: "inherit",
-                  fontSize: "14px",
-                  color: T.ink,
-                  background: T.surface,
-                  border: `1px solid ${T.line}`,
-                  borderRadius: "10px",
-                  padding: "0 12px",
-                  minHeight: "44px",
-                }}
-              />
-              <button
-                type="submit"
-                style={{
-                  fontFamily: "inherit",
-                  fontSize: "14px",
-                  fontWeight: 600,
-                  color: "#ffffff",
-                  background: T.accent,
-                  border: 0,
-                  borderRadius: "10px",
-                  padding: "0 18px",
-                  minHeight: "44px",
-                  cursor: "pointer",
-                }}
-              >
-                Check
-              </button>
-            </form>
+            <PageScanBox id="hiw-domain" label="Domain" placeholder="yourdomain.com" />
           </div>
         </div>
 

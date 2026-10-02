@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { WAITLIST_LIMITS } from "@/config/contact";
+import PageScanBox from "@/components/scan/PageScanBox";
 import { OG_IMAGE } from "@/config/og";
 import Link from "next/link";
 
@@ -293,49 +293,7 @@ export default function CaseStudyPage() {
               <p style={{ margin: "8px 0 14px", fontSize: "13.5px", lineHeight: 1.6, color: T.soft }}>
                 On a client of yours, free.
               </p>
-              <form action="/scan" method="get">
-                <label
-                  htmlFor="cs-domain"
-                  style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px" }}
-                >
-                  Domain
-                </label>
-                <input
-                  id="cs-domain"
-                  name="domain"
-                  type="text"
-                  maxLength={WAITLIST_LIMITS.domain}
-                  placeholder="yourdomain.com"
-                  style={{
-                    width: "100%",
-                    boxSizing: "border-box",
-                    fontFamily: "inherit",
-                    fontSize: "14px",
-                    color: T.ink,
-                    background: T.surface,
-                    border: "1px solid " + T.line,
-                    borderRadius: "10px",
-                    padding: "11px 13px",
-                  }}
-                />
-                <button
-                  type="submit"
-                  className="btn-primary"
-                  style={{
-                    width: "100%",
-                    marginTop: "8px",
-                    fontFamily: "inherit",
-                    fontSize: "14px",
-                    fontWeight: 600,
-                    border: 0,
-                    borderRadius: "10px",
-                    padding: "11px 20px",
-                    cursor: "pointer",
-                  }}
-                >
-                  Check
-                </button>
-              </form>
+              <PageScanBox id="cs-domain" label="Domain" placeholder="yourdomain.com" stacked />
             </div>
           </aside>
         </div>

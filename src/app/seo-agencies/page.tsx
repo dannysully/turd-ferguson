@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { WAITLIST_LIMITS } from "@/config/contact";
+import PageScanBox from "@/components/scan/PageScanBox";
 import { OG_IMAGE } from "@/config/og";
 import Link from "next/link";
 
@@ -32,8 +32,8 @@ export const metadata: Metadata = {
  * cue from the same line through `:has(.flow-line.in-view)` in globals.css.
  *
  * The entry price comes from src/config/pricing.ts, as everywhere else. The
- * scan box is a GET to /scan rather than a second LiveScanChecker: that
- * component hardcodes id="scan-email", so a second instance duplicates an id.
+ * scan box runs the scan in place through PageScanBox (R181, 2 Oct 2026); it
+ * was a GET to /scan while LiveScanChecker hardcoded its field's id.
  */
 
 const tracked = TIERS.find((t) => t.id === "tracked");
@@ -83,49 +83,7 @@ export default function SeoAgenciesPage() {
           <div style={{ fontSize: "13px", lineHeight: 1.5, color: T.soft, marginTop: "4px" }}>
             The gap between position 1 and being named is usually the surprise.
           </div>
-          <form action="/scan" method="get" style={{ display: "flex", gap: "8px", marginTop: "14px" }}>
-            <label htmlFor="seo-domain" className="sr-only">
-              Client domain
-            </label>
-            <input
-              id="seo-domain"
-              name="domain"
-              type="text"
-              maxLength={WAITLIST_LIMITS.domain}
-              inputMode="url"
-              autoComplete="url"
-              placeholder="clientdomain.com"
-              style={{
-                flexGrow: 1,
-                minWidth: 0,
-                fontFamily: "inherit",
-                fontSize: "14px",
-                color: T.ink,
-                background: T.surface,
-                border: `1px solid ${T.line}`,
-                borderRadius: "10px",
-                padding: "0 12px",
-                minHeight: "44px",
-              }}
-            />
-            <button
-              type="submit"
-              style={{
-                fontFamily: "inherit",
-                fontSize: "14px",
-                fontWeight: 600,
-                color: "#ffffff",
-                background: T.accent,
-                border: 0,
-                borderRadius: "10px",
-                padding: "0 18px",
-                minHeight: "44px",
-                cursor: "pointer",
-              }}
-            >
-              Check
-            </button>
-          </form>
+          <PageScanBox id="seo-domain" label="Client domain" placeholder="clientdomain.com" />
         </div>
       </div>
 
