@@ -181,7 +181,13 @@ export default function WhiteLabelPage() {
           <Link href="/packages" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
             See what it costs
           </Link>{" "}
-          - or run a scan on a client first.
+          {/* WhiteLabel.dc.html leaves the scan as plain words, so the step an
+              agency takes first had nothing to click (R151, 3 Oct 2026). */}
+          - or{" "}
+          <Link href="/#scan" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
+            run a scan on a client
+          </Link>{" "}
+          first.
         </p>
       </section>
     </div>
