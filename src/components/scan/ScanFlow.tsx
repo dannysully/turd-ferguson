@@ -28,6 +28,7 @@ import ProcessSequence, { WAITING_TEMPO } from "@/components/ProcessSequence";
 
 import ConfirmScreen from "./ConfirmScreen";
 import ScanProgress from "./ScanProgress";
+import { MAIL_OUTCOMES, type MailOutcome } from "@/lib/scan/mail-outcome";
 import type { WalkthroughOutcome } from "@/lib/scan/walkthrough-outcome";
 
 import ResultView from "./ResultView";
@@ -343,6 +344,8 @@ export default function ScanFlow(p: {
   initialOppCount?: number | null;
   /** R151: the walkthrough ask's outcome, after it posted without script. */
   walkthrough?: WalkthroughOutcome | null;
+  /** R151: the report-email offer's outcome, after it posted without script. */
+  mail?: MailOutcome | null;
   /**
    * The gated pass as the server found it on the row.
    *
@@ -400,8 +403,9 @@ export default function ScanFlow(p: {
   const mailAt = useRef<number | null>(null);
   const [offer, setOffer] = useState(false);
   const [mailTo, setMailTo] = useState("");
-  const [mailErr, setMailErr] = useState("");
-  const [mailNote, setMailNote] = useState("");
+  // R151: seeded from ?mail= when the form posted without script.
+  const [mailErr, setMailErr] = useState(p.mail && !MAIL_OUTCOMES[p.mail].ok ? MAIL_OUTCOMES[p.mail].message : "");
+  const [mailNote, setMailNote] = useState(p.mail && MAIL_OUTCOMES[p.mail].ok ? MAIL_OUTCOMES[p.mail].message : "");
   const [mailBusy, setMailBusy] = useState(false);
 
   /** The answers are stored and the result is on its way: say so while it loads. */
@@ -964,7 +968,7 @@ export default function ScanFlow(p: {
                 {mailNote}
               </p>
             ) : (
-              <form onSubmit={onMailRequest} noValidate>
+              <form action={"/api/scan/" + p.token + "/email-report"} method="post" onSubmit={onMailRequest} noValidate>
                 <p style={{ fontSize: "14px", fontWeight: 700, color: T.ink, margin: 0 }}>{OFFER_COPY.heading}</p>
                 <p style={{ fontSize: "13px", color: T.soft, margin: "3px 0 0", lineHeight: 1.5 }}>
                   {OFFER_COPY.body}

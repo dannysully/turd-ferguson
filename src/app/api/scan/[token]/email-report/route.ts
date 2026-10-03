@@ -1,6 +1,9 @@
+import { NextResponse } from "next/server";
+
 import { SCAN_LIMITS } from "@/config/contact";
 import { isPlausibleEmail, normalizeEmail } from "@/lib/email-address";
 import { clientIp, hashIp } from "@/lib/scan/ip";
+import { MAIL_OUTCOMES, type MailOutcome } from "@/lib/scan/mail-outcome";
 import { sendRequestedReport } from "@/lib/scan/report-mail";
 import { reportMailWaitMessage, reportMailWaitMs } from "@/lib/scan/report-mail-limit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
@@ -74,12 +77,30 @@ export const dynamic = "force-dynamic";
 export async function POST(req: Request, ctx: { params: Promise<{ token: string }> }) {
   const { token } = await ctx.params;
 
+  // R151 (3 Oct 2026): the form posts here without script too. The answer is
+  // the same; a form post gets it as a 303 back to the scan carrying only the
+  // outcome's code (mail-outcome.ts), never the address.
+  if (!(req.headers.get("content-type") ?? "").includes("application/json")) {
+    const form = await req.formData().catch(() => null);
+    if (!form) return Response.json({ error: "bad_request" }, { status: 400 });
+    const res = await answer(req, token, { email: String(form.get("email") ?? "") });
+    const json = (await res.json().catch(() => ({}))) as { message?: string; error?: string };
+    const code =
+      json.error === "too_soon" ? "soon"
+      : (Object.keys(MAIL_OUTCOMES) as MailOutcome[]).find((k) => MAIL_OUTCOMES[k].message === json.message) ?? "failed";
+    return NextResponse.redirect(new URL(`/scan/${encodeURIComponent(token)}?mail=${code}`, req.url), 303);
+  }
+
   let body: { email?: string };
   try {
     body = await req.json();
   } catch {
     return Response.json({ error: "bad_request" }, { status: 400 });
   }
+  return answer(req, token, body);
+}
+
+async function answer(req: Request, token: string, body: { email?: string }): Promise<Response> {
 
   const email = normalizeEmail(body.email ?? "");
 
@@ -94,7 +115,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
    */
   if (email.length > SCAN_LIMITS.email) {
     return Response.json(
-      { error: "bad_email", message: "That email address is longer than an address can be." },
+      { error: "bad_email", message: MAIL_OUTCOMES.long.message },
       { status: 400 },
     );
   }
@@ -108,7 +129,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
    */
   if (!isPlausibleEmail(email)) {
     return Response.json(
-      { error: "bad_email", message: "That email does not look right." },
+      { error: "bad_email", message: MAIL_OUTCOMES.bad.message },
       { status: 400 },
     );
   }
@@ -141,7 +162,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
    */
   if (scan.status === "failed") {
     return Response.json(
-      { error: "run_failed", message: "That check did not finish, so there is no report to send yet." },
+      { error: "run_failed", message: MAIL_OUTCOMES.unfinished.message },
       { status: 409 },
     );
   }
@@ -150,7 +171,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
   // the message is claimed and no second one will go, and the commonest reason
   // somebody re-submits is that they think the first attempt did nothing.
   if (scan.report_email_sent_at) {
-    return Response.json({ sent: true, email, message: "That is already on its way to you." });
+    return Response.json({ sent: true, email, message: MAIL_OUTCOMES.already.message });
   }
 
   /**
@@ -241,12 +262,12 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
    */
   if (scan.status === "complete") {
     await sendRequestedReport(scan.id);
-    return Response.json({ sent: true, email, message: "Sent - it is in your inbox." });
+    return Response.json({ sent: true, email, message: MAIL_OUTCOMES.sent.message });
   }
 
   return Response.json({
     queued: true,
     email,
-    message: "We will email it to you the moment it is ready. You can close this tab.",
+    message: MAIL_OUTCOMES.queued.message,
   });
 }
