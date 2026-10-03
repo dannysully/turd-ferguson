@@ -583,9 +583,11 @@ const STOP_BTN: React.CSSProperties = { ...SQUARE, width: "auto", height: "44px"
  * through. No toast Undo for a batch: each stopped row keeps its own Undo
  * until the next check.
  */
-export function bulkToast(t: Pick<StopToast, "done" | "count">): string {
+export function bulkToast(t: Pick<StopToast, "done" | "count" | "why">): string {
   if (t.done === "unselected") return "Nothing changed. Tick the prompts first, and pick a cluster before Move.";
   const c = t.count;
+  // R151 (3 Oct 2026): a batch where none went through carries the rule's words (slot.ts SLOT_WHY) when it has one.
+  if (t.done === "refused" && t.why) return t.why;
   if (t.done === "refused" || !c || c.n === 0) return "That change did not go through. Reload the page and try again.";
   const what = c.n === c.of ? `${c.n} ${c.n === 1 ? "prompt" : "prompts"}` : `${c.n} of the ${c.of} ticked prompts`;
   const rest = c.n === c.of ? "" : t.done === "moved" ? ` The rest stay ungrouped - a cluster holds ${PROMPTS_PER_CLUSTER} live prompts.` : " The rest were not changed.";

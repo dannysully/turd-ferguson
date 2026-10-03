@@ -34,9 +34,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ client: string
   // DS13: the Ungrouped bulk form posts id=selected and the ticked prompts as `ids`; each is moved, and judged, on its own, in order.
   const bulk = f.id === BULK_ID;
   const ids = bulk ? readBulkIds(form?.getAll("ids") ?? []) : [f.id];
-  // R151 (3 Oct 2026): a one-prompt refusal carries its code (slot.ts SLOT_WHY), so the toast says why; a batch keeps its counts.
+  // R151 (3 Oct 2026): a refusal carries its code (slot.ts SLOT_WHY), so the toast says why - for a batch only when none
+  // moved, from the last refusal; a batch that partly moved keeps its counts.
   let why = "";
-  const back = (done: StopDone, n = 0) => NextResponse.redirect(new URL(stopReturn(slug, f, done, bulk ? { n, of: ids.length } : undefined, bulk ? null : slotWhyOf(why)), req.url), 303);
+  const back = (done: StopDone, n = 0) => NextResponse.redirect(new URL(stopReturn(slug, f, done, bulk ? { n, of: ids.length } : undefined, slotWhyOf(why)), req.url), 303);
   // The bulk bar's cluster pick cannot be `required` - its Stop button shares the form - so a missing pick comes back as a toast.
   if (bulk && (!ids.length || !ID.test(clusterId))) return back("unselected");
   if (!ID.test(clusterId)) return NextResponse.json({ error: "Not a move this page can make." }, { status: 400 });
