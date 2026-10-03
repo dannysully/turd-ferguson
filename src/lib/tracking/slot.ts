@@ -46,6 +46,9 @@ export const SLOT_WHY = {
   effect: "That stop has taken effect. Add it again as a new one.",
   parent: "Its cluster is stopped. Undo the cluster instead.",
   clusters: "Every cluster on your plan is in use. Stop one first.",
+  // "Start tracking this cluster" (cluster route) adds these two; Move (group route) shares full and stopped.
+  tracked: "You already track this keyword. Check a different one.",
+  recheck: "That keyword check has run out. Check the keyword again.",
 } as const;
 export type SlotWhy = keyof typeof SLOT_WHY;
 
@@ -53,12 +56,14 @@ export type SlotWhy = keyof typeof SLOT_WHY;
 export function slotWhyOf(message: string): SlotWhy | null {
   if (message.startsWith("A prompt is ")) return "length";
   if (message === "That prompt is already tracked in this cluster.") return "duplicate";
-  if (message.startsWith("That cluster already has ")) return "full";
+  if (message.startsWith("That cluster already has ") || (message.startsWith("That cluster has ") && message.includes(" more would pass "))) return "full";
   if (message.startsWith("At the limit of ")) return message.includes("prompts") ? "plan" : message.includes("clusters") ? "clusters" : null;
   if (message === "That cluster is stopped.") return "stopped";
   if (message.startsWith("It already has readings")) return "fixed";
   if (message === SLOT_WHY.effect) return "effect";
   if (message === SLOT_WHY.parent) return "parent";
+  if (message === "You already track this keyword.") return "tracked";
+  if (message === "The keyword check did not verify.") return "recheck";
   return null;
 }
 

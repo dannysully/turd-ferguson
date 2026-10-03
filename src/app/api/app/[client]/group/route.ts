@@ -7,6 +7,7 @@ import { fixtureGroup } from "@/lib/tracking/fixture-writes";
 import { moveIntoCluster } from "@/lib/tracking/limits";
 import { clientsFor, sessionEmail } from "@/lib/tracking/member";
 import { writeFixture } from "@/lib/tracking/repo";
+import { slotWhyOf } from "@/lib/tracking/slot";
 import { BULK_ID, type StopDone, readBulkIds, readStopForm, stopReturn } from "@/lib/tracking/stop";
 
 export const runtime = "nodejs";
@@ -33,7 +34,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ client: string
   // DS13: the Ungrouped bulk form posts id=selected and the ticked prompts as `ids`; each is moved, and judged, on its own, in order.
   const bulk = f.id === BULK_ID;
   const ids = bulk ? readBulkIds(form?.getAll("ids") ?? []) : [f.id];
-  const back = (done: StopDone, n = 0) => NextResponse.redirect(new URL(stopReturn(slug, f, done, bulk ? { n, of: ids.length } : undefined), req.url), 303);
+  // R151 (3 Oct 2026): a one-prompt refusal carries its code (slot.ts SLOT_WHY), so the toast says why; a batch keeps its counts.
+  let why = "";
+  const back = (done: StopDone, n = 0) => NextResponse.redirect(new URL(stopReturn(slug, f, done, bulk ? { n, of: ids.length } : undefined, bulk ? null : slotWhyOf(why)), req.url), 303);
   // The bulk bar's cluster pick cannot be `required` - its Stop button shares the form - so a missing pick comes back as a toast.
   if (bulk && (!ids.length || !ID.test(clusterId))) return back("unselected");
   if (!ID.test(clusterId)) return NextResponse.json({ error: "Not a move this page can make." }, { status: 400 });
@@ -42,7 +45,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ client: string
     for (const id of ids) {
       const r = writeFixture((fx) => fixtureGroup(fx, { clusterId, id, role: fx.member.role }));
       if (r?.ok) n++;
-      else if (r) console.warn(`[app] fixture move refused: ${r.message}`);
+      else if (r) {
+        console.warn(`[app] fixture move refused: ${r.message}`);
+        why = r.message;
+      }
     }
     return back(n ? "moved" : "refused", n);
   }
@@ -55,7 +61,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ client: string
   for (const id of ids) {
     const r = await moveIntoCluster(supabaseAdmin(), { clientId: client.id, clusterId, id, role: client.role });
     if (r.ok) n++;
-    else console.warn(`[app] move refused: ${r.message}`);
+    else {
+      console.warn(`[app] move refused: ${r.message}`);
+      why = r.message;
+    }
   }
   return back(n ? "moved" : "refused", n);
 }

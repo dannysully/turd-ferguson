@@ -4,7 +4,8 @@ import { test } from "node:test";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { ADMIN_LIMITS } from "./decide.ts";
-import { refuseCluster, refuseEdit, refusePrompts } from "./limits.ts";
+import { refuseDrafts } from "./add-cluster.ts";
+import { refuseCluster, refuseEdit, refuseGrouping, refusePrompts } from "./limits.ts";
 import { refuseUndo } from "./stop.ts";
 import { SLOT_WHY, fillSlot, refuseSlotText, slotRefusal, slotWhyOf } from "./slot.ts";
 
@@ -25,6 +26,12 @@ test("R151 (3 Oct 2026): every rule's refusal of a free slot has a code, and onl
   assert.equal(slotWhyOf(refuseCluster(3, 3) ?? ""), "clusters");
   assert.equal(slotWhyOf(refuseUndo({ stopped_on: null }, "2026-10-03") ?? ""), null, "a stale form keeps the Reload line");
   assert.equal(slotWhyOf("Could not add the prompts: timeout"), null, "a failed write keeps the Reload line");
+  // Move (group route) and Start tracking this cluster (cluster route).
+  assert.equal(slotWhyOf(refuseGrouping({ ids: ["a"], ungrouped: new Set(["a"]), clusterLive: 5 }) ?? ""), "full");
+  assert.equal(slotWhyOf(refuseGrouping({ ids: ["a"], ungrouped: new Set(), clusterLive: 1 }) ?? ""), null, "a stale form keeps the Reload line");
+  assert.equal(slotWhyOf("You already track this keyword."), "tracked");
+  assert.equal(slotWhyOf("The keyword check did not verify."), "recheck");
+  assert.equal(slotWhyOf(refuseDrafts(["Which tool is best for this?", "which tool is best for this?", "a", "b", "c"]) ?? ""), "duplicate");
   assert.equal(slotRefusal("duplicate"), SLOT_WHY.duplicate);
   assert.equal(slotRefusal("toString"), null, "own keys only");
   assert.equal(slotRefusal(SLOT_WHY.duplicate), null, "words are not a code");
