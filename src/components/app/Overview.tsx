@@ -355,6 +355,9 @@ export default function Overview({
   // so it is the Overview board's cluster card - same card, same type scale - with a row per prompt.
   const ungroupedCard = (() => {
     const live = data.questions.filter((q) => q.stopped_on === null && q.added_on <= today);
+    // R151 (3 Oct 2026): Clusters lists these too ("Ungrouped prompts 50"), so a card saying
+    // 45 read as five prompts gone missing between the two pages.
+    const pending = data.questions.filter((q) => q.stopped_on === null && q.added_on > today).length;
     // DS58 (2 Oct 2026, R173 pass 6): the card ran to 45 rows on the ungrouped state; the Overview's
     // other lists show a few and point to the full page, which has the search (DS55).
     const shown = live.slice(0, UNGROUPED_ROWS);
@@ -366,7 +369,7 @@ export default function Overview({
             <h2 id="ug-h" style={H2}>
               Ungrouped prompts
             </h2>
-            <span style={{ fontSize: "12px", color: T.soft }}>{`${live.length} prompt${live.length === 1 ? "" : "s"}, not yet in a cluster`}</span>
+            <span style={{ fontSize: "12px", color: T.soft }}>{`${live.length} prompt${live.length === 1 ? "" : "s"}, not yet in a cluster${pending ? `; ${pending} more start${pending === 1 ? "s" : ""} at the next daily check` : ""}`}</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
             <Fig style={{ fontSize: "20px", fontWeight: 700, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }} def={basisLine(o.named, "answers")}>
