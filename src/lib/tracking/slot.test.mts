@@ -4,7 +4,7 @@ import { test } from "node:test";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { ADMIN_LIMITS } from "./decide.ts";
-import { refusePrompts } from "./limits.ts";
+import { refuseEdit, refusePrompts } from "./limits.ts";
 import { SLOT_WHY, fillSlot, refuseSlotText, slotRefusal, slotWhyOf } from "./slot.ts";
 
 test("R151 (3 Oct 2026): every rule's refusal of a free slot has a code, and only a code comes back from the URL", () => {
@@ -16,6 +16,8 @@ test("R151 (3 Oct 2026): every rule's refusal of a free slot has a code, and onl
     "That cluster is stopped.",
   ];
   assert.deepEqual(said.map((m) => slotWhyOf(m ?? "")), ["length", "duplicate", "full", "plan", "stopped"]);
+  assert.equal(slotWhyOf(refuseEdit(1) ?? ""), "fixed", "the edit route's after-first-reading refusal");
+  assert.equal(SLOT_WHY.fixed, refuseEdit(1), "one sentence");
   assert.equal(slotWhyOf("Could not add the prompts: timeout"), null, "a failed write keeps the Reload line");
   assert.equal(slotRefusal("duplicate"), SLOT_WHY.duplicate);
   assert.equal(slotRefusal("toString"), null, "own keys only");

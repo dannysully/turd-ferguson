@@ -40,6 +40,8 @@ export const SLOT_WHY = {
   full: "That cluster already has its 5 live prompts. Stop one first.",
   plan: "Every prompt on your plan is in use. Stop one first.",
   stopped: "That cluster is stopped.",
+  // The pending cluster's Save changes (edit route) refuses by the same text rule, plus this one.
+  fixed: "It already has readings, so its text is fixed. Stop it and add a new one.",
 } as const;
 export type SlotWhy = keyof typeof SLOT_WHY;
 
@@ -50,6 +52,7 @@ export function slotWhyOf(message: string): SlotWhy | null {
   if (message.startsWith("That cluster already has ")) return "full";
   if (message.startsWith("At the limit of ")) return "plan";
   if (message === "That cluster is stopped.") return "stopped";
+  if (message.startsWith("It already has readings")) return "fixed";
   return null;
 }
 
