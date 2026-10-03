@@ -3,7 +3,7 @@ import { test } from "node:test";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { addNote, noteReturn, readNote } from "./note.ts";
+import { NOTE_SAID, addNote, noteCodeOf, noteReturn, noteState, readNote } from "./note.ts";
 
 /** T7 part 4b (30 Sep 2026): "Add a note" - the text rule, the return URL, and the refusals before any write. */
 
@@ -13,6 +13,17 @@ test("a note is trimmed and single-spaced, 1 to 200 characters", () => {
   assert.match(readNote(undefined) as string, /Write a note/);
   assert.match(readNote("x".repeat(201)) as string, /200 characters/);
   assert.deepEqual(readNote("x".repeat(200)), { text: "x".repeat(200) });
+});
+
+test("R151 (3 Oct 2026): a note's refusal comes back as its own code, and only a code is read from the URL", () => {
+  assert.equal(noteCodeOf(readNote("   ") as string), "empty");
+  assert.equal(noteCodeOf(readNote("x".repeat(201)) as string), "long");
+  assert.equal(noteCodeOf("Could not save the note: timeout"), "refused", "a failed write names no rule");
+  assert.doesNotMatch(NOTE_SAID.refused, /characters|owners/, "a failed write is not told about rules it kept");
+  assert.equal(noteState("empty"), "empty");
+  assert.equal(noteState("toString"), null, "own keys only");
+  assert.equal(noteState(["saved"]), null);
+  assert.equal(noteState(undefined), null);
 });
 
 test("the return URL is rebuilt from checked parts only", () => {

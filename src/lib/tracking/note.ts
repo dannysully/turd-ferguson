@@ -18,10 +18,31 @@ const NOTE_MAX = APP_LIMITS.note;
 /** The form's note, trimmed and single-spaced; a reason instead when it cannot be saved. */
 export function readNote(raw: unknown): { text: string } | string {
   const text = typeof raw === "string" ? raw.replace(/\s+/g, " ").trim() : "";
-  if (!text) return "Write a note first.";
-  if (text.length > NOTE_MAX) return `A note is ${NOTE_MAX} characters at most.`;
+  if (!text) return NOTE_SAID.empty;
+  if (text.length > NOTE_MAX) return NOTE_SAID.long;
   return { text };
 }
+
+/**
+ * R151 (3 Oct 2026): what the page says after a post, by the code the route
+ * returns in `note`. The refusal used to list every rule ("1 to 200
+ * characters, from owners and editors") whatever happened, though the form
+ * already holds the length and a viewer has no form - so a failed write was
+ * told about rules it had kept. A rule's refusal is readNote's own sentence.
+ */
+export const NOTE_SAID = {
+  saved: "Note saved.",
+  empty: "Write a note first.",
+  long: `A note is ${NOTE_MAX} characters at most.`,
+  refused: "That note was not saved. Try again.",
+} as const;
+export type NoteState = keyof typeof NOTE_SAID;
+
+/** readNote's refusal as its code. */
+export const noteCodeOf = (refused: string): NoteState => (refused === NOTE_SAID.empty ? "empty" : refused === NOTE_SAID.long ? "long" : "refused");
+
+/** A code from the URL, own keys only; anything else is null. */
+export const noteState = (raw: string | string[] | undefined): NoteState | null => (typeof raw === "string" && Object.hasOwn(NOTE_SAID, raw) ? (raw as NoteState) : null);
 
 const ID = /^[A-Za-z0-9-]{1,64}$/;
 const DAY = /^\d{4}-\d{2}-\d{2}$/;

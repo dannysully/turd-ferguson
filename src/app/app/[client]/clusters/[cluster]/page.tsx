@@ -11,6 +11,7 @@ import { CLUSTER_BASE } from "@/lib/tracking/limits";
 import { clusterCards, clusterDetail, promptIndex } from "@/lib/tracking/cluster-figures";
 import { comparisonRange } from "@/lib/tracking/figures";
 import { engineTab } from "@/lib/tracking/latest-answers";
+import { noteState } from "@/lib/tracking/note";
 import { rangeFrom, rangeQuery } from "@/lib/tracking/overview-data";
 import { placedTier } from "@/lib/tracking/placement-figures";
 import { trackingRepo } from "@/lib/tracking/repo";
@@ -82,7 +83,7 @@ export default async function ClientCluster({
           latest={latest}
           notes={notes}
           canWrite={client.role === "owner" || client.role === "editor"}
-          noteState={sp.note === "saved" || sp.note === "refused" ? sp.note : null}
+          noteState={noteState(sp.note)}
           noteAction={`/api/app/${encodeURIComponent(slug)}/note`}
           engine={engineTab(sp.engine, engines)}
           clustersPath={`/app/${slug}/clusters`}

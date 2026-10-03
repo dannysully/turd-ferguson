@@ -94,7 +94,8 @@ const KEYS: Record<string, Record<string, string>> = {
   },
   "/clusters/[cluster]": {
     prompt: "promptIndex(sp.prompt, detail.card.prompts.length)",
-    note: 'sp.note === "saved" || sp.note === "refused" ? sp.note : null',
+    // R151 (3 Oct 2026): note.ts noteState - NOTE_SAID's own keys only (saved, empty, long, refused).
+    note: "noteState(sp.note)",
     engine: "engineTab(sp.engine, engines)",
   },
   "/named": {

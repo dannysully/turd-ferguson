@@ -12,6 +12,7 @@ import { ENGINE_SPECS, type Engine } from "@/lib/scan/engines";
 import { type ClusterDetail, type ClusterInput, clusterChart, daysOfLine, promptBrands, promptStrip } from "@/lib/tracking/cluster-figures";
 import { type Day, type Range, type Rate, basis as basisLine, comparisonRange, daysIn, formatDay, pointsDelta } from "@/lib/tracking/figures";
 import { type AnswerTab, type LatestAnswers, answerTabs, brandRuns } from "@/lib/tracking/latest-answers";
+import { NOTE_SAID, type NoteState } from "@/lib/tracking/note";
 import type { ClusterNote, Compare, OverviewData } from "@/lib/tracking/overview-data";
 import { partialRunNote } from "@/lib/tracking/run-note";
 
@@ -91,7 +92,7 @@ export default function OneCluster({
   /** Owners and editors see "Add a note" (T7 part 4b); viewers see the notes only. */
   canWrite: boolean;
   /** `?note=` after the form returns. */
-  noteState: "saved" | "refused" | null;
+  noteState: NoteState | null;
   /** POST /api/app/[client]/note for this client. */
   noteAction: string;
   clustersPath: string;
@@ -434,12 +435,13 @@ export default function OneCluster({
             {pending ? <span style={{ color: T.soft }}>No notes yet. The first check is tomorrow at 06:00.</span> : null}
           </div>
           {noteState ? (
-            <p role="status" style={{ margin: 0, fontSize: "13px", color: noteState === "saved" ? T.goodFg : T.badFg }}>
-              {noteState === "saved" ? "Note saved." : `That note was not saved. Notes are 1 to ${APP_LIMITS.note} characters, from owners and editors.`}
+            <p id="note-said" role="status" style={{ margin: 0, fontSize: "13px", color: noteState === "saved" ? T.goodFg : T.badFg }}>
+              {NOTE_SAID[noteState]}
             </p>
           ) : null}
           {canWrite && P ? (
-            <details>
+            // R151 (3 Oct 2026): a refused note reopens the form, so the next try is one step, not two.
+            <details open={noteState !== null && noteState !== "saved"}>
               <summary style={{ listStyle: "none", display: "inline-flex", alignItems: "center", gap: "6px", height: "40px", boxSizing: "border-box", padding: "0 14px", border: `1px solid ${T.line}`, borderRadius: "10px", background: T.surface, fontSize: "14px", fontWeight: 600, cursor: "pointer" }}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={T.ink} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" />
@@ -448,7 +450,7 @@ export default function OneCluster({
               </summary>
               <form method="post" action={`${noteAction}?${new URLSearchParams({ ...rangeQuery, cluster: c.id, q: P.id, prompt: String(prompt), ...(engine === engines[0] ? {} : { engine }) })}`} style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "12px" }}>
                 <label htmlFor="note-text" style={{ fontSize: "13px", color: T.soft }}>{`Dated today, on this prompt. Up to ${APP_LIMITS.note} characters.`}</label>
-                <textarea id="note-text" name="text" required maxLength={APP_LIMITS.note} rows={2} style={{ font: "inherit", fontSize: "14px", padding: "10px 12px", border: `1px solid ${T.line}`, borderRadius: "10px", resize: "vertical" }} />
+                <textarea id="note-text" name="text" autoFocus={noteState !== null && noteState !== "saved"} aria-describedby={noteState !== null && noteState !== "saved" ? "note-said" : undefined} required maxLength={APP_LIMITS.note} rows={2} style={{ font: "inherit", fontSize: "14px", padding: "10px 12px", border: `1px solid ${T.line}`, borderRadius: "10px", resize: "vertical" }} />
                 <SubmitButton busy="Saving..." style={{ alignSelf: "flex-start", height: "40px", padding: "0 16px", border: 0, borderRadius: "10px", background: T.accent, color: T.surface, fontFamily: "inherit", fontSize: "14px", fontWeight: 600 }}>
                   Save note
                 </SubmitButton>
