@@ -314,7 +314,10 @@ export default function OneCluster({
       </section>
 
       {P ? (
-        <section aria-labelledby="strip-h" style={{ ...CARD, padding: "24px", display: "flex", flexDirection: "column", gap: "14px", overflowX: "auto" }}>
+        // R151 (3 Oct 2026): at 390 this card scrolls 356 of 1,058px with nothing to say so - the later
+        // days and each engine's "N of 28" sat out of sight. It takes the keyboard, and the phone line
+        // under the grid says what is to the right.
+        <section aria-labelledby="strip-h" tabIndex={0} style={{ ...CARD, padding: "24px", display: "flex", flexDirection: "column", gap: "14px", overflowX: "auto" }}>
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "24px", flexWrap: "wrap" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: "4px", minWidth: 0 }}>
               <h2 id="strip-h" style={H2}>
@@ -364,6 +367,7 @@ export default function OneCluster({
             </span>
             <span />
           </div>
+          <p className="app-show-sm" style={{ margin: 0, fontSize: "13px", color: T.soft }}>{`Swipe for the later days, to ${days.length ? formatDay(days[days.length - 1]!) : "today"}, and each engine's count.`}</p>
         </section>
       ) : null}
 
