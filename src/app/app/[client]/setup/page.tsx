@@ -203,7 +203,12 @@ export default async function ClientSetup({
       ) : canWrite ? (
         <form method="post" action={`/api/app/${encodeURIComponent(slug)}/setup`} style={{ marginBottom: "40px" }}>
           <p style={{ margin: "0 0 16px", fontSize: "15px", lineHeight: 1.7, color: T.soft }}>
-            Want a change? Tell us before you confirm, and we make it. The first check runs the morning after.
+            {/* R151 (3 Oct 2026): "Tell us" named no channel until the help block below; it now leads there. */}
+            Want a change?{" "}
+            <a href="#help" style={{ color: T.accent, fontWeight: 600 }}>
+              Tell us
+            </a>{" "}
+            before you confirm, and we make it. The first check runs the morning after.
           </p>
           {failed ? (
             <p role="alert" style={{ margin: "0 0 12px", fontSize: "14px", color: T.badFg }}>
@@ -227,7 +232,7 @@ export default async function ClientSetup({
         <p style={{ margin: "0 0 40px", fontSize: "15px", color: T.soft }}>The account owner confirms setup.</p>
       )}
 
-      <div style={{ ...CARD, borderRadius: "14px", padding: "18px 22px" }}>
+      <div id="help" style={{ ...CARD, borderRadius: "14px", padding: "18px 22px", scrollMarginTop: "24px" }}>
         <div style={MICRO}>Need a hand?</div>
         <p style={{ margin: "4px 0 0", fontSize: "14px", lineHeight: 1.8, display: "flex", flexWrap: "wrap", columnGap: "16px" }}>
           <a href={contactUrlFor(tier)} style={{ ...HELP_LINK }}>
