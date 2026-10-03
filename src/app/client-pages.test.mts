@@ -68,7 +68,8 @@ const KEYS: Record<string, Record<string, string>> = {
     // "rekeyed" added 2 Oct 2026 (R179): the keyword route's 303 after Use this keyword on a pending card.
     done: '(done === "stopped" || done === "undone" || done === "added" || done === "saved" || done === "moved" || done === "refused" || done === "unselected" || done === "rekeyed")',
     kind: '(kind === "prompt" || kind === "cluster")',
-    id: "? { done, kind, id, count } : null", // a toast only names a row the list already has, or id=selected for a batch
+    // R151, 3 Oct 2026: the toast also carries `why`'s words, so the recorded line grew; the bound is unchanged.
+    id: "? { done, kind, id, count, why:", // a toast only names a row the list already has, or id=selected for a batch
     // DS13, 2 Oct 2026: a bulk stop or move's counts, drawn only beside id=selected and as whole numbers within BULK_MAX.
     ok: "ok >= 0 && ok <= ticked && ticked <= BULK_MAX",
     ticked: "Number.isInteger(ticked)",
@@ -88,6 +89,8 @@ const KEYS: Record<string, Record<string, string>> = {
     redraft: '(one("redraft") ?? "").slice(0, 64)',
     // DS29, 2 Oct 2026 (R173 pass 2): the hide route's 303 after a recorded "Hide for 30 days"; a flag, nothing echoed.
     hid: 'one("hid") === "1" && !ask',
+    // R151, 3 Oct 2026: the prompt route's refusal code; slotRefusal maps it to SLOT_WHY's fixed words, own keys only.
+    why: 'slotRefusal(one("why"))',
   },
   "/clusters/[cluster]": {
     prompt: "promptIndex(sp.prompt, detail.card.prompts.length)",

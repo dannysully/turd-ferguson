@@ -17,6 +17,7 @@ import { CLUSTER_BASE } from "@/lib/tracking/limits";
 import { rangeFrom, rangeQuery } from "@/lib/tracking/overview-data";
 import { placedTier } from "@/lib/tracking/placement-figures";
 import { trackingRepo } from "@/lib/tracking/repo";
+import { slotRefusal } from "@/lib/tracking/slot";
 import { BULK_ID, BULK_MAX, refuseRole } from "@/lib/tracking/stop";
 import { HIDE_DAYS, hiddenUntil } from "@/lib/tracking/upgrade-prompts";
 
@@ -64,7 +65,7 @@ export default async function ClientClusters({
   const ticked = Number(one("ticked"));
   const count = id === BULK_ID && Number.isInteger(ok) && Number.isInteger(ticked) && ok >= 0 && ok <= ticked && ticked <= BULK_MAX ? { n: ok, of: ticked } : undefined;
   const toast: StopToast | null =
-    (done === "stopped" || done === "undone" || done === "added" || done === "saved" || done === "moved" || done === "refused" || done === "unselected" || done === "rekeyed") && (kind === "prompt" || kind === "cluster") && id ? { done, kind, id, count } : null;
+    (done === "stopped" || done === "undone" || done === "added" || done === "saved" || done === "moved" || done === "refused" || done === "unselected" || done === "rekeyed") && (kind === "prompt" || kind === "cluster") && id ? { done, kind, id, count, why: done === "refused" ? slotRefusal(one("why")) : null } : null;
 
   // Add a cluster (part 3b): `?add=1` opens the panel; the check's 303 adds `kw` and `ck`.
   const kw = (one("kw") ?? "").slice(0, 200);

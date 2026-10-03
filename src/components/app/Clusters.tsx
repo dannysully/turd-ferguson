@@ -47,7 +47,7 @@ import UpgradePrompt from "./UpgradePrompt";
  * "Check keyword" form posts to /check, which 303s back with the verdict.
  */
 
-export type StopToast = { done: "stopped" | "undone" | "added" | "saved" | "moved" | "refused" | "unselected" | "rekeyed"; kind: "prompt" | "cluster"; id: string; count?: BulkCount };
+export type StopToast = { done: "stopped" | "undone" | "added" | "saved" | "moved" | "refused" | "unselected" | "rekeyed"; kind: "prompt" | "cluster"; id: string; count?: BulkCount; /** R151: a refusal's fixed words (slot.ts slotRefusal), or null. */ why?: string | null };
 
 const short = (t: string) => (t.length > 52 ? `${t.slice(0, 50)}…` : t);
 
@@ -601,7 +601,9 @@ function Toast({ t, cards, ungrouped = [], act, dismiss }: { t: StopToast; cards
   const name = t.kind === "cluster" ? (cluster?.keyword ?? cluster?.name) : prompt?.text;
   const stoppedOn = t.kind === "cluster" ? cluster?.stoppedOn : prompt?.stoppedOn;
   const canUndo = t.id !== BULK_ID && t.done === "stopped" && !!act && !!stoppedOn && stoppedOn > act.today;
-  const text = t.id === BULK_ID ? bulkToast(t) : t.done === "refused" || !name
+  const text = t.id === BULK_ID ? bulkToast(t) : t.done === "refused" && t.why
+      ? t.why
+      : t.done === "refused" || !name
       ? "That change did not go through. Reload the page and try again."
       : t.done === "added" && t.kind === "cluster"
         ? `Now tracking “${short(name)}” and 5 prompts. First results after tomorrow’s 06:00 check.`

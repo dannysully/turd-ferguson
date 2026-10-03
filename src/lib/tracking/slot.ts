@@ -27,7 +27,36 @@ export function refuseSlotText(text: string, live: readonly string[]): string | 
   return null;
 }
 
-export type Filled = { ok: true; id: string } | { ok: false; message: string };
+/**
+ * R151 (3 Oct 2026): a refused free slot came back as "Reload the page and try
+ * again" whatever the rule, and reloading cannot unduplicate a prompt or free
+ * room in a cluster (NN/g heuristic 9). The route carries one of these codes
+ * back in `why`; the page draws the fixed words. A failed read or write has no
+ * code and keeps the old line.
+ */
+export const SLOT_WHY = {
+  length: `A prompt is ${PROMPT_MIN} to ${ADMIN_LIMITS.question} characters.`,
+  duplicate: "That prompt is already tracked in this cluster. Type a different one.",
+  full: "That cluster already has its 5 live prompts. Stop one first.",
+  plan: "Every prompt on your plan is in use. Stop one first.",
+  stopped: "That cluster is stopped.",
+} as const;
+export type SlotWhy = keyof typeof SLOT_WHY;
+
+/** A rule's refusal (refuseSlotText, refusePrompts, a stopped cluster) as its code, or null for anything else. */
+export function slotWhyOf(message: string): SlotWhy | null {
+  if (message.startsWith("A prompt is ")) return "length";
+  if (message === "That prompt is already tracked in this cluster.") return "duplicate";
+  if (message.startsWith("That cluster already has ")) return "full";
+  if (message.startsWith("At the limit of ")) return "plan";
+  if (message === "That cluster is stopped.") return "stopped";
+  return null;
+}
+
+/** A code from the URL to its words, own keys only; anything else is null. */
+export const slotRefusal = (raw: string | null): string | null => (raw !== null && Object.hasOwn(SLOT_WHY, raw) ? SLOT_WHY[raw as SlotWhy] : null);
+
+export type Filled ={ ok: true; id: string } | { ok: false; message: string };
 
 export async function fillSlot(db: SupabaseClient, p: { clientId: string; clusterId: string; angle: string | null; text: string; today: string; by: string; role: string }): Promise<Filled> {
   const r = refuseRole(p.role);

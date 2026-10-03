@@ -4,7 +4,24 @@ import { test } from "node:test";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { ADMIN_LIMITS } from "./decide.ts";
-import { fillSlot, refuseSlotText } from "./slot.ts";
+import { refusePrompts } from "./limits.ts";
+import { SLOT_WHY, fillSlot, refuseSlotText, slotRefusal, slotWhyOf } from "./slot.ts";
+
+test("R151 (3 Oct 2026): every rule's refusal of a free slot has a code, and only a code comes back from the URL", () => {
+  const said = [
+    refuseSlotText("short", []),
+    refuseSlotText("Which tool is best for this?", ["which tool is best for this?"]),
+    refusePrompts({ clientLive: 4, clusterLive: 5, clusterLimit: 2 }),
+    refusePrompts({ clientLive: 10, clusterLive: 2, clusterLimit: 2 }),
+    "That cluster is stopped.",
+  ];
+  assert.deepEqual(said.map((m) => slotWhyOf(m ?? "")), ["length", "duplicate", "full", "plan", "stopped"]);
+  assert.equal(slotWhyOf("Could not add the prompts: timeout"), null, "a failed write keeps the Reload line");
+  assert.equal(slotRefusal("duplicate"), SLOT_WHY.duplicate);
+  assert.equal(slotRefusal("toString"), null, "own keys only");
+  assert.equal(slotRefusal(SLOT_WHY.duplicate), null, "words are not a code");
+  assert.equal(slotRefusal(null), null);
+});
 
 // BRIEF-3 T6 part 2c (30 Sep 2026): the free slot. The text rule, then the
 // refusals that stop before any write, against a stand-in that records writes.

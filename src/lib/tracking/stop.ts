@@ -110,9 +110,10 @@ export function readBulkIds(values: readonly unknown[]): string[] {
 export type BulkCount = { n: number; of: number };
 
 /** Where the route sends the browser back to: the Clusters page, its state kept, with the toast. */
-export function stopReturn(slug: string, f: StopForm, done: StopDone, count?: BulkCount): string {
+export function stopReturn(slug: string, f: StopForm, done: StopDone, count?: BulkCount, why?: string | null): string {
   // `ok` and `ticked`, not the /ask toast's `n` and `of`, so the two never read each other's counts.
-  const q = new URLSearchParams({ ...f.back, done, kind: f.kind, id: f.id, ...(count ? { ok: String(count.n), ticked: String(count.of) } : {}) });
+  // `why` (R151, 3 Oct 2026): a refusal's code, e.g. slot.ts SLOT_WHY's; only on a refusal.
+  const q = new URLSearchParams({ ...f.back, done, kind: f.kind, id: f.id, ...(count ? { ok: String(count.n), ticked: String(count.of) } : {}), ...(done === "refused" && why ? { why } : {}) });
   return `/app/${encodeURIComponent(slug)}/clusters?${q}`;
 }
 
