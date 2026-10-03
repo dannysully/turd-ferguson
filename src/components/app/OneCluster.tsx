@@ -18,6 +18,7 @@ import { partialRunNote } from "@/lib/tracking/run-note";
 
 import ClusterChart from "./ClusterChart";
 import Fig from "./Fig";
+import ScrollCue from "./ScrollCue";
 import { PagePath } from "./PagePath";
 import { Chip } from "./Overview";
 
@@ -321,7 +322,8 @@ export default function OneCluster({
         // under the grid says what is to the right. At 1280 the board's fixed 22px squares (sized for
         // 1440) still pushed the "N of 28" column 108px out of the card with no cue, so above the phone
         // the squares narrow to fit (8-22px, .app-strip-cell) and the phone keeps 22px and the swipe.
-        <section aria-labelledby="strip-h" tabIndex={0} style={{ ...CARD, padding: "24px", display: "flex", flexDirection: "column", gap: "14px", overflowX: "auto" }}>
+        // ScrollCue shows the line, and keeps the tab stop, whenever the grid still overflows.
+        <section id="strip-scroll" aria-labelledby="strip-h" tabIndex={0} style={{ ...CARD, padding: "24px", display: "flex", flexDirection: "column", gap: "14px", overflowX: "auto" }}>
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "24px", flexWrap: "wrap" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: "4px", minWidth: 0 }}>
               <h2 id="strip-h" style={H2}>
@@ -372,7 +374,7 @@ export default function OneCluster({
             </span>
             <span />
           </div>
-          <p className="app-show-sm" style={{ margin: 0, fontSize: "13px", color: T.soft }}>{`Swipe for the later days, to ${days.length ? formatDay(days[days.length - 1]!) : "today"}${strip.some((r) => r.answered) ? ", and each engine's count" : ""}.`}</p>
+          <ScrollCue target="strip-scroll">{`Swipe for the later days, to ${days.length ? formatDay(days[days.length - 1]!) : "today"}${strip.some((r) => r.answered) ? ", and each engine's count" : ""}.`}</ScrollCue>
         </section>
       ) : null}
 

@@ -2,6 +2,7 @@ import { T } from "@/config/tokens";
 import { type Day, formatDay } from "@/lib/tracking/figures";
 import { KIND_WORDS, type PlacementLine, axisAt, pageParts } from "@/lib/tracking/placement-figures";
 import type { PlacementKind } from "@/lib/tracking/placements";
+import ScrollCue from "./ScrollCue";
 
 /**
  * The placements chart (T13, R97 part 4b, 30 Sep 2026; BRIEF-2 T13 against
@@ -133,7 +134,7 @@ export default function PlacementsChart({
           two weeks with no sign there was more - 13 of 16 live placements out of sight. It takes the
           keyboard now, and the phone says the later weeks are a swipe away. Opening on the latest weeks
           (rtl scroller) was tried and dropped: it put the 50% / #1 scale and the Live label off screen. */}
-      <div className="app-scroll-x" tabIndex={0} role="group" aria-label="Placements chart, scrolls sideways" style={{ overflowX: "auto" }}>
+      <div id="pl-chart-scroll" className="app-scroll-x" tabIndex={0} role="group" aria-label="Placements chart" style={{ overflowX: "auto" }}>
         <div style={{ position: "relative", width: "100%", minWidth: "720px", aspectRatio: `${W} / ${H}` }}>
           <svg width="100%" height="100%" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={aria} style={{ position: "absolute", inset: 0, display: "block" }}>
             <line x1={X0} x2={X1} y1={A_BOT} y2={A_BOT} stroke={T.line} />
@@ -198,7 +199,7 @@ export default function PlacementsChart({
           {cur ? <Readout r={cur} x={xDay(cur.liveOn!)} /> : null}
         </div>
       </div>
-      <p className="app-show-sm" style={{ margin: 0, fontSize: "13px", color: T.soft }}>{`Swipe the chart for the later ${series.weekly ? "weeks" : "days"}, to ${formatDay(last)}.`}</p>
+      <ScrollCue target="pl-chart-scroll">{`Swipe the chart for the later ${series.weekly ? "weeks" : "days"}, to ${formatDay(last)}.`}</ScrollCue>
     </section>
   );
 }
