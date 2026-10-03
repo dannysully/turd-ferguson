@@ -111,6 +111,8 @@ export default function SeoAgenciesPage() {
                       minWidth: 0,
                       display: "flex",
                       alignItems: "center",
+                      // Wraps only under 1.4.12 spacing at 320, where "was #10" ran 5px out (R151).
+                      flexWrap: "wrap",
                       gap: "10px",
                       minHeight: "40px",
                       borderRadius: "10px",

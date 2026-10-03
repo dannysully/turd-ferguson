@@ -71,6 +71,12 @@ body {
   color: var(--ink);
   font-family: var(--font-hanken), system-ui, sans-serif;
   line-height: 1.6;
+  /* A word wider than its line breaks rather than pushing the page sideways -
+     with WCAG 1.4.12 spacing forced, six pages scrolled 34-77px at 320. Only a
+     word that would overflow is broken; min-content is unchanged, and every
+     single-column collapse below is minmax(0, 1fr) so the line is the box's
+     width, not the widest word's (R151, 3 Oct 2026). */
+  overflow-wrap: break-word;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -151,6 +157,11 @@ a:focus-visible > .brand-mark--spin {
 
 /* ─── Tier names ─── */
 .tier-name { white-space: nowrap; font-weight: 700; }
+/* A tier page's h1 is the tier name alone, one word at 36px: with 1.4.12
+   letter spacing "alwayseverywhere" is 373px at 320; the price stair's
+   two-up names ran 21px past 390. Each breaks only then (R151, 3 Oct 2026). */
+.pkg-h1 .tier-name,
+.stair .tier-name { white-space: normal; }
 .tier-name__accent { color: var(--brand-purple); }
 
 /* Screen-reader only */
@@ -216,7 +227,7 @@ html[data-motion="on"] .btn-primary[data-busy="1"] { animation: btnPulse 1.6s ea
 }
 @media (max-width: 860px) {
   .answer-explorer {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .answer-explorer__list {
     border-right: 0;
@@ -243,7 +254,7 @@ html[data-motion="on"] .btn-primary[data-busy="1"] { animation: btnPulse 1.6s ea
 }
 @media (max-width: 860px) {
   .two-up {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -279,7 +290,7 @@ html[data-motion="on"] .btn-primary[data-busy="1"] { animation: btnPulse 1.6s ea
 }
 @media (max-width: 860px) {
   .channel-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -333,7 +344,7 @@ html[data-motion="on"] .stair-step { animation: stair-step 10s infinite both; an
 .pkg-cue { display: none; }
 /* The tier pages' "See it first" card (28 Sep 2026): copy left, form right; stacked under 760. */
 .see-first { display: grid; grid-template-columns: 1fr 1fr; gap: 24px 40px; align-items: start; }
-@media (max-width: 760px) { .see-first { grid-template-columns: 1fr; } }
+@media (max-width: 760px) { .see-first { grid-template-columns: minmax(0, 1fr); } }
 /* 28 Sep 2026: the table's .sr-only spans (sector label, engine names) are
    absolute; without a positioned scroller their containing block sat outside
    it, so they escaped the clip and the homepage scrolled 318px sideways at 390. */
@@ -510,7 +521,9 @@ html[data-motion="on"] .chart-dot.in-view {
   gap: 64px;
   align-items: center;
 }
-.wl-skins { display: grid; position: relative; }
+/* minmax(0, 1fr), not the implicit auto column, which held the skins'
+   min-content and ran 46px past 320 with 1.4.12 spacing (R151, 3 Oct 2026). */
+.wl-skins { display: grid; grid-template-columns: minmax(0, 1fr); position: relative; }
 .wl-skin { grid-area: 1 / 1; }
 .wl-ours { opacity: 0; }
 .wl-wipe {
@@ -540,13 +553,13 @@ html[data-motion="on"] .wl-wipe { animation: wlWipe 9s infinite ease-in-out both
   html[data-motion="on"] :is(.wl-ours, .wl-theirs, .wl-wipe) { animation: none; }
 }
 @media (max-width: 1000px) {
-  .wl-top { grid-template-columns: 1fr; gap: 36px; }
+  .wl-top { grid-template-columns: minmax(0, 1fr); gap: 36px; }
   .wl-grid { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 860px) {
   .wl-h1 { font-size: 36px !important; }
   .wl-head { flex-direction: column; gap: 8px; }
-  .wl-grid { grid-template-columns: 1fr; }
+  .wl-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* alwaystracked: the weekly-report beat (TrackedBeat.dc.html, R25, 26 Sep
@@ -673,7 +686,7 @@ html[data-motion="on"] .seo-beat:has(.flow-line.in-view) .seo-answer { animation
 @media (max-width: 1000px) {
   /* minmax(0, 1fr): a bare 1fr kept its 305px min-content at 320 (1.4.10, 3 Oct 2026). */
   .seo-top { grid-template-columns: minmax(0, 1fr); gap: 28px; }
-  .seo-beat { grid-template-columns: 1fr; row-gap: 16px; }
+  .seo-beat { grid-template-columns: minmax(0, 1fr); row-gap: 16px; }
   .seo-beat__wires { display: none; }
   .seo-notes { flex-direction: column; gap: 4px; }
 }
@@ -715,7 +728,7 @@ html[data-motion="on"] .ac-row.in-view > .guide-beat .aeo-named { animation: aeo
 @media (max-width: 1000px) {
   /* minmax(0, 1fr): a bare 1fr kept its 305px min-content at 320 (1.4.10, 3 Oct 2026). */
   .guide-top, .guide-top--aeo, .guide-beat { grid-template-columns: minmax(0, 1fr); gap: 28px; }
-  .guide-flow { grid-template-columns: 1fr; row-gap: 8px; }
+  .guide-flow { grid-template-columns: minmax(0, 1fr); row-gap: 8px; }
   .guide-flow__arrow { transform: rotate(90deg); justify-self: center; }
   .guide-notes { flex-direction: column; gap: 4px; }
   .guide-long__nav { display: none; }
@@ -724,7 +737,7 @@ html[data-motion="on"] .ac-row.in-view > .guide-beat .aeo-named { animation: aeo
 @media (max-width: 860px) {
   .guide-h1 { font-size: 36px !important; }
   .guide-long__body > section { padding: 24px; }
-  .guide-clocks { grid-template-columns: 1fr; }
+  .guide-clocks { grid-template-columns: minmax(0, 1fr); }
   .dark-close { grid-template-columns: minmax(0, 1fr); row-gap: 20px; padding: 24px !important; }
 }
 .pr-two {
@@ -733,12 +746,12 @@ html[data-motion="on"] .ac-row.in-view > .guide-beat .aeo-named { animation: aeo
   gap: 16px;
 }
 @media (max-width: 1000px) {
-  .pr-fan { grid-template-columns: 1fr; row-gap: 28px; }
+  .pr-fan { grid-template-columns: minmax(0, 1fr); row-gap: 28px; }
   .pr-fan__wires { display: none; }
   .pr-mob { display: inline; }
 }
 @media (max-width: 860px) {
-  .pr-two { grid-template-columns: 1fr; }
+  .pr-two { grid-template-columns: minmax(0, 1fr); }
   .pr-h1 { font-size: 38px !important; }
 }
 
@@ -749,7 +762,7 @@ html[data-motion="on"] .ac-row.in-view > .guide-beat .aeo-named { animation: aeo
 }
 @media (max-width: 860px) {
   .three-up {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -941,7 +954,7 @@ html[data-motion="on"] .ac-stamp.in-view {
 }
 @media (max-width: 860px) {
   .cc-prompt {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     row-gap: 6px;
   }
 }
@@ -1065,7 +1078,7 @@ html[data-motion="on"] .ac-stamp.in-view {
 @media (max-width: 860px) {
   .confirm-top,
   .confirm-top.study-top,
-  .confirm-top.confirm-12 { grid-template-columns: 1fr; row-gap: 20px; }
+  .confirm-top.confirm-12 { grid-template-columns: minmax(0, 1fr); row-gap: 20px; }
   .confirm-12 > :nth-child(n) { grid-column: auto; }
   /* Five cells in two columns scrambled the order at 390 - number and question
      on one line, cluster and intent on the next, Remove adrift under them. Named
@@ -1292,7 +1305,7 @@ html[data-motion="on"] .proc-fill { transform-origin: left center; animation: pr
 .seq-sov    { display: grid; grid-template-columns: 180px 1fr 62px; column-gap: 16px; align-items: center; }
 
 @media (max-width: 860px) {
-  .seq-two-up, .seq-even, .seq-three, .seq-four { grid-template-columns: 1fr; }
+  .seq-two-up, .seq-even, .seq-three, .seq-four { grid-template-columns: minmax(0, 1fr); }
   .seq-sov { grid-template-columns: 120px 1fr 48px; }
 }
 
@@ -1359,7 +1372,7 @@ details > summary { list-style: none; }
   align-items: start;
 }
 @media (max-width: 860px) {
-  .page-split { grid-template-columns: 1fr; row-gap: 20px; }
+  .page-split { grid-template-columns: minmax(0, 1fr); row-gap: 20px; }
 }
 
 /* The writing index: kind, title and date across the twelve. */
@@ -1371,7 +1384,7 @@ details > summary { list-style: none; }
   padding: 20px 26px;
 }
 @media (max-width: 860px) {
-  .post-row { grid-template-columns: 1fr; row-gap: 6px; }
+  .post-row { grid-template-columns: minmax(0, 1fr); row-gap: 6px; }
 }
 
 /* A post: article on eight columns, aside on four. Stacks on a phone. */
@@ -1382,7 +1395,7 @@ details > summary { list-style: none; }
   align-items: start;
 }
 @media (max-width: 860px) {
-  .post-shell { grid-template-columns: 1fr; row-gap: 26px; }
+  .post-shell { grid-template-columns: minmax(0, 1fr); row-gap: 26px; }
 }
 /* A post's contents: in the aside on a wide page, at the head of the article on
    a narrow one, where the aside has dropped below the last paragraph (R151). */
@@ -1435,7 +1448,7 @@ details > summary { list-style: none; }
   flex-wrap: wrap;
 }
 @media (max-width: 860px) {
-  .cs-cite { grid-template-columns: 1fr; row-gap: 4px; }
+  .cs-cite { grid-template-columns: minmax(0, 1fr); row-gap: 4px; }
 }
 
 /* ── Result: clickable question rows, the answers sidebar, the walkthrough toggle (24 Sep 2026) ── */
@@ -1573,7 +1586,7 @@ html[data-motion="on"] .demo-verdict { animation: demo-verdict 12s infinite both
 @media (max-width: 860px) {
   .ways-head { display: block; }
   .ways-head > p { margin-top: 10px !important; }
-  .ways-grid { grid-template-columns: 1fr; gap: 16px; margin-top: 24px; }
+  .ways-grid { grid-template-columns: minmax(0, 1fr); gap: 16px; margin-top: 24px; }
   .ways-grid > div { padding: 22px !important; }
 }
 .ways-was3 { opacity: 0; }
@@ -1616,7 +1629,7 @@ html[data-motion="on"] .ways-now4 { animation: ways-now4 9s infinite both; }
 }
 .run-mail { display: flex; gap: 8px; margin-top: 12px; }
 @media (max-width: 860px) {
-  .run-top { grid-template-columns: 1fr; row-gap: 24px; }
+  .run-top { grid-template-columns: minmax(0, 1fr); row-gap: 24px; }
 }
 @media (max-width: 560px) {
   .run-chips { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -1666,7 +1679,7 @@ html[data-motion="on"] .ways-now4 { animation: ways-now4 9s infinite both; }
   min-height: 60px;
 }
 @media (max-width: 860px) {
-  .res-top { grid-template-columns: 1fr; row-gap: 24px; }
+  .res-top { grid-template-columns: minmax(0, 1fr); row-gap: 24px; }
   /* The question across the top; marks, position and pill under it. */
   /* Position on its own line: beside the marks it ran into the pill at 390. */
   .res-qline {
@@ -1730,11 +1743,11 @@ html[data-motion="on"] .res-dial { animation: resDial 1.4s .3s cubic-bezier(.2,.
   .res-prow > :nth-child(4) { grid-row: 1; grid-column: 2; }
   .res-mob { display: inline; }
   .res-sov { grid-template-columns: 110px minmax(0, 1fr) 40px; column-gap: 12px; }
-  .res-tracked { grid-template-columns: 1fr; padding: 28px 22px; gap: 28px; }
+  .res-tracked { grid-template-columns: minmax(0, 1fr); padding: 28px 22px; gap: 28px; }
   .res-tracked-h { font-size: 30px !important; }
 }
 @media (max-width: 520px) {
-  .res-tiles { grid-template-columns: 1fr; }
+  .res-tiles { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 480px) {
   .res-metrics { gap: 8px; }

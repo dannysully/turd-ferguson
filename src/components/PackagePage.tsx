@@ -37,7 +37,8 @@ function tilesFor(tier: Tier, sections: PackageSection[]): Tile[] {
     {
       key: "engines",
       figure: (
-        <span style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+        // Wraps: with 1.4.12 letter spacing the logos ran 2px past a 320 screen (R151).
+        <span style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "4px 10px" }}>
           {engines}
           <TierEngines tier={tier.key} size={18} colour={T.soft} />
         </span>
@@ -133,7 +134,7 @@ export default function PackagePage({
           </Link>
           <div className="ac-row" style={{ ...MICRO, marginTop: "18px" }}>Package</div>
           <h1
-            className="ac-row"
+            className="ac-row pkg-h1"
             style={{
               margin: "10px 0 0",
               fontSize: "36px",

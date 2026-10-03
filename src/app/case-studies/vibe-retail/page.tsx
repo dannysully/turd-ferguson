@@ -82,7 +82,9 @@ const P = ({ children }: { children: React.ReactNode }) => (
 const Row = ({ label, value }: { label: string; value: string }) => (
   <div className="cs-row" style={{ borderTop: "1px solid " + T.hair }}>
     <span style={{ fontSize: "14px", color: "#3f4451" }}>{label}</span>
-    <span style={{ fontSize: "14px", fontWeight: 600, color: T.ink, whiteSpace: "nowrap" }}>{value}</span>
+    {/* Unbroken unless it is wider than the row on a line of its own - nowrap
+        ran 16px past a 320 screen with 1.4.12 spacing (R151, 3 Oct 2026). */}
+    <span style={{ fontSize: "14px", fontWeight: 600, color: T.ink, flexShrink: 0, maxWidth: "100%" }}>{value}</span>
   </div>
 );
 
