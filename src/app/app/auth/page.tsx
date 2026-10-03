@@ -50,6 +50,16 @@ export default async function AppAuth({ searchParams }: { searchParams: Promise<
       </h1>
       {ok ? (
         <form method="post" action="/api/app/auth">
+          {/* R151 (3 Oct 2026): failed=1 on a link that is still good was a bare "Log in" - the claim or session write failed, and nothing said so (NN/g heuristic 9). */}
+          {failed === "1" ? (
+            <p role="alert" style={{ margin: "0 0 24px", color: T.badFg, fontSize: "15px" }}>
+              That did not open your dashboard. Try again, or{" "}
+              <a href="/app/login" style={{ color: T.accent, fontWeight: 600 }}>
+                ask for a new link
+              </a>
+              .
+            </p>
+          ) : null}
           <input type="hidden" name="token" value={token} maxLength={TOKEN_CHARS} />
           {next ? <input type="hidden" name="next" value={next} maxLength={NEXT_MAX} /> : null}
           <SubmitButton busy="Opening your dashboard..." style={BUTTON}>
