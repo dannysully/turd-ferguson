@@ -5,7 +5,7 @@ import TierEngines from "@/components/TierEngines";
 import WalkthroughForm from "@/components/scan/WalkthroughForm";
 import TierName, { TierText, type TierKey } from "@/components/TierName";
 import { ALWAYS_ON, ALWAYS_ON_SUPPORT } from "@/config/always-on";
-import { CLUSTERS_LINE, CONTACT_URL, TIERS, TRACKED_BASIS, TRACKED_CLUSTERS, TRACKED_KEYWORDS, TRACKED_PROMPTS, checkoutUrlFor, enginesFor, type Tier } from "@/config/pricing";
+import { CLUSTERS_LINE, CONTACT_URL, TIERS, TRACKED_BASIS, TRACKED_CLUSTERS, TRACKED_KEYWORDS, TRACKED_PROMPTS, checkoutUrlFor, contactUrlFor, enginesFor, type Tier } from "@/config/pricing";
 import { ld } from "@/config/schema";
 import { serviceSchema } from "@/config/service-schema";
 import { CARD, MICRO, SHELL, T } from "@/config/tokens";
@@ -187,10 +187,11 @@ export default function PackagePage({
               {tier.action}
             </SelectionCta>
           ) : (
-            <MarketCta href={tier.key === "tracked" ? checkoutUrlFor("tracked") : CONTACT_URL} className="btn-primary" style={CTA_STYLE}>
+            <MarketCta href={tier.key === "tracked" ? checkoutUrlFor("tracked") : contactUrlFor(tier.key)} className="btn-primary" style={CTA_STYLE}>
               {/* The tier's own verb from pricing.ts (R79). alwayseverywhere's
                   still goes to /contact as a call - only the label moved. The
-                  market picked on the page travels with it (R148). */}
+                  market picked on the page travels with it (R148), and the tier
+                  too, so /contact says what the enquiry is about (R151). */}
               {tier.action}
             </MarketCta>
           )}

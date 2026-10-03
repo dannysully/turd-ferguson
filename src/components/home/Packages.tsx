@@ -3,7 +3,7 @@ import TierEngines from "@/components/TierEngines";
 import PkgScroll from "@/components/home/PkgScroll";
 import TierName, { TierText, type TierKey } from "@/components/TierName";
 import { ALWAYS_ON, ALWAYS_ON_SUPPORT } from "@/config/always-on";
-import { CLUSTERS_LINE, TIERS, checkoutUrlFor } from "@/config/pricing";
+import { CLUSTERS_LINE, TIERS, checkoutUrlFor, contactUrlFor } from "@/config/pricing";
 import { CARD, SHELL, T } from "@/config/tokens";
 
 import { D, PACKAGES_WASH } from "./dark";
@@ -58,9 +58,11 @@ const ctaStyle = (emphasis?: boolean): React.CSSProperties => ({
 // Labels are each tier's `action` in pricing.ts (R79); only the targets live here.
 // alwaystracked goes to the order form, as its tier page does - it went to
 // /contact from before checkout existed (R148 journey pass, 1 Oct 2026).
+// alwayseverywhere carries its tier, so /contact says "About alwayseverywhere"
+// and the enquiry says which tier it is about (R151, 3 Oct 2026).
 const CTA_HREF: Partial<Record<TierKey, string>> = {
   tracked: checkoutUrlFor("tracked"),
-  everywhere: "/contact",
+  everywhere: contactUrlFor("everywhere"),
 };
 
 /** 1 = included, 0 = not, a string = the cell's text. One entry per tier, in TIERS order. */
