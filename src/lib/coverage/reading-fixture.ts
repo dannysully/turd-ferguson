@@ -48,7 +48,12 @@ export function readingFixture(
           return { engine, answered, brandNamed: answered && (idx === 0 || (!p.weak && e % 2 === 0)) };
         }),
       }))
-    : [];
+    : // R151 (3 Oct 2026): a running or failed reading has its question rows from the
+      // start (startBenchmark stores them), only no answers; without them the running
+      // card read "0 questions". A stalled one may have died before they were written.
+      state === "stalled"
+      ? []
+      : prompts.map((p, idx) => ({ idx, kind: p.kind, question: p.question, answers: [] as { engine: Engine; answered: boolean; brandNamed: boolean }[] }));
   const answers = questions.flatMap((q) => q.answers);
   const named = { count: answers.filter((a) => a.answered && a.brandNamed).length, of: answers.length };
 
