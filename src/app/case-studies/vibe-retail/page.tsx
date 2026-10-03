@@ -275,6 +275,16 @@ export default function CaseStudyPage() {
               traffic up to 137 sessions on the cloud POS cluster, and traffic value up to $1,300 a month from zero in
               the same window.
             </P>
+            {/* The read ended with no next step at 1280, where the aside's scan
+                field has scrolled away by here (R151, 3 Oct 2026). The tier
+                pages' closing line, in the same words. */}
+            <p style={{ margin: "26px 0 0", fontSize: "13.5px", color: T.soft, lineHeight: 1.65 }}>
+              Want the same reading on a client of yours?{" "}
+              <Link href="/#scan" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
+                Run the free scan
+              </Link>
+              .
+            </p>
           </article>
 
           <aside style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
