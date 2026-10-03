@@ -306,6 +306,12 @@ html[data-motion="on"] .btn-primary[data-busy="1"] { animation: btnPulse 1.6s ea
   .stair > ol { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 16px; }
   .stair-step { position: static; }
 }
+/* "alwayseverywhere" at 20px is 161px and never breaks; two-up columns are
+   narrower than that below 390, so the page scrolled 9px at 320 (1.4.10,
+   3 Oct 2026). One column there. */
+@media (max-width: 389px) {
+  .stair > ol { grid-template-columns: minmax(0, 1fr); }
+}
 @keyframes stair-draw { 0%, 4% { stroke-dashoffset: 1; } 40%, 94% { stroke-dashoffset: 0; } 99%, 100% { stroke-dashoffset: 1; } }
 @keyframes stair-step { 0%, 8% { opacity: 0; transform: translateY(8px); } 14%, 94% { opacity: 1; transform: none; } 99%, 100% { opacity: 0; } }
 .stair-line path { stroke-dasharray: 1; stroke-dashoffset: 0; }
@@ -658,7 +664,8 @@ html[data-motion="on"] .seo-beat:has(.flow-line.in-view) .seo-answer { animation
   html[data-motion="on"] .seo-beat:has(.flow-line.in-view) :is(.seo-climb, .seo-down, .seo-answer) { animation: none; }
 }
 @media (max-width: 1000px) {
-  .seo-top { grid-template-columns: 1fr; gap: 28px; }
+  /* minmax(0, 1fr): a bare 1fr kept its 305px min-content at 320 (1.4.10, 3 Oct 2026). */
+  .seo-top { grid-template-columns: minmax(0, 1fr); gap: 28px; }
   .seo-beat { grid-template-columns: 1fr; row-gap: 16px; }
   .seo-beat__wires { display: none; }
   .seo-notes { flex-direction: column; gap: 4px; }
@@ -699,7 +706,8 @@ html[data-motion="on"] .ac-row.in-view > .guide-beat .aeo-named { animation: aeo
   html[data-motion="on"] .ac-row.in-view > .guide-beat :is(.aeo-hl-seo, .aeo-card-seo, .aeo-hl-aeo, .aeo-card-aeo, .aeo-named) { animation: none; }
 }
 @media (max-width: 1000px) {
-  .guide-top, .guide-top--aeo, .guide-beat { grid-template-columns: 1fr; gap: 28px; }
+  /* minmax(0, 1fr): a bare 1fr kept its 305px min-content at 320 (1.4.10, 3 Oct 2026). */
+  .guide-top, .guide-top--aeo, .guide-beat { grid-template-columns: minmax(0, 1fr); gap: 28px; }
   .guide-flow { grid-template-columns: 1fr; row-gap: 8px; }
   .guide-flow__arrow { transform: rotate(90deg); justify-self: center; }
   .guide-notes { flex-direction: column; gap: 4px; }
@@ -710,7 +718,7 @@ html[data-motion="on"] .ac-row.in-view > .guide-beat .aeo-named { animation: aeo
   .guide-h1 { font-size: 36px !important; }
   .guide-long__body > section { padding: 24px; }
   .guide-clocks { grid-template-columns: 1fr; }
-  .dark-close { grid-template-columns: 1fr; row-gap: 20px; padding: 24px !important; }
+  .dark-close { grid-template-columns: minmax(0, 1fr); row-gap: 20px; padding: 24px !important; }
 }
 .pr-two {
   display: grid;
@@ -1157,7 +1165,11 @@ html[data-motion="on"] .seq-rise { animation: seqRise 1s cubic-bezier(.2,.7,.3,1
 /* Two columns: the argument, then the screen you would get. One column on a
    phone, with the panel under the claim it is evidence for. */
 .proc-head { display: grid; gap: 14px; margin-bottom: 26px; }
-.proc-stage { display: grid; gap: 28px; align-items: center; }
+/* minmax(0, 1fr), not the implicit auto column: auto sized the one column to
+   its widest panel, 333px in a 272px box at 320, and the page scrolled
+   sideways (WCAG 2.2 1.4.10, docs/parity/r151-reflow-320.mjs, 3 Oct 2026).
+   .proc-beats takes the same column for the same reason. */
+.proc-stage { display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; align-items: center; }
 .proc-headline { font-size: 34px; }
 .proc-foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 18px; flex-wrap: wrap; }
 .proc-qrow { display: grid; grid-template-columns: 1fr repeat(4, 58px); gap: 4px; align-items: center; }
@@ -1181,7 +1193,7 @@ html[data-motion="on"] .seq-rise { animation: seqRise 1s cubic-bezier(.2,.7,.3,1
   .proc-opps { display: flex; align-items: baseline; gap: 8px; text-align: left; }
 }
 
-.proc-beats { display: grid; gap: 28px; }
+.proc-beats { display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; }
 .proc-rail { display: none; }
 
 /* The four beats share one grid cell, so the stage is always as tall as the
