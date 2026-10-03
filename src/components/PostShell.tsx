@@ -79,6 +79,38 @@ const fieldStyle: React.CSSProperties = {
   padding: "11px 13px",
 };
 
+/** The post's own headings as links - the aside's card, and the top of a narrow page. */
+function Contents({
+  sections,
+  gap = "10px",
+  margin = "12px 0 0",
+}: {
+  sections: { id: string; label: string }[];
+  gap?: string;
+  margin?: string;
+}) {
+  return (
+    <ul
+      style={{
+        margin,
+        padding: 0,
+        listStyle: "none",
+        display: "flex",
+        flexDirection: "column",
+        gap,
+      }}
+    >
+      {sections.map((s) => (
+        <li key={s.id}>
+          <a href={"#" + s.id} style={{ fontSize: "14px", textDecoration: "none", color: T.soft }}>
+            {s.label}
+          </a>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export default function PostShell(p: {
   post: Post;
   standfirst: string;
@@ -140,6 +172,25 @@ export default function PostShell(p: {
           <span>{meta}</span>
         </div>
 
+        {/* Below 860px the aside drops under the article, which put this list
+            after the last paragraph - 5,000px down on the longest post, where
+            it can no longer take anyone anywhere (R151, 3 Oct 2026). On a
+            narrow page it sits here instead, folded so the body still starts
+            on the first screen; <details> opens without script. */}
+        {p.sections.length ? (
+          <details className="post-toc-top" style={{ ...CARD, marginTop: "18px", padding: "0 18px" }}>
+            {/* globals.css hides every <summary> marker, so the fold says it
+                opens in words, as the FAQ's hint column does. */}
+            <summary style={{ ...MICRO, cursor: "pointer", lineHeight: "44px", display: "flex", justifyContent: "space-between" }}>
+              <span>On this page</span>
+              <span className="post-toc-show" style={{ color: T.accent }}>Show {p.sections.length}</span>
+              <span className="post-toc-hide" style={{ color: T.accent }}>Hide</span>
+            </summary>
+            {/* Each link a 44px row from globals.css, so no gap between them. */}
+            <Contents sections={p.sections} gap="0" margin="0 0 8px" />
+          </details>
+        ) : null}
+
         <div style={{ marginTop: "26px", maxWidth: "68ch" }}>{p.children}</div>
       </article>
 
@@ -181,29 +232,9 @@ export default function PostShell(p: {
         </div>
 
         {p.sections.length ? (
-          <div className="ac-row" style={{ ...CARD, padding: "22px" }}>
+          <div className="ac-row post-toc-side" style={{ ...CARD, padding: "22px" }}>
             <div style={MICRO}>On this page</div>
-            <ul
-              style={{
-                margin: "12px 0 0",
-                padding: 0,
-                listStyle: "none",
-                display: "flex",
-                flexDirection: "column",
-                gap: "10px",
-              }}
-            >
-              {p.sections.map((s) => {
-                const href = "#" + s.id;
-                return (
-                  <li key={s.id}>
-                    <a href={href} style={{ fontSize: "14px", textDecoration: "none", color: T.soft }}>
-                      {s.label}
-                    </a>
-                  </li>
-                );
-              })}
-            </ul>
+            <Contents sections={p.sections} />
           </div>
         ) : null}
       </aside>

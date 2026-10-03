@@ -1365,6 +1365,16 @@ details > summary { list-style: none; }
 @media (max-width: 860px) {
   .post-shell { grid-template-columns: 1fr; row-gap: 26px; }
 }
+/* A post's contents: in the aside on a wide page, at the head of the article on
+   a narrow one, where the aside has dropped below the last paragraph (R151). */
+.post-toc-top { display: none; }
+.post-toc-top[open] .post-toc-show,
+.post-toc-top:not([open]) .post-toc-hide { display: none; }
+@media (max-width: 860px) {
+  .post-toc-top { display: block; }
+  .post-toc-side { display: none; }
+  .post-toc-top a { display: flex; align-items: center; min-height: 44px; }
+}
 
 /* Package deliverables as tiles (R78): four across, three under 1100, two on a phone. */
 .deliverable-grid {
