@@ -168,6 +168,13 @@ export default function PlacementsChart({
             {live.map((r) => {
               const on = r.id === sel;
               const { host } = pageParts(r.url);
+              // R151 (3 Oct 2026): two placements live the same week drew one dot, the later on top, so
+              // one could not be seen or picked. Same-day dots now stack on the strip, and where a
+              // column is shared only the dot takes the click, so each one is pickable.
+              const twins = live.filter((o) => Math.abs(xDay(o.liveOn!) - xDay(r.liveOn!)) < 10);
+              const k = twins.indexOf(r);
+              const dotY = STRIP + (k - (twins.length - 1) / 2) * 18;
+              const shared = twins.length > 1;
               return (
                 <a
                   key={r.id}
@@ -175,10 +182,10 @@ export default function PlacementsChart({
                   data-usage="placement_select"
                   aria-label={`${KIND_WORDS[r.kind]} on ${host}, live ${r.when}`}
                   aria-current={on ? "true" : undefined}
-                  style={{ position: "absolute", left: pctOf(xDay(r.liveOn!)), top: 0, width: "14px", height: "100%", marginLeft: "-7px", display: "flex", justifyContent: "center" }}
+                  style={{ position: "absolute", left: pctOf(xDay(r.liveOn!)), top: 0, width: "14px", height: "100%", marginLeft: "-7px", display: "flex", justifyContent: "center", pointerEvents: shared ? "none" : undefined }}
                 >
                   <span style={{ width: "2px", height: "100%", background: on ? KIND_DOT[r.kind] : T.faint, opacity: on ? 0.9 : 0.35 }} />
-                  <span style={{ position: "absolute", top: `${((STRIP / MARK_H) * 100).toFixed(3)}%`, width: "12px", height: "12px", borderRadius: "50%", background: KIND_DOT[r.kind], boxShadow: `0 0 0 3px ${T.surface}` }} />
+                  <span style={{ position: "absolute", top: `${((dotY / MARK_H) * 100).toFixed(3)}%`, width: "12px", height: "12px", borderRadius: "50%", background: KIND_DOT[r.kind], boxShadow: `0 0 0 3px ${T.surface}`, pointerEvents: shared ? "auto" : undefined }} />
                 </a>
               );
             })}
