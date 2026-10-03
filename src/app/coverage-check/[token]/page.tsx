@@ -474,7 +474,8 @@ export default async function CampaignReadingPage({
                     space in front of the full stop on the first reading that
                     had a tail. */}
                 {`${count(sources.length, "source")} in all, ${placedSources.length} from your coverage` +
-                  (tail > 0 ? `. ${tail} more cited once each, not listed.` : ".")}
+                  // R151 (3 Oct 2026): "1 more cited once each" on a tail of one.
+                  (tail > 0 ? `. ${tail === 1 ? "1 more, cited once, not listed." : `${tail} more cited once each, not listed.`}` : ".")}
                 {placedSources.length > 0 && (
                   <>
                     {" "}
