@@ -592,7 +592,10 @@ export default function Overview({
           ) : null}
         </div>
 
-        {cs ? (
+        {/* R151 (3 Oct 2026): a pilot whose only cluster starts tomorrow drew this grid with no rows -
+            labels and a legend round nothing - while every answer counted came from ungrouped prompts.
+            With no cluster read yet, the by-engine grid below shows those answers. */}
+        {cs && heatRows.length ? (
           <div style={{ display: "flex", flexDirection: "column", gap: "12px", flex: "0 1 auto", minWidth: 0 }}>
             <div style={{ fontSize: "13px", fontWeight: 600, color: D.cardHead }}>
               <span className="app-hide-sm">Every daily check, by cluster</span>
