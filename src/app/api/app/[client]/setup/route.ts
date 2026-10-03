@@ -35,7 +35,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ client: string
   const form = await req.formData().catch(() => null);
   const field = (k: string) => (typeof form?.get(k) === "string" ? (form.get(k) as string).slice(0, ADMIN_LIMITS.question) : "");
   const done = NextResponse.redirect(new URL(`/app/${encodeURIComponent(slug)}?setup=confirmed`, req.url), 303);
-  const failed = NextResponse.redirect(new URL(`${setupPath(encodeURIComponent(slug))}?confirm=failed`, req.url), 303);
+  // R151 (3 Oct 2026): #confirm lands the page at step 3, where the refusal is said - from the top it sat a screen or more below the fold.
+  const failed = NextResponse.redirect(new URL(`${setupPath(encodeURIComponent(slug))}?confirm=failed#confirm`, req.url), 303);
   if (fixtureMode()) {
     // R168: with TRACKING_FIXTURE_WRITE=1 the confirm is held in memory, and a viewer is refused as below.
     if (fixtureWrites()) {

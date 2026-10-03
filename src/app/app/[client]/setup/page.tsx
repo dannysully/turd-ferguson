@@ -192,7 +192,9 @@ export default async function ClientSetup({
         </p>
       )}
 
-      <span style={STEP}>Step 3 of 3</span>
+      <span id="confirm" style={{ ...STEP, scrollMarginTop: "24px" }}>
+        Step 3 of 3
+      </span>
       <h2 style={{ fontSize: "22px", fontWeight: 700, margin: "0 0 12px" }}>Review and confirm</h2>
       {confirmed ? (
         <p style={{ margin: "0 0 40px", fontSize: "15px", lineHeight: 1.7, color: T.soft }}>
