@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import DarkClosing from "@/components/DarkClosing";
 import HeroScanArea from "@/components/home/HeroScanArea";
 import { D, WASH, WASH_SIZE } from "@/components/home/dark";
 import { word } from "@/components/home/EngineDemo";
@@ -200,6 +201,14 @@ export default function LlmVisibilityChecker() {
             ))}
           </div>
         </section>
+
+        {/* The page ended on its FAQ - "Is it free? Yes" - with the hero's
+            field some 2,000px up (R151, 3 Oct 2026). The closing the other
+            explainer pages use, so the answer has its action under it. */}
+        <DarkClosing id="checker-close" marginTop="0" title="See whether the answers name you.">
+          {word(QUESTIONS)} buyer prompts, {word(FREE_ENGINE_COUNT).toLowerCase()} engines, every answer and its
+          sources. No card, no email.
+        </DarkClosing>
       </div>
     </>
   );

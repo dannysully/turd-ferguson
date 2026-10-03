@@ -11,11 +11,22 @@ import { CLOSE_WASH, D } from "@/components/home/dark";
  * 2026) made the page cards run the scan in place. This one stays a GET: R181
  * named the cards, not the closing. `id` keeps the label unique.
  */
-export default function DarkClosing({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
+export default function DarkClosing({
+  id,
+  title,
+  children,
+  marginTop = "72px",
+}: {
+  id: string;
+  title: string;
+  children: React.ReactNode;
+  /** A page that already spaces its sections (a flex gap) passes "0". */
+  marginTop?: string;
+}) {
   return (
     <section
       className="dark-close"
-      style={{ marginTop: "72px", background: CLOSE_WASH + ", " + D.ground, borderRadius: "18px", padding: "36px 40px", color: T.surface }}
+      style={{ marginTop, background: CLOSE_WASH + ", " + D.ground, borderRadius: "18px", padding: "36px 40px", color: T.surface }}
     >
       <div>
         <h2 style={{ margin: 0, fontSize: "26px", fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.2 }}>{title}</h2>
