@@ -1779,6 +1779,7 @@ html[data-motion="on"] .app-pending { animation: appPending 1.1s ease-in-out inf
 @media (max-width: 560px) {
   .app-strip-row { min-width: calc(290px + var(--days) * 26px); }
   .app-strip-cell { min-width: 22px; }
+  .app-kw-note { white-space: normal; }
   .app-figures { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
   .app-figures > * { padding: 16px !important; }
   .app-figures > :nth-child(even) { border-left: 1px solid var(--line) !important; }
