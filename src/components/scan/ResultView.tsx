@@ -112,8 +112,8 @@ function Head(p: { title: React.ReactNode; children: React.ReactNode; aside?: Re
  */
 function Metric(p: { label: string; value: React.ReactNode; note: string }) {
   return (
-    <div style={{ background: T.surface, border: "1px solid " + T.line, borderRadius: "16px", padding: "16px", minWidth: 0 }}>
-      <div style={{ fontSize: "12.5px", color: T.soft }}>{p.label}</div>
+    <div className="res-metric" style={{ background: T.surface, border: "1px solid " + T.line, borderRadius: "16px", padding: "16px", minWidth: 0 }}>
+      <div className="res-metric-l" style={{ fontSize: "12.5px", color: T.soft }}>{p.label}</div>
       <div style={{ fontSize: "30px", fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.15, marginTop: "4px", color: T.ink }}>
         {p.value}
       </div>
@@ -122,7 +122,7 @@ function Metric(p: { label: string; value: React.ReactNode; note: string }) {
   );
 }
 
-const unit: React.CSSProperties = { fontSize: "15px", color: T.soft, letterSpacing: 0 };
+const unit: React.CSSProperties = { fontSize: "15px", color: T.soft, letterSpacing: 0, whiteSpace: "nowrap" };
 
 /* ── Question by question ── */
 

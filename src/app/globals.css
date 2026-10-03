@@ -340,6 +340,8 @@ html[data-motion="on"] .stair-step { animation: stair-step 10s infinite both; an
 .pkg-table tbody tr:first-child > * { border-top: 0 !important; }
 .pkg-btn { white-space: nowrap; }
 .pkg-btn:hover { border-color: var(--accent) !important; }
+/* The four tier CTAs on /packages were 40px on a phone (R151, 3 Oct 2026). */
+@media (max-width: 640px) { .pkg-btn { min-height: 44px !important; } }
 .pkg-foot { display: flex; justify-content: space-between; gap: 8px 24px; flex-wrap: wrap; }
 .pkg-cue { display: none; }
 /* The tier pages' "See it first" card (28 Sep 2026): copy left, form right; stacked under 760. */
@@ -1761,6 +1763,16 @@ html[data-motion="on"] .res-dial { animation: resDial 1.4s .3s cubic-bezier(.2,.
 @media (max-width: 480px) {
   .res-metrics { gap: 8px; }
   .res-h1 { font-size: 36px !important; }
+  /* At 320 three tiles left each label 51px and split "Question|s, no
+     mention" mid-word (R151, 3 Oct 2026): less side padding, a size smaller. */
+  .res-metric { padding: 14px 10px !important; }
+  .res-metric-l { font-size: 12px !important; }
+}
+/* The pill beside the four marks ran over the last one below ~380px
+   ("Named 3 of 3" on Perplexity, 5e572d37 at 320): the pill under the marks. */
+@media (max-width: 380px) {
+  .res-qline { grid-template-areas: "q c" "m c" "p c" "r c"; grid-template-columns: minmax(0, 1fr) 20px; }
+  .res-qline > :nth-child(4) { justify-self: start !important; }
 }
 
 /* ── The alwaystracked overview (T4, 29 Sep 2026; Main.dc.html, Mobile.dc.html) ── */
