@@ -33,6 +33,12 @@ export default async function AppLogin({ searchParams }: { searchParams: Promise
           : q.out === "1"
             ? "You are signed out."
             : null;
+  // R151 (3 Oct 2026): once a link is sent the next step is the inbox, so the
+  // page says so in its heading and the form below turns secondary, rather
+  // than reading exactly as before the send with one plain line added (NN/g
+  // heuristic 1, visibility of system status). Both resends land here
+  // without script (SendNewLink).
+  const sent = q.sent === "1";
   return (
     // No site header or footer here (R104), so the page carries its own lockup.
     <section style={{ maxWidth: "420px", margin: "0 auto", padding: "72px 24px 96px", color: T.ink }}>
@@ -40,13 +46,21 @@ export default async function AppLogin({ searchParams }: { searchParams: Promise
         <BrandMark id="app-login" size={15} />
         <TierName tier="tracked" />
       </div>
-      <h1 style={{ fontSize: "28px", fontWeight: 700, margin: "0 0 8px" }}>Log in to your dashboard</h1>
-      <p style={{ margin: "0 0 24px", color: T.soft, fontSize: "15px" }}>
-        We&apos;ll email you a link. It works once, for 15 minutes.
-      </p>
-      {note ? <p style={{ margin: "0 0 16px", fontSize: "14px", color: T.ink }}>{note}</p> : null}
+      <h1 style={{ fontSize: "28px", fontWeight: 700, margin: "0 0 8px" }}>{sent ? "Check your email" : "Log in to your dashboard"}</h1>
+      {sent ? (
+        <p style={{ margin: "0 0 24px", fontSize: "15px", color: T.ink }}>
+          {LOGIN_SENT} It works once, for 15 minutes.
+        </p>
+      ) : (
+        <>
+          <p style={{ margin: "0 0 24px", color: T.soft, fontSize: "15px" }}>
+            We&apos;ll email you a link. It works once, for 15 minutes.
+          </p>
+          {note ? <p style={{ margin: "0 0 16px", fontSize: "14px", color: T.ink }}>{note}</p> : null}
+        </>
+      )}
       {/* R164: where a signed-out visitor was going, carried through the email link. */}
-      <LoginForm next={safeNext(q.next) ?? undefined} refused={q.email === "bad"} />
+      <LoginForm next={safeNext(q.next) ?? undefined} refused={q.email === "bad"} again={sent} />
     </section>
   );
 }
