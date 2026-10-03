@@ -13,9 +13,12 @@ export const CONTACT_FORM_ID = "contact-form";
 /**
  * What /contact says when a tier's CTA sent the visitor here with
  * `?tier=` (contactUrlFor), and a sector tile's call CTA with its picks as
- * well (`&sector=&clusters=&market=`, R69). alwaystracked is set up by hand,
- * with no checkout (Danny, 26 Sep 2026). Deliberately no reply time - none is
- * promised anywhere on the site.
+ * well (`&sector=&clusters=&market=`, R69). Deliberately no reply time - none
+ * is promised anywhere on the site. alwaystracked had its own "set up by hand,
+ * with no checkout" note (Danny, 26 Sep 2026) until it got an order form (R91,
+ * 30 Sep); the note outlived that and greeted paying clients from their
+ * lifecycle emails' "Book a call", so every tier now reads the same (R151,
+ * 3 Oct 2026).
  *
  * The picks travel with the enquiry as hidden inputs bound to the form by
  * its id, so the form itself stays outside this Suspense boundary and still
@@ -41,26 +44,12 @@ export default function ContactTier() {
           <input type="hidden" id="c-market" form={CONTACT_FORM_ID} name={SELECTION_PARAMS.market} value={sel.market} />
         </>
       )}
-      {tier === "tracked" ? (
-        <>
-          <p style={{ margin: 0, fontSize: "14px", fontWeight: 600, color: T.ink }}>
-            Setting up <TierName tier="tracked" />
-          </p>
-          <p style={{ margin: "4px 0 0", fontSize: "13.5px", lineHeight: 1.6, color: T.soft }}>
-            It is set up by hand for now, with no checkout. Tell us the client and the topic below and we will set the
-            tracking up with you.
-          </p>
-        </>
-      ) : (
-        <>
-          <p style={{ margin: 0, fontSize: "14px", fontWeight: 600, color: T.ink }}>
-            About <TierName tier={tier} />
-          </p>
-          <p style={{ margin: "4px 0 0", fontSize: "13.5px", lineHeight: 1.6, color: T.soft }}>
-            {picks ? `${picks}. ` : ""}This goes with your message, so there is no need to repeat it.
-          </p>
-        </>
-      )}
+      <p style={{ margin: 0, fontSize: "14px", fontWeight: 600, color: T.ink }}>
+        About <TierName tier={tier} />
+      </p>
+      <p style={{ margin: "4px 0 0", fontSize: "13.5px", lineHeight: 1.6, color: T.soft }}>
+        {picks ? `${picks}. ` : ""}This goes with your message, so there is no need to repeat it.
+      </p>
     </div>
   );
 }
