@@ -37,6 +37,10 @@ export const metadata: Metadata = {
  */
 
 const priceOf = (id: string) => TIERS.find((t) => t.id === id)?.priceLabel ?? "";
+// The two priced cards led nowhere (R151, 3 Oct 2026): a buyer who read the
+// price had no way to the plan. Not the coverage check's door, which stays one.
+const hrefOf = (id: string) => TIERS.find((t) => t.id === id)!.href;
+const planLink: React.CSSProperties = { fontWeight: 600, textDecoration: "none", color: T.accent };
 
 const PIECES: { outlet: string; title: string; live: boolean }[] = [
   { outlet: "Trade title", title: "Tallyroo adds multi-currency invoicing", live: true },
@@ -206,7 +210,10 @@ export default function PrAgenciesPage() {
               <TierName tier="tracked" /> <span style={{ fontSize: "13px", color: T.soft, fontWeight: 600, letterSpacing: 0 }}>{priceOf("tracked")}</span>
             </div>
             <p style={{ margin: "8px 0 0", fontSize: "14px", lineHeight: 1.55, color: T.soft }}>
-              Measurement only. We track the questions and hand you the source list. Your team does the outreach.
+              Measurement only. We track the questions and hand you the source list. Your team does the outreach.{" "}
+              <Link href={hrefOf("tracked")} style={planLink}>
+                See the plan
+              </Link>
             </p>
           </div>
           <div style={{ ...CARD, borderRadius: "16px", padding: "22px", borderColor: T.washLine }}>
@@ -215,7 +222,10 @@ export default function PrAgenciesPage() {
             </div>
             <p style={{ margin: "8px 0 0", fontSize: "14px", lineHeight: 1.55, color: T.soft }}>
               We place into the pages your team does not cover - best-of lists, comparisons and round-ups - and leave
-              your media relationships alone.
+              your media relationships alone.{" "}
+              <Link href={hrefOf("mentioned")} style={planLink}>
+                See the plan
+              </Link>
             </p>
           </div>
         </div>
