@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Fragment } from "react";
 
 import ReadingPoll from "@/components/coverage/ReadingPoll";
 import TierName from "@/components/TierName";
@@ -393,8 +394,9 @@ export default async function CampaignReadingPage({
                       {cited ? "page cited" : onTitle ? "publication cited" : "not cited"}
                     </span>
                   </div>
-                  <p style={{ margin: "5px 0 0", fontSize: "12.5px", color: T.soft, lineHeight: 1.5, wordBreak: "break-all" }}>
-                    {piece.url}
+                  {/* R151 (3 Oct 2026): break-all split "launch" at 320; the address now breaks after a slash or dot, and mid-word only when one piece will not fit. */}
+                  <p style={{ margin: "5px 0 0", fontSize: "12.5px", color: T.soft, lineHeight: 1.5, overflowWrap: "anywhere" }}>
+                    {piece.url.split(/(?<=[./])/).map((part, i) => (i ? <Fragment key={i}><wbr />{part}</Fragment> : part))}
                   </p>
                   <p style={{ margin: "7px 0 0", fontSize: "12.5px", color: T.soft, lineHeight: 1.55 }}>
                     {cited
