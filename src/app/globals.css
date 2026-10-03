@@ -1768,9 +1768,17 @@ html[data-motion="on"] .app-pending { animation: appPending 1.1s ease-in-out inf
    link covers the card; its prompt rows and "Chart this" sit above it. */
 .app-stretch::after { content: ""; position: absolute; inset: 0; border-radius: 16px; }
 .app-over { position: relative; z-index: 1; }
+/* R151 (3 Oct 2026): the one-cluster day grid. Each row is 170 + 16 + the squares + 16 + 92,
+   squares 4px apart. The board's 22px squares are sized for 1440 and pushed the "N of 28"
+   column out of the card at 1280, so above the phone they narrow to 8px before the card scrolls;
+   on the phone they keep 22px and the grid scrolls under its "Swipe" line. */
+.app-strip-row { min-width: calc(290px + var(--days) * 12px); }
+.app-strip-cell { min-width: 8px; }
 /* Shown only on a phone: the compact cluster chart (T4b mobile, Mobile.dc.html). */
 .app-show-sm { display: none; }
 @media (max-width: 560px) {
+  .app-strip-row { min-width: calc(290px + var(--days) * 26px); }
+  .app-strip-cell { min-width: 22px; }
   .app-figures { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
   .app-figures > * { padding: 16px !important; }
   .app-figures > :nth-child(even) { border-left: 1px solid var(--line) !important; }

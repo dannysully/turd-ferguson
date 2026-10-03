@@ -110,6 +110,8 @@ export default function OneCluster({
   const back = `${clustersPath}?${new URLSearchParams(rangeQuery)}`;
   const where = market === "UK" ? "the United Kingdom" : "the United States";
   const days = daysIn(range);
+  // The day grid's row widths read the day count; globals.css turns it into 8px squares above the phone, 22px on it.
+  const stripDays = { "--days": days.length } as React.CSSProperties;
   const P = c.prompts[prompt] ?? null;
   const strip = P ? promptStrip({ answers: data.answers, range, engines }, P.id) : [];
   const brands = P ? promptBrands({ answers: data.answers, range }, P.id, brand) : null;
@@ -316,7 +318,9 @@ export default function OneCluster({
       {P ? (
         // R151 (3 Oct 2026): at 390 this card scrolls 356 of 1,058px with nothing to say so - the later
         // days and each engine's "N of 28" sat out of sight. It takes the keyboard, and the phone line
-        // under the grid says what is to the right.
+        // under the grid says what is to the right. At 1280 the board's fixed 22px squares (sized for
+        // 1440) still pushed the "N of 28" column 108px out of the card with no cue, so above the phone
+        // the squares narrow to fit (8-22px, .app-strip-cell) and the phone keeps 22px and the swipe.
         <section aria-labelledby="strip-h" tabIndex={0} style={{ ...CARD, padding: "24px", display: "flex", flexDirection: "column", gap: "14px", overflowX: "auto" }}>
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "24px", flexWrap: "wrap" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: "4px", minWidth: 0 }}>
@@ -339,7 +343,7 @@ export default function OneCluster({
             </span>
           </div>
           {strip.map((r) => (
-            <div key={r.engine} style={{ display: "grid", gridTemplateColumns: "170px minmax(0, 1fr) 92px", alignItems: "center", gap: "16px", minWidth: `${282 + days.length * 26}px` }}>
+            <div key={r.engine} className="app-strip-row" style={{ display: "grid", gridTemplateColumns: "170px minmax(0, 1fr) 92px", alignItems: "center", gap: "16px", ...stripDays }}>
               <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", fontWeight: 600 }}>
                 <EngineLogo engine={r.engine as Engine} size={20} />
                 {ENGINE_SPECS[r.engine as Engine].label}
@@ -349,18 +353,19 @@ export default function OneCluster({
                   <span
                     key={days[k]}
                     title={`${formatDay(days[k]!)}: ${x === null ? "no answer" : x ? "named" : "not named"}`}
-                    style={{ width: "22px", height: "28px", flexShrink: 0, borderRadius: "5px", boxSizing: "border-box", background: x ? T.accent : x === false ? T.hair : T.surface, border: x === null ? `1px dashed ${T.line}` : undefined }}
+                    className="app-strip-cell"
+                    style={{ flex: "1 1 0", maxWidth: "22px", height: "28px", borderRadius: "5px", boxSizing: "border-box", background: x ? T.accent : x === false ? T.hair : T.surface, border: x === null ? `1px dashed ${T.line}` : undefined }}
                   />
                 ))}
               </span>
               <span style={{ fontSize: "14px", fontWeight: 700, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{r.answered ? `${r.named} of ${r.answered}` : "-"}</span>
             </div>
           ))}
-          <div aria-hidden="true" style={{ display: "grid", gridTemplateColumns: "170px minmax(0, 1fr) 92px", gap: "16px", minWidth: `${282 + days.length * 26}px` }}>
+          <div aria-hidden="true" className="app-strip-row" style={{ display: "grid", gridTemplateColumns: "170px minmax(0, 1fr) 92px", gap: "16px", ...stripDays }}>
             <span />
             <span style={{ display: "flex", gap: "4px" }}>
               {days.map((d, i) => (
-                <span key={d} style={{ width: "22px", flexShrink: 0, fontSize: "12px", color: T.soft, textAlign: "center", whiteSpace: "nowrap" }}>
+                <span key={d} className="app-strip-cell" style={{ flex: "1 1 0", maxWidth: "22px", fontSize: "12px", color: T.soft, textAlign: "center", whiteSpace: "nowrap" }}>
                   {i === days.length - 1 && d === today ? "Today" : i % 7 === 0 || i === days.length - 1 ? formatDay(d) : ""}
                 </span>
               ))}
