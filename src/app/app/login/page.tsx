@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import BrandMark from "@/components/BrandMark";
 import TierName from "@/components/TierName";
+import { CONTACT_EMAIL } from "@/config/contact";
 import { T } from "@/config/tokens";
 
 import { safeNext } from "@/lib/tracking/next-path";
@@ -27,7 +28,11 @@ export default async function AppLogin({ searchParams }: { searchParams: Promise
     q.link === "expired"
       ? "That link has expired or was already used. Ask for a new one below."
       : q.access === "none"
-        ? "That address has no dashboard yet. If you think it should, reply to the email you got from us."
+        ? // R151 (3 Oct 2026): names where to write instead of "reply to the email you got from us" (NN/g heuristic 6).
+          <>
+            That address has no dashboard yet. If you think it should, write to{" "}
+            <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: T.accent }}>{CONTACT_EMAIL}</a>.
+          </>
         : q.sent === "1"
           ? LOGIN_SENT
           : q.failed === "1"
