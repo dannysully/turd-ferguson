@@ -143,7 +143,18 @@ export function upgradeAskMail(p: { brand: string; domain: string; member: strin
 export const askToast = (who: string, member: string, attached?: string) =>
   `Sent to ${who}${attached ? ` with the ${attached} attached` : ""}. ${who === "nomada digital" ? "We'll" : "They'll"} reply to ${member}.`;
 
-export type AskGate = { ok: true } | { ok: false; reason: "off" | "capped" | "read_failed" };
+/**
+ * R151 (3 Oct 2026): a refused ask's line, by the route's `ask` code. The day's
+ * cap read "Try again later" like a failed send, and later in the day it is
+ * still refused; it resets at midnight UTC, so it says tomorrow.
+ */
+export const ASK_REFUSED = {
+  refused: "That ask did not send. Try again later.",
+  capped: `You have sent today's ${ASKS_PER_MEMBER_PER_DAY} asks. Ask again tomorrow.`,
+} as const;
+export const askRefusal = (raw: unknown): string | null => (raw === "refused" || raw === "capped" ? ASK_REFUSED[raw] : null);
+
+export type AskGate ={ ok: true } | { ok: false; reason: "off" | "capped" | "read_failed" };
 
 /** The day's cap, counted off this member's `asked` rows since midnight UTC. */
 export async function askGate(db: SupabaseClient, p: { clientId: string; email: string; today: string }): Promise<AskGate> {

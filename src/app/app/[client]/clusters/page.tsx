@@ -10,7 +10,7 @@ import { T } from "@/config/tokens";
 import { MARKETS, isMarket } from "@/lib/scan/domain";
 import { keywordForm } from "@/lib/scan/dataforseo-request";
 import { verdictFromQuery } from "@/lib/tracking/add-cluster";
-import { ASK_ITEMS_MAX, askToast } from "@/lib/tracking/ask";
+import { ASK_ITEMS_MAX, askRefusal, askToast } from "@/lib/tracking/ask";
 import { clusterSearch } from "@/lib/tracking/cluster-figures";
 import { formatDay } from "@/lib/tracking/figures";
 import { CLUSTER_BASE } from "@/lib/tracking/limits";
@@ -83,7 +83,7 @@ export default async function ClientClusters({
   const packPrice = trackingPackPrice(client.market);
   // DS29: "Hide for 30 days" says what it did and for how long, in the same done pill as a sent ask.
   const hid = one("hid") === "1" && !ask;
-  const asked = ask === "sent" ? askToast(one("via") === "agency" ? "your account contact" : "nomada digital", email, attached) : ask === "refused" ? "That ask did not send. Try again later." : hid ? `Hidden for ${HIDE_DAYS} days, until ${formatDay(hiddenUntil(today))}. Only you stop seeing it.` : null;
+  const asked = ask === "sent" ? askToast(one("via") === "agency" ? "your account contact" : "nomada digital", email, attached) : askRefusal(ask) ?? (hid ? `Hidden for ${HIDE_DAYS} days, until ${formatDay(hiddenUntil(today))}. Only you stop seeing it.` : null);
 
   return (
     <div className="app-shell" style={{ display: "flex", flexWrap: "wrap", minHeight: "100vh", color: T.ink }}>

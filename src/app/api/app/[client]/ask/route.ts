@@ -36,7 +36,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ client: string
   const kept = readKept((k) => new URL(req.url).searchParams.get(k), APP_LIMITS.search);
   // DS41 (2 Oct 2026, R173 pass 4): Settings' asks post its stated range; only from, to and compare go back there.
   const view = about ? Object.fromEntries(Object.entries(kept).filter(([k]) => k === "from" || k === "to" || k === "compare")) : kept;
-  const done = (r: "sent" | "refused", extra: Record<string, string> = {}) =>
+  const done = (r: "sent" | "refused" | "capped", extra: Record<string, string> = {}) =>
     NextResponse.redirect(
       new URL(
         about ? `/app/${slug}/settings?${new URLSearchParams({ ...view, ask: r, ...extra })}` : `/app/${slug}/clusters?${new URLSearchParams({ ...view, ...(cta === "mentioned" ? { filter: "never" } : {}), ask: r, ...extra })}`,
@@ -74,7 +74,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ client: string
   const gate = await askGate(db, { clientId: client.id, email, today });
   if (!gate.ok) {
     console.warn(`[app] ask refused: ${gate.reason}`);
-    return done("refused");
+    // R151 (3 Oct 2026): the day's cap says so (ask.ts ASK_REFUSED); a failed read keeps "Try again later".
+    return done(gate.reason === "capped" ? "capped" : "refused");
   }
 
   const brand = client.brand ?? client.domain;

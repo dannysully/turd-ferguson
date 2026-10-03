@@ -11,7 +11,7 @@ import { CLUSTER_BASE } from "@/lib/tracking/limits";
 import { rangeFrom, rangeQuery } from "@/lib/tracking/overview-data";
 import { placedTier } from "@/lib/tracking/placement-figures";
 import { trackingRepo } from "@/lib/tracking/repo";
-import { askToast } from "@/lib/tracking/ask";
+import { askRefusal, askToast } from "@/lib/tracking/ask";
 import { inviteRefusal, teamToast } from "@/lib/tracking/team";
 
 export const dynamic = "force-dynamic";
@@ -70,9 +70,8 @@ export default async function ClientSettings({ params, searchParams }: { params:
           toast={
             sp.ask === "sent"
               ? askToast(sp.via === "agency" ? "your account contact" : "nomada digital", email)
-              : sp.ask === "refused"
-                ? "That ask did not send. Try again later."
-                : teamToast(sp.team, sp.who, settings.members.find((m) => m.email === sp.who)?.role ?? null, sp.why)
+              : (askRefusal(sp.ask) ??
+                teamToast(sp.team, sp.who, settings.members.find((m) => m.email === sp.who)?.role ?? null, sp.why))
           }
           inviteError={inviteRefusal(sp.team, sp.why)}
         />

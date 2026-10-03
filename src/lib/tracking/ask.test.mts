@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { ASKS_PER_MEMBER_PER_DAY, ASK_ITEMS_MAX, aliasAskMail, askGate, billingAskMail, readAskAbout, askMail, askRecipient, askToast, readAskItems, readAskKeyword, readHideCta, readUpgradeCta, recordHidden, upgradeAskMail, upsellMode } from "./ask.ts";
+import { ASKS_PER_MEMBER_PER_DAY, ASK_ITEMS_MAX, ASK_REFUSED, aliasAskMail, askGate, askRefusal, billingAskMail, readAskAbout, askMail, askRecipient, askToast, readAskItems, readAskKeyword, readHideCta, readUpgradeCta, recordHidden, upgradeAskMail, upsellMode } from "./ask.ts";
 
 /** A stub of the one count askGate reads, recording the filters it was given. */
 function countDb(count: number | null, error: { message: string } | null = null) {
@@ -57,6 +57,14 @@ test("the toast, as the board's: who it went to and who will be answered", () =>
   assert.equal(askToast("your account contact", "m@example.com"), "Sent to your account contact. They'll reply to m@example.com.");
   // CTAs.dc.html, after "Ask about these".
   assert.equal(askToast("nomada digital", "maya@tallyroo.com", "5 prompts"), "Sent to nomada digital with the 5 prompts attached. We'll reply to maya@tallyroo.com.");
+});
+
+test("R151 (3 Oct 2026): the day's cap says tomorrow, a failed send says later, and only those two codes are read", () => {
+  assert.equal(askRefusal("capped"), `You have sent today's ${ASKS_PER_MEMBER_PER_DAY} asks. Ask again tomorrow.`);
+  assert.equal(askRefusal("refused"), ASK_REFUSED.refused);
+  assert.equal(askRefusal("sent"), null);
+  assert.equal(askRefusal("toString"), null);
+  assert.equal(askRefusal(["capped"]), null);
 });
 
 test("Ask about these: only the two prompts with an ask, uuid items once each, capped", () => {
