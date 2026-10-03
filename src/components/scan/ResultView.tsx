@@ -978,6 +978,19 @@ function TrackedSection(p: { token: string; r: RunScanResponse; cluster: ReturnT
         {tracked ? (
           <div style={{ fontSize: "13px", color: D.muted, marginTop: "18px" }}>
             {(offer.line ?? tracked.priceLabel[0].toUpperCase() + tracked.priceLabel.slice(1)) + ", " + (p.cluster ? TRACKED_CLUSTERS + " clusters checked daily" : TRACKED_BASIS) + "."}
+            {/* R151 (3 Oct 2026): without a cluster the card names a price and
+                offers only the walkthrough, so a buyer who read the price had
+                no way on to what it buys. The quiet link /pr-agencies uses. */}
+            {buy ? null : (
+              <div>
+                <a
+                  href={tracked.href}
+                  style={{ display: "inline-flex", alignItems: "center", minHeight: "44px", fontSize: "14px", fontWeight: 600, color: T.surface, textDecoration: "underline", textUnderlineOffset: "2px" }}
+                >
+                  See the plan
+                </a>
+              </div>
+            )}
           </div>
         ) : null}
       </div>
