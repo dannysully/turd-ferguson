@@ -42,6 +42,10 @@ export const SLOT_WHY = {
   stopped: "That cluster is stopped.",
   // The pending cluster's Save changes (edit route) refuses by the same text rule, plus this one.
   fixed: "It already has readings, so its text is fixed. Stop it and add a new one.",
+  // Undo (stop route) refuses by stop.ts refuseUndo and refuseRoom; the room ones share full and plan above.
+  effect: "That stop has taken effect. Add it again as a new one.",
+  parent: "Its cluster is stopped. Undo the cluster instead.",
+  clusters: "Every cluster on your plan is in use. Stop one first.",
 } as const;
 export type SlotWhy = keyof typeof SLOT_WHY;
 
@@ -50,9 +54,11 @@ export function slotWhyOf(message: string): SlotWhy | null {
   if (message.startsWith("A prompt is ")) return "length";
   if (message === "That prompt is already tracked in this cluster.") return "duplicate";
   if (message.startsWith("That cluster already has ")) return "full";
-  if (message.startsWith("At the limit of ")) return "plan";
+  if (message.startsWith("At the limit of ")) return message.includes("prompts") ? "plan" : message.includes("clusters") ? "clusters" : null;
   if (message === "That cluster is stopped.") return "stopped";
   if (message.startsWith("It already has readings")) return "fixed";
+  if (message === SLOT_WHY.effect) return "effect";
+  if (message === SLOT_WHY.parent) return "parent";
   return null;
 }
 

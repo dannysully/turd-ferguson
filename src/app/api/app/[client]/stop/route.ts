@@ -7,6 +7,7 @@ import { fixtureMode } from "@/lib/tracking/fixture-mode";
 import { fixtureStop } from "@/lib/tracking/fixture-writes";
 import { clientsFor, sessionEmail } from "@/lib/tracking/member";
 import { writeFixture } from "@/lib/tracking/repo";
+import { slotWhyOf } from "@/lib/tracking/slot";
 import { BULK_ID, type BulkCount, type StopDone, readBulkIds, readStopForm, stop, stopReturn, undoStop } from "@/lib/tracking/stop";
 import { recordUsage } from "@/lib/tracking/usage-record";
 
@@ -30,7 +31,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ client: string
   const sp = new URL(req.url).searchParams;
   const f = readStopForm((k) => sp.get(k), APP_LIMITS.search);
   if (!f) return NextResponse.json({ error: "Not a stop this page can make." }, { status: 400 });
-  const back = (done: StopDone, count?: BulkCount) => NextResponse.redirect(new URL(stopReturn(slug, f, done, count), req.url), 303);
+  // R151 (3 Oct 2026): a one-row refusal carries its code (slot.ts SLOT_WHY), so the toast says why; a batch keeps its counts.
+  const back = (done: StopDone, count?: BulkCount, message = "") => NextResponse.redirect(new URL(stopReturn(slug, f, done, count, slotWhyOf(message)), req.url), 303);
   if (f.id === BULK_ID) {
     // DS13: the Ungrouped bulk form. Each ticked prompt goes through the one-row stop, so each is judged on its own.
     if (f.kind !== "prompt" || f.undo) return NextResponse.json({ error: "Not a stop this page can make." }, { status: 400 });
@@ -62,7 +64,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ client: string
     // R168: with TRACKING_FIXTURE_WRITE=1 the stop is held in memory; otherwise the fixture refuses it.
     const r = writeFixture((fx) => fixtureStop(fx, { kind: f.kind, id: f.id, today: fx.today, role: fx.member.role, undo: f.undo }));
     if (r && !r.ok) console.warn(`[app] fixture ${f.undo ? "undo" : "stop"} ${f.kind} refused: ${r.message}`);
-    return back(r?.ok ? (f.undo ? "undone" : "stopped") : "refused");
+    return r?.ok ? back(f.undo ? "undone" : "stopped") : back("refused", undefined, r?.message);
   }
 
   const email = await sessionEmail();
@@ -74,7 +76,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ client: string
   const r = f.undo ? await undoStop(supabaseAdmin(), p) : await stop(supabaseAdmin(), { ...p, by: email });
   if (!r.ok) {
     console.warn(`[app] ${f.undo ? "undo" : "stop"} ${f.kind} refused: ${r.message}`);
-    return back("refused");
+    return back("refused", undefined, r.message);
   }
   await recordUsage(supabaseAdmin(), { clientId: client.id, email, event: f.undo ? "undo" : "stop", path: "/clusters", today: p.today });
   return back(f.undo ? "undone" : "stopped");
