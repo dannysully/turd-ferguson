@@ -582,7 +582,8 @@ export default async function CampaignReadingPage({
             <p style={{ gridColumn: "span 8", margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
               {firstTry
                 ? "Nothing has been measured against this campaign yet. This asks the " +
-                  count(COVERAGE_PROMPT_COUNT, "question") +
+                  // The reading's own rows, stored when it was made: an agency may have given 1-5 prompts of its own.
+                  count(questions.length || COVERAGE_PROMPT_COUNT, "question") +
                   " for the first time and gives you the starting line the next reading is compared to."
                 : history.length > 1
                   ? "Each one is kept as it was taken. A re-run writes a new reading and never edits an old one, which is what makes the first one worth having."
