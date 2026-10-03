@@ -1835,6 +1835,10 @@ html[data-motion="on"] .app-pending { animation: appPending 1.1s ease-in-out inf
   .app-cl-grid { grid-template-columns: 28px minmax(0, 1fr) auto !important; gap: 12px !important; padding-left: 16px !important; padding-right: 16px !important; }
   .app-cl-body { flex-direction: column; align-items: stretch !important; gap: 12px; }
   .app-cl-kw { width: auto !important; }
+  /* The one-cluster page's keyword card sits in a wrapping flex row, where
+     auto meant max-content: 327px with 1.4.12 spacing in a 238px row at 320
+     (R151, 3 Oct 2026). It takes the row, as the T7 rule above meant. */
+  .app-pair > .app-cl-kw { width: 100% !important; }
   .app-cl-prompt { grid-template-columns: minmax(0, 1fr) auto auto !important; }
   .app-cl-text { white-space: normal !important; flex-basis: 100%; }
   .app-cl-text-row { flex-wrap: wrap; }
