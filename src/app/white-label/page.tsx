@@ -132,7 +132,7 @@ export default function WhiteLabelPage() {
                 </svg>
                 <div style={{ fontSize: "12px", fontWeight: 600, color: T.soft, marginTop: "14px" }}>Placements live this month</div>
                 {PLACES.map((p) => (
-                  <div key={p.u} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", padding: "9px 0", borderTop: `1px solid ${T.hair}`, fontSize: "13px", lineHeight: 1.3 }}>
+                  <div key={p.u} className="wl-place" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", padding: "9px 0", borderTop: `1px solid ${T.hair}`, fontSize: "13px", lineHeight: 1.3 }}>
                     <span style={{ minWidth: 0 }}>
                       <span style={{ fontWeight: 600, color: T.ink }}>{p.t}</span>
                       <span style={{ color: T.soft }}>{" · " + p.u}</span>

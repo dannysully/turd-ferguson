@@ -21,7 +21,7 @@ export type Tile = { key: string; figure: React.ReactNode; label: string; detail
 function TileCard({ tile, open, onToggle }: { tile: Tile; open: boolean; onToggle: () => void }) {
   const id = `tile-${tile.key}`;
   return (
-    <div className="ac-row" style={{ ...CARD, padding: "18px 18px 16px", display: "flex", flexDirection: "column" }}>
+    <div className="ac-row deliverable-tile" style={{ ...CARD, padding: "18px 18px 16px", display: "flex", flexDirection: "column" }}>
       <div className="deliverable-fig" style={{ fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.15, color: T.ink, minHeight: "30px", display: "flex", alignItems: "center" }}>
         {tile.figure}
       </div>

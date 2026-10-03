@@ -109,11 +109,11 @@ export default async function BlogIndexPage({
         </div>
 
         <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-          <Link className="ac-row" href="/blog" style={pill(!active)}>
+          <Link className="ac-row blog-pill" href="/blog" style={pill(!active)}>
             All
           </Link>
           {kinds.map((k) => (
-            <Link className="ac-row" key={k} href={"/blog?kind=" + encodeURIComponent(k)} style={pill(active === k)}>
+            <Link className="ac-row blog-pill" key={k} href={"/blog?kind=" + encodeURIComponent(k)} style={pill(active === k)}>
               {k}
             </Link>
           ))}

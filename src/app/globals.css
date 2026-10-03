@@ -162,6 +162,11 @@ a:focus-visible > .brand-mark--spin {
    two-up names ran 21px past 390. Each breaks only then (R151, 3 Oct 2026). */
 .pkg-h1 .tier-name,
 .stair .tier-name { white-space: normal; }
+/* At normal spacing "alwayseverywhere" at 36px still split at 320 (R151,
+   3 Oct 2026): a smaller h1 on the narrowest phones keeps it one word. */
+@media (max-width: 360px) {
+  .pkg-h1 { font-size: 30px !important; }
+}
 .tier-name__accent { color: var(--brand-purple); }
 
 /* Screen-reader only */
@@ -340,8 +345,12 @@ html[data-motion="on"] .stair-step { animation: stair-step 10s infinite both; an
 .pkg-table tbody tr:first-child > * { border-top: 0 !important; }
 .pkg-btn { white-space: nowrap; }
 .pkg-btn:hover { border-color: var(--accent) !important; }
-/* The four tier CTAs on /packages were 40px on a phone (R151, 3 Oct 2026). */
-@media (max-width: 640px) { .pkg-btn { min-height: 44px !important; } }
+/* The four tier CTAs on /packages and the /blog filter pills were 40px on a
+   phone (R151, 3 Oct 2026). */
+@media (max-width: 640px) {
+  .pkg-btn { min-height: 44px !important; }
+  .blog-pill { padding-top: 10px !important; padding-bottom: 10px !important; }
+}
 .pkg-foot { display: flex; justify-content: space-between; gap: 8px 24px; flex-wrap: wrap; }
 .pkg-cue { display: none; }
 /* The tier pages' "See it first" card (28 Sep 2026): copy left, form right; stacked under 760. */
@@ -526,6 +535,11 @@ html[data-motion="on"] .chart-dot.in-view {
 /* minmax(0, 1fr), not the implicit auto column, which held the skins'
    min-content and ran 46px past 320 with 1.4.12 spacing (R151, 3 Oct 2026). */
 .wl-skins { display: grid; grid-template-columns: minmax(0, 1fr); position: relative; }
+/* At 320 the pill beside each placement left the domain ~97px and split it
+   ("invoicingguide.c|o", R151, 3 Oct 2026): the pill under the title. */
+@media (max-width: 480px) {
+  .wl-place { flex-direction: column; align-items: flex-start !important; gap: 6px !important; }
+}
 .wl-skin { grid-area: 1 / 1; }
 .wl-ours { opacity: 0; }
 .wl-wipe {
@@ -1424,6 +1438,11 @@ details > summary { list-style: none; }
 @media (max-width: 720px) {
   .deliverable-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .deliverable-fig { font-size: 21px; }
+}
+/* At 320 a tile leaves 93px: 21px split "Compound|s" (R151, 3 Oct 2026). */
+@media (max-width: 360px) {
+  .deliverable-tile { padding-left: 14px !important; padding-right: 14px !important; }
+  .deliverable-fig { font-size: 18px; }
 }
 
 /* The case study: at-a-glance pairs, cited questions and keyword rows. */
