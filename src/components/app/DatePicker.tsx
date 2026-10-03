@@ -129,7 +129,8 @@ export default function DatePicker({ range, compare, today, startedOn, className
   };
 
   return (
-    <div className={className} style={{ position: "relative", display: "flex", flex: grow ? "1 1 auto" : "0 0 auto" }}>
+    // maxWidth: an unshrinking face ran 57px past 320 with 1.4.12 spacing (R151, 3 Oct 2026).
+    <div className={className} style={{ position: "relative", display: "flex", flex: grow ? "1 1 auto" : "0 0 auto", maxWidth: "100%" }}>
       <button
         ref={trigger}
         type="button"

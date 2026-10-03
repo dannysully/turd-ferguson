@@ -295,10 +295,11 @@ export default function OneCluster({
             })}
             <circle cx={CONN_W - 3} cy={mid} r={4} fill={T.accent} />
           </svg>
-          <div className="app-cl-kw" style={{ width: "256px", flexShrink: 0, boxSizing: "border-box", padding: "18px", borderRadius: "14px", border: `1px solid ${T.washLine}`, background: T.surface, display: "flex", flexDirection: "column", gap: "10px" }}>
+          {/* minWidth 0: with 1.4.12 spacing its min-content (327px) ran 48px past 320 (R151, 3 Oct 2026). */}
+          <div className="app-cl-kw" style={{ width: "256px", flexShrink: 0, minWidth: 0, boxSizing: "border-box", padding: "18px", borderRadius: "14px", border: `1px solid ${T.washLine}`, background: T.surface, display: "flex", flexDirection: "column", gap: "10px" }}>
             <span style={{ fontSize: "12px", fontWeight: 600, color: T.soft }}>Google keyword</span>
             <span style={{ fontSize: "16px", fontWeight: 700, lineHeight: 1.3 }}>{kw}</span>
-            <span style={{ display: "flex", alignItems: "baseline", gap: "10px" }}>
+            <span style={{ display: "flex", alignItems: "baseline", gap: "10px", flexWrap: "wrap" }}>
               <span style={{ fontSize: "36px", fontWeight: 700, letterSpacing: "-0.03em", fontVariantNumeric: "tabular-nums" }}>{c.position === null ? "-" : `#${c.position}`}</span>
               <Chip value={c.positionChange} unit="" none={c.keyword === null ? "No keyword" : pending ? "Tomorrow" : "New"} />
             </span>
