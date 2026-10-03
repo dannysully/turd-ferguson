@@ -367,7 +367,7 @@ export default function OneCluster({
             </span>
             <span />
           </div>
-          <p className="app-show-sm" style={{ margin: 0, fontSize: "13px", color: T.soft }}>{`Swipe for the later days, to ${days.length ? formatDay(days[days.length - 1]!) : "today"}, and each engine's count.`}</p>
+          <p className="app-show-sm" style={{ margin: 0, fontSize: "13px", color: T.soft }}>{`Swipe for the later days, to ${days.length ? formatDay(days[days.length - 1]!) : "today"}${strip.some((r) => r.answered) ? ", and each engine's count" : ""}.`}</p>
         </section>
       ) : null}
 
