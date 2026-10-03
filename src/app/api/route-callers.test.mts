@@ -274,10 +274,12 @@ const NO_CALLER: { route: string; method: string; why: string; earns: () => bool
     method: "GET",
     // R90 T8 v1, 30 Sep 2026: Download report, two CSVs of the range.
     // R97 part 4, 30 Sep 2026: also the placements screen's Download CSV (?kind=placements).
-    why: "Opened by the Overview's Download report and Keywords CSV links and the placements screen's Download CSV (plain <a download>), which the fetch scanner does not read.",
+    // R151, 3 Oct 2026: the Overview's links go through `download`, which is `report` once the
+    // range has readings - withheld with nothing read, as the Reports page already does.
+    why: "Opened by the Overview's Download report and Keywords CSV links (once the range has readings) and the placements screen's Download CSV (plain <a download>), which the fetch scanner does not read.",
     earns: () =>
       readFileSync(join(ROOT, "src/app/app/[client]/page.tsx"), "utf8").includes("reportPath={`/api/app/${encodeURIComponent(slug)}/report`}") &&
-      readFileSync(join(ROOT, "src/components/app/Overview.tsx"), "utf8").includes('href={report("answers")} download'),
+      readFileSync(join(ROOT, "src/components/app/Overview.tsx"), "utf8").includes('href={download("answers")} download'),
   },
   {
     route: "/api/app/[client]/ask",

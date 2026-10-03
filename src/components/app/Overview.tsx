@@ -199,6 +199,9 @@ export default function Overview({
   const liveQuestions = data.questions.filter((q) => q.stopped_on === null).length;
   const hasData = o.named.den > 0;
   const beforeRange = !!startedOn && range.to < startedOn;
+  // R151 (3 Oct 2026): with nothing read in the range, the filled "Download report" outweighed the
+  // headline's own next step (See your prompts) and fetched an empty CSV. The date stays, to move off it.
+  const download = hasData ? report : null;
 
   const header = (
     <header style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "24px", flexWrap: "wrap" }}>
@@ -213,8 +216,8 @@ export default function Overview({
         </p>
       </div>
       <div className={cards ? "app-date" : undefined} style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-      {report ? (
-        <a className="app-hide-sm" href={report("keywords")} download style={{ fontSize: "13px", fontWeight: 600, color: T.accent, textDecoration: "none" }}>
+      {download ? (
+        <a className="app-hide-sm" href={download("keywords")} download style={{ fontSize: "13px", fontWeight: 600, color: T.accent, textDecoration: "none" }}>
           Keywords CSV
         </a>
       ) : null}
@@ -240,8 +243,8 @@ export default function Overview({
         </span>
       </DatePicker>
       {/* Main.dc.html: the dark "Download report" after the date. */}
-      {report ? (
-        <a className="app-hide-sm" href={report("answers")} download style={{ display: "inline-flex", alignItems: "center", gap: "8px", height: "48px", padding: "0 18px", boxSizing: "border-box", borderRadius: "12px", background: T.ink, color: T.surface, fontSize: "14px", fontWeight: 600, textDecoration: "none" }}>
+      {download ? (
+        <a className="app-hide-sm" href={download("answers")} download style={{ display: "inline-flex", alignItems: "center", gap: "8px", height: "48px", padding: "0 18px", boxSizing: "border-box", borderRadius: "12px", background: T.ink, color: T.surface, fontSize: "14px", fontWeight: 600, textDecoration: "none" }}>
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={T.surface} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M12 4v11M7 10l5 5 5-5M5 20h14" />
           </svg>
