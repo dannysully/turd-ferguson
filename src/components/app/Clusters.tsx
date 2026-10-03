@@ -8,7 +8,7 @@ import EngineLogo from "@/components/EngineLogo";
 import { APP_LIMITS } from "@/config/contact";
 import { ADMIN_LIMITS } from "@/lib/tracking/decide";
 import { PROMPT_MIN } from "@/lib/tracking/slot";
-import { PACK_CLUSTERS, PACK_KEYWORDS, PACK_PROMPTS } from "@/config/pricing";
+import { CONTACT_URL, PACK_CLUSTERS, PACK_KEYWORDS, PACK_PROMPTS, contactUrlFor } from "@/config/pricing";
 import { T } from "@/config/tokens";
 import { ENGINE_SPECS, type Engine } from "@/lib/scan/engines";
 import { type ClusterCard, type ClusterFilter as Filter, clusterCards, daysOfLine, filterClusters, namedCount, neverCount, pendingBasis, searchPrompts } from "@/lib/tracking/cluster-figures";
@@ -255,7 +255,7 @@ export default function Clusters({
         )
       ) : null}
 
-      {canWrite && adding ? <AddPanel slug={slug} adding={adding} full={full} clusterLimit={clusterLimit} packPrice={packPrice} close={href({})} keep={keep} /> : null}
+      {canWrite && adding ? <AddPanel slug={slug} adding={adding} full={full} clusterLimit={clusterLimit} packPrice={packPrice} packHref={upgrade ? contactUrlFor(upgrade.tier) : CONTACT_URL} close={href({})} keep={keep} /> : null}
 
       <section aria-label="Clusters" style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: "18px", overflow: "hidden" }}>
         <div className="app-cl-grid app-hide-sm" style={{ display: "grid", gridTemplateColumns: GRID, gap: "16px", padding: "14px 24px 12px" }}>
@@ -396,7 +396,7 @@ export type Rekeying = Adding & { card: string };
  * "Start tracking this cluster", a POST to /cluster. On a refusal that
  * allows it, "Ask us to pick one", a POST to T11's /ask (ask.ts).
  */
-function AddPanel({ slug, adding, full, clusterLimit, packPrice, close, keep }: { slug: string; adding: Adding; full: boolean; clusterLimit: number; packPrice: string; close: string; keep: Record<string, string> }) {
+function AddPanel({ slug, adding, full, clusterLimit, packPrice, packHref, close, keep }: { slug: string; adding: Adding; full: boolean; clusterLimit: number; packPrice: string; packHref: string; close: string; keep: Record<string, string> }) {
   // The page's range, filter and search ride on the Check and Start actions, as the stop forms' do (DS15).
   const view = new URLSearchParams(keep).toString();
   const ck = adding.check;
@@ -420,7 +420,8 @@ function AddPanel({ slug, adding, full, clusterLimit, packPrice, close, keep }: 
             <span style={{ fontSize: "14px", fontWeight: 700, color: T.warnFg }}>{`All ${clusterLimit} clusters are in use`}</span>
             <span style={{ fontSize: "14px", color: T.ink }}>Stop tracking one below to make room. Its history stays in your reports.</span>
           </div>
-          <Link href="/contact" style={{ flexShrink: 0, display: "flex", flexDirection: "column", justifyContent: "center", height: "52px", padding: "0 16px", borderRadius: "12px", background: T.ink, color: T.surface, textDecoration: "none" }}>
+          {/* R151 (3 Oct 2026): the +5 offer was bare /contact; it carries the client's plan now, as the sidebar's does. */}
+          <Link href={packHref} style={{ flexShrink: 0, display: "flex", flexDirection: "column", justifyContent: "center", height: "52px", padding: "0 16px", borderRadius: "12px", background: T.ink, color: T.surface, textDecoration: "none" }}>
             <span style={{ fontSize: "14px", fontWeight: 600 }}>{`Add ${PACK_CLUSTERS} clusters for ${packPrice} a month`}</span>
             <span style={{ fontSize: "12px", color: T.line }}>{`${PACK_PROMPTS} prompts and ${PACK_KEYWORDS} keywords, checked daily`}</span>
           </Link>

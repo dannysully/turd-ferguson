@@ -4,7 +4,7 @@ import Link from "@/components/app/AppLink";
 import BrandMark from "@/components/BrandMark";
 import EngineLogo from "@/components/EngineLogo";
 import TierName, { type TierKey } from "@/components/TierName";
-import { PACK_CLUSTERS, TRACKED_BASIS } from "@/config/pricing";
+import { PACK_CLUSTERS, TRACKED_BASIS, contactUrlFor } from "@/config/pricing";
 import { T } from "@/config/tokens";
 import { ENGINE_SPECS, type Engine } from "@/lib/scan/engines";
 import { KEYWORDS_PER_CLUSTER, PROMPTS_PER_CLUSTER } from "@/lib/tracking/limits";
@@ -302,7 +302,8 @@ export default function Sidebar({
             </p>
           ) : null}
           {upsell && clusters && packPrice ? (
-            <a href="/contact" style={{ fontSize: "13px", fontWeight: 600, color: T.accent }}>
+            // R151 (3 Oct 2026): was bare /contact, so the enquiry arrived with no plan; now "About <their tier>", as every tier's call does.
+            <a href={contactUrlFor(tier)} style={{ fontSize: "13px", fontWeight: 600, color: T.accent }}>
               {`Add ${PACK_CLUSTERS} clusters for ${packPrice} a month`}
             </a>
           ) : null}
