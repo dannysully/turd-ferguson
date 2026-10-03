@@ -1118,9 +1118,10 @@ function ClusterRows({ cards, picked, href, opens, manage }: { cards: ClusterCar
               <span style={{ fontSize: "12px", color: T.soft }}>
                 {pending ? (c.intent ? `${cap(c.intent)}, no readings yet` : "No readings yet") : `${c.promptsNamed.num} of ${c.promptsNamed.den} prompts name you`}
               </span>
+              {pending ? <span className="app-ov-first-sm" style={{ fontSize: "12px", color: T.soft }}>First check tomorrow, 06:00</span> : null}
             </span>
             {pending ? (
-              <span style={{ fontSize: "12px", color: T.soft, textAlign: "right", flexShrink: 0 }}>
+              <span className="app-ov-first" style={{ fontSize: "12px", color: T.soft, textAlign: "right", flexShrink: 0 }}>
                 First check
                 <br />
                 tomorrow, 06:00

@@ -1933,6 +1933,21 @@ html[data-motion="on"] .app-pending { animation: appPending 1.1s ease-in-out inf
   .app-rp-figs { grid-template-columns: minmax(0, 1fr) !important; gap: 12px !important; }
   .app-nm-filters { flex-wrap: nowrap !important; overflow-x: auto; scrollbar-width: none; }
 }
+/* R151 (3 Oct 2026): at 320 the figure column left the page 90px, so a long
+   single label (thesmallbizstack, freelancefieldnotes) split mid-word. Below
+   400 the page takes the whole first row; the rest pair up two by two in
+   order (type and live day, answers citing and named, then Google). Overview's
+   pending cluster puts "First check" under its keyword for the same reason. */
+.app-ov-first-sm { display: none; }
+@media (max-width: 399px) {
+  .app-pl-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .app-pl-grid > :first-child { grid-column: 1 / -1; }
+  .app-pl-grid > .app-pl-cited, .app-pl-grid > .app-pl-google { justify-self: start; }
+  .app-pl-grid > .app-pl-cited { flex-wrap: wrap; row-gap: 4px !important; min-width: 0; }
+  .app-pl-grid > .app-pl-named { justify-self: end; justify-content: flex-end; }
+  .app-ov-first { display: none !important; }
+  .app-ov-first-sm { display: inline; }
+}
 /* DS17 (2 Oct 2026): a headline figure's one-line basis (Fig.tsx), shown on
    hover and on keyboard focus, never only to a mouse. */
 .app-fig { position: relative; border-radius: 4px; }
