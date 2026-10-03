@@ -56,7 +56,9 @@ const COLS: React.CSSProperties = {
   gridTemplateColumns: "92px minmax(0, 1fr) 118px",
   columnGap: "12px",
 };
-const ROW_H = 50;
+/** 58, not the board's 50: prompts wrap now, and the picked row beside its
+ *  "Named today" pill takes three lines (53px) at 1280 (R151, 3 Oct 2026). */
+const ROW_H = 58;
 const ROW_GAP = 4;
 const PITCH = ROW_H + ROW_GAP;
 const WIRES_H = PROMPTS.length * PITCH - ROW_GAP;
@@ -146,9 +148,9 @@ export default function TrackedBeat() {
 
         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", rowGap: "14px", padding: "12px 12px 14px" }}>
           <div style={{ flex: "1 1 380px", minWidth: 0 }}>
-            <div style={{ ...COLS, padding: "0 12px 8px", fontSize: "12px", fontWeight: 600, color: T.soft }}>
+            <div className="tb-phead" style={{ ...COLS, padding: "0 12px 8px", fontSize: "12px", fontWeight: 600, color: T.soft }}>
               <span>Angle</span>
-              <span>Prompt</span>
+              <span className="tb-phead-prompt">Prompt</span>
               <span>Engines naming you</span>
             </div>
             {PROMPTS.map((p, i) => {
@@ -156,6 +158,7 @@ export default function TrackedBeat() {
               return (
                 <div
                   key={p.angle}
+                  className="tb-prow"
                   style={{
                     ...COLS,
                     alignItems: "center",
@@ -180,8 +183,11 @@ export default function TrackedBeat() {
                   >
                     {p.angle}
                   </span>
-                  <span style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
-                    <span style={{ fontSize: "13.5px", fontWeight: picked ? 600 : 500, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {/* Wraps, never an ellipsis: the prompt is what the row is
+                      about, and at 390 the ellipsis left "best i..." (R151,
+                      3 Oct 2026). Three lines fit the ROW_H row. */}
+                  <span className="tb-prompt" style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
+                    <span style={{ fontSize: "13.5px", fontWeight: picked ? 600 : 500, color: T.ink, lineHeight: 1.3 }}>
                       {p.prompt}
                     </span>
                     {picked ? (

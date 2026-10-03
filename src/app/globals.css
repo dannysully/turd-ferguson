@@ -594,6 +594,13 @@ html[data-motion="on"] .tb-now { animation: tbNow 10s infinite both; }
 @media (max-width: 640px) {
   .tb-cols { grid-template-columns: minmax(0, 1fr) 128px 40px; column-gap: 8px; }
   .tb-meta, .tb-pill, .tb-was-rank { display: none; }
+  /* The prompt column was 58px at 390 between the angle chip and the marks;
+     on a phone it takes its own line under them (R151, 3 Oct 2026). The
+     wires that need the fixed row pitch are hidden here (.tb-meta). */
+  .tb-phead, .tb-prow { grid-template-columns: minmax(0, 1fr) auto !important; }
+  .tb-phead-prompt { display: none; }
+  .tb-prow { height: auto !important; row-gap: 6px; padding: 10px 12px !important; }
+  .tb-prompt { grid-column: 1 / -1; grid-row: 2; }
 }
 
 /* The market toggle's pills reach the 44px tap target on a phone (R148/R151
