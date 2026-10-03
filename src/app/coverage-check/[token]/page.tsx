@@ -398,7 +398,12 @@ export default async function CampaignReadingPage({
                   </p>
                   <p style={{ margin: "7px 0 0", fontSize: "12.5px", color: T.soft, lineHeight: 1.55 }}>
                     {cited
-                      ? `Cited by ${piece.pageEngines.map((e) => ENGINE_SPECS[e].label).join(", ")}.`
+                      ? // R151 (3 Oct 2026): an engine that cited another page on the same
+                        // title was dropped here once the page itself was cited.
+                        `Cited by ${piece.pageEngines.map((e) => ENGINE_SPECS[e].label).join(", ")}.` +
+                        (onTitle
+                          ? ` ${piece.publicationEngines.map((e) => ENGINE_SPECS[e].label).join(", ")} cited a different page on it.`
+                          : "")
                       : onTitle
                         ? `${piece.publicationEngines.map((e) => ENGINE_SPECS[e].label).join(", ")} cited ${piece.domain}, but a different page on it.`
                         : "No engine cited this page or this publication on these questions."}

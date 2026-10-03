@@ -1,5 +1,8 @@
 import { FREE_ENGINES, type Engine } from "../scan/engines.ts";
+import { countCitedDomains } from "./citation-count.ts";
+import { coveragePieces } from "./pieces.ts";
 import { PLACEHOLDER, coveragePrompts } from "./prompts.ts";
+import { buildCoverage, buildSources } from "./reading-figures.ts";
 import type { CampaignReading } from "./reading.ts";
 
 /**
@@ -60,6 +63,30 @@ export function readingFixture(
   const answers = questions.flatMap((q) => q.answers);
   const named = { count: answers.filter((a) => a.answered && a.brandNamed).length, of: answers.length };
 
+  // R151 (3 Oct 2026): sources and pieces come from one made-up citation list,
+  // through the functions the real reading uses, so they agree with each other
+  // and with the questions kept. They were fixed figures - "cited in 6 answers"
+  // beside a piece cited by one engine - which could not both be true, and with
+  // COVERAGE_FIXTURE_QUESTIONS=2 claimed 6 of 8 answers. Five questions read as
+  // before: 6, 4, 2 and 1.
+  const cite = (domain: string, page: string | null, e: number, qs: number[]) =>
+    qs.filter((q) => q < questions.length).map((q) => ({ source_domain: domain, url: page, question_id: `q${q}`, engine: engines[e] }));
+  const citations = complete
+    ? [
+        ...cite("example-trade.com", "https://example-trade.com/news/launch", 0, [0, 1, 2]),
+        ...cite("example-trade.com", "https://example-trade.com/news/round-up", 2, [0, 2, 4]),
+        ...cite("example-review.com", null, 1, [0, 1, 2, 3]),
+        ...cite("example-news.co.uk", null, 3, [0, 1]),
+        ...cite("example-blog.com", null, 2, [1]),
+      ]
+    : [];
+  const placed = new Set(["example-trade.com", "example-weekly.com"]);
+  const counts = countCitedDomains(citations);
+  const coverageRows = [
+    { url: "https://example-trade.com/news/launch", source_domain: "example-trade.com" },
+    { url: "https://example-weekly.com/feature", source_domain: "example-weekly.com" },
+  ];
+
   return {
     campaign: {
       brand: PLACEHOLDER.brand,
@@ -81,23 +108,9 @@ export function readingFixture(
       enginesAnswered: complete ? engines : [],
     },
     questions,
-    sources: complete
-      ? [
-          { domain: "example-trade.com", citations: 6, placed: true },
-          { domain: "example-review.com", citations: 4, placed: false },
-          { domain: "example-news.co.uk", citations: 2, placed: false },
-          { domain: "example-blog.com", citations: 1, placed: false },
-        ]
-      : [],
-    coverage: complete
-      ? { uploaded: 2, cited: 1, uncited: ["example-weekly.com"] }
-      : { uploaded: 0, cited: 0, uncited: [] },
-    pieces: complete
-      ? [
-          { url: "https://example-trade.com/news/launch", domain: "example-trade.com", pageEngines: [engines[0]], publicationEngines: [] },
-          { url: "https://example-weekly.com/feature", domain: "example-weekly.com", pageEngines: [], publicationEngines: [] },
-        ]
-      : [],
+    sources: complete ? buildSources(counts, placed) : [],
+    coverage: complete ? buildCoverage(placed, counts) : { uploaded: 0, cited: 0, uncited: [] },
+    pieces: complete ? coveragePieces(coverageRows, citations, engines) : [],
     named,
     history: [
       {
