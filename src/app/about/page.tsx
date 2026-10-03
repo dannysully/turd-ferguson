@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { OG_IMAGE } from "@/config/og";
 
 import TierName from "@/components/TierName";
@@ -177,6 +178,16 @@ export default function AboutPage() {
               names only. No role, title or bio is attached to any of them,
               because he gave none - and a plausible one written here would be
               a claim about a real person with nothing behind it. */}
+          {/* The page ended on the team card with nothing in main to do next;
+              About.dc.html has no closing either (R151, 3 Oct 2026). The tier
+              pages' and case study's closing line, pointed at the rules above. */}
+          <p className="ac-row" style={{ margin: "22px 0 0", fontSize: "13.5px", color: T.soft, lineHeight: 1.65 }}>
+            Want these rules run on your own site?{" "}
+            <Link href="/#scan" style={{ fontWeight: 600, textDecoration: "none", color: T.accent }}>
+              Run the free scan
+            </Link>
+            .
+          </p>
         </section>
       </section>
     </>
