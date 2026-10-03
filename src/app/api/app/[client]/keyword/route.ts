@@ -38,7 +38,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ client: string
   const setup = sp.get("to") === "setup";
   const back = (done: StopDone) => {
     const to = setup
-      ? `/app/${encodeURIComponent(slug)}/setup?${new URLSearchParams({ card: f.id, rekey: done })}#card-${encodeURIComponent(f.id)}`
+      ? // R151 (3 Oct 2026): a refusal drops the fragment so the card's field can take focus (a fragment target stops autofocus).
+        `/app/${encodeURIComponent(slug)}/setup?${new URLSearchParams({ card: f.id, rekey: done })}${done === "refused" ? "" : `#card-${encodeURIComponent(f.id)}`}`
       : stopReturn(slug, { ...f, back: { ...f.back, open: f.id } }, done);
     return NextResponse.redirect(new URL(to, req.url), 303);
   };

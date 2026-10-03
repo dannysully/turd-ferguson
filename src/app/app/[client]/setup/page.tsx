@@ -143,12 +143,13 @@ export default async function ClientSetup({
                     {c.keyword === null ? "Got a keyword in mind?" : "Its keyword"}
                   </label>
                   <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                    <input id={`setup-kw-${i}`} name="keyword" defaultValue={at?.id === c.id && kw ? kw : (c.keyword ?? (prefill === c.id ? typed! : ""))} required maxLength={ADMIN_LIMITS.question} placeholder="e.g. accounting software for dentists" style={KW_INPUT} />
+                    {/* R151 (3 Oct 2026): a refused keyword or rekey comes back on a 303; the field says so, is described by the line under it, and takes focus (Baymard inline errors, WCAG 2.2 3.3.1). */}
+                    <input id={`setup-kw-${i}`} name="keyword" defaultValue={at?.id === c.id && kw ? kw : (c.keyword ?? (prefill === c.id ? typed! : ""))} required maxLength={ADMIN_LIMITS.question} placeholder="e.g. accounting software for dentists" aria-describedby={`setup-kw-${i}-note`} aria-invalid={at?.id === c.id && (check?.ok === false || rekey === "refused") ? true : undefined} autoFocus={at?.id === c.id && (check?.ok === false || rekey === "refused")} style={KW_INPUT} />
                     <SubmitButton busy="Checking..." style={CHECK_BUTTON}>
                       Check keyword
                     </SubmitButton>
                   </div>
-                  <p role={at?.id === c.id && check ? "status" : undefined} style={{ margin: 0, fontSize: "13px", lineHeight: 1.5, color: at?.id === c.id && check ? (check.ok ? T.goodFg : T.badFg) : T.soft }}>
+                  <p id={`setup-kw-${i}-note`} role={at?.id === c.id && (check || rekeyLine) ? (check ? check.ok : rekey === "rekeyed") ? "status" : "alert" : undefined} style={{ margin: 0, fontSize: "13px", lineHeight: 1.5, color: at?.id === c.id && check ? (check.ok ? T.goodFg : T.badFg) : T.soft }}>
                     {at?.id === c.id && check
                       ? check.ok
                         ? `${check.message} Use it to set it on this cluster now; its prompts are kept.`

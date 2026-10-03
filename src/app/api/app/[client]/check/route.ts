@@ -46,7 +46,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ client: string
   const view = !card || onClusters ? readKept((k) => sp.get(k), APP_LIMITS.search) : {};
   const back = (c: KeywordCheck | null, sig?: string) => {
     const q = new URLSearchParams({ ...(onClusters ? { ...view, open: card, rk: card } : card ? { card } : { ...view, add: "1" }), ...(raw ? { kw: raw } : {}), ...(c ? verdictQuery(c) : {}), ...(sig ? { sig } : {}) });
-    const to = card && !onClusters ? `/app/${encodeURIComponent(slug)}/setup?${q}#card-${encodeURIComponent(card)}` : `/app/${encodeURIComponent(slug)}/clusters?${q}`;
+    // R151 (3 Oct 2026): a refusal lands without the #card fragment - a fragment target stops the browser running autofocus, and the refused field scrolls itself into view when it takes focus.
+    const at = c?.ok === false ? "" : `#card-${encodeURIComponent(card)}`;
+    const to = card && !onClusters ? `/app/${encodeURIComponent(slug)}/setup?${q}${at}` : `/app/${encodeURIComponent(slug)}/clusters?${q}`;
     return NextResponse.redirect(new URL(to, req.url), 303);
   };
   if (!raw) return back(null);

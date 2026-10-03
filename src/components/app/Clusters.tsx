@@ -431,12 +431,13 @@ function AddPanel({ slug, adding, full, clusterLimit, packPrice, close, keep }: 
             1. The keyword
           </label>
           <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-            <input id="kw-draft" name="keyword" defaultValue={adding.kw} required maxLength={ADMIN_LIMITS.question} placeholder="e.g. accounting software for dentists" style={{ flex: "1 1 240px", minWidth: 0, height: "48px", boxSizing: "border-box", padding: "0 14px", border: `1px solid ${T.line}`, borderRadius: "12px", fontFamily: "inherit", fontSize: "15px", color: T.ink, background: T.surface }} />
+            {/* R151 (3 Oct 2026): a refusal comes back on a 303 - the field is marked, described by the line under it, and focused, as /checkout's are. */}
+            <input id="kw-draft" name="keyword" defaultValue={adding.kw} required maxLength={ADMIN_LIMITS.question} placeholder="e.g. accounting software for dentists" aria-describedby="kw-draft-note" aria-invalid={ck?.ok === false ? true : undefined} autoFocus={ck?.ok === false} style={{ flex: "1 1 240px", minWidth: 0, height: "48px", boxSizing: "border-box", padding: "0 14px", border: `1px solid ${T.line}`, borderRadius: "12px", fontFamily: "inherit", fontSize: "15px", color: T.ink, background: T.surface }} />
             <SubmitButton busy="Checking..." style={{ height: "48px", padding: "0 18px", border: `1px solid ${T.ink}`, borderRadius: "12px", background: T.surface, color: T.ink, fontFamily: "inherit", fontSize: "14px", fontWeight: 600 }}>
               Check keyword
             </SubmitButton>
           </div>
-          <p role={ck ? "status" : undefined} style={{ margin: 0, fontSize: "13px", lineHeight: 1.5, color: ck ? (ck.ok ? T.goodFg : T.badFg) : T.soft }}>
+          <p id="kw-draft-note" role={ck ? (ck.ok ? "status" : "alert") : undefined} style={{ margin: 0, fontSize: "13px", lineHeight: 1.5, color: ck ? (ck.ok ? T.goodFg : T.badFg) : T.soft }}>
             {msg}
           </p>
         </form>
@@ -709,12 +710,12 @@ function PendingEditor({
           {c.keyword ? "Change keyword" : "Add its keyword"}
         </label>
         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-          <input id={`rk-kw-${c.id}`} name="keyword" defaultValue={rekey?.kw || (c.keyword ?? typed ?? "")} required maxLength={ADMIN_LIMITS.question} placeholder="e.g. accounting software for dentists" style={{ flex: "1 1 240px", minWidth: 0, height: "44px", boxSizing: "border-box", padding: "0 12px", border: `1px solid ${T.line}`, borderRadius: "10px", fontFamily: "inherit", fontSize: "14px", color: T.ink, background: T.surface }} />
+          <input id={`rk-kw-${c.id}`} name="keyword" defaultValue={rekey?.kw || (c.keyword ?? typed ?? "")} required maxLength={ADMIN_LIMITS.question} placeholder="e.g. accounting software for dentists" aria-describedby={`rk-kw-${c.id}-note`} aria-invalid={ck?.ok === false ? true : undefined} autoFocus={ck?.ok === false} style={{ flex: "1 1 240px", minWidth: 0, height: "44px", boxSizing: "border-box", padding: "0 12px", border: `1px solid ${T.line}`, borderRadius: "10px", fontFamily: "inherit", fontSize: "14px", color: T.ink, background: T.surface }} />
           <SubmitButton busy="Checking..." style={{ height: "44px", padding: "0 16px", border: `1px solid ${T.ink}`, borderRadius: "10px", background: T.surface, color: T.ink, fontFamily: "inherit", fontSize: "13px", fontWeight: 600 }}>
             Check keyword
           </SubmitButton>
         </div>
-        <p role={ck ? "status" : undefined} style={{ margin: 0, fontSize: "13px", lineHeight: 1.5, color: ck ? (ck.ok ? T.goodFg : T.badFg) : T.soft }}>
+        <p id={`rk-kw-${c.id}-note`} role={ck ? (ck.ok ? "status" : "alert") : undefined} style={{ margin: 0, fontSize: "13px", lineHeight: 1.5, color: ck ? (ck.ok ? T.goodFg : T.badFg) : T.soft }}>
           {/* DS59 (2 Oct 2026, R173 pass 6): a cluster with no keyword read "Until the first check you can change it" - there was nothing to change. */}
           {/* DS62 (2 Oct 2026, R173 pass 6): owners read "Give this cluster the keyword" while viewers and /setup read "We add its Google keyword for you" - both now say it. */}
           {ck ? ck.message : typed && !c.keyword ? "This is the keyword you gave at checkout. Check it, or type another; we check it has Google search volume and a buying intent." : !c.keyword ? `Give this cluster the Google keyword its ${PROMPTS_PER_CLUSTER} prompts are about, or leave it and we add one for you. We check it has Google search volume and a buying intent; the prompts stay as they are.` : "Until the first check you can change it. We check it has Google search volume and a buying intent; the prompts stay as they are."}
