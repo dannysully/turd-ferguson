@@ -18,6 +18,7 @@ import {
   formatDay,
   keywordRows,
   movers,
+  namedRate,
   overview,
   pointsDelta,
   sparkPoints,
@@ -357,10 +358,17 @@ export default function Overview({
   // "Ungrouped prompts" card in place of the old flat Biggest movers list. No board draws it,
   // so it is the Overview board's cluster card - same card, same type scale - with a row per prompt.
   const ungroupedCard = (() => {
-    const live = data.questions.filter((q) => q.stopped_on === null && q.added_on <= today);
+    // R151 (3 Oct 2026): beside clusters (pilot-mixed) the card shows too, so it holds only the prompts
+    // in no cluster and reads its rate from their answers - the read ones had no card on the Overview.
+    const mine = cards ? data.questions.filter((q) => (q.cluster_id ?? null) === null) : data.questions;
+    const ids = cards ? new Set(mine.map((q) => q.id)) : undefined;
+    const rateNow = cards ? namedRate(data.answers, range, ids) : o.named;
+    const looseBefore = cards && o.compare ? namedRate(data.answers, o.compare, ids) : null;
+    const rateBefore = cards ? (looseBefore?.den ? looseBefore : null) : o.namedBefore;
+    const live = mine.filter((q) => q.stopped_on === null && q.added_on <= today);
     // R151 (3 Oct 2026): Clusters lists these too ("Ungrouped prompts 50"), so a card saying
     // 45 read as five prompts gone missing between the two pages.
-    const pending = data.questions.filter((q) => q.stopped_on === null && q.added_on > today).length;
+    const pending = mine.filter((q) => q.stopped_on === null && q.added_on > today).length;
     // DS58 (2 Oct 2026, R173 pass 6): the card ran to 45 rows on the ungrouped state; the Overview's
     // other lists show a few and point to the full page, which has the search (DS55).
     const shown = live.slice(0, UNGROUPED_ROWS);
@@ -375,10 +383,10 @@ export default function Overview({
             <span style={{ fontSize: "12px", color: T.soft }}>{`${live.length} prompt${live.length === 1 ? "" : "s"}, not yet in a cluster${pending ? `; ${pending} more start${pending === 1 ? "s" : ""} at the next daily check` : ""}`}</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
-            <Fig style={{ fontSize: "20px", fontWeight: 700, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }} def={basisLine(o.named, "answers")}>
-              {pct(o.named)}
+            <Fig style={{ fontSize: "20px", fontWeight: 700, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }} def={basisLine(rateNow, "answers")}>
+              {pct(rateNow)}
             </Fig>
-            <Chip value={pointsDelta(o.named, o.namedBefore)} unit=" pts" none="New" />
+            <Chip value={pointsDelta(rateNow, rateBefore)} unit=" pts" none="New" />
           </div>
         </div>
         <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "4px" }}>
@@ -800,6 +808,8 @@ export default function Overview({
 
       {cards ? <ClusterCards cards={cards} engines={engines} picked={picked?.id ?? null} href={clusterHref} detail={detailHref} manage={manage} /> : ungroupedCard}
       {cards ? <ClusterRows cards={cards} picked={detailHref ? null : (picked?.id ?? null)} href={detailHref ?? clusterHref} opens={!!detailHref} manage={manage} /> : null}
+      {/* R151 (3 Oct 2026): the headline counts read ungrouped prompts beside clusters ("1 cluster and 5 ungrouped prompts"), so they get their card too. */}
+      {cards && loose ? ungroupedCard : null}
 
       {picked && pickedChart ? (
         <ClusterChart
