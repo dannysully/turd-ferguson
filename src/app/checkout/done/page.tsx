@@ -90,7 +90,7 @@ export default async function CheckoutDone({ searchParams }: Props) {
             // R151 (3 Oct 2026): the next step is the inbox, so the resend is
             // outlined and sits under the question it answers, not above it
             // as the page's one filled button (NN/g, primary and secondary
-            // actions).
+            // actions). Without an address, Go to sign in waits the same way.
             <>
               <p style={{ ...P, margin: "24px 0 0", fontSize: "14px" }}>No email after a few minutes?</p>
               <div style={{ margin: "10px 0 0", maxWidth: "320px" }}>
@@ -98,16 +98,18 @@ export default async function CheckoutDone({ searchParams }: Props) {
               </div>
             </>
           ) : (
-            <p style={{ margin: "24px 0 0" }}>
-              <a
-                href="/app/login"
-                style={{ display: "inline-block", padding: "12px 16px", borderRadius: "10px", background: T.accent, color: "#ffffff", fontWeight: 600, fontSize: "15px", textDecoration: "none" }}
-              >
-                Go to sign in
-              </a>
-            </p>
+            <>
+              <p style={{ ...P, margin: "24px 0 0", fontSize: "14px" }}>No email after a few minutes? Sign in asks for a new link.</p>
+              <p style={{ margin: "10px 0 0" }}>
+                <a
+                  href="/app/login"
+                  style={{ display: "inline-block", padding: "12px 16px", borderRadius: "10px", border: `1px solid ${T.line}`, background: T.surface, color: T.ink, fontWeight: 600, fontSize: "15px", textDecoration: "none" }}
+                >
+                  Go to sign in
+                </a>
+              </p>
+            </>
           )}
-          {email ? null : <p style={{ ...P, fontSize: "14px" }}>No email after a few minutes? Sign in asks for a new link.</p>}
         </>
       ) : (
         <p style={P}>
