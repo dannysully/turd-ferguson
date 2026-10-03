@@ -500,7 +500,8 @@ export default function Overview({
                       <td style={{ ...TD_WIDE, whiteSpace: "nowrap", fontWeight: 500, paddingRight: "8px" }} className="app-kw">{k.keyword}</td>
                       <td style={{ ...TD, padding: "12px 8px", lineHeight: 0 }} className="app-hide-sm">{row ? <Spark series={row.series} colour={!row.change ? T.soft : row.change > 0 ? T.goodFg : T.badFg} /> : null}</td>
                       <td style={{ ...TD, padding: "12px 8px", textAlign: "right", fontSize: "15px", fontWeight: 700, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
-                        {k.added_on > today ? <span style={{ fontWeight: 400, fontSize: "13px", color: T.soft }}>First check tomorrow at 06:00</span> : row?.position ? `#${row.position}` : <span style={{ fontWeight: 400, fontSize: "13px", color: T.soft }}>Not in top 20</span>}
+                        {/* R151 (3 Oct 2026): held to one line, this pushed the Places column 89px off the 390 card. */}
+                        {k.added_on > today ? <span style={{ display: "inline-block", whiteSpace: "normal", fontWeight: 400, fontSize: "13px", lineHeight: 1.35, color: T.soft }}>First check tomorrow at 06:00</span> : row?.position ? `#${row.position}` : <span style={{ fontWeight: 400, fontSize: "13px", color: T.soft }}>Not in top 20</span>}
                       </td>
                       <td style={{ ...TD, paddingLeft: "8px", textAlign: "right" }}>{row?.change === null || row?.change === undefined ? null : <Delta value={row.change} unit="" />}</td>
                     </tr>
