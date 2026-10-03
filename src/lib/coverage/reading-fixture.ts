@@ -34,7 +34,10 @@ export function readingFixture(
   const engines: Engine[] = [...FREE_ENGINES];
   const complete = state === "complete";
   const status = state === "running" ? "running" : state === "stalled" ? "draft" : state;
-  const prompts = coveragePrompts(PLACEHOLDER);
+  // COVERAGE_FIXTURE_QUESTIONS=1-5 keeps the first N, standing in for an agency's own
+  // fewer-than-five prompts (agencyPrompts), so the page's question counts can be seen.
+  const keep = Number(env.COVERAGE_FIXTURE_QUESTIONS);
+  const prompts = coveragePrompts(PLACEHOLDER).slice(0, keep >= 1 ? keep : undefined);
 
   // Named on every engine for the brand question, on some for the rest, on
   // none for the news one - the three pill tones the board draws.
