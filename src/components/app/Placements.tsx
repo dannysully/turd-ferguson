@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import EngineLogo from "@/components/EngineLogo";
 import { T } from "@/config/tokens";
 import { ENGINE_SPECS, type Engine } from "@/lib/scan/engines";
@@ -207,7 +208,10 @@ export default function Placements({
               return (
                 <div key={r.id} id={`p-${r.id}`} data-placement={r.id} aria-current={on ? "true" : undefined} className="app-pl-grid" style={{ ...cell, borderTop: `1px solid ${T.hair}`, background: on ? T.wash : undefined }}>
                   <a href={link(kind, on ? null : r.id, `#p-${r.id}`)} data-usage="placement_select" style={{ display: "flex", flexDirection: "column", gap: "2px", minWidth: 0, color: T.ink, textDecoration: "none" }}>
-                    <span style={{ fontSize: "14px", fontWeight: 700 }}>{host}</span>
+                    {/* At 320 the host column split domains anywhere (R151, 3 Oct 2026): a break only after a dot. */}
+                    <span style={{ fontSize: "14px", fontWeight: 700 }}>
+                      {host.split(".").map((part, i) => (i ? <Fragment key={i}>.<wbr />{part}</Fragment> : part))}
+                    </span>
                     {/* DS42 (2 Oct 2026): a long path is cut at the column, so hover still reads it whole. */}
                     <span title={page} style={{ fontSize: "12px", color: T.soft, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{page}</span>
                   </a>
