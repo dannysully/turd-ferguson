@@ -162,7 +162,8 @@ export default function Header() {
         <button
           className="md:hidden"
           onClick={() => setOpen((v) => !v)}
-          style={{ background: "none", border: "none", cursor: "pointer", padding: "0.5rem" }}
+          // 44px target (R151, 3 Oct 2026: it was 36x32); the negative margin keeps its old 36x32 footprint, so the header and the bars do not move.
+          style={{ background: "none", border: "none", cursor: "pointer", padding: "14px 12px", margin: "-6px -4px" }}
           aria-label={open ? "Close menu" : "Open menu"}
           aria-expanded={open}
         >
