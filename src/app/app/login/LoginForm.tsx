@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 
 import { SCAN_LIMITS } from "@/config/contact";
@@ -27,6 +28,7 @@ export default function LoginForm({ next, refused, again }: { next?: string; ref
   const [message, setMessage] = useState<string | null>(null);
   const [fieldError, setFieldError] = useState<string | null>(refused ? BAD_EMAIL : null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
 
   function refuse(text: string) {
     setFieldError(text);
@@ -47,8 +49,11 @@ export default function LoginForm({ next, refused, again }: { next?: string; ref
         headers: { "content-type": "application/json" },
         body: JSON.stringify(next ? { email, next } : { email }),
       });
-      const body = (await res.json().catch(() => ({}))) as { error?: string; message?: string };
+      const body = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string; message?: string };
       if (body.error === "bad_email") refuse(body.message ?? BAD_EMAIL);
+      // R151 (3 Oct 2026): a sent link moves to the page's sent state, as the
+      // form does without script, and the address is never in the URL.
+      else if (body.ok) router.replace(`/app/login?${new URLSearchParams(next ? { sent: "1", next } : { sent: "1" })}`);
       else setMessage(body.message ?? "Something went wrong. Please try again.");
     } catch {
       setMessage("Something went wrong. Please try again.");

@@ -10,11 +10,15 @@ import LoginForm from "./LoginForm";
 
 export const dynamic = "force-dynamic";
 
-/** Private - noindex here as well as in the layout, the header rule and robots.txt. */
-export const metadata: Metadata = {
-  title: "Log in - alwaystracked",
-  robots: { index: false, follow: false },
-};
+/**
+ * Private - noindex here as well as in the layout, the header rule and robots.txt.
+ * The sent state has its own title so Next's route announcer reads it when
+ * LoginForm moves there with script (R151, 3 Oct 2026).
+ */
+export async function generateMetadata({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }): Promise<Metadata> {
+  const sent = (await searchParams).sent === "1";
+  return { title: sent ? "Check your email - alwaystracked" : "Log in - alwaystracked", robots: { index: false, follow: false } };
+}
 
 /** Dashboard login (T3, 29 Sep 2026). The link lasts 15 minutes and works once. */
 export default async function AppLogin({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
