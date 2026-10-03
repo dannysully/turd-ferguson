@@ -911,7 +911,8 @@ function ClusterRow({
                   <form method="post" action={`${act.action.replace(/\/stop$/, "/prompt")}?${new URLSearchParams({ ...act.keep, kind: "cluster", id: c.id, ...(p.angle ? { angle: p.angle } : {}) })}`} style={{ display: "flex", alignItems: "center", gap: "10px", width: "100%", flexWrap: "wrap" }}>
                     {/* DS70: a viewer reads the stopped prompt in this row; an owner or editor read only the empty slot. */}
                     {p.stoppedOn !== null && p.id !== refill ? (
-                      <span title={p.text} style={{ flexBasis: "100%", minWidth: 0, fontSize: "12px", color: T.soft, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{`“${p.text}” stopped from ${formatDay(p.stoppedOn)}. Its history stays in your reports.`}</span>
+                      // Wraps, never an ellipsis: cut at 1280 it lost "Its history stays in your reports." (R151, 3 Oct 2026).
+                      <span style={{ flexBasis: "100%", minWidth: 0, fontSize: "12px", lineHeight: 1.4, color: T.soft, fontWeight: 600, overflowWrap: "anywhere" }}>{`“${p.text}” stopped from ${formatDay(p.stoppedOn)}. Its history stays in your reports.`}</span>
                     ) : null}
                     <span style={{ flexShrink: 0, padding: "2px 8px", borderRadius: "6px", background: T.chip, color: T.soft, fontSize: "11px", fontWeight: 700, letterSpacing: ".02em", textTransform: "uppercase" }}>{p.angle ?? "Prompt"}</span>
                     <label htmlFor={`slot-${p.id}`} className="sr-only">{`A new ${p.angle ? `${p.angle} ` : ""}prompt about ${kw}`}</label>
