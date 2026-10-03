@@ -142,6 +142,8 @@ export default async function CampaignReadingPage({
   const failed = state === "failed";
   const complete = state === "complete";
   const stalled = state === "stalled";
+  /** Nothing measured on this campaign yet: the one reading never started, or stopped before it finished. */
+  const firstTry = (stalled || failed) && history.length <= 1;
 
   const engineCount = reading?.engines.length ?? 0;
   const placedSources = sources.filter((s) => s.placed);
@@ -565,18 +567,20 @@ export default async function CampaignReadingPage({
           route accepts. `stalled` is the point of the change: it is the only
           state where the re-run is the *only* thing that can move the page on,
           and it was the one state the button was hidden in. */}
+      {/* R151 (3 Oct 2026): a first reading that failed measured nothing too, but read
+          "After the campaign ... once the coverage has had time to land" over its retry. */}
       {canRerun(state) && (
         <section>
           <div className="board-head" style={{ ...GRID12, marginBottom: "14px" }}>
             <h2 style={{ ...H2, gridColumn: "span 4" }}>
-              {stalled && history.length <= 1
+              {firstTry
                 ? "Take the first reading"
                 : history.length > 1
                   ? "Every reading of this campaign"
                   : "After the campaign"}
             </h2>
             <p style={{ gridColumn: "span 8", margin: 0, fontSize: "14px", lineHeight: 1.6, color: T.soft }}>
-              {stalled && history.length <= 1
+              {firstTry
                 ? "Nothing has been measured against this campaign yet. This asks the " +
                   count(COVERAGE_PROMPT_COUNT, "question") +
                   " for the first time and gives you the starting line the next reading is compared to."
@@ -590,7 +594,7 @@ export default async function CampaignReadingPage({
             <RerunButton
               token={token}
               primary={!complete}
-              label={stalled && history.length <= 1 ? "Take the first reading" : "Take another reading"}
+              label={firstTry ? "Take the first reading" : "Take another reading"}
             />
           </div>
         </section>
