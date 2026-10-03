@@ -117,6 +117,8 @@ const KEYS: Record<string, Record<string, string>> = {
     via: 'sp.via === "agency"', // DS29, 2 Oct 2026: renamed from `to` with Clusters' (the range's key)
     team: "teamToast(sp.team, sp.who,", // teamToast answers only invited, removed, role or refused
     who: "teamToast(sp.team, sp.who,", // readEmail: trimmed, format-checked, at most EMAIL_MAX
+    // R151, 3 Oct 2026: a refusal's code from the member route; teamWhy matches it against TEAM_WHY's keys, nothing is echoed.
+    why: "inviteRefusal(sp.team, sp.why)",
   },
   "/placements": {
     type: 'pickKind(typeof sp.type === "string" ? sp.type : null)',

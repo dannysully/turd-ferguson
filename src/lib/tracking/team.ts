@@ -53,24 +53,56 @@ export function readTeamForm(get: (k: string) => unknown): TeamForm | null {
 
 const live = (rows: TeamRow[]) => rows.filter((r) => r.removed_at === null);
 
+/**
+ * Every refusal's words, once, by a code the route carries back in the URL
+ * (R151, 3 Oct 2026): a refused change used to come back as "Reload the page
+ * and try again" whatever the reason, so an owner inviting someone already on
+ * the team, or over the cap, was told to retry something that cannot work (NN/g
+ * heuristic 9). Only the code travels; the page draws these fixed words.
+ */
+export const TEAM_WHY = {
+  actor: "Only owners can change the team.",
+  email: "That email address does not look right. Type it in full, like name@example.com.",
+  already: "They are already on the team.",
+  full: `A dashboard has at most ${MEMBERS_PER_ACCOUNT} members. Remove someone to make room.`,
+  limit: "That is today's invite limit. Try again tomorrow.",
+  self: "You cannot change or remove yourself.",
+  gone: "They are not on the team.",
+  owner: "A dashboard needs at least one owner.",
+  editor: "They are already an editor.",
+  viewer: "They are already a viewer.",
+} as const;
+export type TeamWhy = keyof typeof TEAM_WHY;
+
+/** The refusals the invite form answers on its own field rather than in the page's toast. */
+export const INVITE_WHYS: readonly TeamWhy[] = ["email", "already", "full", "limit"];
+
+/** A code from the URL, or the code of one of TEAM_WHY's sentences; anything else is null. */
+export function teamWhy(raw: unknown): TeamWhy | null {
+  if (typeof raw !== "string") return null;
+  if (Object.hasOwn(TEAM_WHY, raw)) return raw as TeamWhy;
+  const hit = Object.entries(TEAM_WHY).find(([, words]) => words === raw);
+  return hit ? (hit[0] as TeamWhy) : null;
+}
+
 /** Only an owner changes the team. */
-export const refuseActor = (role: string): string | null => (role === "owner" ? null : "Only owners can change the team.");
+export const refuseActor = (role: string): string | null => (role === "owner" ? null : TEAM_WHY.actor);
 
 export function refuseInvite(p: { rows: TeamRow[]; email: string; invitesToday: number }): string | null {
   const row = p.rows.find((r) => r.email === p.email);
-  if (row && row.removed_at === null) return "They are already on the team.";
-  if (live(p.rows).length >= MEMBERS_PER_ACCOUNT) return `A dashboard has at most ${MEMBERS_PER_ACCOUNT} members.`;
-  if (p.invitesToday >= INVITES_PER_OWNER_PER_DAY) return "That is today's invite limit. Try again tomorrow.";
+  if (row && row.removed_at === null) return TEAM_WHY.already;
+  if (live(p.rows).length >= MEMBERS_PER_ACCOUNT) return TEAM_WHY.full;
+  if (p.invitesToday >= INVITES_PER_OWNER_PER_DAY) return TEAM_WHY.limit;
   return null;
 }
 
 /** A change to someone else's live row; never your own, never the last owner. */
 export function refuseChange(p: { rows: TeamRow[]; actor: string; email: string; op: "role" | "remove"; role: InviteRole | null }): string | null {
-  if (p.email === p.actor) return "You cannot change or remove yourself.";
+  if (p.email === p.actor) return TEAM_WHY.self;
   const row = live(p.rows).find((r) => r.email === p.email);
-  if (!row) return "They are not on the team.";
-  if (row.role === "owner" && live(p.rows).filter((r) => r.role === "owner").length <= 1) return "A dashboard needs at least one owner.";
-  if (p.op === "role" && row.role === p.role) return `They are already ${p.role === "editor" ? "an editor" : "a viewer"}.`;
+  if (!row) return TEAM_WHY.gone;
+  if (row.role === "owner" && live(p.rows).filter((r) => r.role === "owner").length <= 1) return TEAM_WHY.owner;
+  if (p.op === "role" && row.role === p.role) return p.role === "editor" ? TEAM_WHY.editor : TEAM_WHY.viewer;
   return null;
 }
 
@@ -78,22 +110,37 @@ export function refuseChange(p: { rows: TeamRow[]; actor: string; email: string;
 
 export type TeamDone = "invited" | "removed" | "role" | "refused";
 
-export function teamReturn(slug: string, done: TeamDone, email: string | null, keep: Record<string, string> = {}): string {
+export function teamReturn(slug: string, done: TeamDone, email: string | null, keep: Record<string, string> = {}, why: TeamWhy | null = null): string {
   // DS40 (2 Oct 2026, R173 pass 4): the range the form posted with (readKept's from, to, compare) comes back too.
   const range = Object.fromEntries(Object.entries(keep).filter(([k]) => k === "from" || k === "to" || k === "compare"));
-  const q = new URLSearchParams({ ...range, team: done, ...(email && done !== "refused" ? { who: email } : {}) });
-  return `/app/${encodeURIComponent(slug)}/settings?${q}#set-team`;
+  // A refusal carries its code, never the address (an address in a URL lands in request logs).
+  const q = new URLSearchParams({ ...range, team: done, ...(email && done !== "refused" ? { who: email } : {}), ...(done === "refused" && why ? { why } : {}) });
+  // An invite refusal carries no fragment: its form opens with the field autofocused, which scrolls it into view,
+  // and a fragment target stops the browser running autofocus (as the setup 303s found, 21c7c6a).
+  const at = done === "refused" && why && INVITE_WHYS.includes(why) ? "" : "#set-team";
+  return `/app/${encodeURIComponent(slug)}/settings?${q}${at}`;
+}
+
+/** The invite form's own refusal line: a refused invite whose code is one of INVITE_WHYS, else null. */
+export function inviteRefusal(done: unknown, why: unknown): string | null {
+  const w = done === "refused" ? teamWhy(why) : null;
+  return w && INVITE_WHYS.includes(w) ? TEAM_WHY[w] : null;
 }
 
 /**
  * Fixed words; the only thing from the URL is an email that passes readEmail,
  * and only where the team agrees with it (R146, 1 Oct 2026): "Invited" needs
  * them on the team now and "Removed" needs them off it, so a typed link cannot
- * put a stranger's address in a confirmation.
+ * put a stranger's address in a confirmation. A refusal says its reason when
+ * its code is known; an invite refusal is the form's line (inviteRefusal), not this.
  */
-export function teamToast(done: unknown, who: unknown, roleNow: string | null): string | null {
+export function teamToast(done: unknown, who: unknown, roleNow: string | null, why: unknown = null): string | null {
   const email = readEmail(who);
-  if (done === "refused") return "That change did not go through. Reload the page and try again.";
+  if (done === "refused") {
+    if (inviteRefusal(done, why)) return null;
+    const w = teamWhy(why);
+    return w ? TEAM_WHY[w] : "That change did not go through. Reload the page and try again.";
+  }
   if (!email) return null;
   if (done === "invited") return roleNow === null ? null : `Invited ${email}.`;
   if (done === "removed") return roleNow === null ? `Removed ${email}.` : null;

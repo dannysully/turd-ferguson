@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { INVITES_PER_OWNER_PER_DAY, MEMBERS_PER_ACCOUNT, type TeamRow, inviteMail, readEmail, readTeamForm, refuseActor, refuseChange, refuseInvite, teamReturn, teamToast } from "./team.ts";
+import { INVITES_PER_OWNER_PER_DAY, MEMBERS_PER_ACCOUNT, TEAM_WHY, type TeamRow, inviteMail, inviteRefusal, readEmail, readTeamForm, refuseActor, refuseChange, refuseInvite, teamReturn, teamToast, teamWhy } from "./team.ts";
 
 /** R142 part 2 (1 Oct 2026; BRIEF-4 P2 Team): the rules the member route runs before any write. */
 
@@ -71,6 +71,33 @@ test("the return URL and toast carry fixed words and a checked email only", () =
   assert.equal(teamToast("invited", "<script>@x", null), null);
   assert.equal(teamToast("role", "vi@tallyroo.com", null), null, "not a member any more: no claim about their role");
   assert.equal(teamToast("anything", "vi@tallyroo.com", null), null);
+});
+
+test("R151 (3 Oct 2026): a refusal comes back as its code and says its reason, never the address", () => {
+  // Every sentence a rule returns has a code, so no rule's refusal falls back to "Reload the page".
+  const said = [
+    refuseActor("viewer"),
+    refuseInvite({ rows: team, email: "ed@tallyroo.com", invitesToday: 0 }),
+    refuseInvite({ rows: team, email: "new@tallyroo.com", invitesToday: INVITES_PER_OWNER_PER_DAY }),
+    refuseChange({ rows: team, actor: "o2@tallyroo.com", email: "o2@tallyroo.com", op: "remove", role: null }),
+    refuseChange({ rows: team, actor: "o2@tallyroo.com", email: "gone@tallyroo.com", op: "remove", role: null }),
+    refuseChange({ rows: team, actor: "o2@tallyroo.com", email: "ed@tallyroo.com", op: "role", role: "editor" }),
+  ];
+  for (const s of said) assert.ok(s && teamWhy(s), `no code for: ${s}`);
+  assert.equal(new Set(Object.values(TEAM_WHY)).size, Object.keys(TEAM_WHY).length, "each code says a different sentence");
+  // The URL carries the code, not the email; an invite refusal opens the invite form, whose field autofocuses.
+  assert.equal(teamReturn("tallyroo", "refused", "ed@tallyroo.com", {}, "already"), "/app/tallyroo/settings?team=refused&why=already", "no fragment: a target stops autofocus");
+  assert.equal(teamReturn("tallyroo", "refused", "o2@tallyroo.com", {}, "self"), "/app/tallyroo/settings?team=refused&why=self#set-team");
+  assert.equal(teamReturn("tallyroo", "invited", "new@tallyroo.com", {}, "already"), `/app/tallyroo/settings?${new URLSearchParams({ team: "invited", who: "new@tallyroo.com" })}#set-team`);
+  // The invite form draws its own refusals; the toast draws the rest, and nothing for an invite one.
+  assert.equal(inviteRefusal("refused", "already"), TEAM_WHY.already);
+  assert.equal(teamToast("refused", null, null, "already"), null);
+  assert.equal(inviteRefusal("refused", "self"), null);
+  assert.equal(teamToast("refused", null, null, "self"), TEAM_WHY.self);
+  assert.equal(inviteRefusal("invited", "already"), null, "only a refusal");
+  // A made-up code reads as before.
+  assert.equal(teamToast("refused", null, null, "<b>x</b>"), "That change did not go through. Reload the page and try again.");
+  assert.equal(inviteRefusal("refused", "toString"), null, "own keys only");
 });
 
 test("the invite mail: the brief's words, no login token, and no nomada tier in agency mode", () => {

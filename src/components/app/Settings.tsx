@@ -57,6 +57,7 @@ export default function Settings({
   slug,
   owner,
   toast,
+  inviteError = null,
   keep = "",
 }: {
   domain: string;
@@ -78,6 +79,8 @@ export default function Settings({
   owner: boolean;
   /** team.ts teamToast's words, or null. */
   toast: string | null;
+  /** team.ts inviteRefusal's words: drawn on the open invite form, just above its email field (R151, 3 Oct 2026). */
+  inviteError?: string | null;
   /** The stated range as rangeQuery's "?from=&to=&compare=" or "" (DS40): the team and ask forms post it so their 303 keeps it. */
   keep?: string;
 }) {
@@ -182,13 +185,24 @@ export default function Settings({
           </ul>
         )}
         {owner ? (
-          <details className="set-invite" style={{ borderTop: `1px solid ${T.line}`, padding: "14px 24px" }}>
+          <details id="set-invite" className="set-invite" open={inviteError ? true : undefined} style={{ borderTop: `1px solid ${T.line}`, padding: "14px 24px", scrollMarginTop: "24px" }}>
             <summary style={{ ...BUTTON, display: "inline-flex", alignItems: "center", listStyle: "none" }}>Invite someone</summary>
             <form method="post" action={action} style={{ margin: "14px 0 0", display: "flex", flexWrap: "wrap", alignItems: "flex-end", gap: "12px" }}>
               <input type="hidden" id="tm-inv-op" name="op" value="invite" />
               <label style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "13px", color: T.soft, flex: "1 1 240px" }}>
                 Email
-                <input type="email" id="tm-inv-email" name="email" required maxLength={APP_LIMITS.email} autoComplete="off" style={{ ...FIELD, width: "100%" }} />
+                <input
+                  type="email"
+                  id="tm-inv-email"
+                  name="email"
+                  required
+                  maxLength={APP_LIMITS.email}
+                  autoComplete="off"
+                  aria-invalid={inviteError ? true : undefined}
+                  aria-describedby={inviteError ? "tm-inv-error tm-inv-hint" : "tm-inv-hint"}
+                  autoFocus={inviteError ? true : undefined}
+                  style={{ ...FIELD, width: "100%" }}
+                />
               </label>
               <label style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "13px", color: T.soft }}>
                 Role
@@ -198,7 +212,13 @@ export default function Settings({
                 </select>
               </label>
               <SubmitButton busy="Sending invite..." style={DARK}>Send invite</SubmitButton>
-              <span style={{ flexBasis: "100%", fontSize: "13px", color: T.soft }}>Editors can add and stop prompts; viewers can only read. We email them; they sign in with that address.</span>
+              {/* R151 (3 Oct 2026): the refusal on the form it is about (Baymard forms, inline errors; WCAG 2.2 3.3.1). The address is not carried back, so the field is empty. */}
+              {inviteError ? (
+                <span id="tm-inv-error" role="alert" style={{ flexBasis: "100%", order: -1, fontSize: "13px", fontWeight: 600, color: T.ink }}>
+                  {inviteError}
+                </span>
+              ) : null}
+              <span id="tm-inv-hint" style={{ flexBasis: "100%", fontSize: "13px", color: T.soft }}>Editors can add and stop prompts; viewers can only read. We email them; they sign in with that address.</span>
             </form>
           </details>
         ) : (

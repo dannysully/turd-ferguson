@@ -13,7 +13,7 @@ import { sendInvite } from "@/lib/tracking/invite-mail";
 import { clientsFor, sessionEmail } from "@/lib/tracking/member";
 import { writeFixture } from "@/lib/tracking/repo";
 import { readKept } from "@/lib/tracking/stop";
-import { type TeamDone, changeRole, invite, inviteMail, invitesToday, readTeam, readTeamForm, refuseActor, refuseChange, refuseInvite, removeMember, teamReturn } from "@/lib/tracking/team";
+import { type TeamDone, type TeamWhy, changeRole, invite, inviteMail, invitesToday, readTeam, readTeamForm, refuseActor, refuseChange, refuseInvite, removeMember, teamReturn, teamWhy } from "@/lib/tracking/team";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -34,13 +34,14 @@ export async function POST(req: Request, ctx: { params: Promise<{ client: string
   // DS40: the form's action carries the page's stated range; only from, to and compare come back.
   const sp = new URL(req.url).searchParams;
   const kept = readKept((k) => sp.get(k), 0);
-  const back = (done: TeamDone) => NextResponse.redirect(new URL(teamReturn(slug, done, f?.email ?? null, kept), req.url), 303);
-  if (!f) return back("refused");
+  const back = (done: TeamDone, why: TeamWhy | null = null) => NextResponse.redirect(new URL(teamReturn(slug, done, f?.email ?? null, kept, why), req.url), 303);
+  // R151 (3 Oct 2026): an invite whose address fails the shape check says so on its field.
+  if (!f) return back("refused", form?.get("op") === "invite" ? "email" : null);
   if (fixtureMode()) {
     // R168: invite, role and remove held in memory on the writable fixture; sendInvite is never reached here.
     const r = writeFixture((fx) => fixtureTeam(fx, { op: f.op, email: f.email, role: f.role, now: new Date().toISOString() }));
     if (r && !r.ok) console.warn(`[app] fixture team ${f.op} refused: ${r.message}`);
-    return back(r?.ok ? (f.op === "invite" ? "invited" : f.op === "role" ? "role" : "removed") : "refused");
+    return r?.ok ? back(f.op === "invite" ? "invited" : f.op === "role" ? "role" : "removed") : back("refused", r ? teamWhy(r.message) : null);
   }
 
   const email = await sessionEmail();
@@ -49,7 +50,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ client: string
   if (!client) return NextResponse.json({ error: "Not found." }, { status: 404 });
   const refused = (why: string) => {
     console.warn(`[app] team ${f.op} refused: ${why}`);
-    return back("refused");
+    // A rule's refusal carries its code; a failed read or write does not, and reads "Reload the page".
+    return back("refused", teamWhy(why));
   };
   const actor = refuseActor(client.role);
   if (actor) return refused(actor);
