@@ -88,6 +88,8 @@ function Logo({ dark }: { dark: boolean }) {
   );
 }
 
+const menuRow: React.CSSProperties = { display: "flex", alignItems: "center", minHeight: "44px" };
+
 export default function Header() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -172,14 +174,17 @@ export default function Header() {
 
       {open && (
         <nav className="site-header__menu" style={{ background: T.surface, borderTop: `1px solid ${T.line}`, padding: "1rem 1.5rem 1.5rem" }} aria-label="Mobile navigation">
-          <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "1rem" }}>
+          {/* Every row a 44px target (R151, 3 Oct 2026: they measured 18-22px
+              opened at 390); the gaps the rows replace are gone, so the menu
+              is about as tall as before. */}
+          <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "4px" }}>
             {groups.map((g) => (
               <li key={g.label}>
-                <span style={{ ...linkStyle, color: T.ink }}>{g.label}</span>
-                <ul style={{ listStyle: "none", padding: "0 0 0 16px", margin: "12px 0 0", display: "flex", flexDirection: "column", gap: "12px" }}>
+                <span style={{ ...linkStyle, color: T.ink, display: "block", paddingTop: "6px" }}>{g.label}</span>
+                <ul style={{ listStyle: "none", padding: "0 0 0 16px", margin: "2px 0 0", display: "flex", flexDirection: "column" }}>
                   {g.items.map((link) => (
                     <li key={link.key}>
-                      <Link href={link.href} style={{ ...linkStyle, display: "block", maxWidth: "300px" }} onClick={() => setOpen(false)}>
+                      <Link href={link.href} style={{ ...linkStyle, ...menuRow, maxWidth: "300px" }} onClick={() => setOpen(false)}>
                         {link.label}
                       </Link>
                     </li>
@@ -189,16 +194,19 @@ export default function Header() {
             ))}
             {navLinks.map((link) => (
               <li key={link.href}>
-                <Link href={link.href} style={linkStyle} onClick={() => setOpen(false)}>
+                <Link href={link.href} style={{ ...linkStyle, ...menuRow }} onClick={() => setOpen(false)}>
                   {link.label}
                 </Link>
               </li>
             ))}
-            <li>
+            <li style={{ marginTop: "8px" }}>
               <Link
                 href="/#scan"
                 style={{
-                  display: "inline-block",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  minHeight: "44px",
+                  boxSizing: "border-box",
                   background: T.accent,
                   color: "#ffffff",
                   fontSize: "14px",
