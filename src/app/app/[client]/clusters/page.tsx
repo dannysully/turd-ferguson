@@ -83,7 +83,9 @@ export default async function ClientClusters({
   const packPrice = trackingPackPrice(client.market);
   // DS29: "Hide for 30 days" says what it did and for how long, in the same done pill as a sent ask.
   const hid = one("hid") === "1" && !ask;
-  const asked = ask === "sent" ? askToast(one("via") === "agency" ? "your account contact" : "nomada digital", email, attached) : askRefusal(ask) ?? (hid ? `Hidden for ${HIDE_DAYS} days, until ${formatDay(hiddenUntil(today))}. Only you stop seeing it.` : null);
+  // R151 (3 Oct 2026): a hide that was not recorded came back with no word, the prompt still there.
+  const unhid = one("hid") === "0" && !ask;
+  const asked = ask === "sent" ? askToast(one("via") === "agency" ? "your account contact" : "nomada digital", email, attached) : askRefusal(ask) ?? (hid ? `Hidden for ${HIDE_DAYS} days, until ${formatDay(hiddenUntil(today))}. Only you stop seeing it.` : unhid ? "That did not hide. Try again." : null);
 
   return (
     <div className="app-shell" style={{ display: "flex", flexWrap: "wrap", minHeight: "100vh", color: T.ink }}>

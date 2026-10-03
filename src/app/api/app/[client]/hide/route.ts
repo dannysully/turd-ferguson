@@ -29,11 +29,12 @@ export async function POST(req: Request, ctx: { params: Promise<{ client: string
   const cta = readHideCta(form?.get("cta"));
   const view = readKept((k) => new URL(req.url).searchParams.get(k), APP_LIMITS.search);
   // DS29: `hid=1` draws "Hidden for 30 days" on the way back - only once the row is recorded (the fixture records nothing and says so anyway).
-  const to = (hid: boolean) => {
-    const q = new URLSearchParams({ ...view, ...(cta === "mentioned" ? { filter: "never" } : {}), ...(hid ? { hid: "1" } : {}) }).toString();
+  // R151 (3 Oct 2026): a write that failed comes back `hid=0`, so the page says it did not hide rather than nothing.
+  const to = (hid: boolean | null) => {
+    const q = new URLSearchParams({ ...view, ...(cta === "mentioned" ? { filter: "never" } : {}), ...(hid === null ? {} : { hid: hid ? "1" : "0" }) }).toString();
     return NextResponse.redirect(new URL(`/app/${slug}/clusters${q ? `?${q}` : ""}`, req.url), 303);
   };
-  const back = to(false);
+  const back = to(null);
   if (!cta) return back;
   if (fixtureMode()) return to(true);
 
