@@ -11,8 +11,10 @@ import { T } from "@/config/tokens";
  * too, as "Send it again" (R166). R151 (3 Oct 2026): a form posting the
  * address in its body, so without script it still sends - the route 303s to
  * /app/login with only the outcome, which says LOGIN_SENT there.
+ * `secondary` draws it outlined, for a page whose next step is the inbox
+ * rather than this button (/checkout/done, R151 3 Oct 2026).
  */
-export default function SendNewLink({ email, label }: { email: string; label?: string }) {
+export default function SendNewLink({ email, label, secondary }: { email: string; label?: string; secondary?: boolean }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -42,7 +44,7 @@ export default function SendNewLink({ email, label }: { email: string; label?: s
       <button
         type="submit"
         aria-disabled={busy || undefined}
-        style={{ padding: "12px 16px", borderRadius: "10px", border: "none", background: T.accent, color: "#ffffff", fontWeight: 600, fontSize: "15px", cursor: busy ? "progress" : "pointer", overflowWrap: "anywhere" }}
+        style={{ padding: "12px 16px", borderRadius: "10px", border: secondary ? `1px solid ${T.line}` : "none", background: secondary ? T.surface : T.accent, color: secondary ? T.ink : "#ffffff", fontWeight: 600, fontSize: "15px", cursor: busy ? "progress" : "pointer", overflowWrap: "anywhere" }}
       >
         {busy ? (
           <>

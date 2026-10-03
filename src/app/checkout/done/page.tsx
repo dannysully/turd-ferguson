@@ -87,9 +87,16 @@ export default async function CheckoutDone({ searchParams }: Props) {
             // R166: one click for a fresh link to the order's address, through
             // /api/app/login and its hourly cap. Without script it posts and
             // lands on /app/login saying the link is sent (R151, 3 Oct 2026).
-            <div style={{ margin: "24px 0 0", maxWidth: "320px" }}>
-              <SendNewLink email={email} label="Send it again" />
-            </div>
+            // R151 (3 Oct 2026): the next step is the inbox, so the resend is
+            // outlined and sits under the question it answers, not above it
+            // as the page's one filled button (NN/g, primary and secondary
+            // actions).
+            <>
+              <p style={{ ...P, margin: "24px 0 0", fontSize: "14px" }}>No email after a few minutes?</p>
+              <div style={{ margin: "10px 0 0", maxWidth: "320px" }}>
+                <SendNewLink email={email} label="Send it again" secondary />
+              </div>
+            </>
           ) : (
             <p style={{ margin: "24px 0 0" }}>
               <a
@@ -100,19 +107,7 @@ export default async function CheckoutDone({ searchParams }: Props) {
               </a>
             </p>
           )}
-          <p style={{ ...P, fontSize: "14px" }}>
-            No email after a few minutes?{" "}
-            {email ? (
-              <>
-                <a href="/app/login" style={{ color: T.accent }}>
-                  Sign in
-                </a>{" "}
-                asks for a new link too.
-              </>
-            ) : (
-              "Sign in asks for a new link."
-            )}
-          </p>
+          {email ? null : <p style={{ ...P, fontSize: "14px" }}>No email after a few minutes? Sign in asks for a new link.</p>}
         </>
       ) : (
         <p style={P}>
